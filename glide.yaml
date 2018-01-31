@@ -1,0 +1,56 @@
+package: github.com/CyberMiles/travis
+import:
+- package: github.com/gorilla/websocket
+- package: github.com/pkg/errors
+  version: ^0.8.0
+- package: github.com/spf13/cobra
+- package: github.com/spf13/pflag
+- package: github.com/spf13/viper
+- package: github.com/tendermint/abci
+  version:  0.9.x
+  subpackages:
+  - server
+  - types
+- package: github.com/cosmos/cosmos-sdk
+  version: master
+- package: github.com/tendermint/iavl
+  version: master
+- package: github.com/tendermint/go-crypto
+  version: remove_ledger
+  subpackages:
+  - cmd
+  - keys
+- package: github.com/tendermint/go-wire
+  version: master
+  subpackages:
+  - data
+- package: github.com/tendermint/tendermint
+  version: v0.15.0
+  subpackages:
+  - config
+  - node
+  - proxy
+  - rpc/client
+  - rpc/core/types
+  - rpc/lib/client
+  - rpc/lib/types
+  - types
+- package: github.com/tendermint/tmlibs
+  version: 0.6.x
+  subpackages:
+  - cli
+  - cli/flags
+  - common
+  - events
+  - log
+  - logger
+- package: github.com/gorilla/mux
+  version: ^1.5.0
+- package: github.com/ethereum/go-ethereum
+  version: f1.6.7
+  repo: https://github.com/tendermint/go-ethereum.git
+testImport:
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert
+  - require
