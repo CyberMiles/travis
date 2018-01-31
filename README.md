@@ -18,12 +18,12 @@ $ travis node start
 
 ## Start Tendermint
 ```
-tendermint --home ~/.ethermint/tendermint/ node 
+$ tendermint --home ~/.ethermint/tendermint/ node 
 ```
 
 ## Start Ethermint
 ```
-ethermint --datadir ~/.ethermint --rpc --rpcaddr=0.0.0.0 --ws --wsaddr=0.0.0.0 --rpcapi eth,net,web3,personal,admin --abci_laddr tcp://0.0.0.0:8848
+$ ethermint --datadir ~/.ethermint --rpc --rpcaddr=0.0.0.0 --ws --wsaddr=0.0.0.0 --rpcapi eth,net,web3,personal,admin --abci_laddr tcp://0.0.0.0:8848
 ```
 
 ## Send transactions
