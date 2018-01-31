@@ -1,4 +1,5 @@
 # Travis
+The first production version of the CyberMiles blockchain.
 
 ## Initialize tendermint & ethermint
 
