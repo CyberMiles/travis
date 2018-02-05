@@ -11,6 +11,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/cosmos/cosmos-sdk/stack"
+	//"github.com/CyberMiles/travis/modules/stake"
+	"github.com/tendermint/go-wire/data"
+	//"github.com/tendermint/go-wire"
+	"github.com/CyberMiles/travis/modules/stake"
 )
 
 // BaseApp - The ABCI application
@@ -20,13 +25,19 @@ type BaseApp struct {
 	clock   sdk.Ticker
 }
 
-var _ abci.Application = &BaseApp{}
-
 const ETHERMINT_ADDR = "localhost:8848"
+
+var (
+	_ abci.Application = &BaseApp{}
+	client, err = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
+	handler = stake.NewHandler()
+)
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
 func NewBaseApp(store *StoreApp, handler sdk.Handler, clock sdk.Ticker) *BaseApp {
+	client.Start()
+
 	return &BaseApp{
 		StoreApp: store,
 		handler:  handler,
@@ -35,65 +46,87 @@ func NewBaseApp(store *StoreApp, handler sdk.Handler, clock sdk.Ticker) *BaseApp
 }
 
 // DeliverTx - ABCI - dispatches to the handler
-func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
+func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 	fmt.Println("DeliverTx")
 
-	var client, err = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
-	client.Start()
+	tx, err := sdk.LoadTx(txBytes)
+	if err != nil {
+		// try to decode with ethereum
+		tx, err := decodeTx(txBytes)
+		if err != nil {
+			app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
 
-	resp, err := client.DeliverTxSync(txBytes)
+			return errors.DeliverResult(err)
+		}
 
-	fmt.Printf("ethermint DeliverTx response: %v\n", resp)
+		resp, err := client.DeliverTxSync(txBytes)
+		fmt.Printf("ethermint DeliverTx response: %v\n", resp)
+
+		return abci.ResponseDeliverTx{Code: 0}
+	}
+
+	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
+
+	ctx := stack.NewContext(
+		app.GetChainID(),
+		app.WorkingHeight(),
+		app.Logger().With("call", "delivertx"),
+	)
+	res, err := app.handler.DeliverTx(ctx, app.Append(), tx)
 
 	if err != nil {
 		return errors.DeliverResult(err)
 	}
-
-	res.Code = 0
-
-	return res
+	app.AddValChange(res.Diff)
+	return res.ToABCI()
 }
 
 // CheckTx - ABCI - dispatches to the handler
 func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 	fmt.Println("CheckTx")
 
-	tx, err := decodeTx(txBytes)
+	tx, err := sdk.LoadTx(txBytes)
 	if err != nil {
-		// nolint: errcheck
-		app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx, "err", err)
-		return abci.ResponseCheckTx{
-			Code: errors.CodeTypeInternalErr,
-			Log:  err.Error(),
+		// try to decode with ethereum
+		tx, err := decodeTx(txBytes)
+		if err != nil {
+			app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx, "err", err)
+
+			return errors.CheckResult(err)
 		}
+
+		resp, err := client.CheckTxSync(txBytes)
+		fmt.Printf("ethermint CheckTx response: %v\n", resp)
+
+		if err != nil {
+			return errors.CheckResult(err)
+		}
+
+		return sdk.NewCheck(21000, "").ToABCI()
 	}
 
-	app.logger.Info("CheckTx: Received valid transaction", "tx", tx) // nolint: errcheck
+	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
 
-	client, err := abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
-	client.Start()
-
-	resp, err := client.CheckTxSync(txBytes)
-
-	fmt.Printf("ethermint CheckTx response: %v\n", resp)
+	ctx := stack.NewContext(
+		app.GetChainID(),
+		app.WorkingHeight(),
+		app.Logger().With("call", "checktx"),
+	)
+	res, err := app.handler.CheckTx(ctx, app.Check(), tx)
 
 	if err != nil {
 		return errors.CheckResult(err)
 	}
-
-	return sdk.NewCheck(21000, "").ToABCI()
+	return res.ToABCI()
 }
 
 // BeginBlock - ABCI
 func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	fmt.Println("BeginBlock")
 
-	var client, _ = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
-	client.Start()
-
-	resp, _ := client.BeginBlockSync(beginBlock)
-
-	fmt.Printf("ethermint BeginBlock response: %v\n", resp)
+	//resp, _ := client.BeginBlockSync(beginBlock)
+	//
+	//fmt.Printf("ethermint BeginBlock response: %v\n", resp)
 
 	return abci.ResponseBeginBlock{}
 }
@@ -102,21 +135,78 @@ func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.Resp
 func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	fmt.Println("EndBlock")
 
-	var client, _ = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
-	client.Start()
+	//resp, _ := client.EndBlockSync(endBlock)
+	//
+	//fmt.Printf("ethermint EndBlock response: %v\n", resp)
 
-	resp, _ := client.EndBlockSync(endBlock)
+	// execute tick if present
+	if app.clock != nil {
+		ctx := stack.NewContext(
+			app.GetChainID(),
+			app.WorkingHeight(),
+			app.Logger().With("call", "tick"),
+		)
 
-	fmt.Printf("ethermint EndBlock response: %v\n", resp)
-
-	return abci.ResponseEndBlock{}
+		diff, err := app.clock.Tick(ctx, app.Append())
+		if err != nil {
+			panic(err)
+		}
+		app.AddValChange(diff)
+	}
+	return app.StoreApp.EndBlock(endBlock)
 }
 
-// InitState - used to setup state (was SetOption)
-// to be used by InitChain later
-//
+func (app *BaseApp) Commit() (res abci.ResponseCommit) {
+	fmt.Println("Commit")
+
+	resp, err := client.CommitSync()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("ethermint Commit response: %v\n", resp)
+
+	return app.StoreApp.Commit()
+}
+
 func (app *BaseApp) InitState(module, key, value string) error {
-	return nil
+	state := app.Append()
+	logger := app.Logger().With("module", module, "key", key)
+
+	if module == sdk.ModuleNameBase {
+		if key == sdk.ChainKey {
+			app.info.SetChainID(state, value)
+			return nil
+		}
+		logger.Error("Invalid genesis option")
+		return fmt.Errorf("Unknown base option: %s", key)
+	}
+
+	log, err := app.handler.InitState(logger, state, module, key, value)
+	if err != nil {
+		logger.Error("Invalid genesis option", "err", err)
+	} else {
+		logger.Info(log)
+	}
+	return err
+}
+
+func (app *BaseApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQuery) {
+	fmt.Println("Query")
+
+	var d = data.Bytes(reqQuery.Data)
+	fmt.Println(d)
+	fmt.Println(d.MarshalJSON())
+	reqQuery.Data, _ = d.MarshalJSON()
+
+	resp, err := client.QuerySync(reqQuery)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return *resp
 }
 
 // rlp decode an etherum transaction

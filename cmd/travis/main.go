@@ -30,9 +30,11 @@ func main() {
 
 	// add commands
 	prepareNodeCommands()
+	prepareClientCommands()
 
 	GaiaCmd.AddCommand(
 		nodeCmd,
+		clientCmd,
 
 		lineBreak,
 		auto.AutoCompleteCmd,

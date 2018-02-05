@@ -184,7 +184,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 
 // Commit implements abci.Application
 func (app *StoreApp) Commit() (res abci.ResponseCommit) {
-	app.height++
+		app.height++
 
 	hash, err := app.state.Commit(app.height)
 	if err != nil {

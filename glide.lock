@@ -1,15 +1,24 @@
 hash: 7c1138afac986bb3f4d52521acbc5fd751336e5bc65fc1f8a315a8a07a2cd1f7
-updated: 2018-01-30T18:28:37.829487-06:00
+updated: 2018-02-01T10:46:42.154277-06:00
 imports:
+- name: github.com/bgentry/speakeasy
+  version: 4aabc24848ce5fd31929f7d1e4ea74d3709c14cd
 - name: github.com/btcsuite/btcd
-  version: 9aa9e79ebf7f11f1f70533c100e5c835a6af8c0f
+  version: 50de9da05b50eb15658bb350f6ea24368a111ab7
   subpackages:
   - btcec
+- name: github.com/BurntSushi/toml
+  version: a368813c5e648fee92e5f6c30e3944ff9d5e8895
 - name: github.com/cosmos/cosmos-sdk
   version: be92f16b52cdeaba6dddaa62e0a8d1eed9e9640e
   subpackages:
   - app
+  - client
+  - client/commands
   - client/commands/auto
+  - client/commands/keys
+  - client/commands/query
+  - client/commands/txs
   - errors
   - genesis
   - modules/auth
@@ -24,6 +33,18 @@ imports:
 - name: github.com/ethereum/go-ethereum
   version: d9e23666755ebeb632dc8c3f902650971594e5a7
   repo: https://github.com/tendermint/go-ethereum.git
+  subpackages:
+  - common
+  - common/hexutil
+  - common/math
+  - core/types
+  - crypto
+  - crypto/secp256k1
+  - crypto/sha3
+  - log
+  - params
+  - rlp
+  - trie
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/go-kit/kit
@@ -86,6 +107,8 @@ imports:
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/magiconair/properties
   version: 49d762b9817ba1c2e9d0c69183c2b4a8b8f1d934
+- name: github.com/mattn/go-isatty
+  version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/mitchellh/mapstructure
   version: b4575eea38cca1123ec2dc90c26529b5c5acfcff
 - name: github.com/pelletier/go-toml
@@ -141,6 +164,8 @@ imports:
   subpackages:
   - cmd
   - keys
+  - keys/cryptostore
+  - keys/storage/filestorage
   - keys/wordlist
 - name: github.com/tendermint/go-wire
   version: b6fc872b42d41158a60307db4da051dd6f179415
@@ -212,7 +237,7 @@ imports:
   - ripemd160
   - salsa20/salsa
 - name: golang.org/x/net
-  version: 0ed95abb35c445290478a5348a7b38bb154135fd
+  version: 309822c5b9b9f80db67f016069a12628d94fad34
   subpackages:
   - context
   - http2
@@ -222,7 +247,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: 3dbebcf8efb6a5011a60c2b4591c1022a759af8a
+  version: 8f27ce8a604014414f8dfffc25cbcde83a3f2216
   subpackages:
   - unix
 - name: golang.org/x/text
@@ -257,19 +282,15 @@ imports:
   - transport
 - name: gopkg.in/go-playground/validator.v9
   version: 48a433ba4bcadc5be9aa16d4bdcb383d3f57a741
+- name: gopkg.in/karalabe/cookiejar.v2
+  version: 8dcd6a7f4951f6ff3ee9cbb919a06d8925822e57
+  subpackages:
+  - collections/prque
 - name: gopkg.in/yaml.v2
   version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 testImports:
-- name: github.com/davecgh/go-spew
-  version: db69d09d2c587e9b9677f991dfcab1fc24d9086e
-  subpackages:
-  - spew
-- name: github.com/pmezard/go-difflib
-  version: 792786c7400a136282c1664665ae0a8db921c6c2
-  subpackages:
-  - difflib
 - name: github.com/stretchr/testify
-  version: 87b1dfb5b2fa649f52695dd9eae19abe404a4308
+  version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:
   - assert
   - require
