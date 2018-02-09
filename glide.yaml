@@ -49,6 +49,10 @@ import:
 - package: github.com/ethereum/go-ethereum
   version: f1.6.7
   repo: https://github.com/tendermint/go-ethereum.git
+- package: github.com/tendermint/ethermint
+  version: develop
+- package: gopkg.in/urfave/cli.v1
+  version: 1.x  
 testImport:
 - package: github.com/stretchr/testify
   subpackages:

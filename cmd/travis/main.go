@@ -7,7 +7,7 @@ import (
 
 	"github.com/tendermint/tmlibs/cli"
 
-	basecmd "github.com/cosmos/cosmos-sdk/server/commands"
+	basecmd "github.com/CyberMiles/travis/server/commands"
 	"github.com/cosmos/cosmos-sdk/client/commands/auto"
 )
 
@@ -42,6 +42,6 @@ func main() {
 
 	// prepare and add flags
 	basecmd.SetUpRoot(GaiaCmd)
-	executor := cli.PrepareMainCmd(GaiaCmd, "GA", os.ExpandEnv("$HOME/.cybermiles-travis"))
+	executor := cli.PrepareMainCmd(GaiaCmd, "TR", os.ExpandEnv("$HOME/.travis"))
 	executor.Execute()
 }

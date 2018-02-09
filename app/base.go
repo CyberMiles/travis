@@ -158,7 +158,7 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	fmt.Println("Commit")
-
+/*
 	resp, err := client.CommitSync()
 
 	if err != nil {
@@ -166,7 +166,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	}
 
 	fmt.Printf("ethermint Commit response: %v\n", resp)
-
+*/
 	return app.StoreApp.Commit()
 }
 

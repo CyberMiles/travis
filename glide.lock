@@ -175,6 +175,10 @@ imports:
   - nowriter/tmlegacy
 - name: github.com/tendermint/iavl
   version: 594cc0c062a7174475f0ab654384038d77067917
+- name: github.com/tendermint/ethermint
+  version: 9e14eed0ef61ec8b9e4e62c5be52bc8849ae115d
+- name: gopkg.in/urfave/cli.v1
+  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: github.com/tendermint/tendermint
   version: 381fe19335ba8825e04d1d0fefa5cac709bb7178
   subpackages:

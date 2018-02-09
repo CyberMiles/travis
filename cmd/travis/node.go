@@ -49,6 +49,7 @@ func prepareNodeCommands() {
 	)
 
 	nodeCmd.AddCommand(
+		basecmd.InitCmd,
 		basecmd.GetTickStartCmd(sdk.TickerFunc(tickFn)),
 	)
 }
