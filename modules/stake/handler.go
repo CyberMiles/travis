@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/cosmos/cosmos-sdk/modules/auth"
-	"github.com/cosmos/cosmos-sdk/modules/coin"
+	"github.com/CyberMiles/travis/modules/coin"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
 )
@@ -193,6 +193,7 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 		}.transferFn
 		return res, deliverer.unbond(_tx)
 	}
+
 	return
 }
 
@@ -298,6 +299,23 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 // These functions assume everything has been authenticated,
 // now we just perform action and save
 func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
+
+	// create and save the empty candidate
+	bond := loadCandidate(d.store, tx.PubKey)
+	if bond != nil {
+		return ErrCandidateExistsAddr()
+	}
+	candidate := NewCandidate(tx.PubKey, d.sender)
+	candidate.Description = tx.Description // add the description parameters
+	saveCandidate(d.store, candidate)
+
+	// move coins from the d.sender account to a (self-bond) delegator account
+	// the candidate account will be updated automatically here
+	txDelegate := TxDelegate{tx.BondUpdate}
+	return d.delegate(txDelegate)
+}
+
+func (d deliver) declareValidator(tx TxDeclareValidator) error {
 
 	// create and save the empty candidate
 	bond := loadCandidate(d.store, tx.PubKey)

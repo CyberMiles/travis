@@ -21,6 +21,7 @@ type Params struct {
 
 	// gas costs for txs
 	GasDeclareCandidacy int64 `json:"gas_declare_candidacy"`
+	GasDeclareValidator int64 `json:"gas_declare_validator"`
 	GasEditCandidacy    int64 `json:"gas_edit_candidacy"`
 	GasDelegate         int64 `json:"gas_delegate"`
 	GasUnbond           int64 `json:"gas_unbond"`
@@ -30,7 +31,7 @@ func defaultParams() Params {
 	return Params{
 		HoldAccount:         sdk.NewActor(stakingModuleName, []byte("77777777777777777777777777777777")),
 		MaxVals:             100,
-		AllowedBondDenom:    "fermion",
+		AllowedBondDenom:    "cmt",
 		GasDeclareCandidacy: 20,
 		GasEditCandidacy:    20,
 		GasDelegate:         20,
@@ -62,6 +63,7 @@ type Description struct {
 	Identity string `json:"identity"`
 	Website  string `json:"website"`
 	Details  string `json:"details"`
+	Location  string `json:"location"`
 }
 
 // NewCandidate - initialize a new candidate

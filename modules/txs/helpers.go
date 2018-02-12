@@ -67,6 +67,7 @@ func DoTx(tx sdk.Tx) (err error) {
 		return err
 	}
 
+	// todo sign transaction with ethereum
 	err = SignTx(tx)
 	if err != nil {
 		return err

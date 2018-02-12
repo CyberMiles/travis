@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/modules/coin"
+	"github.com/CyberMiles/travis/modules/coin"
 	crypto "github.com/tendermint/go-crypto"
 )
 
@@ -63,6 +63,11 @@ type TxDeclareCandidacy struct {
 	Description
 }
 
+type TxDeclareValidator struct {
+	BondUpdate
+	Description
+}
+
 // NewTxDeclareCandidacy - new TxDeclareCandidacy
 func NewTxDeclareCandidacy(bond coin.Coin, pubKey crypto.PubKey, description Description) sdk.Tx {
 	return TxDeclareCandidacy{
@@ -74,8 +79,21 @@ func NewTxDeclareCandidacy(bond coin.Coin, pubKey crypto.PubKey, description Des
 	}.Wrap()
 }
 
+// NewTxDeclareValidator - new TxDeclareValidator
+func NewTxDeclareValidator(bond coin.Coin, pubKey crypto.PubKey, description Description) sdk.Tx {
+	return TxDeclareValidator{
+		BondUpdate{
+			PubKey: pubKey,
+			Bond:   bond,
+		},
+		description,
+	}.Wrap()
+}
+
 // Wrap - Wrap a Tx as a Basecoin Tx
 func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
+func (tx TxDeclareValidator) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxEditCandidacy - struct for editing a candidate
 type TxEditCandidacy struct {

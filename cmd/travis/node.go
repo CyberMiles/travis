@@ -10,12 +10,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/modules/coin"
+	"github.com/CyberMiles/travis/modules/fee"
 	"github.com/cosmos/cosmos-sdk/modules/base"
 	//"github.com/cosmos/cosmos-sdk/modules/nonce"
 	"github.com/cosmos/cosmos-sdk/modules/ibc"
 	"github.com/cosmos/cosmos-sdk/modules/roles"
-	"github.com/cosmos/cosmos-sdk/modules/fee"
-	"github.com/cosmos/cosmos-sdk/modules/coin"
 	"github.com/cosmos/cosmos-sdk/modules/auth"
 )
 
