@@ -17,7 +17,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/modules/auth"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -362,20 +361,4 @@ func UnlockAccount(am *accounts.Manager, addr common.Address, password string, d
 	}
 	err := fetchKeystore(am).TimedUnlock(accounts.Account{Address: addr}, password, d)
 	return err == nil, err
-}
-
-func DefaultNodeConfig() *node.Config {
-	cfg := node.DefaultConfig
-	cfg.Name = "testt"
-	cfg.Version = "0.0.1"
-	cfg.HTTPModules = append(cfg.HTTPModules, "eth")
-	cfg.WSModules = append(cfg.WSModules, "eth")
-	cfg.IPCPath = "geth.ipc"
-
-	emHome := os.Getenv(emHome)
-	if emHome != "" {
-		cfg.DataDir = emHome
-	}
-
-	return &cfg
 }

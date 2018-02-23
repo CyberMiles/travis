@@ -2,9 +2,7 @@ package main
 
 import (
 	"github.com/spf13/cobra"
-
 	abci "github.com/tendermint/abci/types"
-
 	sdk "github.com/cosmos/cosmos-sdk"
 	basecmd "github.com/CyberMiles/travis/server/commands"
 	"github.com/cosmos/cosmos-sdk/state"
@@ -14,9 +12,7 @@ import (
 	"github.com/CyberMiles/travis/modules/fee"
 	"github.com/cosmos/cosmos-sdk/modules/base"
 	//"github.com/cosmos/cosmos-sdk/modules/nonce"
-	"github.com/cosmos/cosmos-sdk/modules/ibc"
-	"github.com/cosmos/cosmos-sdk/modules/roles"
-	"github.com/cosmos/cosmos-sdk/modules/auth"
+	"github.com/CyberMiles/travis/modules/auth"
 )
 
 // nodeCmd is the entry point for this binary
@@ -33,18 +29,13 @@ func prepareNodeCommands() {
 		auth.Signatures{},
 		base.Chain{},
 		stack.Checkpoint{OnCheck: true},
-		//nonce.ReplayCheck{},
 	).
-		IBC(ibc.NewMiddleware()).
 		Apps(
-		roles.NewMiddleware(),
 		fee.NewSimpleFeeMiddleware(coin.Coin{"cmt", 0}, fee.Bank),
 		stack.Checkpoint{OnDeliver: true},
 	).
 		Dispatch(
 		coin.NewHandler(),
-		stack.WrapHandler(roles.NewHandler()),
-		stack.WrapHandler(ibc.NewHandler()),
 		stake.NewHandler(),
 	)
 

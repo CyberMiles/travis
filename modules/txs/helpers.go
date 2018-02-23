@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 
 	crypto "github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-crypto/keys"
+	"github.com/CyberMiles/travis/modules/keys"
 	wire "github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
 
@@ -24,7 +24,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/client/commands"
 	keycmd "github.com/cosmos/cosmos-sdk/client/commands/keys"
-	"github.com/cosmos/cosmos-sdk/modules/auth"
+	"github.com/CyberMiles/travis/modules/auth"
 )
 
 // Validatable represents anything that can be Validated
@@ -67,7 +67,6 @@ func DoTx(tx sdk.Tx) (err error) {
 		return err
 	}
 
-	// todo sign transaction with ethereum
 	err = SignTx(tx)
 	if err != nil {
 		return err
@@ -84,8 +83,6 @@ func DoTx(tx sdk.Tx) (err error) {
 
 }
 
-// SignTx will validate the tx, and signs it if it is wrapping a Signable.
-// Modifies tx in place, and returns an error if it should sign but couldn't
 func SignTx(tx sdk.Tx) error {
 	// validate tx client-side
 	err := tx.ValidateBasic()
@@ -98,15 +95,13 @@ func SignTx(tx sdk.Tx) error {
 		return nil
 	}
 
-	name := viper.GetString(FlagName)
-	manager := keycmd.GetKeyManager()
+	address := viper.GetString(FlagAddress)
 
 	if sign, ok := tx.Unwrap().(keys.Signable); ok {
-		// TODO: allow us not to sign? if so then what use?
-		if name == "" {
-			return errors.New("--name is required to sign tx")
+		if address == "" {
+			return errors.New("--address is required to sign tx")
 		}
-		err = signTx(manager, sign, name)
+		err = signTx(sign, address)
 	}
 	return err
 }
@@ -176,13 +171,13 @@ func OutputTx(res *ctypes.ResultBroadcastTxCommit) error {
 	return nil
 }
 
-func signTx(manager keys.Manager, tx keys.Signable, name string) error {
-	prompt := fmt.Sprintf("Please enter passphrase for %s: ", name)
+func signTx(tx keys.Signable, address string) error {
+	prompt := fmt.Sprintf("Please enter passphrase for %s: ", address)
 	pass, err := getPassword(prompt)
 	if err != nil {
 		return err
 	}
-	return manager.Sign(name, pass, tx)
+	return auth.Sign(tx, address, pass)
 }
 
 // if we read from non-tty, we just need to init the buffer reader once,
