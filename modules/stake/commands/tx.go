@@ -11,7 +11,7 @@ import (
 	crypto "github.com/tendermint/go-crypto"
 
 	txcmd "github.com/CyberMiles/travis/modules/txs"
-	"github.com/cosmos/cosmos-sdk/modules/coin"
+	"github.com/CyberMiles/travis/modules/coin"
 
 	"github.com/CyberMiles/travis/modules/stake"
 )
@@ -49,6 +49,9 @@ const (
 	FlagIdentity = "keybase-sig"
 	FlagWebsite  = "website"
 	FlagDetails  = "details"
+
+	FlagName = "name"
+	FlagLocation = "location"
 )
 
 // nolint
@@ -75,9 +78,9 @@ var (
 	}
 
 	CmdDeclare = &cobra.Command{
-		Use:   "declare",
+		Use:   "declare-validator",
 		Short: "Allows a potential validator to declare its candidacy",
-		RunE:  cmdDeclare,
+		RunE:  cmdDeclareValidator,
 	}
 	CmdProposeSlot = &cobra.Command{
 		Use:   "propose-slot",
@@ -103,7 +106,7 @@ func init() {
 	fsPk.String(FlagPubKey, "", "PubKey of the validator-candidate")
 
 	fsAmount := flag.NewFlagSet("", flag.ContinueOnError)
-	fsAmount.String(FlagAmount, "1fermion", "Amount of coins to bond")
+	fsAmount.String(FlagAmount, "1cmt", "Amount of coins to bond")
 
 	fsShares := flag.NewFlagSet("", flag.ContinueOnError)
 	fsShares.Int64(FlagShares, 0, "Amount of shares to unbond")
@@ -113,6 +116,11 @@ func init() {
 	fsCandidate.String(FlagIdentity, "", "optional keybase signature")
 	fsCandidate.String(FlagWebsite, "", "optional website")
 	fsCandidate.String(FlagDetails, "", "optional detailed description space")
+
+	fsValidator := flag.NewFlagSet("", flag.ContinueOnError)
+	fsValidator.String(FlagMoniker, "", "validator name")
+	fsValidator.String(FlagWebsite, "", "optional website")
+	fsValidator.String(FlagLocation, "", "optional location")
 
 	// add the flags
 	CmdDelegate.Flags().AddFlagSet(fsPk)
@@ -131,7 +139,7 @@ func init() {
 
 	CmdDeclare.Flags().AddFlagSet(fsPk)
 	CmdDeclare.Flags().AddFlagSet(fsAmount)
-	CmdDeclare.Flags().AddFlagSet(fsCandidate)
+	CmdDeclare.Flags().AddFlagSet(fsValidator)
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
@@ -232,7 +240,7 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 	return
 }
 
-func cmdDeclare(cmd *cobra.Command, args []string) error {
+func cmdDeclareValidator(cmd *cobra.Command, args []string) error {
 	amount, err := coin.ParseCoin(viper.GetString(FlagAmount))
 	if err != nil {
 		return err
@@ -251,10 +259,10 @@ func cmdDeclare(cmd *cobra.Command, args []string) error {
 		Moniker:  viper.GetString(FlagMoniker),
 		Identity: viper.GetString(FlagIdentity),
 		Website:  viper.GetString(FlagWebsite),
-		Details:  viper.GetString(FlagDetails),
+		Location:  viper.GetString(FlagLocation),
 	}
 
-	tx := stake.NewTxDeclareCandidacy(amount, pk, description)
+	tx := stake.NewTxDeclareValidator(amount, pk, description)
 	return txcmd.DoTx(tx)
 }
 

@@ -16,6 +16,8 @@ import (
 	"github.com/tendermint/go-wire/data"
 	//"github.com/tendermint/go-wire"
 	"github.com/CyberMiles/travis/modules/stake"
+	//crypto "github.com/tendermint/go-crypto"
+	//auth "github.com/cosmos/cosmos-sdk/modules/auth"
 )
 
 // BaseApp - The ABCI application
@@ -72,6 +74,15 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 		app.WorkingHeight(),
 		app.Logger().With("call", "delivertx"),
 	)
+
+	//// fixme check if it's sendTx
+	//switch tx.Unwrap().(type) {
+	//case coin.SendTx:
+	//	//return h.sendTx(ctx, store, t, cb)
+	//	fmt.Println("transfer tx")
+	//}
+
+
 	res, err := app.handler.DeliverTx(ctx, app.Append(), tx)
 
 	if err != nil {
@@ -112,6 +123,17 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		app.WorkingHeight(),
 		app.Logger().With("call", "checktx"),
 	)
+
+	//ctx2, err := verifySignature(ctx, tx)
+	//
+	//// fixme check if it's sendTx
+	//switch tx.Unwrap().(type) {
+	//case coin.SendTx:
+	//	//return h.sendTx(ctx, store, t, cb)
+	//	fmt.Println("checkTx: transfer")
+	//	return sdk.NewCheck(21000, "").ToABCI()
+	//}
+
 	res, err := app.handler.CheckTx(ctx, app.Check(), tx)
 
 	if err != nil {
@@ -168,6 +190,13 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	fmt.Printf("ethermint Commit response: %v\n", resp)
 */
 	return app.StoreApp.Commit()
+/*=======
+	var hash = resp.Data
+	fmt.Printf("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
+
+	return abci.ResponseCommit{Data: resp.Data}
+>>>>>>> stake
+*/
 }
 
 func (app *BaseApp) InitState(module, key, value string) error {

@@ -16,6 +16,7 @@ const (
 	FlagNoSign  = "no-sign"
 	FlagIn      = "in"
 	FlagPrepare = "prepare"
+	FlagAddress = "address"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -27,6 +28,7 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.PersistentFlags().String(FlagName, "", "name to sign the tx")
+	RootCmd.PersistentFlags().String(FlagAddress, "", "account address to sign the tx")
 	RootCmd.PersistentFlags().Bool(FlagNoSign, false, "don't add a signature")
 	RootCmd.PersistentFlags().String(FlagPrepare, "", "file to store prepared tx")
 	RootCmd.Flags().String(FlagIn, "", "file with tx in json format")

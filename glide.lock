@@ -1,6 +1,10 @@
-hash: 7c1138afac986bb3f4d52521acbc5fd751336e5bc65fc1f8a315a8a07a2cd1f7
-updated: 2018-02-01T10:46:42.154277-06:00
+hash: f2e42f8a48644e23bb888da9b0062307178cd50bf9f20889a8c8f21055ce7c9a
+updated: 2018-02-08T16:14:39.638419-06:00
 imports:
+- name: github.com/aristanetworks/goarista
+  version: c294d07ad966d5db9cedf32a67c62837a46e9d90
+  subpackages:
+  - monotime
 - name: github.com/bgentry/speakeasy
   version: 4aabc24848ce5fd31929f7d1e4ea74d3709c14cd
 - name: github.com/btcsuite/btcd
@@ -18,33 +22,86 @@ imports:
   - client/commands/auto
   - client/commands/keys
   - client/commands/query
+  - client/commands/search
   - client/commands/txs
   - errors
   - genesis
   - modules/auth
+  - modules/auth/commands
+  - modules/base
+  - modules/base/commands
   - modules/coin
+  - modules/fee
   - modules/ibc
+  - modules/nonce
+  - modules/roles
+  - modules/roles/commands
   - server/commands
   - stack
   - state
   - version
+- name: github.com/CyberMiles/ethermint
+  version: b72a1eef6edca2e8dfe03296fc665de025a5ae78
+  subpackages:
+  - version
 - name: github.com/ebuchman/fail-test
   version: 95f809107225be108efcf10a3509e4ea6ceef3c4
+- name: github.com/edsrzf/mmap-go
+  version: 0bce6a6887123b67a60366d2c9fe2dfb74289d2e
 - name: github.com/ethereum/go-ethereum
   version: d9e23666755ebeb632dc8c3f902650971594e5a7
   repo: https://github.com/tendermint/go-ethereum.git
   subpackages:
+  - accounts
+  - accounts/keystore
+  - accounts/usbwallet
+  - cmd/utils
   - common
+  - common/bitutil
   - common/hexutil
   - common/math
+  - common/mclock
+  - consensus
+  - consensus/clique
+  - consensus/ethash
+  - consensus/misc
+  - core
+  - core/state
   - core/types
+  - core/vm
   - crypto
+  - crypto/ecies
+  - crypto/randentropy
   - crypto/secp256k1
   - crypto/sha3
+  - eth
+  - eth/downloader
+  - eth/fetcher
+  - eth/filters
+  - eth/gasprice
+  - ethdb
+  - ethstats
+  - event
+  - internal/debug
+  - internal/ethapi
+  - les
+  - les/flowcontrol
+  - light
   - log
+  - log/term
+  - metrics
+  - miner
+  - node
+  - p2p
+  - p2p/discover
+  - p2p/discv5
+  - p2p/nat
+  - p2p/netutil
   - params
   - rlp
+  - rpc
   - trie
+  - whisper/whisperv5
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/go-kit/kit
@@ -82,10 +139,16 @@ imports:
   - ptypes/timestamp
 - name: github.com/golang/snappy
   version: 553a641470496b2327abcac10b36396bd98e45c9
+- name: github.com/gorilla/context
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: 53c1911da2b537f792e7cafcb446b05ffe33b996
 - name: github.com/gorilla/websocket
   version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
+- name: github.com/hashicorp/golang-lru
+  version: 0fb14efe8c47ae851c0034ed7a448854d3d34cf3
+  subpackages:
+  - simplelru
 - name: github.com/hashicorp/hcl
   version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:
@@ -99,24 +162,56 @@ imports:
   - json/token
 - name: github.com/howeyc/crc16
   version: 2b2a61e366a66d3efb279e46176e7291001e0354
+- name: github.com/huin/goupnp
+  version: dceda08e705b2acee36aab47d765ed801f64cfc7
+  subpackages:
+  - dcps/internetgateway1
+  - dcps/internetgateway2
+  - httpu
+  - scpd
+  - soap
+  - ssdp
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jackpal/go-nat-pmp
+  version: 28a68d0c24adce1da43f8df6a57340909ecd7fdd
 - name: github.com/jmhodges/levigo
   version: c42d9e0ca023e2198120196f842701bb4c55d7b9
+- name: github.com/karalabe/hid
+  version: 93a94ab6671087f0768f1d4e701c0ec14f449df9
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/magiconair/properties
   version: 49d762b9817ba1c2e9d0c69183c2b4a8b8f1d934
+- name: github.com/mattn/go-colorable
+  version: 7dc3415be66d7cc68bf0182f35c8d31f8d2ad8a7
 - name: github.com/mattn/go-isatty
   version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/mitchellh/mapstructure
   version: b4575eea38cca1123ec2dc90c26529b5c5acfcff
+- name: github.com/pborman/uuid
+  version: c65b2f87fee37d1c7854c9164a450713c28d50cd
 - name: github.com/pelletier/go-toml
   version: acdc4509485b587f5e675510c4f2c63e90ff68a8
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/rcrowley/go-metrics
   version: 8732c616f52954686704c8645fe1a9d59e9df7c1
+  subpackages:
+  - exp
+- name: github.com/rjeczalik/notify
+  version: c31e5f2cb22b3e4ef3f882f413847669bf2652b9
+- name: github.com/robertkrimen/otto
+  version: 3b44b4dcb6c00477273595c312908e2412d07da6
+  subpackages:
+  - ast
+  - dbg
+  - file
+  - parser
+  - registry
+  - token
+- name: github.com/rs/cors
+  version: feef513b9575b32f84bafa580aad89b011259019
 - name: github.com/spf13/afero
   version: bb8f1927f2a9d3ab41c9340aa034f6b803f4359c
   subpackages:
@@ -237,26 +332,48 @@ imports:
   - nacl/secretbox
   - openpgp/armor
   - openpgp/errors
+  - pbkdf2
   - poly1305
   - ripemd160
   - salsa20/salsa
+  - scrypt
 - name: golang.org/x/net
   version: 309822c5b9b9f80db67f016069a12628d94fad34
   subpackages:
   - context
+  - html
+  - html/atom
+  - html/charset
   - http2
   - http2/hpack
   - idna
   - internal/timeseries
   - lex/httplex
   - trace
-- name: golang.org/x/sys
-  version: 8f27ce8a604014414f8dfffc25cbcde83a3f2216
+  - websocket
+- name: golang.org/x/sync
+  version: fd80eb99c8f653c847d294a001bdf2a3a6f768f5
   subpackages:
-  - unix
+  - syncmap
+- name: golang.org/x/sys/unix
+  version: 37707fdb30a5b38865cfb95e5aab41707daec7fd
 - name: golang.org/x/text
   version: e19ae1496984b1c655b8044a65c0300a3c878dd3
   subpackages:
+  - encoding
+  - encoding/charmap
+  - encoding/htmlindex
+  - encoding/internal
+  - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/korean
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
+  - encoding/unicode
+  - internal/tag
+  - internal/utf8internal
+  - language
+  - runes
   - secure/bidirule
   - transform
   - unicode/bidi
@@ -284,15 +401,33 @@ imports:
   - status
   - tap
   - transport
+- name: gopkg.in/fatih/set.v0
+  version: 168a5d71ba0669ae06888225478d73a113f1687e
 - name: gopkg.in/go-playground/validator.v9
   version: 48a433ba4bcadc5be9aa16d4bdcb383d3f57a741
 - name: gopkg.in/karalabe/cookiejar.v2
   version: 8dcd6a7f4951f6ff3ee9cbb919a06d8925822e57
   subpackages:
   - collections/prque
+- name: gopkg.in/natefinch/npipe.v2
+  version: c1b8fa8bdccecb0b8db834ee0b92fdbcfa606dd6
+- name: gopkg.in/sourcemap.v1
+  version: 6e83acea0053641eff084973fee085f0c193c61a
+  subpackages:
+  - base64vlq
+- name: gopkg.in/urfave/cli.v1
+  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: gopkg.in/yaml.v2
   version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 testImports:
+- name: github.com/davecgh/go-spew
+  version: 87df7c60d5820d0f8ae11afede5aa52325c09717
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
 - name: github.com/stretchr/testify
   version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:

@@ -7,10 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/commands/query"
 	txcmd "github.com/CyberMiles/travis/modules/txs"
 	stakecmd "github.com/CyberMiles/travis/modules/stake/commands"
-	authcmd "github.com/cosmos/cosmos-sdk/modules/auth/commands"
+	authcmd "github.com/CyberMiles/travis/modules/auth/commands"
 	basecmd "github.com/cosmos/cosmos-sdk/modules/base/commands"
-	//feecmd "github.com/cosmos/cosmos-sdk/modules/fee/commands"
-	//noncecmd "github.com/cosmos/cosmos-sdk/modules/nonce/commands"
 	rolecmd "github.com/cosmos/cosmos-sdk/modules/roles/commands"
 )
 
@@ -38,9 +36,7 @@ func prepareClientCommands() {
 
 	// set up the middleware
 	txcmd.Middleware = txcmd.Wrappers{
-		//feecmd.FeeWrapper{},
 		rolecmd.RoleWrapper{},
-		//noncecmd.NonceWrapper{},
 		basecmd.ChainWrapper{},
 		authcmd.SigWrapper{},
 	}
