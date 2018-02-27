@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/tendermint/abci/client"
+	"github.com/CyberMiles/travis/app"
 )
 
 const (
@@ -109,10 +110,12 @@ func (h Handler) sendTx(ctx sdk.Context, store state.SimpleDB,
 		return res, err
 	}
 
-	// todo
-	//sender := send.Inputs[0].Address
-	//recipient := send.Outputs[0].Address
-	//coin := send.Inputs[0].Coins
+
+	sender := send.Inputs[0].Address
+	recipient := send.Outputs[0].Address
+	coin := send.Inputs[0].Coins[0]
+	app.StateChangeQueue = append(app.StateChangeQueue, app.StateChangeObject{
+		From: sender.Address, To: recipient.Address, Amount: coin.Amount})
 
 	return sdk.DeliverResult{}, nil
 }

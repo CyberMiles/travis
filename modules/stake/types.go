@@ -28,9 +28,11 @@ type Params struct {
 	Validators			string `json:"validators"`
 }
 
+var DefaultHoldAccount = sdk.NewActor(stakingModuleName, []byte("00000000000000000000000000000000"))
+
 func defaultParams() Params {
 	return Params{
-		HoldAccount:         sdk.NewActor(stakingModuleName, []byte("00000000000000000000000000000000")),
+		HoldAccount:         DefaultHoldAccount,
 		MaxVals:             100,
 		AllowedBondDenom:    "cmt",
 		GasDeclareCandidacy: 0,

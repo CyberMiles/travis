@@ -315,23 +315,6 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	return d.delegate(txDelegate)
 }
 
-func (d deliver) declareValidator(tx TxDeclareValidator) error {
-
-	// create and save the empty candidate
-	bond := loadCandidate(d.store, tx.PubKey)
-	if bond != nil {
-		return ErrCandidateExistsAddr()
-	}
-	candidate := NewCandidate(tx.PubKey, d.sender)
-	candidate.Description = tx.Description // add the description parameters
-	saveCandidate(d.store, candidate)
-
-	// move coins from the d.sender account to a (self-bond) delegator account
-	// the candidate account will be updated automatically here
-	txDelegate := TxDelegate{tx.BondUpdate}
-	return d.delegate(txDelegate)
-}
-
 func (d deliver) editCandidacy(tx TxEditCandidacy) error {
 
 	// Get the pubKey bond account
