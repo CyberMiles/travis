@@ -14,7 +14,7 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 	cmn "github.com/tendermint/tmlibs/common"
 	sdk "github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/genesis"
+	"github.com/CyberMiles/travis/genesis"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/CyberMiles/travis/app"
 )

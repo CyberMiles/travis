@@ -92,6 +92,8 @@ func (Handler) initState(module, key, value string, store state.SimpleDB) error 
 		case "gas_unbound":
 			params.GasUnbond = int64(i)
 		}
+	case "validators":
+		params.Validators = value
 	default:
 		return errors.ErrUnknownKey(key)
 	}
@@ -146,8 +148,6 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 	tx sdk.Tx, dispatch sdk.Deliver) (res sdk.DeliverResult, err error) {
 
-	// TODO: remove redundancy
-	// also we don't need to check the res - gas is already deducted in sdk
 	_, err = h.CheckTx(ctx, store, tx, nil)
 	if err != nil {
 		return

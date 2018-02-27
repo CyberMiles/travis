@@ -25,17 +25,18 @@ type Params struct {
 	GasEditCandidacy    int64 `json:"gas_edit_candidacy"`
 	GasDelegate         int64 `json:"gas_delegate"`
 	GasUnbond           int64 `json:"gas_unbond"`
+	Validators			string `json:"validators"`
 }
 
 func defaultParams() Params {
 	return Params{
-		HoldAccount:         sdk.NewActor(stakingModuleName, []byte("77777777777777777777777777777777")),
+		HoldAccount:         sdk.NewActor(stakingModuleName, []byte("00000000000000000000000000000000")),
 		MaxVals:             100,
 		AllowedBondDenom:    "cmt",
-		GasDeclareCandidacy: 20,
-		GasEditCandidacy:    20,
-		GasDelegate:         20,
-		GasUnbond:           20,
+		GasDeclareCandidacy: 0,
+		GasEditCandidacy:    0,
+		GasDelegate:         0,
+		GasUnbond:           0,
 	}
 }
 

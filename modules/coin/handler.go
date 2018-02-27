@@ -1,14 +1,6 @@
 package coin
 
 import (
-	"os"
-	"path/filepath"
-	"fmt"
-	"time"
-	"math/big"
-	"bytes"
-
-	//abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/go-wire/data"
 	"github.com/tendermint/tmlibs/log"
 
@@ -17,11 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/modules/auth"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/tendermint/abci/client"
 )
 
@@ -110,8 +97,6 @@ func (h Handler) InitState(l log.Logger, store state.SimpleDB,
 	switch key {
 	case "account":
 		return setAccount(store, value)
-	case "issuer":
-		return setIssuer(store, value)
 	}
 	return "", errors.ErrUnknownKey(key)
 }
@@ -124,106 +109,10 @@ func (h Handler) sendTx(ctx sdk.Context, store state.SimpleDB,
 		return res, err
 	}
 
-	// deduct from all input accounts
-	//senders := sdk.Actors{}
-	//for _, in := range send.Inputs {
-	//	_, err = ChangeCoins(store, in.Address, in.Coins.Negative())
-	//	if err != nil {
-	//		return res, err
-	//	}
-	//	senders = append(senders, in.Address)
-	//}
-	//
-	//// add to all output accounts
-	//for _, out := range send.Outputs {
-	//	// TODO: cleaner way, this makes sure we don't consider
-	//	// incoming ibc packets with our chain to be remote packets
-	//	if out.Address.ChainID == ctx.ChainID() {
-	//		out.Address.ChainID = ""
-	//	}
-	//
-	//	_, err = ChangeCoins(store, out.Address, out.Coins)
-	//	if err != nil {
-	//		return res, err
-	//	}
-	//	// now send ibc packet if needed...
-	//	if out.Address.ChainID != "" {
-	//		// FIXME: if there are many outputs, we need to adjust inputs
-	//		// so the amounts in and out match.  how?
-	//		inputs := make([]TxInput, len(send.Inputs))
-	//		for i := range send.Inputs {
-	//			inputs[i] = send.Inputs[i]
-	//			inputs[i].Address = inputs[i].Address.WithChain(ctx.ChainID())
-	//		}
-	//
-	//		outTx := NewSendTx(inputs, []TxOutput{out})
-	//		packet := ibc.CreatePacketTx{
-	//			DestChain:   out.Address.ChainID,
-	//			Permissions: senders,
-	//			Tx:          outTx,
-	//		}
-	//		ibcCtx := ctx.WithPermissions(ibc.AllowIBC(NameCoin))
-	//		_, err := cb.DeliverTx(ibcCtx, store, packet.Wrap())
-	//		if err != nil {
-	//			return res, err
-	//		}
-	//	}
-	//}
-	//
-	//// now we build the tags
-	//tags := make([]*abci.KVPair, 0, 1+len(send.Inputs)+len(send.Outputs))
-	//
-	//tags = append(tags, abci.KVPairInt("height", int64(ctx.BlockHeight())))
-	//
-	//for _, in := range send.Inputs {
-	//	addr := in.Address.String()
-	//	tags = append(tags, abci.KVPairString("coin.sender", addr))
-	//}
-	//
-	//for _, out := range send.Outputs {
-	//	addr := out.Address.String()
-	//	tags = append(tags, abci.KVPairString("coin.receiver", addr))
-	//}
-	//
-	//// a-ok!
-	//return sdk.DeliverResult{Tags: tags}, nil
-
-	tx := types.NewTransaction(
-		0,
-		common.Address([20]byte{}),
-		big.NewInt(0x2386f26fc10000),
-		big.NewInt(0x15f90),
-		big.NewInt(0x430e23400),
-		nil,
-	)
-
-	am, _, _ := makeAccountManager()
-	coinbase := common.Address{0x7e, 0xff, 0x12, 0x2b, 0x94, 0x89, 0x7e, 0xa5, 0xb0, 0xe2, 0xa9, 0xab, 0xf4, 0x7b, 0x86, 0x33, 0x7f, 0xaf, 0xeb, 0xdc}
-	suc, err := UnlockAccount(am, coinbase, "1234", nil)
-	fmt.Printf("unlock result: %v\n", suc)
-	fmt.Printf("unlock error: %v\n", err)
-
-	account := accounts.Account{Address: coinbase}
-	wallet, err := am.Find(account)
-	signed, err := wallet.SignTx(account, tx, big.NewInt(15))
-	if err != nil {
-		fmt.Errorf("error")
-	}
-
-	buf := new(bytes.Buffer)
-	if err := signed.EncodeRLP(buf); err != nil {
-		fmt.Errorf("error")
-	}
-	//params := map[string]interface{}{
-	//	"tx": buf.Bytes(),
-	//}
-
-	resp, err := client.DeliverTxSync(buf.Bytes())
-	fmt.Printf("ethermint DeliverTx response: %v\n", resp)
-
-	//var result interface{}
-	//res, err := client.Call("broadcast_tx_sync", params, &result)
-	//fmt.Printf("%#v %#v", res, err)
+	// todo
+	//sender := send.Inputs[0].Address
+	//recipient := send.Outputs[0].Address
+	//coin := send.Inputs[0].Coins
 
 	return sdk.DeliverResult{}, nil
 }
@@ -304,61 +193,4 @@ func setAccount(store state.SimpleDB, value string) (log string, err error) {
 		return "", err
 	}
 	return "Success", nil
-}
-
-// setIssuer sets a permission for some super-powerful account to
-// mint money
-func setIssuer(store state.SimpleDB, value string) (log string, err error) {
-	var issuer sdk.Actor
-	err = data.FromJSON([]byte(value), &issuer)
-	if err != nil {
-		return "", err
-	}
-	err = storeIssuer(store, issuer)
-	if err != nil {
-		return "", err
-	}
-	return "Success", nil
-}
-
-func makeAccountManager() (*accounts.Manager, string, error) {
-	scryptN := keystore.StandardScryptN
-	scryptP := keystore.StandardScryptP
-	//if conf.UseLightweightKDF {
-	//	scryptN = keystore.LightScryptN
-	//	scryptP = keystore.LightScryptP
-	//}
-
-	keydir := filepath.Join(emHome, datadirDefaultKeyStore)
-	fmt.Println(keydir)
-
-	ephemeral := keydir
-	if err := os.MkdirAll(keydir, 0700); err != nil {
-		return nil, "", err
-	}
-	// Assemble the account manager and supported backends
-	backends := []accounts.Backend{
-		keystore.NewKeyStore(keydir, scryptN, scryptP),
-	}
-
-	return accounts.NewManager(backends...), ephemeral, nil
-}
-
-// fetchKeystore retrives the encrypted keystore from the account manager.
-func fetchKeystore(am *accounts.Manager) *keystore.KeyStore {
-	return am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-}
-
-func UnlockAccount(am *accounts.Manager, addr common.Address, password string, duration *uint64) (bool, error) {
-	const max = uint64(time.Duration(math.MaxInt64) / time.Second)
-	var d time.Duration
-	if duration == nil {
-		d = 300 * time.Second
-	} else if *duration > max {
-		return false, fmt.Errorf("unlock duration too large")
-	} else {
-		d = time.Duration(*duration) * time.Second
-	}
-	err := fetchKeystore(am).TimedUnlock(accounts.Account{Address: addr}, password, d)
-	return err == nil, err
 }
