@@ -146,9 +146,9 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	fmt.Println("BeginBlock")
 
-	//resp, _ := client.BeginBlockSync(beginBlock)
-	//
-	//fmt.Printf("ethermint BeginBlock response: %v\n", resp)
+	resp, _ := client.BeginBlockSync(beginBlock)
+
+	fmt.Printf("ethermint BeginBlock response: %v\n", resp)
 
 	return abci.ResponseBeginBlock{}
 }
@@ -157,9 +157,9 @@ func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.Resp
 func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	fmt.Println("EndBlock")
 
-	//resp, _ := client.EndBlockSync(endBlock)
-	//
-	//fmt.Printf("ethermint EndBlock response: %v\n", resp)
+	resp, _ := client.EndBlockSync(endBlock)
+
+	fmt.Printf("ethermint EndBlock response: %v\n", resp)
 
 	// execute tick if present
 	if app.clock != nil {
@@ -180,23 +180,17 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	fmt.Println("Commit")
-/*
+
 	resp, err := client.CommitSync()
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("ethermint Commit response: %v\n", resp)
-*/
-	return app.StoreApp.Commit()
-/*=======
 	var hash = resp.Data
 	fmt.Printf("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
 
 	return abci.ResponseCommit{Data: resp.Data}
->>>>>>> stake
-*/
 }
 
 func (app *BaseApp) InitState(module, key, value string) error {

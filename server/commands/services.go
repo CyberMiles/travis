@@ -26,6 +26,8 @@ import (
 	emtUtils "github.com/tendermint/ethermint/cmd/utils"
 	abciApp "github.com/tendermint/ethermint/app"
 	"github.com/tendermint/ethermint/ethereum"
+
+	"github.com/CyberMiles/travis/app"
 )
 
 type Services struct {
@@ -35,7 +37,7 @@ type Services struct {
 	tmNode        *node.Node
 }
 
-func startServices(rootDir string, basecoinApp abcitypes.Application) (*Services, error) {
+func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 
 	// Step 1: Setup the go-ethereum node and start it
 	emNode := emtUtils.MakeFullNode(context)
@@ -79,6 +81,12 @@ func startServices(rootDir string, basecoinApp abcitypes.Application) (*Services
 		os.Exit(1)
 	}
 
+	// Create Basecoin app
+	basecoinApp, err := createBaseCoinApp(rootDir, storeApp)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	// Create & start tendermint node
 	tmNode, err := startTendermint(basecoinApp)
 	if err != nil {

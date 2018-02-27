@@ -65,9 +65,7 @@ func tickStartCmd(clock sdk.Ticker) func(cmd *cobra.Command, args []string) erro
 			return err
 		}
 
-		// Create Basecoin app
-		basecoinApp := app.NewBaseApp(storeApp, Handler, clock)
-		return start(rootDir, basecoinApp)
+		return start(rootDir, storeApp)
 	}
 }
 
@@ -85,32 +83,11 @@ func startCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Create Basecoin app
-	basecoinApp := app.NewBaseApp(storeApp, Handler, nil)
-	return start(rootDir, basecoinApp)
+	return start(rootDir, storeApp)
 }
 
-func start(rootDir string, basecoinApp *app.BaseApp) error {
-
-	// if chain_id has not been set yet, load the genesis.
-	// else, assume it's been loaded
-	if basecoinApp.GetChainID() == "" {
-		// If genesis file exists, set key-value options
-		genesisFile := path.Join(rootDir, "genesis.json")
-		if _, err := os.Stat(genesisFile); err == nil {
-			err = genesis.Load(basecoinApp, genesisFile)
-			if err != nil {
-				return errors.Errorf("Error in LoadGenesis: %v\n", err)
-			}
-		} else {
-			fmt.Printf("No genesis file at %s, skipping...\n", genesisFile)
-		}
-	}
-
-	chainID := basecoinApp.GetChainID()
-	logger.Info("Starting Travis", "chain_id", chainID)
-
-	srvs, err := startServices(rootDir, basecoinApp)
+func start(rootDir string, storeApp *app.StoreApp) error {
+	srvs, err := startServices(rootDir, storeApp)
 	if err != nil {
 		return errors.Errorf("Error in start services: %v\n", err)
 	}
@@ -141,4 +118,28 @@ fmt.Printf("===================== balance after set: %v\n", state.GetBalance(com
 	})
 
 	return nil
+}
+
+func createBaseCoinApp(rootDir string, storeApp *app.StoreApp) (*app.BaseApp, error) {
+	basecoinApp := app.NewBaseApp(storeApp, Handler, nil)
+
+	// if chain_id has not been set yet, load the genesis.
+	// else, assume it's been loaded
+	if basecoinApp.GetChainID() == "" {
+		// If genesis file exists, set key-value options
+		genesisFile := path.Join(rootDir, "genesis.json")
+		if _, err := os.Stat(genesisFile); err == nil {
+			err = genesis.Load(basecoinApp, genesisFile)
+			if err != nil {
+				return nil, errors.Errorf("Error in LoadGenesis: %v\n", err)
+			}
+		} else {
+			fmt.Printf("No genesis file at %s, skipping...\n", genesisFile)
+		}
+	}
+
+	chainID := basecoinApp.GetChainID()
+	logger.Info("Starting Travis", "chain_id", chainID)
+
+	return basecoinApp, nil
 }
