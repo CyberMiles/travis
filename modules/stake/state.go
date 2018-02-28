@@ -6,6 +6,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/CyberMiles/travis/modules/stake/commands"
 )
 
 // nolint
@@ -235,4 +236,20 @@ func loadParams(store state.SimpleDB) (params Params) {
 func saveParams(store state.SimpleDB, params Params) {
 	b := wire.BinaryBytes(params)
 	store.Set(ParamKey, b)
+}
+
+func CalValidatorsStakeRatio(store state.SimpleDB, pubKeys [][]byte) (ratioMap map[string]float32) {
+	candidates := loadCandidates(store)
+	var totalVotingPower float32
+	for _, candidate := range candidates {
+		totalVotingPower += float32(candidate.VotingPower)
+	}
+
+	for _, pubKey := range pubKeys {
+		pk, _ := commands.GetPubKey(string(pubKey))
+		candidate := loadCandidate(store, pk)
+		ratioMap[candidate.Owner.String()] = float32(candidate.VotingPower) / totalVotingPower
+	}
+
+	return ratioMap
 }

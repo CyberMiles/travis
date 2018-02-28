@@ -12,11 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/cosmos/cosmos-sdk/stack"
-	//"github.com/CyberMiles/travis/modules/stake"
 	"github.com/tendermint/go-wire/data"
 	//"github.com/tendermint/go-wire"
 	"github.com/CyberMiles/travis/modules/stake"
-	//crypto "github.com/tendermint/go-crypto"
 	//auth "github.com/cosmos/cosmos-sdk/modules/auth"
 )
 
@@ -27,12 +25,17 @@ type BaseApp struct {
 	clock   sdk.Ticker
 }
 
-const ETHERMINT_ADDR = "localhost:8848"
+const (
+	ETHERMINT_ADDR = "localhost:8848"
+	BLOCK_AWARD = 10000000000000000000000
+)
 
 var (
 	_ abci.Application = &BaseApp{}
 	client, err = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
 	handler = stake.NewHandler()
+	StateChangeQueue []StateChangeObject
+	ValidatorPubKeys [][]byte
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
@@ -150,6 +153,11 @@ func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.Resp
 
 	fmt.Printf("ethermint BeginBlock response: %v\n", resp)
 
+	evidences := beginBlock.ByzantineValidators
+	for _, evidence := range evidences {
+		ValidatorPubKeys = append(ValidatorPubKeys, evidence.GetPubKey())
+	}
+
 	return abci.ResponseBeginBlock{}
 }
 
@@ -175,6 +183,16 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 		}
 		app.AddValChange(diff)
 	}
+
+	// block award
+	ratioMap := stake.CalValidatorsStakeRatio(app.Append(), ValidatorPubKeys)
+	for k, v := range ratioMap {
+		StateChangeQueue = append(StateChangeQueue, StateChangeObject{
+			From: stake.DefaultHoldAccount.Address, To: []byte(k), Amount: int64(BLOCK_AWARD * v)})
+	}
+
+	// todo send StateChangeQueue to VM
+
 	return app.StoreApp.EndBlock(endBlock)
 }
 
@@ -250,4 +268,10 @@ func decodeTx(txBytes []byte) (*types.Transaction, error) {
 		return nil, err
 	}
 	return tx, nil
+}
+
+type StateChangeObject struct {
+	From data.Bytes
+	To data.Bytes
+	Amount int64
 }
