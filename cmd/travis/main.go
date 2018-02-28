@@ -11,11 +11,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/commands/auto"
 )
 
-// GaiaCmd is the entry point for this binary
+// TravisCmd is the entry point for this binary
 var (
-	GaiaCmd = &cobra.Command{
+	TravisCmd = &cobra.Command{
 		Use:   "travis",
-		Short: "The Travis Network delegation-game test",
+		Short: "The Travis Network",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
@@ -32,7 +32,7 @@ func main() {
 	prepareNodeCommands()
 	prepareClientCommands()
 
-	GaiaCmd.AddCommand(
+	TravisCmd.AddCommand(
 		nodeCmd,
 		clientCmd,
 
@@ -41,7 +41,7 @@ func main() {
 	)
 
 	// prepare and add flags
-	basecmd.SetUpRoot(GaiaCmd)
-	executor := cli.PrepareMainCmd(GaiaCmd, "TR", os.ExpandEnv("$HOME/.travis"))
+	basecmd.SetUpRoot(TravisCmd)
+	executor := cli.PrepareMainCmd(TravisCmd, "TR", os.ExpandEnv("$HOME/.travis"))
 	executor.Execute()
 }

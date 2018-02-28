@@ -122,11 +122,11 @@ func (s *OneSig) Signers() (common.Address, error) {
 // Sign - sign the transaction with private key
 func Sign(tx keys.Signable, address string, passphrase string) error {
 	ethTx := types.NewTransaction(
-		0,
+		0,	// fixme retrieve nonce from ethereum
 		common.Address([20]byte{}),
-		big.NewInt(0x2386f26fc10000),
-		big.NewInt(0x15f90),
-		big.NewInt(0x430e23400),
+		big.NewInt(0),
+		big.NewInt(0),
+		big.NewInt(0),
 		tx.SignBytes(),
 	)
 

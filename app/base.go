@@ -259,7 +259,7 @@ func (app *BaseApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQue
 	return *resp
 }
 
-// rlp decode an etherum transaction
+// rlp decode an ethereum transaction
 func decodeTx(txBytes []byte) (*types.Transaction, error) {
 	tx := new(types.Transaction)
 	rlpStream := rlp.NewStream(bytes.NewBuffer(txBytes), 0)
