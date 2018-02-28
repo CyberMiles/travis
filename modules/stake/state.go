@@ -6,7 +6,9 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/CyberMiles/travis/modules/stake/commands"
+	//"github.com/CyberMiles/travis/modules/stake/commands"
+	"fmt"
+	"encoding/hex"
 )
 
 // nolint
@@ -246,10 +248,31 @@ func CalValidatorsStakeRatio(store state.SimpleDB, pubKeys [][]byte) (ratioMap m
 	}
 
 	for _, pubKey := range pubKeys {
-		pk, _ := commands.GetPubKey(string(pubKey))
+		pk, _ := GetPubKey(string(pubKey))
 		candidate := loadCandidate(store, pk)
 		ratioMap[candidate.Owner.String()] = float32(candidate.VotingPower) / totalVotingPower
 	}
 
 	return ratioMap
+}
+
+func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
+
+	if len(pubKeyStr) == 0 {
+		err = fmt.Errorf("must use --pubkey flag")
+		return
+	}
+	if len(pubKeyStr) != 64 { //if len(pkBytes) != 32 {
+		err = fmt.Errorf("pubkey must be Ed25519 hex encoded string which is 64 characters long")
+		return
+	}
+	var pkBytes []byte
+	pkBytes, err = hex.DecodeString(pubKeyStr)
+	if err != nil {
+		return
+	}
+	var pkEd crypto.PubKeyEd25519
+	copy(pkEd[:], pkBytes[:])
+	pk = pkEd.Wrap()
+	return
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/tendermint/abci/client"
-	"github.com/CyberMiles/travis/app"
+	"github.com/CyberMiles/travis/utils"
 )
 
 const (
@@ -20,9 +20,6 @@ const (
 	CostSend = int64(10)
 	// CostCredit is GasAllocation of a credit allocation
 	CostCredit = int64(20)
-	// Ethereum default keystore directory
-	datadirDefaultKeyStore = "keystore"
-	emHome = "/Users/dragon/.ethermint"
 	ETHERMINT_ADDR = "localhost:8848"
 )
 
@@ -110,11 +107,10 @@ func (h Handler) sendTx(ctx sdk.Context, store state.SimpleDB,
 		return res, err
 	}
 
-
 	sender := send.Inputs[0].Address
 	recipient := send.Outputs[0].Address
 	coin := send.Inputs[0].Coins[0]
-	app.StateChangeQueue = append(app.StateChangeQueue, app.StateChangeObject{
+	utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
 		From: sender.Address, To: recipient.Address, Amount: coin.Amount})
 
 	return sdk.DeliverResult{}, nil
