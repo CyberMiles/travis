@@ -23,9 +23,9 @@ import (
 	cmn "github.com/tendermint/tmlibs/common"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 
-	emtUtils "github.com/tendermint/ethermint/cmd/utils"
-	abciApp "github.com/tendermint/ethermint/app"
-	"github.com/tendermint/ethermint/ethereum"
+	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
+	abciApp "github.com/CyberMiles/travis/modules/vm/app"
+	"github.com/CyberMiles/travis/modules/vm/ethereum"
 
 	"github.com/CyberMiles/travis/app"
 )

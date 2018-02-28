@@ -40,10 +40,6 @@ imports:
   - stack
   - state
   - version
-- name: github.com/CyberMiles/ethermint
-  version: b72a1eef6edca2e8dfe03296fc665de025a5ae78
-  subpackages:
-  - version
 - name: github.com/ebuchman/fail-test
   version: 95f809107225be108efcf10a3509e4ea6ceef3c4
 - name: github.com/edsrzf/mmap-go
@@ -270,8 +266,6 @@ imports:
   - nowriter/tmlegacy
 - name: github.com/tendermint/iavl
   version: 594cc0c062a7174475f0ab654384038d77067917
-- name: github.com/tendermint/ethermint
-  version: 9e14eed0ef61ec8b9e4e62c5be52bc8849ae115d
 - name: gopkg.in/urfave/cli.v1
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: github.com/tendermint/tendermint
@@ -355,8 +349,10 @@ imports:
   version: fd80eb99c8f653c847d294a001bdf2a3a6f768f5
   subpackages:
   - syncmap
-- name: golang.org/x/sys/unix
-  version: 37707fdb30a5b38865cfb95e5aab41707daec7fd
+- name: golang.org/x/sys
+  version: 8b4580aae2a0dd0c231a45d3ccb8434ff533b840
+  subpackages:
+  - unix
 - name: golang.org/x/text
   version: e19ae1496984b1c655b8044a65c0300a3c878dd3
   subpackages:
@@ -433,3 +429,7 @@ testImports:
   subpackages:
   - assert
   - require
+- name: github.com/fatih/color
+  version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
+- name: github.com/peterh/liner
+  version: 3681c2a912330352991ecdd642f257efe5b85518

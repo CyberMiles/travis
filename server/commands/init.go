@@ -14,7 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 
-	emtUtils "github.com/tendermint/ethermint/cmd/utils"
+	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
 	"github.com/spf13/viper"
 	"fmt"
 )
