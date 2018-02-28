@@ -134,7 +134,10 @@ func Sign(tx keys.Signable, address string, passphrase string) error {
 	addr := common.HexToAddress(address)
 	suc, err := UnlockAccount(am, addr, passphrase, nil)
 	fmt.Printf("unlock result: %v\n", suc)
-	fmt.Printf("unlock error: %v\n", err)
+
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
 
 	account := accounts.Account{Address: addr}
 	wallet, err := am.Find(account)

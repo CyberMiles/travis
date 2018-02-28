@@ -6,7 +6,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/errors"
-	"github.com/cosmos/cosmos-sdk/modules/auth"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/tendermint/abci/client"
@@ -181,15 +180,19 @@ func setAccount(store state.SimpleDB, value string) (log string, err error) {
 		return "", err
 	}
 	acc.Balance.Sort()
-	addr, err := acc.GetAddr()
-	if err != nil {
-		return "", ErrInvalidAddress()
-	}
+	//addr, err := acc.GetAddr()
+	//if err != nil {
+	//	return "", ErrInvalidAddress()
+	//}
+
 	// this sets the permission for a public key signature, use that app
-	actor := auth.SigPerm(addr)
-	err = storeAccount(store, actor.Bytes(), acc.ToAccount())
-	if err != nil {
-		return "", err
-	}
+	//actor := auth.SigPerm(addr)
+	//err = storeAccount(store, actor.Bytes(), acc.ToAccount())
+	//if err != nil {
+	//	return "", err
+	//}
+
+	// todo set account balance in ethereum
+
 	return "Success", nil
 }
