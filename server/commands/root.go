@@ -14,7 +14,7 @@ import (
 	"github.com/tendermint/tmlibs/log"
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
-	emtUtils "github.com/tendermint/ethermint/cmd/utils"
+	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
 )
 
 //nolint
