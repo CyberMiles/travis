@@ -190,7 +190,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	var hash = resp.Data
 	fmt.Printf("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
 
-	return abci.ResponseCommit{Data: resp.Data}
+	return *resp
 }
 
 func (app *BaseApp) InitState(module, key, value string) error {
@@ -213,6 +213,16 @@ func (app *BaseApp) InitState(module, key, value string) error {
 		logger.Info(log)
 	}
 	return err
+}
+
+func (app *BaseApp) Info(res abci.RequestInfo) abci.ResponseInfo {
+	resp, err := client.InfoSync(res)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return *resp
 }
 
 func (app *BaseApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQuery) {
