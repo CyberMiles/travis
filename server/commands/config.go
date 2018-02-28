@@ -15,6 +15,7 @@ import (
 
 const (
 	configFile = "config.toml"
+	defaultEthChainId = 111
 )
 
 type TravisConfig struct {
@@ -44,6 +45,7 @@ func DefaultBaseConfig() BaseConfig {
 }
 
 type EthermintConfig struct {
+	EthChainId			uint	`mapstructure:"eth_chain_id"`
 	RootDir				string	`mapstructure:"home"`
 	ABCIAddr			string	`mapstructure:"abci_laddr"`
 	ABCIProtocol		string	`mapstructure:"abci_protocol"`
@@ -60,6 +62,7 @@ type EthermintConfig struct {
 
 func DefaultEthermintConfig() EthermintConfig {
 	return EthermintConfig{
+		EthChainId:			defaultEthChainId,
 		ABCIAddr:			"tcp://0.0.0.0:8848",
 		ABCIProtocol:		"socket",
 		RPCEnabledFlag:		true,
@@ -131,6 +134,7 @@ rpc = true
 rpcapi = "eth,net,web3,personal,admin"
 ws = false
 verbosity = 3
+eth_chain_id = 111
 `
 
 var defaultMoniker = getDefaultMoniker()

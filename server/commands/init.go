@@ -3,6 +3,7 @@ package commands
 import (
 	"os"
 	"path/filepath"
+	"math/big"
 
 	"github.com/spf13/cobra"
 
@@ -16,7 +17,6 @@ import (
 
 	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
 	"github.com/spf13/viper"
-	"fmt"
 )
 
 var (
@@ -75,11 +75,12 @@ func initTendermint() {
 
 func initEthermint() error {
 	genesisPath := context.Args().First()
-	fmt.Println(genesisPath)
 	genesis, err := emtUtils.ParseGenesisOrDefault(genesisPath)
 	if err != nil {
 		ethUtils.Fatalf("genesisJSON err: %v", err)
 	}
+	// override ethermint's chain_id
+	genesis.Config.ChainId = new(big.Int).SetUint64(uint64(config.EMConfig.EthChainId))
 
 	ethermintDataDir := emtUtils.MakeDataDir(context)
 
