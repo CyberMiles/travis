@@ -16,6 +16,7 @@ import (
 	//"github.com/tendermint/go-wire"
 	"github.com/CyberMiles/travis/modules/stake"
 	//auth "github.com/cosmos/cosmos-sdk/modules/auth"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // BaseApp - The ABCI application
@@ -34,8 +35,6 @@ var (
 	_ abci.Application = &BaseApp{}
 	client, err = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
 	handler = stake.NewHandler()
-	StateChangeQueue []StateChangeObject
-	ValidatorPubKeys [][]byte
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
@@ -154,7 +153,7 @@ func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.Resp
 
 	evidences := beginBlock.ByzantineValidators
 	for _, evidence := range evidences {
-		ValidatorPubKeys = append(ValidatorPubKeys, evidence.GetPubKey())
+		utils.ValidatorPubKeys = append(utils.ValidatorPubKeys, evidence.GetPubKey())
 	}
 
 	return abci.ResponseBeginBlock{}
@@ -184,9 +183,9 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 	}
 
 	// block award
-	ratioMap := stake.CalValidatorsStakeRatio(app.Append(), ValidatorPubKeys)
+	ratioMap := stake.CalValidatorsStakeRatio(app.Append(), utils.ValidatorPubKeys)
 	for k, v := range ratioMap {
-		StateChangeQueue = append(StateChangeQueue, StateChangeObject{
+		utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
 			From: stake.DefaultHoldAccount.Address, To: []byte(k), Amount: int64(BLOCK_AWARD * v)})
 	}
 
@@ -259,8 +258,4 @@ func decodeTx(txBytes []byte) (*types.Transaction, error) {
 	return tx, nil
 }
 
-type StateChangeObject struct {
-	From data.Bytes
-	To data.Bytes
-	Amount int64
-}
+
