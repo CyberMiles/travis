@@ -188,6 +188,9 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) (
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
 	app.backend.AccumulateRewards(app.strategy)
+
+	app.backend.EndBlock()
+
 	return app.GetUpdatedValidators()
 }
 

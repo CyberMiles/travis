@@ -240,17 +240,17 @@ func saveParams(store state.SimpleDB, params Params) {
 	store.Set(ParamKey, b)
 }
 
-func CalValidatorsStakeRatio(store state.SimpleDB, pubKeys [][]byte) (ratioMap map[string]float32) {
+func CalValidatorsStakeRatio(store state.SimpleDB, pubKeys [][]byte) (ratioMap map[string]float64) {
 	candidates := loadCandidates(store)
-	var totalVotingPower float32
+	var totalVotingPower float64
 	for _, candidate := range candidates {
-		totalVotingPower += float32(candidate.VotingPower)
+		totalVotingPower += float64(candidate.VotingPower)
 	}
 
 	for _, pubKey := range pubKeys {
 		pk, _ := GetPubKey(string(pubKey))
 		candidate := loadCandidate(store, pk)
-		ratioMap[candidate.Owner.String()] = float32(candidate.VotingPower) / totalVotingPower
+		ratioMap[candidate.Owner.String()] = float64(candidate.VotingPower) / totalVotingPower
 	}
 
 	return ratioMap

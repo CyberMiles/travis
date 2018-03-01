@@ -108,6 +108,10 @@ func (b *Backend) Commit(receiver common.Address) (common.Hash, error) {
 	return b.es.Commit(receiver)
 }
 
+func (b *Backend) EndBlock() {
+	b.es.EndBlock()
+}
+
 // InitEthState initializes the EthState
 // #unstable
 func (b *Backend) InitEthState(receiver common.Address) error {

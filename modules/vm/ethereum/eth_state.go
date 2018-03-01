@@ -19,6 +19,7 @@ import (
 
 	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
 	"github.com/cosmos/cosmos-sdk/errors"
+	"github.com/CyberMiles/travis/utils"
 )
 
 //----------------------------------------------------------------------
@@ -93,6 +94,10 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 	return blockHash, err
 }
 
+func (es *EthState) EndBlock() {
+	utils.BlockGasFee.Set(es.work.totalUsedGasFee)
+}
+
 func (es *EthState) ResetWorkState(receiver common.Address) error {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
@@ -117,8 +122,10 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 		state:        state,
 		txIndex:      0,
 		totalUsedGas: big.NewInt(0),
+		totalUsedGasFee: big.NewInt(0),
 		gp:           new(core.GasPool).AddGas(ethHeader.GasLimit),
 	}
+	utils.BlockGasFee = big.NewInt(0)
 	return nil
 }
 
@@ -168,6 +175,7 @@ type workState struct {
 	allLogs      []*ethTypes.Log
 
 	totalUsedGas *big.Int
+	totalUsedGasFee *big.Int
 	gp           *core.GasPool
 }
 
@@ -185,7 +193,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
 
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
-	receipt, _, err := core.ApplyTransaction(
+	receipt, usedGas, err := core.ApplyTransaction(
 		chainConfig,
 		blockchain,
 		nil, // defaults to address of the author of the header
@@ -199,6 +207,9 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
 	}
+
+	usedGasFee := big.NewInt(0).Mul(usedGas, tx.GasPrice())
+	ws.totalUsedGasFee.Add(ws.totalUsedGasFee, usedGasFee)
 
 	logs := ws.state.GetLogs(tx.Hash())
 

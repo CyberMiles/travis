@@ -17,6 +17,7 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	//auth "github.com/cosmos/cosmos-sdk/modules/auth"
 	"github.com/CyberMiles/travis/utils"
+	"math/big"
 )
 
 // BaseApp - The ABCI application
@@ -28,10 +29,12 @@ type BaseApp struct {
 
 const (
 	ETHERMINT_ADDR = "localhost:8848"
-	BLOCK_AWARD = 10000000000000000000000
+	BLOCK_AWARD_STR = "10000000000000000000000"
 )
 
 var (
+	blockAward, _ = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
+
 	_ abci.Application = &BaseApp{}
 	client, err = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
 	handler = stake.NewHandler()
@@ -186,8 +189,12 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 	// block award
 	ratioMap := stake.CalValidatorsStakeRatio(app.Append(), utils.ValidatorPubKeys)
 	for k, v := range ratioMap {
+		awardAmount := big.NewInt(0)
+		intv := int64(1000 * v)
+		awardAmount.Mul(blockAward, big.NewInt(intv))
+		awardAmount.Div(awardAmount, big.NewInt(1000))
 		utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
-			From: stake.DefaultHoldAccount.Address, To: []byte(k), Amount: int64(BLOCK_AWARD * v)})
+			From: stake.DefaultHoldAccount.Address, To: []byte(k), Amount: awardAmount})
 	}
 
 	// todo send StateChangeQueue to VM
