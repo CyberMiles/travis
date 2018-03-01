@@ -12,7 +12,7 @@ import:
   - server
   - types
 - package: github.com/cosmos/cosmos-sdk
-  version: master
+  version: be92f16b52cdeaba6dddaa62e0a8d1eed9e9640e
 - package: github.com/tendermint/iavl
   version: master
 - package: github.com/tendermint/go-crypto
@@ -51,14 +51,6 @@ import:
   repo: https://github.com/tendermint/go-ethereum.git
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
-- package: github.com/mattn/go-colorable
-  version: 0.x
-- package: google.golang.org/grpc
-  repo: https://github.com/grpc/grpc-go
-  vcs: git
-- package: google.golang.org/genproto
-  repo: https://github.com/google/go-genproto
-  vcs: git
 testImport:
 - package: github.com/stretchr/testify
   subpackages:
