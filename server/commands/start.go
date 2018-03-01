@@ -2,23 +2,23 @@ package commands
 
 import (
 	"fmt"
+	"math/big"
 	"os"
 	"path"
 	"time"
-	"math/big"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tmlibs/cli"
 	cmn "github.com/tendermint/tmlibs/common"
-	sdk "github.com/cosmos/cosmos-sdk"
-	"github.com/CyberMiles/travis/genesis"
-	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/CyberMiles/travis/app"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/CyberMiles/travis/app"
+	"github.com/CyberMiles/travis/genesis"
 )
 
 // GetTickStartCmd - initialize a command as the start command with tick
@@ -33,7 +33,6 @@ func GetTickStartCmd(tick sdk.Ticker) *cobra.Command {
 
 // nolint TODO: move to config file
 const EyesCacheSize = 10000
-
 
 var (
 	// Handler - use a global to store the handler, so we can set it in main.
@@ -80,16 +79,15 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 
 	// wait forever
 	cmn.TrapSignal(func() {
-	  // cleanup
-	  srvs.emt.Stop()
-	  for {
-	    pauseDuration := 1 * time.Second
-	    time.Sleep(pauseDuration)
-	    if !srvs.emt.IsRunning() {
-	      break
-	    }
-	  }
-	  srvs.tmNode.Stop()
+		// cleanup
+		srvs.emt.Stop()
+
+		//TODO: how to wait for ethermint to stop?
+		pauseDuration := 1 * time.Second
+		time.Sleep(pauseDuration)
+
+		srvs.tmNode.Stop()
+		srvs.tmNode.Wait()
 	})
 
 	return nil
