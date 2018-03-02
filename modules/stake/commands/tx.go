@@ -225,32 +225,6 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 	return
 }
 
-func cmdDeclareValidator(cmd *cobra.Command, args []string) error {
-	amount, err := coin.ParseCoin(viper.GetString(FlagAmount))
-	if err != nil {
-		return err
-	}
-
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
-	if viper.GetString(FlagMoniker) == "" {
-		return fmt.Errorf("please enter a moniker for the validator-candidate using --moniker")
-	}
-
-	description := stake.Description{
-		Moniker:  viper.GetString(FlagMoniker),
-		Identity: viper.GetString(FlagIdentity),
-		Website:  viper.GetString(FlagWebsite),
-		Location:  viper.GetString(FlagLocation),
-	}
-
-	tx := stake.NewTxDeclareValidator(amount, pk, description)
-	return txcmd.DoTx(tx)
-}
-
 func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 	// todo
 
