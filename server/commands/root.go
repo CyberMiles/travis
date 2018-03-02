@@ -76,6 +76,8 @@ var (
 		emtUtils.TargetGasLimitFlag,
 		// Gas Price
 		ethUtils.GasPriceFlag,
+		// Network Id
+		ethUtils.NetworkIdFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -120,6 +122,7 @@ func setupEmtContext() error {
 	context = cli.NewContext(a, set, nil)
 
 	context.GlobalSet(ethUtils.DataDirFlag.Name, config.BaseConfig.RootDir)
+	context.GlobalSet(ethUtils.NetworkIdFlag.Name, strconv.Itoa(int(config.EMConfig.EthChainId)))
 	context.GlobalSet(emtUtils.VerbosityFlag.Name, strconv.Itoa(int(config.EMConfig.VerbosityFlag)))
 
 	context.GlobalSet(emtUtils.TendermintAddrFlag.Name, config.TMConfig.RPC.ListenAddress)
