@@ -21,21 +21,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// StartCmd - command to start running the abci app (and tendermint)!
-var StartCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start this full node",
-	RunE:  startCmd,
-}
-
 // GetTickStartCmd - initialize a command as the start command with tick
 func GetTickStartCmd(tick sdk.Ticker) *cobra.Command {
 	startCmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start this full node",
-		RunE:  startCmd,
+		RunE:  tickStartCmd(tick),
 	}
-	startCmd.RunE = tickStartCmd(tick)
 	return startCmd
 }
 
@@ -69,39 +61,22 @@ func tickStartCmd(clock sdk.Ticker) func(cmd *cobra.Command, args []string) erro
 	}
 }
 
-func startCmd(cmd *cobra.Command, args []string) error {
-	rootDir := viper.GetString(cli.HomeFlag)
-
-	cmdName := cmd.Root().Name()
-	appName := fmt.Sprintf("%s v%v", cmdName, version.Version)
-	storeApp, err := app.NewStoreApp(
-		appName,
-		path.Join(rootDir, "data", "merkleeyes.db"),
-		EyesCacheSize,
-		logger.With("module", "app"))
-	if err != nil {
-		return err
-	}
-
-	return start(rootDir, storeApp)
-}
-
 func start(rootDir string, storeApp *app.StoreApp) error {
 	srvs, err := startServices(rootDir, storeApp)
 	if err != nil {
 		return errors.Errorf("Error in start services: %v\n", err)
 	}
 
-// test change balance -->
-state, err := srvs.backend.Ethereum().BlockChain().State()
-if err != nil {
-	return errors.Errorf("Error in get state: %v\n", err)
-}
-addr := "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc"
-fmt.Printf("===================== balance before set: %v\n", state.GetBalance(common.HexToAddress(addr)))
-state.SetBalance(common.HexToAddress(addr), big.NewInt(int64(111)))
-fmt.Printf("===================== balance after set: %v\n", state.GetBalance(common.HexToAddress(addr)))
-// <---
+	// test change balance -->
+	state, err := srvs.backend.Ethereum().BlockChain().State()
+	if err != nil {
+		return errors.Errorf("Error in get state: %v\n", err)
+	}
+	addr := "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc"
+	fmt.Printf("===================== balance before set: %v\n", state.GetBalance(common.HexToAddress(addr)))
+	state.SetBalance(common.HexToAddress(addr), big.NewInt(int64(111)))
+	fmt.Printf("===================== balance after set: %v\n", state.GetBalance(common.HexToAddress(addr)))
+	// <---
 
 	// wait forever
 	cmn.TrapSignal(func() {
@@ -121,8 +96,10 @@ fmt.Printf("===================== balance after set: %v\n", state.GetBalance(com
 }
 
 func createBaseCoinApp(rootDir string, storeApp *app.StoreApp) (*app.BaseApp, error) {
-	basecoinApp := app.NewBaseApp(storeApp, Handler, nil)
-
+	basecoinApp, err := app.NewBaseApp(storeApp, Handler, nil)
+	if err != nil {
+		return nil, err
+	}
 	// if chain_id has not been set yet, load the genesis.
 	// else, assume it's been loaded
 	if basecoinApp.GetChainID() == "" {

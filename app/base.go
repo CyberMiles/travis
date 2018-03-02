@@ -24,6 +24,7 @@ type BaseApp struct {
 	*StoreApp
 	handler sdk.Handler
 	clock   sdk.Ticker
+	client abcicli.Client
 }
 
 const (
@@ -35,20 +36,29 @@ var (
 	blockAward, _ = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
 
 	_ abci.Application = &BaseApp{}
-	client, err = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
+	//client, err = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
 	handler = stake.NewHandler()
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
-func NewBaseApp(store *StoreApp, handler sdk.Handler, clock sdk.Ticker) *BaseApp {
-	client.Start()
-
-	return &BaseApp{
+func NewBaseApp(store *StoreApp, handler sdk.Handler, clock sdk.Ticker) (*BaseApp, error) {
+	app := &BaseApp{
 		StoreApp: store,
 		handler:  handler,
 		clock:    clock,
 	}
+	client, err := abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.Start(); err != nil {
+		return nil, err
+	}
+
+	app.client = client
+
+	return app, nil
 }
 
 // DeliverTx - ABCI - dispatches to the handler
@@ -65,7 +75,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 			return errors.DeliverResult(err)
 		}
 
-		resp, err := client.DeliverTxSync(txBytes)
+		resp, err := app.client.DeliverTxSync(txBytes)
 		fmt.Printf("ethermint DeliverTx response: %v\n", resp)
 
 		return abci.ResponseDeliverTx{Code: 0}
@@ -110,7 +120,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 			return errors.CheckResult(err)
 		}
 
-		resp, err := client.CheckTxSync(txBytes)
+		resp, err := app.client.CheckTxSync(txBytes)
 		fmt.Printf("ethermint CheckTx response: %v\n", resp)
 
 		if err != nil {
@@ -150,7 +160,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	fmt.Println("BeginBlock")
 
-	resp, _ := client.BeginBlockSync(beginBlock)
+	resp, _ := app.client.BeginBlockSync(beginBlock)
 
 	fmt.Printf("ethermint BeginBlock response: %v\n", resp)
 
@@ -166,7 +176,7 @@ func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.Resp
 func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	fmt.Println("EndBlock")
 
-	resp, _ := client.EndBlockSync(endBlock)
+	resp, _ := app.client.EndBlockSync(endBlock)
 
 	fmt.Printf("ethermint EndBlock response: %v\n", resp)
 
@@ -204,7 +214,7 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	fmt.Println("Commit")
 
-	resp, err := client.CommitSync()
+	resp, err := app.client.CommitSync()
 
 	if err != nil {
 		panic(err)
@@ -239,7 +249,7 @@ func (app *BaseApp) InitState(module, key, value string) error {
 }
 
 func (app *BaseApp) Info(res abci.RequestInfo) abci.ResponseInfo {
-	resp, err := client.InfoSync(res)
+	resp, err := app.client.InfoSync(res)
 
 	if err != nil {
 		panic(err)
