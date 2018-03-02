@@ -66,7 +66,6 @@ type Description struct {
 	Identity string `json:"identity"`
 	Website  string `json:"website"`
 	Details  string `json:"details"`
-	Location  string `json:"location"`
 }
 
 // NewCandidate - initialize a new candidate

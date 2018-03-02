@@ -58,7 +58,7 @@ const (
 var (
 	CmdDeclareCandidacy = &cobra.Command{
 		Use:   "declare-candidacy",
-		Short: "create new validator-candidate account and delegate some coins to it",
+		Short: "Allows a potential validator to declare its candidacy",
 		RunE:  cmdDeclareCandidacy,
 	}
 	CmdEditCandidacy = &cobra.Command{
@@ -77,11 +77,6 @@ var (
 		RunE:  cmdUnbond,
 	}
 
-	CmdDeclare = &cobra.Command{
-		Use:   "declare-validator",
-		Short: "Allows a potential validator to declare its candidacy",
-		RunE:  cmdDeclareValidator,
-	}
 	CmdProposeSlot = &cobra.Command{
 		Use:   "propose-slot",
 		Short: "Allows a potential validator to offer a slot of CMTs and corresponding ROI",
@@ -117,11 +112,6 @@ func init() {
 	fsCandidate.String(FlagWebsite, "", "optional website")
 	fsCandidate.String(FlagDetails, "", "optional detailed description space")
 
-	fsValidator := flag.NewFlagSet("", flag.ContinueOnError)
-	fsValidator.String(FlagMoniker, "", "validator name")
-	fsValidator.String(FlagWebsite, "", "optional website")
-	fsValidator.String(FlagLocation, "", "optional location")
-
 	// add the flags
 	CmdDelegate.Flags().AddFlagSet(fsPk)
 	CmdDelegate.Flags().AddFlagSet(fsAmount)
@@ -135,11 +125,6 @@ func init() {
 
 	CmdEditCandidacy.Flags().AddFlagSet(fsPk)
 	CmdEditCandidacy.Flags().AddFlagSet(fsCandidate)
-
-
-	CmdDeclare.Flags().AddFlagSet(fsPk)
-	CmdDeclare.Flags().AddFlagSet(fsAmount)
-	CmdDeclare.Flags().AddFlagSet(fsValidator)
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
@@ -238,32 +223,6 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 	copy(pkEd[:], pkBytes[:])
 	pk = pkEd.Wrap()
 	return
-}
-
-func cmdDeclareValidator(cmd *cobra.Command, args []string) error {
-	amount, err := coin.ParseCoin(viper.GetString(FlagAmount))
-	if err != nil {
-		return err
-	}
-
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
-	if viper.GetString(FlagMoniker) == "" {
-		return fmt.Errorf("please enter a moniker for the validator-candidate using --moniker")
-	}
-
-	description := stake.Description{
-		Moniker:  viper.GetString(FlagMoniker),
-		Identity: viper.GetString(FlagIdentity),
-		Website:  viper.GetString(FlagWebsite),
-		Location:  viper.GetString(FlagLocation),
-	}
-
-	tx := stake.NewTxDeclareValidator(amount, pk, description)
-	return txcmd.DoTx(tx)
 }
 
 func cmdProposeSlot(cmd *cobra.Command, args []string) error {

@@ -12,8 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/cosmos/cosmos-sdk/stack"
-	"github.com/tendermint/go-wire/data"
-	//"github.com/tendermint/go-wire"
+	//"github.com/tendermint/go-wire/data"
 	"github.com/CyberMiles/travis/modules/stake"
 	//auth "github.com/cosmos/cosmos-sdk/modules/auth"
 	"github.com/CyberMiles/travis/utils"
@@ -214,7 +213,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	var hash = resp.Data
 	fmt.Printf("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
 
-	return *resp
+	return app.StoreApp.Commit()
 }
 
 func (app *BaseApp) InitState(module, key, value string) error {
@@ -249,22 +248,22 @@ func (app *BaseApp) Info(res abci.RequestInfo) abci.ResponseInfo {
 	return *resp
 }
 
-func (app *BaseApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQuery) {
-	fmt.Println("Query")
-
-	var d = data.Bytes(reqQuery.Data)
-	fmt.Println(d)
-	fmt.Println(d.MarshalJSON())
-	reqQuery.Data, _ = d.MarshalJSON()
-
-	resp, err := client.QuerySync(reqQuery)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return *resp
-}
+//func (app *BaseApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQuery) {
+//	fmt.Println("Query")
+//
+//	var d = data.Bytes(reqQuery.Data)
+//	fmt.Println(d)
+//	fmt.Println(d.MarshalJSON())
+//	reqQuery.Data, _ = d.MarshalJSON()
+//
+//	resp, err := client.QuerySync(reqQuery)
+//
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	return *resp
+//}
 
 // rlp decode an ethereum transaction
 func decodeTx(txBytes []byte) (*types.Transaction, error) {

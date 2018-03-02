@@ -87,6 +87,7 @@ func cmdQueryCandidates(cmd *cobra.Command, args []string) error {
 	h := viper.GetInt64("height")
 	fmt.Printf("height", h)
 	key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
+	fmt.Printf("cmdQueryCandidats, key: %v", key)
 	//height, err := query.GetParsed(key, &pks, query.GetHeight(), prove)
 	h = query.GetHeight()
 	height, err := query.GetParsed(key, &pks, h, prove)
