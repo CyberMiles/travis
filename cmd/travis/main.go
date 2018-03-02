@@ -42,6 +42,6 @@ func main() {
 
 	// prepare and add flags
 	basecmd.SetUpRoot(TravisCmd)
-	executor := cli.PrepareMainCmd(TravisCmd, "TR", os.ExpandEnv("$HOME/.travis"))
+	executor := cli.PrepareMainCmd(TravisCmd, "TR", os.ExpandEnv("$HOME/.travis-cli"))
 	executor.Execute()
 }

@@ -163,6 +163,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		key := reqQuery.Data // Data holds the key bytes
 		resQuery.Key = key
 		if reqQuery.Prove {
+			fmt.Printf("key: %v", string(key))
 			value, proof, err := tree.GetVersionedWithProof(key, height)
 			if err != nil {
 				resQuery.Log = err.Error()
@@ -184,9 +185,12 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 
 // Commit implements abci.Application
 func (app *StoreApp) Commit() (res abci.ResponseCommit) {
-		app.height++
+	app.height++
 
 	hash, err := app.state.Commit(app.height)
+
+	fmt.Printf("Commit, height: %v, hash: %v\n", app.height, hash)
+
 	if err != nil {
 		// die if we can't commit, not to recover
 		panic(err)

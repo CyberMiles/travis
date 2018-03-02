@@ -58,7 +58,7 @@ const (
 var (
 	CmdDeclareCandidacy = &cobra.Command{
 		Use:   "declare-candidacy",
-		Short: "create new validator-candidate account and delegate some coins to it",
+		Short: "Allows a potential validator to declare its candidacy",
 		RunE:  cmdDeclareCandidacy,
 	}
 	CmdEditCandidacy = &cobra.Command{
@@ -77,11 +77,6 @@ var (
 		RunE:  cmdUnbond,
 	}
 
-	CmdDeclare = &cobra.Command{
-		Use:   "declare-validator",
-		Short: "Allows a potential validator to declare its candidacy",
-		RunE:  cmdDeclareValidator,
-	}
 	CmdProposeSlot = &cobra.Command{
 		Use:   "propose-slot",
 		Short: "Allows a potential validator to offer a slot of CMTs and corresponding ROI",
@@ -117,11 +112,6 @@ func init() {
 	fsCandidate.String(FlagWebsite, "", "optional website")
 	fsCandidate.String(FlagDetails, "", "optional detailed description space")
 
-	fsValidator := flag.NewFlagSet("", flag.ContinueOnError)
-	fsValidator.String(FlagMoniker, "", "validator name")
-	fsValidator.String(FlagWebsite, "", "optional website")
-	fsValidator.String(FlagLocation, "", "optional location")
-
 	// add the flags
 	CmdDelegate.Flags().AddFlagSet(fsPk)
 	CmdDelegate.Flags().AddFlagSet(fsAmount)
@@ -135,11 +125,6 @@ func init() {
 
 	CmdEditCandidacy.Flags().AddFlagSet(fsPk)
 	CmdEditCandidacy.Flags().AddFlagSet(fsCandidate)
-
-
-	CmdDeclare.Flags().AddFlagSet(fsPk)
-	CmdDeclare.Flags().AddFlagSet(fsAmount)
-	CmdDeclare.Flags().AddFlagSet(fsValidator)
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {

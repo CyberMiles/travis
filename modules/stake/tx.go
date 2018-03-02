@@ -79,21 +79,8 @@ func NewTxDeclareCandidacy(bond coin.Coin, pubKey crypto.PubKey, description Des
 	}.Wrap()
 }
 
-// NewTxDeclareValidator - new TxDeclareValidator
-func NewTxDeclareValidator(bond coin.Coin, pubKey crypto.PubKey, description Description) sdk.Tx {
-	return TxDeclareValidator{
-		BondUpdate{
-			PubKey: pubKey,
-			Bond:   bond,
-		},
-		description,
-	}.Wrap()
-}
-
 // Wrap - Wrap a Tx as a Basecoin Tx
 func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
-
-func (tx TxDeclareValidator) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxEditCandidacy - struct for editing a candidate
 type TxEditCandidacy struct {
