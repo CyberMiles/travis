@@ -7,7 +7,7 @@ import (
 	abci "github.com/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk"
-	abcicli "github.com/tendermint/abci/client"
+	_ "github.com/tendermint/abci/client"
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -17,6 +17,7 @@ import (
 	//auth "github.com/cosmos/cosmos-sdk/modules/auth"
 	"github.com/CyberMiles/travis/utils"
 	"math/big"
+	ethapp "github.com/CyberMiles/travis/modules/vm/app"
 )
 
 // BaseApp - The ABCI application
@@ -24,7 +25,8 @@ type BaseApp struct {
 	*StoreApp
 	handler sdk.Handler
 	clock   sdk.Ticker
-	client abcicli.Client
+	//client abcicli.Client
+	EthApp *ethapp.EthermintApplication
 }
 
 const (
@@ -48,17 +50,21 @@ func NewBaseApp(store *StoreApp, handler sdk.Handler, clock sdk.Ticker) (*BaseAp
 		handler:  handler,
 		clock:    clock,
 	}
-	client, err := abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
-	if err != nil {
-		return nil, err
-	}
-	if err := client.Start(); err != nil {
-		return nil, err
-	}
-
-	app.client = client
+	//client, err := abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if err := client.Start(); err != nil {
+	//	return nil, err
+	//}
+	//
+	//app.client = client
 
 	return app, nil
+}
+
+func (app *BaseApp) SetEthermintApplication(ethApp *ethapp.EthermintApplication) {
+	app.EthApp = ethApp
 }
 
 // DeliverTx - ABCI - dispatches to the handler
@@ -75,7 +81,8 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 			return errors.DeliverResult(err)
 		}
 
-		resp, err := app.client.DeliverTxSync(txBytes)
+		//resp, err := app.client.DeliverTxSync(txBytes)
+		resp := app.EthApp.DeliverTx(txBytes)
 		fmt.Printf("ethermint DeliverTx response: %v\n", resp)
 
 		return abci.ResponseDeliverTx{Code: 0}
@@ -120,7 +127,8 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 			return errors.CheckResult(err)
 		}
 
-		resp, err := app.client.CheckTxSync(txBytes)
+		//resp, err := app.client.CheckTxSync(txBytes)
+		resp := app.EthApp.CheckTx(txBytes)
 		fmt.Printf("ethermint CheckTx response: %v\n", resp)
 
 		if err != nil {
@@ -160,8 +168,8 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	fmt.Println("BeginBlock")
 
-	resp, _ := app.client.BeginBlockSync(beginBlock)
-
+	//resp, _ := app.client.BeginBlockSync(beginBlock)
+	resp := app.EthApp.BeginBlock(beginBlock)
 	fmt.Printf("ethermint BeginBlock response: %v\n", resp)
 
 	evidences := beginBlock.ByzantineValidators
@@ -176,8 +184,8 @@ func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.Resp
 func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	fmt.Println("EndBlock")
 
-	resp, _ := app.client.EndBlockSync(endBlock)
-
+	//resp, _ := app.client.EndBlockSync(endBlock)
+	resp := app.EthApp.EndBlock(endBlock)
 	fmt.Printf("ethermint EndBlock response: %v\n", resp)
 
 	// execute tick if present
@@ -214,12 +222,12 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	fmt.Println("Commit")
 
-	resp, err := app.client.CommitSync()
+	//resp, err := app.client.CommitSync()
+	//if err != nil {
+	//	panic(err)
+	//}
 
-	if err != nil {
-		panic(err)
-	}
-
+	resp := app.EthApp.Commit()
 	var hash = resp.Data
 	fmt.Printf("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
 
@@ -248,14 +256,15 @@ func (app *BaseApp) InitState(module, key, value string) error {
 	return err
 }
 
-func (app *BaseApp) Info(res abci.RequestInfo) abci.ResponseInfo {
-	resp, err := app.client.InfoSync(res)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return *resp
+func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
+	//resp, err := app.client.InfoSync(res)
+	//app.EthApp.Info(res)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//return *resp
+	return app.EthApp.Info(req)
 }
 
 //func (app *BaseApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQuery) {

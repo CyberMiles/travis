@@ -87,6 +87,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	basecoinApp.SetEthermintApplication(ethApp)
 	// Create & start tendermint node
 	tmNode, err := startTendermint(basecoinApp)
 	if err != nil {
