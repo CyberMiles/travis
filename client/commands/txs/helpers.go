@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	crypto "github.com/tendermint/go-crypto"
 	"github.com/CyberMiles/travis/modules/keys"
 	wire "github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
@@ -23,8 +22,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/client/commands"
-	keycmd "github.com/cosmos/cosmos-sdk/client/commands/keys"
 	"github.com/CyberMiles/travis/modules/auth"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // Validatable represents anything that can be Validated
@@ -32,13 +31,15 @@ type Validatable interface {
 	ValidateBasic() error
 }
 
-// GetSigner returns the pub key that will sign the tx
-// returns empty key if no name provided
-func GetSigner() crypto.PubKey {
-	name := viper.GetString(FlagName)
-	manager := keycmd.GetKeyManager()
-	info, _ := manager.Get(name) // error -> empty pubkey
-	return info.PubKey
+func GetSigner() common.Address {
+	address := viper.GetString(FlagAddress)
+
+	if address == "" {
+		fmt.Errorf("--address is required to sign tx")
+		return common.Address{}
+	}
+
+	return common.HexToAddress(address)
 }
 
 // GetSignerAct returns the address of the signer of the tx
@@ -46,9 +47,7 @@ func GetSigner() crypto.PubKey {
 func GetSignerAct() (res sdk.Actor) {
 	// this could be much cooler with multisig...
 	signer := GetSigner()
-	if !signer.Empty() {
-		res = auth.SigPerm(signer.Address())
-	}
+	res = auth.SigPerm(signer.Bytes())
 	return res
 }
 

@@ -11,7 +11,7 @@ import (
 	"github.com/CyberMiles/travis/modules/coin"
 	"github.com/CyberMiles/travis/modules/fee"
 	"github.com/cosmos/cosmos-sdk/modules/base"
-	//"github.com/cosmos/cosmos-sdk/modules/nonce"
+	"github.com/cosmos/cosmos-sdk/modules/nonce"
 	"github.com/CyberMiles/travis/modules/auth"
 )
 
@@ -29,6 +29,7 @@ func prepareNodeCommands() {
 		auth.Signatures{},
 		base.Chain{},
 		stack.Checkpoint{OnCheck: true},
+		nonce.ReplayCheck{},
 	).
 		Apps(
 		fee.NewSimpleFeeMiddleware(coin.Coin{"cmt", 0}, fee.Bank),

@@ -11,13 +11,13 @@ $ make all
 ## Initialize
 
 ```
-$ travis node init
+$ travis node init --home ~/.travis
 ```
 
 ## Start Travis
 
 ```
-$ travis node start
+$ travis node start --home ~/.travis
 ```
 
 ## Send transactions

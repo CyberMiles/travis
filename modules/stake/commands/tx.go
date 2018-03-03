@@ -10,7 +10,7 @@ import (
 
 	crypto "github.com/tendermint/go-crypto"
 
-	txcmd "github.com/CyberMiles/travis/modules/txs"
+	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/coin"
 
 	"github.com/CyberMiles/travis/modules/stake"

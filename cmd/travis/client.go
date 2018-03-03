@@ -5,11 +5,12 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/commands"
 	"github.com/cosmos/cosmos-sdk/client/commands/query"
-	txcmd "github.com/CyberMiles/travis/modules/txs"
+	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	stakecmd "github.com/CyberMiles/travis/modules/stake/commands"
 	authcmd "github.com/CyberMiles/travis/modules/auth/commands"
 	basecmd "github.com/cosmos/cosmos-sdk/modules/base/commands"
 	rolecmd "github.com/cosmos/cosmos-sdk/modules/roles/commands"
+	noncecmd "github.com/CyberMiles/travis/modules/nonce/commands"
 )
 
 // clientCmd is the entry point for this binary
@@ -25,6 +26,7 @@ func prepareClientCommands() {
 	commands.AddBasicFlags(clientCmd)
 
 	query.RootCmd.AddCommand(
+		noncecmd.NonceQueryCmd,
 		stakecmd.CmdQueryCandidates,
 		stakecmd.CmdQueryCandidate,
 		stakecmd.CmdQueryDelegatorBond,
@@ -37,6 +39,7 @@ func prepareClientCommands() {
 	// set up the middleware
 	txcmd.Middleware = txcmd.Wrappers{
 		rolecmd.RoleWrapper{},
+		noncecmd.NonceWrapper{},
 		basecmd.ChainWrapper{},
 		authcmd.SigWrapper{},
 	}
