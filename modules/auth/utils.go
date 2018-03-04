@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	emHome = os.ExpandEnv("$HOME/.ethermint")
+	emHome = os.ExpandEnv("$HOME/.travis")
 )
 
 func makeAccountManager() (*accounts.Manager, string, error) {
