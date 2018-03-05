@@ -51,6 +51,8 @@ import:
   repo: https://github.com/tendermint/go-ethereum.git
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
+- package: github.com/mattn/go-sqlite3
+  version: v1.6.0
 testImport:
 - package: github.com/stretchr/testify
   subpackages:
