@@ -7,34 +7,34 @@ import (
 
 	"gopkg.in/urfave/cli.v1"
 
-	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rpc"
 
+	"github.com/tendermint/abci/server"
+	abcitypes "github.com/tendermint/abci/types"
+	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
 	"github.com/tendermint/tendermint/types"
-	"github.com/tendermint/abci/server"
-	abcitypes "github.com/tendermint/abci/types"
 	cmn "github.com/tendermint/tmlibs/common"
-	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 
-	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
 	abciApp "github.com/CyberMiles/travis/modules/vm/app"
+	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
 	"github.com/CyberMiles/travis/modules/vm/ethereum"
 
 	"github.com/CyberMiles/travis/app"
 )
 
 type Services struct {
-	backend       *ethereum.Backend
-	rpcClient     *rpc.Client
-	emt           cmn.Service
-	tmNode        *node.Node
+	backend   *ethereum.Backend
+	rpcClient *rpc.Client
+	emt       cmn.Service
+	tmNode    *node.Node
 }
 
 func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
@@ -94,6 +94,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	backend.SetTMNode(tmNode)
 
 	return &Services{backend, rpcClient, srv, tmNode}, nil
 }
@@ -251,7 +252,7 @@ func startTendermint(basecoinApp abcitypes.Application) (*node.Node, error) {
 
 	var papp proxy.ClientCreator
 	if basecoinApp != nil {
-		papp =proxy.NewLocalClientCreator(basecoinApp)
+		papp = proxy.NewLocalClientCreator(basecoinApp)
 	} else {
 		papp = proxy.DefaultClientCreator(cfg.ProxyApp, cfg.ABCI, cfg.DBDir())
 	}
