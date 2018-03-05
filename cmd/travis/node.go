@@ -11,7 +11,7 @@ import (
 	"github.com/CyberMiles/travis/modules/coin"
 	"github.com/CyberMiles/travis/modules/fee"
 	"github.com/cosmos/cosmos-sdk/modules/base"
-	"github.com/cosmos/cosmos-sdk/modules/nonce"
+	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/modules/auth"
 )
 

@@ -9,7 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/client/commands"
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
-	"github.com/cosmos/cosmos-sdk/modules/nonce"
+	"github.com/CyberMiles/travis/modules/nonce"
 )
 
 // nolint

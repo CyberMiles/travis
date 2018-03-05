@@ -11,7 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/commands"
 	"github.com/cosmos/cosmos-sdk/client/commands/query"
-	"github.com/cosmos/cosmos-sdk/modules/nonce"
+	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/cosmos/cosmos-sdk/stack"
 )
 
