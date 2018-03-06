@@ -104,7 +104,7 @@ func (Handler) initState(module, key, value string, store state.SimpleDB) error 
 
 // CheckTx checks if the tx is properly structured
 func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
-	tx sdk.Tx, _ sdk.Checker) (res sdk.CheckResult, err error) {
+	tx sdk.Tx, dispatch sdk.Checker) (res sdk.CheckResult, err error) {
 
 	err = tx.ValidateBasic()
 	if err != nil {
@@ -123,6 +123,12 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 	checker := check{
 		store:  store,
 		sender: sender,
+		params: params,
+		transfer: coinChecker{
+			store:    store,
+			dispatch: dispatch,
+			ctx:      ctx,
+		}.transferFn,
 	}
 
 	// return the fee for each tx type
@@ -208,6 +214,23 @@ func getTxSender(ctx sdk.Context) (sender sdk.Actor, err error) {
 
 //_______________________________________________________________________
 
+type coinChecker struct {
+	store    state.SimpleDB
+	dispatch sdk.Checker
+	ctx      sdk.Context
+}
+
+var _ coinSend = coinSender{} // enforce interface at compile time
+
+func (c coinChecker) transferFn(sender, receiver sdk.Actor, coins coin.Coins) error {
+	send := coin.NewSendOneTx(sender, receiver, coins)
+
+	// If the deduction fails (too high), abort the command
+	_, err := c.dispatch.CheckTx(c.ctx, c.store, send)
+	return err
+}
+
+
 type coinSender struct {
 	store    state.SimpleDB
 	dispatch sdk.Deliver
@@ -229,6 +252,8 @@ func (c coinSender) transferFn(sender, receiver sdk.Actor, coins coin.Coins) err
 type check struct {
 	store  state.SimpleDB
 	sender sdk.Actor
+	params   Params
+	transfer transferFn
 }
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
@@ -262,6 +287,13 @@ func (c check) delegate(tx TxDelegate) error {
 	if candidate == nil { // does PubKey exist
 		return fmt.Errorf("cannot delegate to non-existant PubKey %v", tx.PubKey)
 	}
+
+	// Move coins from the delegator account to the pubKey lock account
+	err := c.transfer(c.sender, c.params.HoldAccount, coin.Coins{tx.Bond})
+	if err != nil {
+		return err
+	}
+
 	return checkDenom(tx.BondUpdate, c.store)
 }
 
