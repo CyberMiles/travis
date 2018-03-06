@@ -21,7 +21,7 @@ const (
 type TravisConfig struct {
 	BaseConfig BaseConfig      `mapstructure:",squash"`
 	TMConfig   tmcfg.Config    `mapstructure:",squash"`
-	EMConfig   EthermintConfig `mapstructure:"ethermint"`
+	EMConfig   EthermintConfig `mapstructure:"vm"`
 }
 
 func DefaultConfig() *TravisConfig {
@@ -125,7 +125,7 @@ laddr = "tcp://0.0.0.0:46657"
 laddr = "tcp://0.0.0.0:46656"
 seeds = ""
 
-[ethermint]
+[vm]
 abci_laddr = "tcp://0.0.0.0:8848"
 abci_protocol = "socket"
 rpc = true

@@ -65,7 +65,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	ethApp.SetLogger(emtUtils.EthermintLogger().With("module", "ethermint"))
+	ethApp.SetLogger(emtUtils.EthermintLogger().With("module", "vm"))
 
 	// Start the app on the ABCI server
 	srv, err := server.NewServer(addr, abci, ethApp)

@@ -18,7 +18,7 @@ import (
 
 const (
 	// Client identifier to advertise over the network
-	clientIdentifier = "ethermint"
+	clientIdentifier = "vm"
 	// Environment variable for home dir
 	emHome = "EMHOME"
 )
