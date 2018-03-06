@@ -3,6 +3,7 @@ package ethereum
 import (
 	"math/big"
 	"sync"
+	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
@@ -10,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	//"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -18,8 +20,12 @@ import (
 	abciTypes "github.com/tendermint/abci/types"
 
 	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
-	"github.com/cosmos/cosmos-sdk/errors"
+	"github.com/CyberMiles/travis/errors"
 	"github.com/CyberMiles/travis/utils"
+)
+
+const (
+	MinGasPrice = 2e9 // 2 Gwei
 )
 
 //----------------------------------------------------------------------
@@ -206,6 +212,27 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	)
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
+	}
+
+	oriMsg, err := tx.AsMessage(types.MakeSigner(chainConfig, ws.header.Number))
+	if err != nil {
+		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
+	}
+
+	// Iterate over all transactions to check if the gas price is too low for the
+	// non-first transaction from the same account
+	// Todo performance maybe
+	for _, itx := range ws.transactions {
+		msg, err := itx.AsMessage(types.MakeSigner(chainConfig, ws.header.Number))
+		if err != nil {
+			return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
+		}
+
+		if bytes.Equal(oriMsg.From().Bytes(), msg.From().Bytes()) {
+			if oriMsg.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
+				return abciTypes.ResponseDeliverTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
+			}
+		}
 	}
 
 	usedGasFee := big.NewInt(0).Mul(usedGas, tx.GasPrice())
