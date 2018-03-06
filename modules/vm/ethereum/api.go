@@ -3,19 +3,19 @@ package ethereum
 import (
 	"errors"
 	"fmt"
-	//"math/big"
+	"math"
+	"math/big"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/commands/query"
 	"github.com/cosmos/cosmos-sdk/modules/base"
-	"github.com/cosmos/cosmos-sdk/stack"
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	//"github.com/ethereum/go-ethereum/core/types"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	//"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/tendermint/go-wire"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/CyberMiles/travis/modules/auth"
 	"github.com/CyberMiles/travis/modules/coin"
@@ -40,84 +40,162 @@ func NewNetRPCService(networkVersion uint64) *NetRPCService {
 
 // Listening returns an indication if the node is listening for network connections.
 // #unstable
-func (n *NetRPCService) Listening() bool {
+func (s *NetRPCService) Listening() bool {
 	return true // always listening
 }
 
 // PeerCount returns the number of connected peers
 // #unstable
-func (n *NetRPCService) PeerCount() hexutil.Uint {
+func (s *NetRPCService) PeerCount() hexutil.Uint {
 	return hexutil.Uint(0)
 }
 
 // Version returns the current ethereum protocol version.
 // #unstable
-func (n *NetRPCService) Version() string {
-	return fmt.Sprintf("%d", n.networkVersion)
+func (s *NetRPCService) Version() string {
+	return fmt.Sprintf("%d", s.networkVersion)
 }
 
 // StakeRPCService offers stake related RPC methods
 type StakeRPCService struct {
 	backend *Backend
+	am      *accounts.Manager
+	chainID string
 }
 
 // NewStakeRPCAPI create a new StakeRPCAPI.
 func NewStakeRPCService(b *Backend) *StakeRPCService {
-	return &StakeRPCService{b}
+	return &StakeRPCService{
+		backend: b,
+		am:      b.ethereum.AccountManager(),
+		chainID: "",
+	}
+}
+
+func (s *StakeRPCService) getChainID() (string, error) {
+	if s.chainID == "" {
+		if s.backend.tmNode == nil {
+			return "", errors.New("waiting for tendermint to finish starting up")
+		}
+		s.chainID = s.backend.tmNode.GenesisDoc().ChainID
+		return s.chainID, nil
+	}
+
+	return s.chainID, nil
+}
+
+// copied from ethapi/api.go
+func (s *StakeRPCService) UnlockAccount(addr common.Address, password string, duration *uint64) (bool, error) {
+	const max = uint64(time.Duration(math.MaxInt64) / time.Second)
+	var d time.Duration
+	if duration == nil {
+		d = 300 * time.Second
+	} else if *duration > max {
+		return false, errors.New("unlock duration too large")
+	} else {
+		d = time.Duration(*duration) * time.Second
+	}
+	err := fetchKeystore(s.am).TimedUnlock(accounts.Account{Address: addr}, password, d)
+	return err == nil, err
+}
+
+// fetchKeystore retrives the encrypted keystore from the account manager.
+func fetchKeystore(am *accounts.Manager) *keystore.KeyStore {
+	return am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 }
 
 type DeclareCandidacyArgs struct {
 	Sequence    uint32            `json:"sequence"`
 	From        string            `json:"from"`
 	PubKey      string            `json:"pubKey"`
-	Amount      coin.Coin         `json:"amount"`
+	Bond        coin.Coin         `json:"bond"`
 	Description stake.Description `json:"description"`
 }
 
-func (n *StakeRPCService) DeclareCandidacy(args DeclareCandidacyArgs, password string) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := n.prepareDelegateTx(args, password)
+func (s *StakeRPCService) DeclareCandidacy(di DeclareCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareDeclareCandidacyTx(di)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
-	return n.postTx(tx)
+	return s.postTx(tx)
 }
 
-func (n *StakeRPCService) prepareDelegateTx(di DeclareCandidacyArgs, password string) (sdk.Tx, error) {
-	pubKey, _ := stake.GetPubKey(di.PubKey)
-	tx := stake.NewTxDeclareCandidacy(di.Amount, pubKey, di.Description)
-
-	// only add the actual signer to the nonce
-	signers := []sdk.Actor{getSignerAct(di.From)}
-	//seq, _, err := doNonceQuery(signers)
-	//if err != nil {
-	//	return sdk.Tx{}, err
-	//}
-	////increase the sequence by 1!
-	//seq++
-	tx = nonce.NewTx(di.Sequence, signers, tx)
-	if n.backend.tmNode == nil {
-		return sdk.Tx{}, errors.New("waiting for tendermint to finish starting up")
-	}
-	tx = base.NewChainTx(n.backend.tmNode.GenesisDoc().ChainID, 0, tx)
-	tx = auth.NewSig(tx).Wrap()
-
-	err := signTx(tx, di.From, password)
+func (s *StakeRPCService) prepareDeclareCandidacyTx(di DeclareCandidacyArgs) (sdk.Tx, error) {
+	pubKey, err := stake.GetPubKey(di.PubKey)
 	if err != nil {
 		return sdk.Tx{}, err
 	}
-
-	return tx, nil
+	tx := stake.NewTxDeclareCandidacy(di.Bond, pubKey, di.Description)
+	return s.wrapAndSignTx(tx, di.From, di.Sequence)
 }
 
-func getSignerAct(address string) (res sdk.Actor) {
-	// this could be much cooler with multisig...
-	signer := common.HexToAddress(address)
-	res = auth.SigPerm(signer.Bytes())
-	return res
+type DelegateArgs struct {
+	Sequence uint32    `json:"sequence"`
+	From     string    `json:"from"`
+	PubKey   string    `json:"pubKey"`
+	Bond     coin.Coin `json:"bond"`
 }
 
-func signTx(tx sdk.Tx, address string, password string) error {
+func (s *StakeRPCService) Delegate(di DelegateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareDelegateTx(di)
+	if err != nil {
+		return nil, err
+	}
+	return s.postTx(tx)
+}
+
+func (s *StakeRPCService) prepareDelegateTx(di DelegateArgs) (sdk.Tx, error) {
+	pubKey, err := stake.GetPubKey(di.PubKey)
+	if err != nil {
+		return sdk.Tx{}, err
+	}
+	tx := stake.NewTxDelegate(di.Bond, pubKey)
+	return s.wrapAndSignTx(tx, di.From, di.Sequence)
+}
+
+type UnbondArgs struct {
+	Sequence uint32 `json:"sequence"`
+	From     string `json:"from"`
+	PubKey   string `json:"pubKey"`
+	Amount   uint64 `json:"amount"`
+}
+
+func (s *StakeRPCService) Unbond(di UnbondArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareUnbondTx(di)
+	if err != nil {
+		return nil, err
+	}
+	return s.postTx(tx)
+}
+
+func (s *StakeRPCService) prepareUnbondTx(di UnbondArgs) (sdk.Tx, error) {
+	pubKey, err := stake.GetPubKey(di.PubKey)
+	if err != nil {
+		return sdk.Tx{}, err
+	}
+	tx := stake.NewTxUnbond(di.Amount, pubKey)
+	return s.wrapAndSignTx(tx, di.From, di.Sequence)
+}
+
+func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32) (sdk.Tx, error) {
+	// only add the actual signer to the nonce
+	signers := []sdk.Actor{getSignerAct(address)}
+	tx = nonce.NewTx(sequence, signers, tx)
+	chainID, err := s.getChainID()
+	if err != nil {
+		return sdk.Tx{}, err
+	}
+	tx = base.NewChainTx(chainID, 0, tx)
+	tx = auth.NewSig(tx).Wrap()
+	// sign
+	err = s.signTx(tx, address)
+	if err != nil {
+		return sdk.Tx{}, err
+	}
+	return tx, err
+}
+
+func (s *StakeRPCService) signTx(tx sdk.Tx, address string) error {
 	// validate tx client-side
 	err := tx.ValidateBasic()
 	if err != nil {
@@ -128,28 +206,7 @@ func signTx(tx sdk.Tx, address string, password string) error {
 		if address == "" {
 			return errors.New("address is required to sign tx")
 		}
-		/*
-			ethTx := types.NewTransaction(
-				0,
-				common.Address([20]byte{}),
-				big.NewInt(0),
-				big.NewInt(0),
-				big.NewInt(0),
-				sign.SignBytes(),
-			)
-
-			am, _, _ := auth.MakeAccountManager()
-			addr := common.HexToAddress(address)
-
-			account := accounts.Account{Address: addr}
-			wallet, err := am.Find(account)
-			signed, err := wallet.SignTx(account, ethTx, big.NewInt(111))
-			if err != nil {
-				fmt.Errorf("error")
-			}
-			sign.Sign(signed)
-		*/
-		err := auth.Sign(sign, address, password)
+		err := s.Sign(sign, address)
 		if err != nil {
 			return err
 		}
@@ -157,24 +214,43 @@ func signTx(tx sdk.Tx, address string, password string) error {
 	return err
 }
 
-func doNonceQuery(signers []sdk.Actor) (sequence uint32, height int64, err error) {
-	key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
-	height, err = query.GetParsed(key, &sequence, query.GetHeight(), false)
-	if client.IsNoDataErr(err) {
-		// no data, return sequence 0
-		return 0, 0, nil
+// Sign - sign the transaction with private key
+func (s *StakeRPCService) Sign(tx keys.Signable, address string) error {
+	ethTx := types.NewTransaction(
+		0,
+		common.Address([20]byte{}),
+		big.NewInt(0),
+		big.NewInt(0),
+		big.NewInt(0),
+		tx.SignBytes(),
+	)
+
+	addr := common.HexToAddress(address)
+	account := accounts.Account{Address: addr}
+	wallet, err := s.am.Find(account)
+	signed, err := wallet.SignTx(account, ethTx, big.NewInt(15))
+	if err != nil {
+		return err
 	}
-	return
+
+	return tx.Sign(signed)
 }
 
-func (n *StakeRPCService) postTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
+func (s *StakeRPCService) postTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
 	packet := wire.BinaryBytes(tx)
 	result := new(ctypes.ResultBroadcastTxCommit)
-	_, err := n.backend.client.Call("broadcast_tx_commit",
+	_, err := s.backend.client.Call("broadcast_tx_commit",
 		map[string]interface{}{"tx": packet}, result)
 
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func getSignerAct(address string) (res sdk.Actor) {
+	// this could be much cooler with multisig...
+	signer := common.HexToAddress(address)
+	res = auth.SigPerm(signer.Bytes())
+	return res
 }
