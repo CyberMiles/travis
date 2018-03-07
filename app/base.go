@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"bytes"
+	goerr "errors"
 
 	abci "github.com/tendermint/abci/types"
 
@@ -85,7 +86,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 		resp := app.EthApp.DeliverTx(txBytes)
 		fmt.Printf("ethermint DeliverTx response: %v\n", resp)
 
-		return abci.ResponseDeliverTx{Code: 0}
+		return resp
 	}
 
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
@@ -131,8 +132,8 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		resp := app.EthApp.CheckTx(txBytes)
 		fmt.Printf("ethermint CheckTx response: %v\n", resp)
 
-		if err != nil {
-			return errors.CheckResult(err)
+		if resp.IsErr() {
+			return errors.CheckResult(goerr.New(resp.Error()))
 		}
 
 		return sdk.NewCheck(21000, "").ToABCI()
@@ -264,7 +265,7 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 	//}
 	//
 	//return *resp
-	return app.EthApp.Info(req)
+	return app.StoreApp.Info(req)
 }
 
 //func (app *BaseApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQuery) {
