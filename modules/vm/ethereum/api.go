@@ -9,6 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/modules/base"
+	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -117,7 +118,7 @@ func (s *StakeRPCService) DeclareCandidacy(di DeclareCandidacyArgs) (*ctypes.Res
 	if err != nil {
 		return nil, err
 	}
-	return s.postTx(tx)
+	return s.broadcastTx(tx)
 }
 
 func (s *StakeRPCService) prepareDeclareCandidacyTx(di DeclareCandidacyArgs) (sdk.Tx, error) {
@@ -141,7 +142,7 @@ func (s *StakeRPCService) Delegate(di DelegateArgs) (*ctypes.ResultBroadcastTxCo
 	if err != nil {
 		return nil, err
 	}
-	return s.postTx(tx)
+	return s.broadcastTx(tx)
 }
 
 func (s *StakeRPCService) prepareDelegateTx(di DelegateArgs) (sdk.Tx, error) {
@@ -165,7 +166,7 @@ func (s *StakeRPCService) Unbond(di UnbondArgs) (*ctypes.ResultBroadcastTxCommit
 	if err != nil {
 		return nil, err
 	}
-	return s.postTx(tx)
+	return s.broadcastTx(tx)
 }
 
 func (s *StakeRPCService) prepareUnbondTx(di UnbondArgs) (sdk.Tx, error) {
@@ -178,15 +179,26 @@ func (s *StakeRPCService) prepareUnbondTx(di UnbondArgs) (sdk.Tx, error) {
 }
 
 func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32) (sdk.Tx, error) {
+	// wrap
 	// only add the actual signer to the nonce
 	signers := []sdk.Actor{getSignerAct(address)}
+	if sequence <= 0 {
+		// calculate default sequence
+		err := s.getSequence(signers, &sequence)
+		if err != nil {
+			return sdk.Tx{}, err
+		}
+		sequence = sequence + 1
+	}
 	tx = nonce.NewTx(sequence, signers, tx)
+
 	chainID, err := s.getChainID()
 	if err != nil {
 		return sdk.Tx{}, err
 	}
 	tx = base.NewChainTx(chainID, 0, tx)
 	tx = auth.NewSig(tx).Wrap()
+
 	// sign
 	err = s.signTx(tx, address)
 	if err != nil {
@@ -195,6 +207,23 @@ func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint
 	return tx, err
 }
 
+func (s *StakeRPCService) getSequence(signers []sdk.Actor, sequence *uint32) error {
+	packet := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+
+	result := new(ctypes.ResultABCIQuery)
+	_, err := s.backend.client.Call("abci_query",
+		map[string]interface{}{"path": "/key", "data": packet}, result)
+	if err != nil {
+		return err
+	}
+
+	if len(result.Response.Value) == 0 {
+		return nil
+	}
+	return wire.ReadBinaryBytes(result.Response.Value, sequence)
+}
+
+// sign the transaction with private key
 func (s *StakeRPCService) signTx(tx sdk.Tx, address string) error {
 	// validate tx client-side
 	err := tx.ValidateBasic()
@@ -206,7 +235,7 @@ func (s *StakeRPCService) signTx(tx sdk.Tx, address string) error {
 		if address == "" {
 			return errors.New("address is required to sign tx")
 		}
-		err := s.Sign(sign, address)
+		err := s.sign(sign, address)
 		if err != nil {
 			return err
 		}
@@ -214,15 +243,14 @@ func (s *StakeRPCService) signTx(tx sdk.Tx, address string) error {
 	return err
 }
 
-// Sign - sign the transaction with private key
-func (s *StakeRPCService) Sign(tx keys.Signable, address string) error {
+func (s *StakeRPCService) sign(data keys.Signable, address string) error {
 	ethTx := types.NewTransaction(
 		0,
 		common.Address([20]byte{}),
 		big.NewInt(0),
 		big.NewInt(0),
 		big.NewInt(0),
-		tx.SignBytes(),
+		data.SignBytes(),
 	)
 
 	addr := common.HexToAddress(address)
@@ -233,11 +261,12 @@ func (s *StakeRPCService) Sign(tx keys.Signable, address string) error {
 		return err
 	}
 
-	return tx.Sign(signed)
+	return data.Sign(signed)
 }
 
-func (s *StakeRPCService) postTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
+func (s *StakeRPCService) broadcastTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
 	packet := wire.BinaryBytes(tx)
+
 	result := new(ctypes.ResultBroadcastTxCommit)
 	_, err := s.backend.client.Call("broadcast_tx_commit",
 		map[string]interface{}{"tx": packet}, result)
