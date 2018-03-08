@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -67,12 +66,7 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 
 	// wait forever
 	cmn.TrapSignal(func() {
-		//TODO: how to wait for abci server to stop?
-		pauseDuration := 1 * time.Second
-		time.Sleep(pauseDuration)
-
 		srvs.tmNode.Stop()
-		srvs.tmNode.Wait()
 	})
 
 	return nil
