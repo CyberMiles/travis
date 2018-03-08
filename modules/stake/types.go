@@ -21,10 +21,10 @@ type Params struct {
 
 	// gas costs for txs
 	GasDeclareCandidacy int64 `json:"gas_declare_candidacy"`
-	GasDeclareValidator int64 `json:"gas_declare_validator"`
 	GasEditCandidacy    int64 `json:"gas_edit_candidacy"`
 	GasDelegate         int64 `json:"gas_delegate"`
 	GasUnbond           int64 `json:"gas_unbond"`
+	GasProposeSlot		int64 `json:"gas_propose_slot"`
 	Validators			string `json:"validators"`
 }
 
@@ -39,6 +39,7 @@ func defaultParams() Params {
 		GasEditCandidacy:    0,
 		GasDelegate:         0,
 		GasUnbond:           0,
+		GasProposeSlot:		 0,
 	}
 }
 

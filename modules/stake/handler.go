@@ -145,6 +145,9 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 	case TxUnbond:
 		return sdk.NewCheck(params.GasUnbond, ""),
 			checker.unbond(txInner)
+	case TxProposeSlot:
+		return sdk.NewCheck(params.GasProposeSlot, ""),
+			checker.proposeSlot(txInner)
 	}
 
 	return res, errors.ErrUnknownTxType(tx)
@@ -198,6 +201,9 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 			ctx:      ctx2,
 		}.transferFn
 		return res, deliverer.unbond(_tx)
+	case TxProposeSlot:
+		res.GasUsed = params.GasProposeSlot
+		return res, deliverer.proposeSlot(_tx)
 	}
 
 	return
@@ -305,6 +311,10 @@ func (c check) unbond(tx TxUnbond) error {
 		return fmt.Errorf("not enough bond shares to unbond, have %v, trying to unbond %v",
 			bond.Shares, tx.Shares)
 	}
+	return nil
+}
+func (c check) proposeSlot(slot TxProposeSlot) error {
+	// todo
 	return nil
 }
 
@@ -465,4 +475,8 @@ func (d deliver) unbond(tx TxUnbond) error {
 	returnCoins := txShares      //currently each share is worth one coin
 	return d.transfer(d.params.HoldAccount, d.sender,
 		coin.Coins{{d.params.AllowedBondDenom, returnCoins}})
+}
+func (d deliver) proposeSlot(slot TxProposeSlot) error {
+	// todo
+	return nil
 }

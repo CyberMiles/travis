@@ -19,10 +19,12 @@ const (
 	ByteTxEditCandidacy    = 0x56
 	ByteTxDelegate         = 0x57
 	ByteTxUnbond           = 0x58
+	ByteTxProposeSlot      = 0x59
 	TypeTxDeclareCandidacy = stakingModuleName + "/declareCandidacy"
 	TypeTxEditCandidacy    = stakingModuleName + "/editCandidacy"
 	TypeTxDelegate         = stakingModuleName + "/delegate"
 	TypeTxUnbond           = stakingModuleName + "/unbond"
+	TypeTxProposeSlot      = stakingModuleName + "/proposeSlot"
 )
 
 func init() {
@@ -30,10 +32,11 @@ func init() {
 	sdk.TxMapper.RegisterImplementation(TxEditCandidacy{}, TypeTxEditCandidacy, ByteTxEditCandidacy)
 	sdk.TxMapper.RegisterImplementation(TxDelegate{}, TypeTxDelegate, ByteTxDelegate)
 	sdk.TxMapper.RegisterImplementation(TxUnbond{}, TypeTxUnbond, ByteTxUnbond)
+	sdk.TxMapper.RegisterImplementation(TxProposeSlot{}, TypeTxProposeSlot, ByteTxProposeSlot)
 }
 
 //Verify interface at compile time
-var _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxEditCandidacy{}, &TxDelegate{}, &TxUnbond{}
+var _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxEditCandidacy{}, &TxDelegate{}, &TxUnbond{}, &TxProposeSlot{}
 
 // BondUpdate - struct for bonding or unbonding transactions
 type BondUpdate struct {
@@ -63,11 +66,6 @@ type TxDeclareCandidacy struct {
 	Description
 }
 
-type TxDeclareValidator struct {
-	BondUpdate
-	Description
-}
-
 // NewTxDeclareCandidacy - new TxDeclareCandidacy
 func NewTxDeclareCandidacy(bond coin.Coin, pubKey crypto.PubKey, description Description) sdk.Tx {
 	return TxDeclareCandidacy{
@@ -81,6 +79,41 @@ func NewTxDeclareCandidacy(bond coin.Coin, pubKey crypto.PubKey, description Des
 
 // Wrap - Wrap a Tx as a Basecoin Tx
 func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
+// TxProposeSlot - struct for propose slot
+type TxProposeSlot struct {
+	PubKey crypto.PubKey
+	OfferAmount int64
+	Roi float64
+}
+
+// NewTxProposeSlot - new TxProposeSlot
+func NewTxProposeSlot(pubKey crypto.PubKey, offerAmount int64, roi float64) sdk.Tx {
+	return TxProposeSlot{
+		PubKey: pubKey,
+		OfferAmount: offerAmount,
+		Roi: roi,
+	}.Wrap()
+}
+
+// ValidateBasic - Check for non-empty candidate, positive shares
+func (tx TxProposeSlot) ValidateBasic() error {
+	if tx.PubKey.Empty() {
+		return errCandidateEmpty
+	}
+
+	if tx.OfferAmount <= 0 {
+		return fmt.Errorf("Offer amount must be positive interger")
+	}
+
+	if tx.Roi > 1 || tx.Roi <= 0 {
+		return fmt.Errorf("ROI must between 0 and 1")
+	}
+	return nil
+}
+
+// Wrap - Wrap a Tx as a Basecoin Tx
+func (tx TxProposeSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxEditCandidacy - struct for editing a candidate
 type TxEditCandidacy struct {
