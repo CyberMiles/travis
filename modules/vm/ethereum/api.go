@@ -1,11 +1,14 @@
 package ethereum
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"time"
+
+	"github.com/spf13/cast"
 
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/modules/base"
@@ -17,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/tendermint/go-wire"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/modules/auth"
 	"github.com/CyberMiles/travis/modules/coin"
@@ -55,6 +59,30 @@ func (s *NetRPCService) PeerCount() hexutil.Uint {
 // #unstable
 func (s *NetRPCService) Version() string {
 	return fmt.Sprintf("%d", s.networkVersion)
+}
+
+// CmtRPCService offers cmt related RPC methods
+type CmtRPCService struct {
+	backend *Backend
+}
+
+func NewCmtRPCService(b *Backend) *CmtRPCService {
+	return &CmtRPCService{
+		backend: b,
+	}
+}
+
+func (s *CmtRPCService) GetBlock(height uint64) (*ctypes.ResultBlock, error) {
+	h := cast.ToInt64(height)
+	return s.backend.client.Block(&h)
+}
+
+func (s *CmtRPCService) GetTransaction(hash string) (*ctypes.ResultTx, error) {
+	bkey, err := hex.DecodeString(cmn.StripHex(hash))
+	if err != nil {
+		return nil, err
+	}
+	return s.backend.client.Tx(bkey, false)
 }
 
 // StakeRPCService offers stake related RPC methods
@@ -203,10 +231,7 @@ func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint
 
 func (s *StakeRPCService) getSequence(signers []sdk.Actor, sequence *uint32) error {
 	packet := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
-
-	result := new(ctypes.ResultABCIQuery)
-	_, err := s.backend.client.Call("abci_query",
-		map[string]interface{}{"path": "/key", "data": packet}, result)
+	result, err := s.backend.client.ABCIQuery("/key", packet)
 	if err != nil {
 		return err
 	}
@@ -260,15 +285,7 @@ func (s *StakeRPCService) sign(data keys.Signable, address string) error {
 
 func (s *StakeRPCService) broadcastTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
 	packet := wire.BinaryBytes(tx)
-
-	result := new(ctypes.ResultBroadcastTxCommit)
-	_, err := s.backend.client.Call("broadcast_tx_commit",
-		map[string]interface{}{"tx": packet}, result)
-
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return s.backend.client.BroadcastTxCommit(packet)
 }
 
 func getSignerAct(address string) (res sdk.Actor) {

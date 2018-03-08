@@ -126,7 +126,7 @@ seeds = ""
 
 [vm]
 rpc = true
-rpcapi = "stake,eth,net,web3,personal,admin"
+rpcapi = "cmt,stake,eth,net,web3,personal,admin"
 ws = false
 verbosity = 3
 `
