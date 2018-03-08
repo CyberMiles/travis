@@ -7,10 +7,9 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/ethereum/go-ethereum/node"
 	tmcfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tmlibs/common"
-
-	"github.com/ethereum/go-ethereum/node"
 )
 
 const (
@@ -126,13 +125,10 @@ laddr = "tcp://0.0.0.0:46656"
 seeds = ""
 
 [vm]
-abci_laddr = "tcp://0.0.0.0:8848"
-abci_protocol = "socket"
 rpc = true
 rpcapi = "stake,eth,net,web3,personal,admin"
 ws = false
 verbosity = 3
-eth_chain_id = 111
 `
 
 var defaultMoniker = getDefaultMoniker()

@@ -61,7 +61,6 @@ func (s *NetRPCService) Version() string {
 type StakeRPCService struct {
 	backend *Backend
 	am      *accounts.Manager
-	chainID string
 }
 
 // NewStakeRPCAPI create a new StakeRPCAPI.
@@ -69,20 +68,15 @@ func NewStakeRPCService(b *Backend) *StakeRPCService {
 	return &StakeRPCService{
 		backend: b,
 		am:      b.ethereum.AccountManager(),
-		chainID: "",
 	}
 }
 
 func (s *StakeRPCService) getChainID() (string, error) {
-	if s.chainID == "" {
-		if s.backend.tmNode == nil {
-			return "", errors.New("waiting for tendermint to finish starting up")
-		}
-		s.chainID = s.backend.tmNode.GenesisDoc().ChainID
-		return s.chainID, nil
+	if s.backend.chainID == "" {
+		return "", errors.New("Empty chain id. Please wait for tendermint to finish starting up. ")
 	}
 
-	return s.chainID, nil
+	return s.backend.chainID, nil
 }
 
 // copied from ethapi/api.go
@@ -256,7 +250,7 @@ func (s *StakeRPCService) sign(data keys.Signable, address string) error {
 	addr := common.HexToAddress(address)
 	account := accounts.Account{Address: addr}
 	wallet, err := s.am.Find(account)
-	signed, err := wallet.SignTx(account, ethTx, big.NewInt(15))
+	signed, err := wallet.SignTx(account, ethTx, big.NewInt(15)) //TODO: use defaultEthChainId
 	if err != nil {
 		return err
 	}

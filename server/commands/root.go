@@ -1,19 +1,19 @@
 package commands
 
 import (
-	"os"
 	"flag"
+	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/urfave/cli.v1"
 
-	tmcli"github.com/tendermint/tmlibs/cli"
+	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
+	tmcli "github.com/tendermint/tmlibs/cli"
 	tmflags "github.com/tendermint/tmlibs/cli/flags"
 	"github.com/tendermint/tmlibs/log"
 
-	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
 )
 
@@ -24,9 +24,9 @@ const (
 )
 
 var (
-	config = DefaultConfig()
+	config  = DefaultConfig()
 	context *cli.Context
-	logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "main")
+	logger  = log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "main")
 )
 
 // preRunSetup should be set as PersistentPreRunE on the root command to

@@ -1,24 +1,24 @@
 package app
 
 import (
-	"fmt"
 	"bytes"
 	goerr "errors"
-
-	abci "github.com/tendermint/abci/types"
+	"fmt"
+	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk"
-	_ "github.com/tendermint/abci/client"
 	"github.com/cosmos/cosmos-sdk/errors"
+	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/cosmos/cosmos-sdk/stack"
+	_ "github.com/tendermint/abci/client"
+	abci "github.com/tendermint/abci/types"
 	//"github.com/tendermint/go-wire/data"
-	"github.com/CyberMiles/travis/modules/stake"
 	//auth "github.com/cosmos/cosmos-sdk/modules/auth"
-	"github.com/CyberMiles/travis/utils"
-	"math/big"
+
+	"github.com/CyberMiles/travis/modules/stake"
 	ethapp "github.com/CyberMiles/travis/modules/vm/app"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // BaseApp - The ABCI application
@@ -31,7 +31,7 @@ type BaseApp struct {
 }
 
 const (
-	ETHERMINT_ADDR = "localhost:8848"
+	ETHERMINT_ADDR  = "localhost:8848"
 	BLOCK_AWARD_STR = "10000000000000000000000"
 )
 
@@ -45,11 +45,12 @@ var (
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
-func NewBaseApp(store *StoreApp, handler sdk.Handler, clock sdk.Ticker) (*BaseApp, error) {
+func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, handler sdk.Handler, clock sdk.Ticker) (*BaseApp, error) {
 	app := &BaseApp{
 		StoreApp: store,
 		handler:  handler,
 		clock:    clock,
+		EthApp:   ethApp,
 	}
 	//client, err := abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
 	//if err != nil {
@@ -62,10 +63,6 @@ func NewBaseApp(store *StoreApp, handler sdk.Handler, clock sdk.Ticker) (*BaseAp
 	//app.client = client
 
 	return app, nil
-}
-
-func (app *BaseApp) SetEthermintApplication(ethApp *ethapp.EthermintApplication) {
-	app.EthApp = ethApp
 }
 
 // DeliverTx - ABCI - dispatches to the handler
@@ -103,7 +100,6 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 	//	//return h.sendTx(ctx, store, t, cb)
 	//	fmt.Println("transfer tx")
 	//}
-
 
 	res, err := app.handler.DeliverTx(ctx, app.Append(), tx)
 
@@ -294,5 +290,3 @@ func decodeTx(txBytes []byte) (*types.Transaction, error) {
 	}
 	return tx, nil
 }
-
-

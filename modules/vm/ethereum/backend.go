@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
 	abciTypes "github.com/tendermint/abci/types"
-	nm "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
 
 	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
@@ -38,8 +37,9 @@ type Backend struct {
 
 	// client for forwarding txs to Tendermint
 	client rpcClient.HTTPClient
-	tmNode *nm.Node
-	//storeApp *app.St
+
+	// travis chain id
+	chainID string
 }
 
 // NewBackend creates a new Backend
@@ -88,8 +88,8 @@ func (b *Backend) Config() *eth.Config {
 	return b.ethConfig
 }
 
-func (b *Backend) SetTMNode(tm *nm.Node) {
-	b.tmNode = tm
+func (b *Backend) SetChainID(chainID string) {
+	b.chainID = chainID
 }
 
 //----------------------------------------------------------------------

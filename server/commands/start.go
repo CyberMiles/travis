@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"path"
 	"time"
@@ -13,12 +12,12 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tmlibs/cli"
 	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/genesis"
+	ethapp "github.com/CyberMiles/travis/modules/vm/app"
 )
 
 // GetTickStartCmd - initialize a command as the start command with tick
@@ -66,23 +65,9 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 		return errors.Errorf("Error in start services: %v\n", err)
 	}
 
-	// test change balance -->
-	state, err := srvs.backend.Ethereum().BlockChain().State()
-	if err != nil {
-		return errors.Errorf("Error in get state: %v\n", err)
-	}
-	addr := "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc"
-	fmt.Printf("===================== balance before set: %v\n", state.GetBalance(common.HexToAddress(addr)))
-	state.SetBalance(common.HexToAddress(addr), big.NewInt(int64(111)))
-	fmt.Printf("===================== balance after set: %v\n", state.GetBalance(common.HexToAddress(addr)))
-	// <---
-
 	// wait forever
 	cmn.TrapSignal(func() {
-		// cleanup
-		srvs.emt.Stop()
-
-		//TODO: how to wait for ethermint to stop?
+		//TODO: how to wait for abci server to stop?
 		pauseDuration := 1 * time.Second
 		time.Sleep(pauseDuration)
 
@@ -93,8 +78,8 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 	return nil
 }
 
-func createBaseCoinApp(rootDir string, storeApp *app.StoreApp) (*app.BaseApp, error) {
-	basecoinApp, err := app.NewBaseApp(storeApp, Handler, nil)
+func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication) (*app.BaseApp, error) {
+	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, Handler, nil)
 	if err != nil {
 		return nil, err
 	}
