@@ -14,6 +14,12 @@ import (
 	cmn "github.com/tendermint/tmlibs/common"
 	dbm "github.com/tendermint/tmlibs/db"
 	"github.com/tendermint/tmlibs/log"
+
+	"github.com/spf13/viper"
+	"github.com/tendermint/tmlibs/cli"
+	"database/sql"
+	"os"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -50,6 +56,12 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 	if err != nil {
 		return nil, err
 	}
+
+	err = initStakeDb()
+	if err != nil {
+		return nil, err
+	}
+
 	app := &StoreApp{
 		Name:   appName,
 		state:  state,
@@ -274,4 +286,30 @@ func loadState(dbName string, cacheSize int, historySize int64) (*sm.State, erro
 	}
 
 	return sm.NewState(tree, historySize), nil
+}
+
+func initStakeDb() error {
+	rootDir := viper.GetString(cli.HomeFlag)
+	stakeDbPath := path.Join(rootDir, "data", "stake.db")
+	_, err := os.OpenFile(stakeDbPath, os.O_RDONLY, 0444)
+	if err != nil {
+		db, err := sql.Open("sqlite3", stakeDbPath)
+		if err != nil {
+			return errors.ErrInternal("Initializing stake db: " + err.Error())
+		}
+		defer db.Close()
+
+		sqlStmt := `
+		create table validators (id integer not null primary key, pub_key text, height integer);
+		create table slots(id integer not null primary key, validator_id integer, amount integer, roi float, height integer);
+		create table delegator_stakes(id integer not null primary key, delegator_address text, slot_id integer, validator_id integer, staked_amount integer, height integer);
+		create table transactions(id integer not null primary key, address text, op_code varchar(20), height integer);
+		`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return errors.ErrInternal("Initializing stake tables: " + err.Error())
+		}
+	}
+
+	return nil
 }

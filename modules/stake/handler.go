@@ -313,7 +313,7 @@ func (c check) unbond(tx TxUnbond) error {
 	}
 	return nil
 }
-func (c check) proposeSlot(slot TxProposeSlot) error {
+func (c check) proposeSlot(tx TxProposeSlot) error {
 	// todo
 	return nil
 }
@@ -476,7 +476,7 @@ func (d deliver) unbond(tx TxUnbond) error {
 	return d.transfer(d.params.HoldAccount, d.sender,
 		coin.Coins{{d.params.AllowedBondDenom, returnCoins}})
 }
-func (d deliver) proposeSlot(slot TxProposeSlot) error {
+func (d deliver) proposeSlot(tx TxProposeSlot) error {
 	// todo
 	return nil
 }
