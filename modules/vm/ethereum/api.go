@@ -85,6 +85,19 @@ func (s *CmtRPCService) GetTransaction(hash string) (*ctypes.ResultTx, error) {
 	return s.backend.client.Tx(bkey, false)
 }
 
+func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index int64) (*ctypes.ResultTx, error) {
+	h := cast.ToInt64(height)
+	block, err := s.backend.client.Block(&h)
+	if err != nil {
+		return nil, err
+	}
+	if index >= block.Block.NumTxs {
+		return nil, errors.New(fmt.Sprintf("No transaction in block %d, index %d. ", height, index))
+	}
+	hash := block.Block.Txs[index].Hash()
+	return s.GetTransaction(hex.EncodeToString(hash))
+}
+
 // StakeRPCService offers stake related RPC methods
 type StakeRPCService struct {
 	backend *Backend
