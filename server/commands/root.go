@@ -133,6 +133,8 @@ func setupEmtContext() error {
 	context.GlobalSet(ethUtils.RPCEnabledFlag.Name, strconv.FormatBool(config.EMConfig.RPCEnabledFlag))
 	context.GlobalSet(ethUtils.RPCApiFlag.Name, config.EMConfig.RPCApiFlag)
 
+	context.GlobalSet(ethUtils.RPCPortFlag.Name, strconv.Itoa(int(config.EMConfig.RPCPortFlag)))
+
 	context.GlobalSet(ethUtils.WSEnabledFlag.Name, strconv.FormatBool(config.EMConfig.WSEnabledFlag))
 	context.GlobalSet(ethUtils.WSApiFlag.Name, config.EMConfig.WSApiFlag)
 

@@ -127,6 +127,7 @@ seeds = ""
 [vm]
 rpc = true
 rpcapi = "cmt,stake,eth,net,web3,personal,admin"
+rpcport = 8545
 ws = false
 verbosity = 3
 `
