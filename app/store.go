@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/errors"
+	sm "github.com/cosmos/cosmos-sdk/state"
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/iavl"
 	cmn "github.com/tendermint/tmlibs/common"
 	dbm "github.com/tendermint/tmlibs/db"
 	"github.com/tendermint/tmlibs/log"
 
-	"github.com/cosmos/cosmos-sdk/errors"
-	sm "github.com/cosmos/cosmos-sdk/state"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
 	"database/sql"
@@ -174,7 +174,6 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		key := reqQuery.Data // Data holds the key bytes
 		resQuery.Key = key
 		if reqQuery.Prove {
-			fmt.Printf("key: %v", string(key))
 			value, proof, err := tree.GetVersionedWithProof(key, height)
 			if err != nil {
 				resQuery.Log = err.Error()

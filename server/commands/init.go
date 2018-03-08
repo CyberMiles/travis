@@ -1,22 +1,21 @@
 package commands
 
 import (
+	"math/big"
 	"os"
 	"path/filepath"
-	"math/big"
 
 	"github.com/spf13/cobra"
-
-	"github.com/tendermint/tendermint/types"
-	cmn "github.com/tendermint/tmlibs/common"
+	"github.com/spf13/viper"
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tendermint/tendermint/types"
+	cmn "github.com/tendermint/tmlibs/common"
 
 	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -59,11 +58,11 @@ func initTendermint() {
 		logger.Info("Found genesis file", "path", genFile)
 	} else {
 		genDoc := types.GenesisDoc{
-	  		ChainID: viper.GetString(FlagChainID),
+			ChainID: viper.GetString(FlagChainID),
 		}
 		genDoc.Validators = []types.GenesisValidator{{
-	  		PubKey: privValidator.GetPubKey(),
-	  		Power:  10,
+			PubKey: privValidator.GetPubKey(),
+			Power:  10,
 		}}
 
 		if err := genDoc.SaveAs(genFile); err != nil {
@@ -85,7 +84,7 @@ func initEthermint() error {
 	ethermintDataDir := emtUtils.MakeDataDir(context)
 
 	chainDb, err := ethdb.NewLDBDatabase(filepath.Join(ethermintDataDir,
-		"ethermint/chaindata"), 0, 0)
+		"vm/chaindata"), 0, 0)
 	if err != nil {
 		ethUtils.Fatalf("could not open database: %v", err)
 	}

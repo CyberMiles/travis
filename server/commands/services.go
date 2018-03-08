@@ -7,45 +7,34 @@ import (
 
 	"gopkg.in/urfave/cli.v1"
 
-	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-
+	abcitypes "github.com/tendermint/abci/types"
+	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
 	"github.com/tendermint/tendermint/types"
-	"github.com/tendermint/abci/server"
-	abcitypes "github.com/tendermint/abci/types"
-	cmn "github.com/tendermint/tmlibs/common"
-	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
-
-	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
-	abciApp "github.com/CyberMiles/travis/modules/vm/app"
-	"github.com/CyberMiles/travis/modules/vm/ethereum"
 
 	"github.com/CyberMiles/travis/app"
+	abciApp "github.com/CyberMiles/travis/modules/vm/app"
+	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
+	"github.com/CyberMiles/travis/modules/vm/ethereum"
 )
 
 type Services struct {
-	backend       *ethereum.Backend
-	rpcClient     *rpc.Client
-	emt           cmn.Service
-	tmNode        *node.Node
+	backend *ethereum.Backend
+	tmNode  *node.Node
 }
 
 func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 
-	// Step 1: Setup the go-ethereum node and start it
+	// Setup the go-ethereum node and start it
 	emNode := emtUtils.MakeFullNode(context)
 	startNode(context, emNode)
-
-	// Setup the ABCI server and start it
-	addr := context.GlobalString(emtUtils.ABCIAddrFlag.Name)
-	abci := context.GlobalString(emtUtils.ABCIProtocolFlag.Name)
 
 	// Fetch the registered service of this type
 	var backend *ethereum.Backend
@@ -65,37 +54,24 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	ethApp.SetLogger(emtUtils.EthermintLogger().With("module", "ethermint"))
-
-	// Start the app on the ABCI server
-	srv, err := server.NewServer(addr, abci, ethApp)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	srv.SetLogger(emtUtils.EthermintLogger().With("module", "abci-server"))
-
-	if err := srv.Start(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	ethApp.SetLogger(emtUtils.EthermintLogger().With("module", "vm"))
 
 	// Create Basecoin app
-	basecoinApp, err := createBaseCoinApp(rootDir, storeApp)
+	basecoinApp, err := createBaseCoinApp(rootDir, storeApp, ethApp)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	basecoinApp.SetEthermintApplication(ethApp)
+
 	// Create & start tendermint node
 	tmNode, err := startTendermint(basecoinApp)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	backend.SetChainID(tmNode.GenesisDoc().ChainID)
 
-	return &Services{backend, rpcClient, srv, tmNode}, nil
+	return &Services{backend, tmNode}, nil
 }
 
 // startNode copies the logic from go-ethereum
@@ -251,7 +227,7 @@ func startTendermint(basecoinApp abcitypes.Application) (*node.Node, error) {
 
 	var papp proxy.ClientCreator
 	if basecoinApp != nil {
-		papp =proxy.NewLocalClientCreator(basecoinApp)
+		papp = proxy.NewLocalClientCreator(basecoinApp)
 	} else {
 		papp = proxy.DefaultClientCreator(cfg.ProxyApp, cfg.ABCI, cfg.DBDir())
 	}

@@ -7,73 +7,70 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/ethereum/go-ethereum/node"
 	tmcfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tmlibs/common"
-
-	"github.com/ethereum/go-ethereum/node"
 )
 
 const (
-	configFile = "config.toml"
+	configFile        = "config.toml"
 	defaultEthChainId = 111
 )
 
 type TravisConfig struct {
-	BaseConfig	BaseConfig		`mapstructure:",squash"`
-	TMConfig 	tmcfg.Config	`mapstructure:",squash"`
-	EMConfig	EthermintConfig	`mapstructure:"ethermint"`
+	BaseConfig BaseConfig      `mapstructure:",squash"`
+	TMConfig   tmcfg.Config    `mapstructure:",squash"`
+	EMConfig   EthermintConfig `mapstructure:"vm"`
 }
 
 func DefaultConfig() *TravisConfig {
 	return &TravisConfig{
 		BaseConfig: DefaultBaseConfig(),
-		TMConfig: *tmcfg.DefaultConfig(),
-		EMConfig: DefaultEthermintConfig(),
+		TMConfig:   *tmcfg.DefaultConfig(),
+		EMConfig:   DefaultEthermintConfig(),
 	}
 }
 
 type BaseConfig struct {
 	// The root directory for all data.
 	// This should be set in viper so it can unmarshal into this struct
-	RootDir		string	`mapstructure:"home"`
+	RootDir string `mapstructure:"home"`
 }
 
 func DefaultBaseConfig() BaseConfig {
-	return BaseConfig{
-
-	}
+	return BaseConfig{}
 }
 
 type EthermintConfig struct {
-	EthChainId			uint	`mapstructure:"eth_chain_id"`
-	RootDir				string	`mapstructure:"home"`
-	ABCIAddr			string	`mapstructure:"abci_laddr"`
-	ABCIProtocol		string	`mapstructure:"abci_protocol"`
-	RPCEnabledFlag		bool	`mapstructure:"rpc"`
-	RPCListenAddrFlag	string	`mapstructure:"rpcaddr"`
-	RPCPortFlag			uint	`mapstructure:"rpcport"`
-	RPCApiFlag			string	`mapstructure:"rpcapi"`
-	WSEnabledFlag		bool	`mapstructure:"ws"`
-	WSListenAddrFlag	string	`mapstructure:"wsaddr"`
-	WSPortFlag			uint	`mapstructure:"wsport"`
-	WSApiFlag			string	`mapstructure:"wsapi"`
-	VerbosityFlag		uint	`mapstructure:"verbosity"`
+	EthChainId        uint   `mapstructure:"eth_chain_id"`
+	RootDir           string `mapstructure:"home"`
+	ABCIAddr          string `mapstructure:"abci_laddr"`
+	ABCIProtocol      string `mapstructure:"abci_protocol"`
+	RPCEnabledFlag    bool   `mapstructure:"rpc"`
+	RPCListenAddrFlag string `mapstructure:"rpcaddr"`
+	RPCPortFlag       uint   `mapstructure:"rpcport"`
+	RPCApiFlag        string `mapstructure:"rpcapi"`
+	WSEnabledFlag     bool   `mapstructure:"ws"`
+	WSListenAddrFlag  string `mapstructure:"wsaddr"`
+	WSPortFlag        uint   `mapstructure:"wsport"`
+	WSApiFlag         string `mapstructure:"wsapi"`
+	VerbosityFlag     uint   `mapstructure:"verbosity"`
 }
 
 func DefaultEthermintConfig() EthermintConfig {
 	return EthermintConfig{
-		EthChainId:			defaultEthChainId,
-		ABCIAddr:			"tcp://0.0.0.0:8848",
-		ABCIProtocol:		"socket",
-		RPCEnabledFlag:		true,
-		RPCListenAddrFlag:	node.DefaultHTTPHost,
-		RPCPortFlag: 		node.DefaultHTTPPort,
-		RPCApiFlag:			"eth,net,web3,personal,admin",
-		WSEnabledFlag:		true,
-		WSListenAddrFlag: 	node.DefaultWSHost,
-		WSPortFlag: 		node.DefaultWSPort,
-		WSApiFlag:			"",
-		VerbosityFlag:		3,
+		EthChainId:        defaultEthChainId,
+		ABCIAddr:          "tcp://0.0.0.0:8848",
+		ABCIProtocol:      "socket",
+		RPCEnabledFlag:    true,
+		RPCListenAddrFlag: node.DefaultHTTPHost,
+		RPCPortFlag:       node.DefaultHTTPPort,
+		RPCApiFlag:        "eth,net,web3,personal,admin",
+		WSEnabledFlag:     true,
+		WSListenAddrFlag:  node.DefaultWSHost,
+		WSPortFlag:        node.DefaultWSPort,
+		WSApiFlag:         "",
+		VerbosityFlag:     3,
 	}
 }
 
@@ -127,14 +124,12 @@ laddr = "tcp://0.0.0.0:46657"
 laddr = "tcp://0.0.0.0:46656"
 seeds = ""
 
-[ethermint]
-abci_laddr = "tcp://0.0.0.0:8848"
-abci_protocol = "socket"
+[vm]
 rpc = true
-rpcapi = "eth,net,web3,personal,admin"
+rpcapi = "cmt,stake,eth,net,web3,personal,admin"
+rpcport = 8545
 ws = false
 verbosity = 3
-eth_chain_id = 111
 `
 
 var defaultMoniker = getDefaultMoniker()

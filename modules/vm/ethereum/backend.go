@@ -12,10 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
-
 	abciTypes "github.com/tendermint/abci/types"
-
-	rpcClient "github.com/tendermint/tendermint/rpc/lib/client"
+	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
 	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
 )
@@ -38,13 +36,16 @@ type Backend struct {
 	es *EthState
 
 	// client for forwarding txs to Tendermint
-	client rpcClient.HTTPClient
+	client *rpcClient.HTTP
+
+	// travis chain id
+	chainID string
 }
 
 // NewBackend creates a new Backend
 // #stable - 0.4.0
 func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
-	client rpcClient.HTTPClient) (*Backend, error) {
+	client *rpcClient.HTTP) (*Backend, error) {
 
 	// Create working ethereum state.
 	es := NewEthState()
@@ -85,6 +86,10 @@ func (b *Backend) Ethereum() *eth.Ethereum {
 // #stable
 func (b *Backend) Config() *eth.Config {
 	return b.ethConfig
+}
+
+func (b *Backend) SetChainID(chainID string) {
+	b.chainID = chainID
 }
 
 //----------------------------------------------------------------------
@@ -138,6 +143,22 @@ func (b *Backend) GasLimit() big.Int {
 // #stable - 0.4.0
 func (b *Backend) APIs() []rpc.API {
 	apis := b.Ethereum().APIs()
+	// append cmt and stake api
+	apis = append(apis, []rpc.API{
+		{
+			Namespace: "cmt",
+			Version:   "1.0",
+			Service:   NewCmtRPCService(b),
+			Public:    true,
+		},
+		{
+			Namespace: "stake",
+			Version:   "1.0",
+			Service:   NewStakeRPCService(b),
+			Public:    true,
+		},
+	}...)
+
 	retApis := []rpc.API{}
 	for _, v := range apis {
 		if v.Namespace == "net" {
