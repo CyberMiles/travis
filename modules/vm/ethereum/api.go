@@ -74,7 +74,7 @@ func NewCmtRPCService(b *Backend) *CmtRPCService {
 
 func (s *CmtRPCService) GetBlock(height uint64) (*ctypes.ResultBlock, error) {
 	h := cast.ToInt64(height)
-	return s.backend.client.Block(&h)
+	return s.backend.localClient.Block(&h)
 }
 
 func (s *CmtRPCService) GetTransaction(hash string) (*ctypes.ResultTx, error) {
@@ -82,12 +82,12 @@ func (s *CmtRPCService) GetTransaction(hash string) (*ctypes.ResultTx, error) {
 	if err != nil {
 		return nil, err
 	}
-	return s.backend.client.Tx(bkey, false)
+	return s.backend.localClient.Tx(bkey, false)
 }
 
 func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index int64) (*ctypes.ResultTx, error) {
 	h := cast.ToInt64(height)
-	block, err := s.backend.client.Block(&h)
+	block, err := s.backend.localClient.Block(&h)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +244,7 @@ func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint
 
 func (s *StakeRPCService) getSequence(signers []sdk.Actor, sequence *uint32) error {
 	packet := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
-	result, err := s.backend.client.ABCIQuery("/key", packet)
+	result, err := s.backend.localClient.ABCIQuery("/key", packet)
 	if err != nil {
 		return err
 	}
@@ -298,7 +298,7 @@ func (s *StakeRPCService) sign(data keys.Signable, address string) error {
 
 func (s *StakeRPCService) broadcastTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
 	packet := wire.BinaryBytes(tx)
-	return s.backend.client.BroadcastTxCommit(packet)
+	return s.backend.localClient.BroadcastTxCommit(packet)
 }
 
 func getSignerAct(address string) (res sdk.Actor) {
