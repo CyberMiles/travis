@@ -1,5 +1,5 @@
-hash: 0ed30b6aede5e25da5cde573c09d5a4e398080f406da1a0e8b67e6faa3233b3c
-updated: 2018-03-01T12:57:28.736018+08:00
+hash: 3fabd4ffa84ccabc5512d5ffdd3acc9bad37676e79e270acdd60f8e784302367
+updated: 2018-03-09T11:19:41.682685+08:00
 imports:
 - name: github.com/aristanetworks/goarista
   version: c294d07ad966d5db9cedf32a67c62837a46e9d90
@@ -99,7 +99,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/go-kit/kit
-  version: 6ce15db334b01fd952bfaec97e467bc1f4db1cb4
+  version: 4dc7be5d2d12881735283bcab7352178e190fc71
   subpackages:
   - log
   - log/level
@@ -179,6 +179,8 @@ imports:
   version: 167de6bfdfba052fa6b2d3664c8f5272e23c9072
 - name: github.com/mattn/go-isatty
   version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
+- name: github.com/mattn/go-sqlite3
+  version: 6c771bb9887719704b210e87e934f08be014bdb1
 - name: github.com/mitchellh/mapstructure
   version: b4575eea38cca1123ec2dc90c26529b5c5acfcff
 - name: github.com/pborman/uuid
@@ -257,7 +259,7 @@ imports:
   - keys/storage/filestorage
   - keys/wordlist
 - name: github.com/tendermint/go-wire
-  version: b6fc872b42d41158a60307db4da051dd6f179415
+  version: 3bd40838076a5c18fe2092b9de022787698b24a3
   subpackages:
   - data
   - data/base58
@@ -413,7 +415,7 @@ imports:
   version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 testImports:
 - name: github.com/davecgh/go-spew
-  version: 87df7c60d5820d0f8ae11afede5aa52325c09717
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
   - spew
 - name: github.com/pmezard/go-difflib
