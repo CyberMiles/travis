@@ -1,0 +1,19 @@
+language: go
+
+services:
+  - docker
+
+#before_install:
+# for fork repo
+#  - SrcDir=`dirname $PWD`
+#  - DestDir=`dirname $SrcDir`/CyberMiles
+#  - mv $SrcDir $DestDir
+#  - cd ../../CyberMiles/travis
+
+script:
+#  - make all
+#after_success:
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  - cd Docker
+  - make build
+  - make push
