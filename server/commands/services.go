@@ -69,7 +69,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	backend.SetChainID(tmNode.GenesisDoc().ChainID)
+	backend.SetTMNode(tmNode)
 
 	return &Services{backend, tmNode}, nil
 }

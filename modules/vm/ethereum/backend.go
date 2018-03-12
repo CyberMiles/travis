@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
 	abciTypes "github.com/tendermint/abci/types"
+	tmn "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
 	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
@@ -35,8 +36,10 @@ type Backend struct {
 	// EthState
 	es *EthState
 
-	// client for forwarding txs to Tendermint
+	// client for forwarding txs to Tendermint over http
 	client *rpcClient.HTTP
+	// local client for in-proc app to execute the rpc functions without the overhead of http
+	localClient *rpcClient.Local
 
 	// travis chain id
 	chainID string
@@ -88,8 +91,9 @@ func (b *Backend) Config() *eth.Config {
 	return b.ethConfig
 }
 
-func (b *Backend) SetChainID(chainID string) {
-	b.chainID = chainID
+func (b *Backend) SetTMNode(tmNode *tmn.Node) {
+	b.chainID = tmNode.GenesisDoc().ChainID
+	b.localClient = rpcClient.NewLocal(tmNode)
 }
 
 //----------------------------------------------------------------------
