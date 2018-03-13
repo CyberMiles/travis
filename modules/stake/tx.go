@@ -82,17 +82,17 @@ func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxProposeSlot - struct for propose slot
 type TxProposeSlot struct {
-	PubKey crypto.PubKey
-	OfferAmount int64
-	Roi float64
+	PubKey      crypto.PubKey
+	OfferAmount uint64
+	ProposedRoi uint64
 }
 
 // NewTxProposeSlot - new TxProposeSlot
-func NewTxProposeSlot(pubKey crypto.PubKey, offerAmount int64, roi float64) sdk.Tx {
+func NewTxProposeSlot(pubKey crypto.PubKey, offerAmount uint64, proposedRoi uint64) sdk.Tx {
 	return TxProposeSlot{
-		PubKey: pubKey,
+		PubKey:      pubKey,
 		OfferAmount: offerAmount,
-		Roi: roi,
+		ProposedRoi: proposedRoi,
 	}.Wrap()
 }
 
@@ -106,8 +106,8 @@ func (tx TxProposeSlot) ValidateBasic() error {
 		return fmt.Errorf("Offer amount must be positive interger")
 	}
 
-	if tx.Roi > 1 || tx.Roi <= 0 {
-		return fmt.Errorf("ROI must between 0 and 1")
+	if tx.ProposedRoi <= 0 {
+		return fmt.Errorf("Proposed ROI must be positive interger")
 	}
 	return nil
 }

@@ -53,7 +53,7 @@ const (
 	FlagName = "name"
 
 	FlagOfferAmount = "amount"
-	FlagRoi = "roi"
+	FlagProposedRoi = "proposed-roi"
 )
 
 // nolint
@@ -116,7 +116,7 @@ func init() {
 
 	fsProposeSlot := flag.NewFlagSet("", flag.ContinueOnError)
 	fsProposeSlot.Int64(FlagOfferAmount, 0, "Amount offered")
-	fsProposeSlot.Float64(FlagRoi, 0, "corresponding ROI")
+	fsProposeSlot.Float64(FlagProposedRoi, 0, "corresponding ROI")
 
 	// add the flags
 	CmdDelegate.Flags().AddFlagSet(fsPk)
@@ -245,12 +245,12 @@ func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	roi := viper.GetFloat64(FlagRoi)
-	if roi > 1 || roi <= 0 {
-		return fmt.Errorf("please enter a roi between 0 and 1 using --roi")
+	proposedRoi := viper.GetInt64(FlagProposedRoi)
+	if proposedRoi <= 0 {
+		return fmt.Errorf("Proposed ROI must be positive interger")
 	}
 
-	tx := stake.NewTxProposeSlot(pk, offerAmount, roi)
+	tx := stake.NewTxProposeSlot(pk, uint64(offerAmount), uint64(proposedRoi))
 	return txcmd.DoTx(tx)
 }
 

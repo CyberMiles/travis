@@ -12,6 +12,8 @@ import (
 	"github.com/CyberMiles/travis/modules/coin"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/tendermint/tmlibs/merkle"
+	"encoding/hex"
 )
 
 // nolint
@@ -203,7 +205,9 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 		return res, deliverer.unbond(_tx)
 	case TxProposeSlot:
 		res.GasUsed = params.GasProposeSlot
-		return res, deliverer.proposeSlot(_tx)
+		hash, err := deliverer.proposeSlot(_tx)
+		res.Data = hash
+		return res, err
 	}
 
 	return
@@ -314,7 +318,11 @@ func (c check) unbond(tx TxUnbond) error {
 	return nil
 }
 func (c check) proposeSlot(tx TxProposeSlot) error {
-	// todo
+	candidate := loadCandidate(c.store, tx.PubKey)
+	if candidate == nil {
+		return fmt.Errorf("cannot propose slot for non-existant PubKey %v", tx.PubKey)
+	}
+
 	return nil
 }
 
@@ -476,7 +484,9 @@ func (d deliver) unbond(tx TxUnbond) error {
 	return d.transfer(d.params.HoldAccount, d.sender,
 		coin.Coins{{d.params.AllowedBondDenom, returnCoins}})
 }
-func (d deliver) proposeSlot(tx TxProposeSlot) error {
-	// todo
-	return nil
+func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
+	hash := merkle.SimpleHashFromBinary(tx)
+	hexHash := hex.EncodeToString(hash)
+	slot := NewSlot(hexHash, tx.PubKey, tx.OfferAmount, tx.OfferAmount, tx.ProposedRoi)
+	return hash, saveSlot(slot)
 }

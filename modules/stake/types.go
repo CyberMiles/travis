@@ -264,3 +264,22 @@ type DelegatorBond struct {
 	PubKey crypto.PubKey
 	Shares uint64
 }
+
+type Slot struct {
+	Id string
+	ValidatorPubKey crypto.PubKey
+	TotalAmount uint64
+	AvailableAmount uint64
+	ProposedRoi uint64
+}
+
+func NewSlot(id string, validatorPubKey crypto.PubKey, totalAmount uint64, availableAmount uint64, proposedRoi uint64) *Slot {
+	return &Slot{
+		Id: id,
+		ValidatorPubKey: validatorPubKey,
+		TotalAmount: totalAmount,
+		AvailableAmount: availableAmount,
+		ProposedRoi: proposedRoi,
+	}
+}
+
