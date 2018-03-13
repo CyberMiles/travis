@@ -300,10 +300,10 @@ func initStakeDb() error {
 		defer db.Close()
 
 		sqlStmt := `
-		create table validators (id integer not null primary key, pub_key text, height integer);
-		create table slots(id integer not null primary key, validator_id integer, amount integer, roi float, height integer);
-		create table delegator_stakes(id integer not null primary key, delegator_address text, slot_id integer, validator_id integer, staked_amount integer, height integer);
-		create table transactions(id integer not null primary key, address text, op_code varchar(20), height integer);
+		create table validators (pub_key text not null primary key, state integer, created_at text, updated_at text);
+		create table delegators (address text not null primary key, created_at text, updated_at text);
+		create table slots(id text not null primary key, validator_pub_key integer, total_amount integer, available_amount integer, proposed_roi integer, created_at text, updated_at text);
+		create table delegator_history(address text, slot_id integer, amount integer, action_type integer, created_at text);
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {
