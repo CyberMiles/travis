@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/cast"
 
 	"github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/commands"
 	"github.com/cosmos/cosmos-sdk/modules/base"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -18,7 +20,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
+	"github.com/tendermint/go-wire/data"
+	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	cmn "github.com/tendermint/tmlibs/common"
 
@@ -243,8 +248,8 @@ func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint
 }
 
 func (s *StakeRPCService) getSequence(signers []sdk.Actor, sequence *uint32) error {
-	packet := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
-	result, err := s.backend.localClient.ABCIQuery("/key", packet)
+	key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+	result, err := s.backend.localClient.ABCIQuery("/key", key)
 	if err != nil {
 		return err
 	}
@@ -297,8 +302,8 @@ func (s *StakeRPCService) sign(data keys.Signable, address string) error {
 }
 
 func (s *StakeRPCService) broadcastTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
-	packet := wire.BinaryBytes(tx)
-	return s.backend.localClient.BroadcastTxCommit(packet)
+	key := wire.BinaryBytes(tx)
+	return s.backend.localClient.BroadcastTxCommit(key)
 }
 
 func getSignerAct(address string) (res sdk.Actor) {
@@ -306,4 +311,97 @@ func getSignerAct(address string) (res sdk.Actor) {
 	signer := common.HexToAddress(address)
 	res = auth.SigPerm(signer.Bytes())
 	return res
+}
+
+type StakeQueryResult struct {
+	Height int64       `json:"height"`
+	Data   interface{} `json:"data"`
+}
+
+func (s *StakeRPCService) QueryCandidates(height uint64) (*StakeQueryResult, error) {
+	key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
+	var pks []crypto.PubKey
+	h, err := s.getParsed(key, &pks, cast.ToInt64(height))
+	if err != nil {
+		return nil, err
+	}
+	return &StakeQueryResult{h, pks}, nil
+}
+
+func (s *StakeRPCService) QueryCandidate(pubkey string, height uint64) (*StakeQueryResult, error) {
+	pk, err := stake.GetPubKey(pubkey)
+	if err != nil {
+		return nil, err
+	}
+	key := stack.PrefixedKey(stake.Name(), stake.GetCandidateKey(pk))
+	var candidate stake.Candidate
+	h, err := s.getParsed(key, &candidate, cast.ToInt64(height))
+	if err != nil {
+		return nil, err
+	}
+	return &StakeQueryResult{h, candidate}, nil
+}
+
+func (s *StakeRPCService) QueryDelegatorBond(address string, pubkey string, height uint64) (*StakeQueryResult, error) {
+	delegator, err := commands.ParseActor(address)
+	if err != nil {
+		return nil, err
+	}
+	delegator = coin.ChainAddr(delegator)
+	pk, err := stake.GetPubKey(pubkey)
+	if err != nil {
+		return nil, err
+	}
+	key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondKey(delegator, pk))
+	var bond stake.DelegatorBond
+	h, err := s.getParsed(key, &bond, cast.ToInt64(height))
+	if err != nil {
+		return nil, err
+	}
+	return &StakeQueryResult{h, bond}, nil
+}
+
+func (s *StakeRPCService) QueryDelegatorCandidates(address string, height uint64) (*StakeQueryResult, error) {
+	delegator, err := commands.ParseActor(address)
+	if err != nil {
+		return nil, err
+	}
+	delegator = coin.ChainAddr(delegator)
+	key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondsKey(delegator))
+	var candidates []crypto.PubKey
+	h, err := s.getParsed(key, &candidates, cast.ToInt64(height))
+	if err != nil {
+		return nil, err
+	}
+	return &StakeQueryResult{h, candidates}, nil
+}
+
+func (s *StakeRPCService) QueryValidators(height uint64) (*ctypes.ResultValidators, error) {
+	h := cast.ToInt64(height)
+	return s.backend.localClient.Validators(&h)
+}
+
+func (s *StakeRPCService) getParsed(key []byte, data interface{}, height int64) (int64, error) {
+	bs, h, err := s.get(key, height)
+	if err != nil {
+		return 0, err
+	}
+	if len(bs) == 0 {
+		return h, client.ErrNoData()
+	}
+	err = wire.ReadBinaryBytes(bs, data)
+	if err != nil {
+		return 0, err
+	}
+	return h, nil
+}
+
+func (s *StakeRPCService) get(key []byte, height int64) (data.Bytes, int64, error) {
+	node := s.backend.localClient
+	resp, err := node.ABCIQueryWithOptions("/key", key,
+		rpcclient.ABCIQueryOptions{Trusted: true, Height: int64(height)})
+	if resp == nil {
+		return nil, height, err
+	}
+	return data.Bytes(resp.Response.Value), resp.Response.Height, err
 }
