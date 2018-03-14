@@ -27,40 +27,58 @@ The stake/query/delegator is to query the current stake status of a delegator. N
 
 //nolint
 var (
-	CmdQueryCandidates = &cobra.Command{
-		Use:   "candidates",
-		Short: "Query for the set of validator-candidates pubkeys",
-		RunE:  cmdQueryCandidates,
+	//CmdQueryCandidates = &cobra.Command{
+	//	Use:   "candidates",
+	//	Short: "Query for the set of validator-candidates pubkeys",
+	//	RunE:  cmdQueryCandidates,
+	//}
+	//
+	//CmdQueryCandidate = &cobra.Command{
+	//	Use:   "candidate",
+	//	Short: "Query a validator-candidate account",
+	//	RunE:  cmdQueryCandidate,
+	//}
+	//
+	//CmdQueryDelegatorBond = &cobra.Command{
+	//	Use:   "delegator-bond",
+	//	Short: "Query a delegators bond based on address and candidate pubkey",
+	//	RunE:  cmdQueryDelegatorBond,
+	//}
+	//
+	//CmdQueryDelegatorCandidates = &cobra.Command{
+	//	Use:   "delegator-candidates",
+	//	RunE:  cmdQueryDelegatorCandidates,
+	//	Short: "Query all delegators candidates' pubkeys based on address",
+	//}
+
+	CmdQueryValidator = &cobra.Command{
+		Use:   "validator",
+		RunE:  cmdQueryValidator,
+		Short: "Query the current stake status of a validator",
 	}
 
-	CmdQueryCandidate = &cobra.Command{
-		Use:   "candidate",
-		Short: "Query a validator-candidate account",
-		RunE:  cmdQueryCandidate,
-	}
-
-	CmdQueryDelegatorBond = &cobra.Command{
-		Use:   "delegator-bond",
-		Short: "Query a delegators bond based on address and candidate pubkey",
-		RunE:  cmdQueryDelegatorBond,
-	}
-
-	CmdQueryDelegatorCandidates = &cobra.Command{
-		Use:   "delegator-candidates",
-		RunE:  cmdQueryDelegatorCandidates,
-		Short: "Query all delegators candidates' pubkeys based on address",
+	CmdQueryValidators = &cobra.Command{
+		Use:   "validators",
+		RunE:  cmdQueryValidators,
+		Short: "Query a list of all current validators and validator candidates",
 	}
 
 	CmdQueryDelegator = &cobra.Command{
 		Use:   "delegator",
 		RunE:  cmdQueryDelegator,
-		Short: "Query the current stake status of the validator",
+		Short: "Query the current stake status of a delegator",
 	}
 
-	CmdQueryValidator = &cobra.Command{
-		Use:   "validator",
-		RunE:  cmdQueryValidator,
-		Short: "Query the current stake status of a delegator.",
+	CmdQuerySlot = &cobra.Command{
+		Use:   "slot",
+		RunE:  cmdQuerySlot,
+		Short: "Query the current status of a slot",
+	}
+
+	CmdQuerySlots = &cobra.Command{
+		Use:   "slots",
+		RunE:  cmdQuerySlots,
+		Short: "Query all open and close slots for staking",
 	}
 
 	FlagDelegatorAddress = "delegator-address"
@@ -163,13 +181,31 @@ func cmdQueryDelegatorCandidates(cmd *cobra.Command, args []string) error {
 	return query.OutputProof(candidates, height)
 }
 
+func cmdQueryValidator(cmd *cobra.Command, args []string) error {
+	// todo
+
+	return nil
+}
+
+func cmdQueryValidators(cmd *cobra.Command, args []string) error {
+	// todo
+
+	return nil
+}
+
 func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
 	// todo
 
 	return nil
 }
 
-func cmdQueryValidator(cmd *cobra.Command, args []string) error {
+func cmdQuerySlot(cmd *cobra.Command, args []string) error {
+	// todo
+
+	return nil
+}
+
+func cmdQuerySlots(cmd *cobra.Command, args []string) error {
 	// todo
 
 	return nil

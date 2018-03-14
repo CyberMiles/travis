@@ -23,6 +23,9 @@ var (
 	errNoDelegatorForAddress = fmt.Errorf("Delegator does not contain validator bond")
 	errInsufficientFunds     = fmt.Errorf("Insufficient bond shares")
 	errBadRemoveValidator    = fmt.Errorf("Error removing validator")
+	errFullSlot              = fmt.Errorf("Slot is full")
+	errBadSlot               = fmt.Errorf("Slot does not exist")
+	errBadSlotDelegate       = fmt.Errorf("Slot delegate does not exist")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
@@ -50,4 +53,16 @@ func ErrInsufficientFunds() error {
 }
 func ErrBadRemoveValidator() error {
 	return errors.WithCode(errBadRemoveValidator, errors.CodeTypeInternalErr)
+}
+
+func ErrFullSlot() error {
+	return errors.WithCode(errFullSlot, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrBadSlot() error {
+	return errors.WithCode(errBadSlot, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrBadSlotDelegate() error {
+	return errors.WithCode(errBadSlotDelegate, errors.CodeTypeBaseInvalidInput)
 }

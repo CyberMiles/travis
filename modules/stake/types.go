@@ -26,6 +26,8 @@ type Params struct {
 	GasUnbond           int64 `json:"gas_unbond"`
 	GasProposeSlot		int64 `json:"gas_propose_slot"`
 	GasAcceptSlot		int64 `json:"gas_accept_slot"`
+	GasWidthdrawSlot	int64 `json:"gas_widthdraw_slot"`
+	GasCancelSlot		int64 `json:"gas_cancel_slot"`
 	Validators			string `json:"validators"`
 }
 
@@ -41,16 +43,18 @@ func defaultParams() Params {
 		GasDelegate:         0,
 		GasUnbond:           0,
 		GasProposeSlot:		 0,
+		GasWidthdrawSlot:	 0,
+		GasCancelSlot:		 0,
 	}
 }
 
 //_________________________________________________________________________
 
-// Candidate defines the total amount of bond shares and their exchange rate to
+// Candidate defines the total Amount of bond shares and their exchange rate to
 // coins. Accumulation of interest is modelled as an in increase in the
 // exchange rate, and slashing as a decrease.  When coins are delegated to this
 // candidate, the candidate is credited with a DelegatorBond whose number of
-// bond shares is based on the amount of coins delegated divided by the current
+// bond shares is based on the Amount of coins delegated divided by the current
 // exchange rate. Voting power can be calculated as total bonds multiplied by
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
@@ -59,15 +63,6 @@ type Candidate struct {
 	Owner       sdk.Actor     `json:"owner"`        // Sender of BondTx - UnbondTx returns here
 	Shares      uint64        `json:"shares"`       // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower uint64        `json:"voting_power"` // Voting power if pubKey is a considered a validator
-	Description Description   `json:"description"`  // Description terms for the candidate
-}
-
-// Description - description fields for a candidate
-type Description struct {
-	Moniker  string `json:"moniker"`
-	Identity string `json:"identity"`
-	Website  string `json:"website"`
-	Details  string `json:"details"`
 }
 
 // NewCandidate - initialize a new candidate
@@ -258,23 +253,15 @@ func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err err
 
 //_________________________________________________________________________
 
-// DelegatorBond represents the bond with tokens held by an account.  It is
-// owned by one delegator, and is associated with the voting power of one
-// pubKey.
-type DelegatorBond struct {
-	PubKey crypto.PubKey
-	Shares uint64
-}
-
 type Slot struct {
 	Id string
 	ValidatorPubKey crypto.PubKey
-	TotalAmount uint64
-	AvailableAmount uint64
-	ProposedRoi uint64
+	TotalAmount int64
+	AvailableAmount int64
+	ProposedRoi int64
 }
 
-func NewSlot(id string, validatorPubKey crypto.PubKey, totalAmount uint64, availableAmount uint64, proposedRoi uint64) *Slot {
+func NewSlot(id string, validatorPubKey crypto.PubKey, totalAmount int64, availableAmount int64, proposedRoi int64) *Slot {
 	return &Slot{
 		Id: id,
 		ValidatorPubKey: validatorPubKey,
@@ -285,11 +272,19 @@ func NewSlot(id string, validatorPubKey crypto.PubKey, totalAmount uint64, avail
 }
 
 type SlotDelegate struct {
-	// todo
+	DelegatorAddress string
+	SlotId string
+	Amount int64
 }
 
-func NewSlotDelegate() *SlotDelegate {
-	// todo
-	return nil
+func NewSlotDelegate(delegatorAddress string, slotId string, amount int64) *SlotDelegate {
+	return &SlotDelegate{DelegatorAddress: delegatorAddress, SlotId: slotId, Amount: amount}
+}
+
+type DelegateHistory struct {
+	DelegatorAddress string
+	SlotId string
+	Amount int64
+	OpCode string
 }
 

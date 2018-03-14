@@ -34,7 +34,10 @@ func prepareClientCommands() {
 		stakecmd.CmdQueryDelegatorCandidates,
 
 		stakecmd.CmdQueryValidator,
+		stakecmd.CmdQueryValidators,
 		stakecmd.CmdQueryDelegator,
+		stakecmd.CmdQuerySlot,
+		stakecmd.CmdQuerySlots,
 	)
 
 	// set up the middleware
@@ -48,12 +51,9 @@ func prepareClientCommands() {
 
 	txcmd.RootCmd.AddCommand(
 		stakecmd.CmdDeclareCandidacy,
-		stakecmd.CmdEditCandidacy,
-		stakecmd.CmdDelegate,
-		stakecmd.CmdUnbond,
-
 		stakecmd.CmdProposeSlot,
 		stakecmd.CmdAcceptSlot,
+		stakecmd.CmdWidthdrawSlot,
 		stakecmd.CmdCancelSlot,
 	)
 

@@ -29,9 +29,10 @@ func Name() string {
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
 	declareCandidacy(TxDeclareCandidacy) error
-	editCandidacy(TxEditCandidacy) error
-	delegate(TxDelegate) error
-	unbond(TxUnbond) error
+	proposeSlot(TxProposeSlot) ([]byte, error)
+	acceptSlot(TxAcceptSlot) error
+	widthdrawSlot(TxWidthdrawSlot) error
+	cancelSlot(TxCancelSlot) error
 }
 
 type coinSend interface {
@@ -138,21 +139,18 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 	case TxDeclareCandidacy:
 		return sdk.NewCheck(params.GasDeclareCandidacy, ""),
 			checker.declareCandidacy(txInner)
-	case TxEditCandidacy:
-		return sdk.NewCheck(params.GasEditCandidacy, ""),
-			checker.editCandidacy(txInner)
-	case TxDelegate:
-		return sdk.NewCheck(params.GasDelegate, ""),
-			checker.delegate(txInner)
-	case TxUnbond:
-		return sdk.NewCheck(params.GasUnbond, ""),
-			checker.unbond(txInner)
 	case TxProposeSlot:
-		return sdk.NewCheck(params.GasProposeSlot, ""),
-			checker.proposeSlot(txInner)
+		_, err := checker.proposeSlot(txInner)
+		return sdk.NewCheck(params.GasProposeSlot, ""), err
 	case TxAcceptSlot:
 		return sdk.NewCheck(params.GasAcceptSlot, ""),
 			checker.acceptSlot(txInner)
+	case TxWidthdrawSlot:
+		return sdk.NewCheck(params.GasWidthdrawSlot, ""),
+			checker.widthdrawSlot(txInner)
+	case TxCancelSlot:
+		return sdk.NewCheck(params.GasCancelSlot, ""),
+			checker.cancelSlot(txInner)
 	}
 
 	return res, errors.ErrUnknownTxType(tx)
@@ -189,23 +187,6 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 	case TxDeclareCandidacy:
 		res.GasUsed = params.GasDeclareCandidacy
 		return res, deliverer.declareCandidacy(_tx)
-	case TxEditCandidacy:
-		res.GasUsed = params.GasEditCandidacy
-		return res, deliverer.editCandidacy(_tx)
-	case TxDelegate:
-		res.GasUsed = params.GasDelegate
-		return res, deliverer.delegate(_tx)
-	case TxUnbond:
-		//context with hold account permissions
-		params := loadParams(store)
-		res.GasUsed = params.GasUnbond
-		ctx2 := ctx.WithPermissions(params.HoldAccount)
-		deliverer.transfer = coinSender{
-			store:    store,
-			dispatch: dispatch,
-			ctx:      ctx2,
-		}.transferFn
-		return res, deliverer.unbond(_tx)
 	case TxProposeSlot:
 		res.GasUsed = params.GasProposeSlot
 		hash, err := deliverer.proposeSlot(_tx)
@@ -214,6 +195,20 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 	case TxAcceptSlot:
 		res.GasUsed = params.GasAcceptSlot
 		return res, deliverer.acceptSlot(_tx)
+	case TxWidthdrawSlot:
+		//context with hold account permissions
+		params := loadParams(store)
+		res.GasUsed = params.GasWidthdrawSlot
+		ctx2 := ctx.WithPermissions(params.HoldAccount)
+		deliverer.transfer = coinSender{
+			store:    store,
+			dispatch: dispatch,
+			ctx:      ctx2,
+		}.transferFn
+		return res, deliverer.widthdrawSlot(_tx)
+	case TxCancelSlot:
+		res.GasUsed = params.GasDelegate
+		return res, deliverer.cancelSlot(_tx)
 	}
 
 	return
@@ -275,7 +270,6 @@ type check struct {
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
 func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
-
 	// check to see if the pubkey or sender has been registered before
 	candidate := loadCandidate(c.store, tx.PubKey)
 	if candidate != nil {
@@ -284,70 +278,61 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 			candidate.PubKey, candidate.Owner)
 	}
 
-	return checkDenom(tx.BondUpdate, c.store)
+	return nil
 }
 
-func (c check) editCandidacy(tx TxEditCandidacy) error {
+func (c check) widthdrawSlot(tx TxWidthdrawSlot) error {
+	slot := getSlot(tx.SlotId)
+	if slot == nil {
+		return ErrBadSlot()
+	}
 
-	// candidate must already be registered
-	candidate := loadCandidate(c.store, tx.PubKey)
-	if candidate == nil { // does PubKey exist
-		return fmt.Errorf("cannot delegate to non-existant PubKey %v", tx.PubKey)
+	// check if have enough shares to unbond
+	slotDelegate := getSlotDelegates(c.sender.Address.String(), tx.SlotId)
+	if slotDelegate == nil {
+		return ErrBadSlotDelegate()
+	}
+
+	if slotDelegate.Amount < tx.Amount {
+		return ErrInsufficientFunds()
 	}
 	return nil
 }
 
-func (c check) delegate(tx TxDelegate) error {
-
+func (c check) proposeSlot(tx TxProposeSlot) ([]byte, error) {
 	candidate := loadCandidate(c.store, tx.PubKey)
-	if candidate == nil { // does PubKey exist
-		return fmt.Errorf("cannot delegate to non-existant PubKey %v", tx.PubKey)
+	if candidate == nil {
+		return nil, fmt.Errorf("cannot propose slot for non-existant PubKey %v", tx.PubKey)
+	}
+
+	return nil, nil
+}
+
+func (c check) acceptSlot(tx TxAcceptSlot) error {
+	slot := getSlot(tx.SlotId)
+	if slot == nil {
+		return ErrBadSlot()
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := c.transfer(c.sender, c.params.HoldAccount, coin.Coins{tx.Bond})
+	err := c.transfer(c.sender, c.params.HoldAccount, coin.Coins{{"cmt", tx.Amount}})
 	if err != nil {
 		return err
 	}
 
-	return checkDenom(tx.BondUpdate, c.store)
-}
-
-func (c check) unbond(tx TxUnbond) error {
-
-	// check if have enough shares to unbond
-	bond := loadDelegatorBond(c.store, c.sender, tx.PubKey)
-	if bond.Shares < tx.Shares {
-		return fmt.Errorf("not enough bond shares to unbond, have %v, trying to unbond %v",
-			bond.Shares, tx.Shares)
-	}
-	return nil
-}
-func (c check) proposeSlot(tx TxProposeSlot) error {
-	candidate := loadCandidate(c.store, tx.PubKey)
-	if candidate == nil {
-		return fmt.Errorf("cannot propose slot for non-existant PubKey %v", tx.PubKey)
-	}
-
-	return nil
-}
-func (c check) acceptSlot(tx TxAcceptSlot) error {
-	slot, err := getSlot(tx.SlotId)
-	if err != nil {
-		return err
-	}
-
-	if slot != nil {
-		return fmt.Errorf("slot %v not exists", tx.SlotId)
-	}
-
 	return nil
 }
 
-func checkDenom(tx BondUpdate, store state.SimpleDB) error {
-	if tx.Bond.Denom != loadParams(store).AllowedBondDenom {
-		return fmt.Errorf("Invalid coin denomination")
+func (c check) cancelSlot(tx TxCancelSlot) error {
+	slot := getSlot(tx.SlotId)
+	if slot == nil {
+		return ErrBadSlot()
 	}
+
+	if slot.AvailableAmount == 0 {
+		return ErrFullSlot()
+	}
+
 	return nil
 }
 
@@ -374,145 +359,125 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 		return ErrCandidateExistsAddr()
 	}
 	candidate := NewCandidate(tx.PubKey, d.sender)
-	candidate.Description = tx.Description // add the description parameters
 	saveCandidate(d.store, candidate)
 
-	// move coins from the d.sender account to a (self-bond) delegator account
-	// the candidate account will be updated automatically here
-	txDelegate := TxDelegate{tx.BondUpdate}
-	return d.delegate(txDelegate)
-}
-
-func (d deliver) editCandidacy(tx TxEditCandidacy) error {
-
-	// Get the pubKey bond account
-	candidate := loadCandidate(d.store, tx.PubKey)
-	if candidate == nil {
-		return ErrBondNotNominated()
-	}
-	if candidate.Owner.Empty() { //candidate has been withdrawn
-		return ErrBondNotNominated()
-	}
-
-	//check and edit any of the editable terms
-	if tx.Description.Moniker != "" {
-		candidate.Description.Moniker = tx.Description.Moniker
-	}
-	if tx.Description.Identity != "" {
-		candidate.Description.Identity = tx.Description.Identity
-	}
-	if tx.Description.Website != "" {
-		candidate.Description.Website = tx.Description.Website
-	}
-	if tx.Description.Details != "" {
-		candidate.Description.Details = tx.Description.Details
-	}
-
-	saveCandidate(d.store, candidate)
 	return nil
 }
 
-func (d deliver) delegate(tx TxDelegate) error {
+func (d deliver) acceptSlot(tx TxAcceptSlot) error {
+	// Get the slot
+	slot := getSlot(tx.SlotId)
 
 	// Get the pubKey bond account
-	candidate := loadCandidate(d.store, tx.PubKey)
+	candidate := loadCandidate(d.store, slot.ValidatorPubKey)
 	if candidate == nil {
 		return ErrBondNotNominated()
 	}
 	if candidate.Owner.Empty() { //candidate has been withdrawn
 		return ErrBondNotNominated()
+	}
+
+	if tx.Amount > slot.AvailableAmount {
+		return ErrFullSlot()
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := d.transfer(d.sender, d.params.HoldAccount, coin.Coins{tx.Bond})
+	err := d.transfer(d.sender, d.params.HoldAccount, coin.Coins{{"cmt", tx.Amount}})
 	if err != nil {
 		return err
 	}
-	//key := stack.PrefixedKey(coin.NameCoin, d.sender.Address)
-	//acc := coin.Account{}
-	//query.GetParsed(key, &acc, query.GetHeight(), false)
-	//panic(fmt.Sprintf("debug acc: %v\n", acc))
 
-	// Get or create the delegator bond
-	bond := loadDelegatorBond(d.store, d.sender, tx.PubKey)
-	if bond == nil {
-		bond = &DelegatorBond{
-			PubKey: tx.PubKey,
-			Shares: 0,
-		}
+	// Get or create the delegate slot
+	delegatorAddress := d.sender.Address.String()
+	slotDelegate := getSlotDelegates(delegatorAddress, tx.SlotId)
+	if slotDelegate == nil {
+		slotDelegate = NewSlotDelegate(delegatorAddress, tx.SlotId, 0)
 	}
 
-	// Add shares to delegator bond and candidate
-	bondAmount := uint64(tx.Bond.Amount) // XXX: checked for underflow in ValidateBasic
-	bond.Shares += bondAmount
-	candidate.Shares += bondAmount
+	// Add shares to slot and candidate
+	slotDelegate.Amount += tx.Amount
+	candidate.Shares += uint64(tx.Amount)
+	slot.AvailableAmount -= tx.Amount
 
-	// Save to d.store
+	delegateHistory := DelegateHistory{delegatorAddress, tx.SlotId, tx.Amount, "accept"}
+
 	saveCandidate(d.store, candidate)
-	saveDelegatorBond(d.store, d.sender, bond)
+	saveSlot(slot)
+	saveSlotDelegate(*slotDelegate)
+	saveDelegateHistory(delegateHistory)
 
 	return nil
 }
 
-func (d deliver) unbond(tx TxUnbond) error {
+func (d deliver) widthdrawSlot(tx TxWidthdrawSlot) error {
+	// Get the slot
+	slot := getSlot(tx.SlotId)
 
-	// get delegator bond
-	bond := loadDelegatorBond(d.store, d.sender, tx.PubKey)
-	if bond == nil {
-		return ErrNoDelegatorForAddress()
+	if slot == nil {
+		return ErrBadSlot()
+	}
+
+	// get the slot delegate
+	delegatorAddress := d.sender.Address.String()
+	slotDelegate := getSlotDelegates(delegatorAddress, tx.SlotId)
+	if slotDelegate == nil {
+		return ErrBadSlotDelegate()
 	}
 
 	// get pubKey candidate
-	candidate := loadCandidate(d.store, tx.PubKey)
+	candidate := loadCandidate(d.store, slot.ValidatorPubKey)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
 
 	// subtract bond tokens from bond
-	if bond.Shares < tx.Shares {
+	if slotDelegate.Amount < tx.Amount {
 		return ErrInsufficientFunds()
 	}
-	bond.Shares -= tx.Shares
+	slotDelegate.Amount -= tx.Amount
 
-	if bond.Shares == 0 {
-
-		// if the bond is the owner of the candidate then
-		// trigger a reject candidacy by setting Owner to Empty Actor
-		if d.sender.Equals(candidate.Owner) {
-			candidate.Owner = sdk.Actor{}
-		}
-
-		// remove the bond
-		removeDelegatorBond(d.store, d.sender, tx.PubKey)
+	if slotDelegate.Amount == 0 {
+		// remove the slot delegate
+		removeSlotDelegate(*slotDelegate)
 	} else {
-		saveDelegatorBond(d.store, d.sender, bond)
+		saveSlotDelegate(*slotDelegate)
 	}
 
 	// deduct shares from the candidate
-	candidate.Shares -= tx.Shares
+	candidate.Shares -= uint64(tx.Amount)
 	if candidate.Shares == 0 {
-		removeCandidate(d.store, tx.PubKey)
+		removeCandidate(d.store, slot.ValidatorPubKey)
 	} else {
 		saveCandidate(d.store, candidate)
 	}
 
 	// transfer coins back to account
-	txShares := int64(tx.Shares) // XXX: watch overflow
-	returnCoins := txShares      //currently each share is worth one coin
+	returnCoins := tx.Amount
 	return d.transfer(d.params.HoldAccount, d.sender,
 		coin.Coins{{d.params.AllowedBondDenom, returnCoins}})
 }
+
 func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
 	hash := merkle.SimpleHashFromBinary(tx)
 	hexHash := hex.EncodeToString(hash)
-	slot := NewSlot(hexHash, tx.PubKey, tx.OfferAmount, tx.OfferAmount, tx.ProposedRoi)
-	return hash, saveSlot(slot)
+	slot := NewSlot(hexHash, tx.PubKey, tx.Amount, tx.Amount, tx.ProposedRoi)
+	saveSlot(slot)
+
+	return hash, nil
 }
-func (d deliver) acceptSlot(tx TxAcceptSlot) error {
-	//slot, err := getSlot(tx.SlotId)
-	//if err != nil {
-	//	return err
-	//}
+
+func (d deliver) cancelSlot(tx TxCancelSlot) error {
+	slot := getSlot(tx.SlotId)
+	if slot == nil {
+		return ErrBadSlot()
+	}
+
+	if slot.AvailableAmount == 0 {
+		return ErrFullSlot()
+	}
+
+	slot.AvailableAmount = 0
+	saveSlot(slot)
 
 	return nil
 }

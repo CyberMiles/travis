@@ -301,7 +301,7 @@ func initStakeDb() error {
 
 		sqlStmt := `
 		create table slots(id text not null primary key, validator_pub_key integer, total_amount integer, available_amount integer, proposed_roi integer, created_at text, updated_at text);
-		create table delegator_history(delegator_address text, slot_id integer, amount integer, action_type integer, created_at text);
+		create table delegate_history(delegator_address text, slot_id text, amount integer, op_code text, created_at text);
 		create table slot_delegates (delegator_address text, slot_id text, amount integer, created_at text, updated_at text);
 		`
 		_, err = db.Exec(sqlStmt)
