@@ -43,17 +43,10 @@ The stake/slot/cancel tx is to cancel all remianing amounts from an unaccepted s
 const (
 	FlagPubKey = "pubkey"
 	FlagAmount = "amount"
-	FlagShares = "shares"
-
 	FlagMoniker  = "moniker"
-	FlagIdentity = "keybase-sig"
-	FlagWebsite  = "website"
-	FlagDetails  = "details"
-
 	FlagName = "name"
-
-	FlagOfferAmount = "amount"
 	FlagProposedRoi = "proposed-roi"
+	FlagSlotId = "slot-id"
 )
 
 // nolint
@@ -63,22 +56,6 @@ var (
 		Short: "Allows a potential validator to declare its candidacy",
 		RunE:  cmdDeclareCandidacy,
 	}
-	CmdEditCandidacy = &cobra.Command{
-		Use:   "edit-candidacy",
-		Short: "edit and existing validator-candidate account",
-		RunE:  cmdEditCandidacy,
-	}
-	CmdDelegate = &cobra.Command{
-		Use:   "delegate",
-		Short: "delegate coins to an existing validator/candidate",
-		RunE:  cmdDelegate,
-	}
-	CmdUnbond = &cobra.Command{
-		Use:   "unbond",
-		Short: "unbond coins from a validator/candidate",
-		RunE:  cmdUnbond,
-	}
-
 	CmdProposeSlot = &cobra.Command{
 		Use:   "propose-slot",
 		Short: "Allows a potential validator to offer a slot of CMTs and corresponding ROI",
@@ -89,9 +66,14 @@ var (
 		Short: "Accept and stake CMTs for an Slot ID",
 		RunE:  cmdAcceptSlot,
 	}
+	CmdWidthdrawSlot = &cobra.Command{
+		Use:   "widthdraw-slot",
+		Short: "Widthdraw staked CMTs from a validator",
+		RunE:  cmdWidthdrawSlot,
+	}
 	CmdCancelSlot = &cobra.Command{
 		Use:   "cancel-slot",
-		Short: "Cancel all remianing amounts from an unaccepted slot by its creator using the Slot ID",
+		Short: "Cancel all remaining amounts from an unaccepted slot by its creator using the Slot ID",
 		RunE:  cmdCancelSlot,
 	}
 )
@@ -103,45 +85,36 @@ func init() {
 	fsPk.String(FlagPubKey, "", "PubKey of the validator-candidate")
 
 	fsAmount := flag.NewFlagSet("", flag.ContinueOnError)
-	fsAmount.String(FlagAmount, "1cmt", "Amount of coins to bond")
-
-	fsShares := flag.NewFlagSet("", flag.ContinueOnError)
-	fsShares.Int64(FlagShares, 0, "Amount of shares to unbond")
+	fsAmount.Int64(FlagAmount, 0, "Amount of CMT")
 
 	fsCandidate := flag.NewFlagSet("", flag.ContinueOnError)
 	fsCandidate.String(FlagMoniker, "", "validator-candidate name")
-	fsCandidate.String(FlagIdentity, "", "optional keybase signature")
-	fsCandidate.String(FlagWebsite, "", "optional website")
-	fsCandidate.String(FlagDetails, "", "optional detailed description space")
 
 	fsProposeSlot := flag.NewFlagSet("", flag.ContinueOnError)
-	fsProposeSlot.Int64(FlagOfferAmount, 0, "Amount offered")
 	fsProposeSlot.Float64(FlagProposedRoi, 0, "corresponding ROI")
 
+	fsSlot := flag.NewFlagSet("", flag.ContinueOnError)
+	fsSlot.String(FlagSlotId, "", "Slot ID")
+
 	// add the flags
-	CmdDelegate.Flags().AddFlagSet(fsPk)
-	CmdDelegate.Flags().AddFlagSet(fsAmount)
-
-	CmdUnbond.Flags().AddFlagSet(fsPk)
-	CmdUnbond.Flags().AddFlagSet(fsShares)
-
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
-	CmdDeclareCandidacy.Flags().AddFlagSet(fsAmount)
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCandidate)
 
-	CmdEditCandidacy.Flags().AddFlagSet(fsPk)
-	CmdEditCandidacy.Flags().AddFlagSet(fsCandidate)
-
 	CmdProposeSlot.Flags().AddFlagSet(fsPk)
+	CmdProposeSlot.Flags().AddFlagSet(fsAmount)
 	CmdProposeSlot.Flags().AddFlagSet(fsProposeSlot)
+
+	CmdAcceptSlot.Flags().AddFlagSet(fsSlot)
+	CmdAcceptSlot.Flags().AddFlagSet(fsAmount)
+
+	CmdWidthdrawSlot.Flags().AddFlagSet(fsSlot)
+	CmdWidthdrawSlot.Flags().AddFlagSet(fsAmount)
+
+	CmdCancelSlot.Flags().AddFlagSet(fsPk)
+	CmdCancelSlot.Flags().AddFlagSet(fsSlot)
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
-	amount, err := coin.ParseCoin(viper.GetString(FlagAmount))
-	if err != nil {
-		return err
-	}
-
 	pk, err := GetPubKey(viper.GetString(FlagPubKey))
 	if err != nil {
 		return err
@@ -151,64 +124,7 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("please enter a moniker for the validator-candidate using --moniker")
 	}
 
-	description := stake.Description{
-		Moniker:  viper.GetString(FlagMoniker),
-		Identity: viper.GetString(FlagIdentity),
-		Website:  viper.GetString(FlagWebsite),
-		Details:  viper.GetString(FlagDetails),
-	}
-
-	tx := stake.NewTxDeclareCandidacy(amount, pk, description)
-	return txcmd.DoTx(tx)
-}
-
-func cmdEditCandidacy(cmd *cobra.Command, args []string) error {
-
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
-	description := stake.Description{
-		Moniker:  viper.GetString(FlagMoniker),
-		Identity: viper.GetString(FlagIdentity),
-		Website:  viper.GetString(FlagWebsite),
-		Details:  viper.GetString(FlagDetails),
-	}
-
-	tx := stake.NewTxEditCandidacy(pk, description)
-	return txcmd.DoTx(tx)
-}
-
-func cmdDelegate(cmd *cobra.Command, args []string) error {
-	amount, err := coin.ParseCoin(viper.GetString(FlagAmount))
-	if err != nil {
-		return err
-	}
-
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
-	tx := stake.NewTxDelegate(amount, pk)
-	return txcmd.DoTx(tx)
-}
-
-func cmdUnbond(cmd *cobra.Command, args []string) error {
-
-	sharesRaw := viper.GetInt64(FlagShares)
-	if sharesRaw <= 0 {
-		return fmt.Errorf("shares must be positive interger")
-	}
-	shares := uint64(sharesRaw)
-
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
-	tx := stake.NewTxUnbond(shares, pk)
+	tx := stake.NewTxDeclareCandidacy(pk)
 	return txcmd.DoTx(tx)
 }
 
@@ -235,9 +151,9 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 }
 
 func cmdProposeSlot(cmd *cobra.Command, args []string) error {
-	offerAmount := viper.GetInt64(FlagOfferAmount)
-	if offerAmount <= 0 {
-		return fmt.Errorf("Offer amount must be positive interger")
+	amount := viper.GetInt64(FlagAmount)
+	if amount <= 0 {
+		return fmt.Errorf("amount must be positive interger")
 	}
 
 	pk, err := GetPubKey(viper.GetString(FlagPubKey))
@@ -247,17 +163,41 @@ func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 
 	proposedRoi := viper.GetInt64(FlagProposedRoi)
 	if proposedRoi <= 0 {
-		return fmt.Errorf("Proposed ROI must be positive interger")
+		return fmt.Errorf("proposed ROI must be positive interger")
 	}
 
-	tx := stake.NewTxProposeSlot(pk, uint64(offerAmount), uint64(proposedRoi))
+	tx := stake.NewTxProposeSlot(pk, amount, proposedRoi)
 	return txcmd.DoTx(tx)
 }
 
 func cmdAcceptSlot(cmd *cobra.Command, args []string) error {
-	// todo
+	amount := viper.GetInt64(FlagAmount)
+	if amount <= 0 {
+		return fmt.Errorf("Amount must be positive interger")
+	}
 
-	return nil
+	slotId := viper.GetString(FlagSlotId)
+	if slotId == "" {
+		return fmt.Errorf("please enter slot ID using --slot-id")
+	}
+
+	tx := stake.NewTxAcceptSlot(amount, slotId)
+	return txcmd.DoTx(tx)
+}
+
+func cmdWidthdrawSlot(cmd *cobra.Command, args []string) error {
+	amount := viper.GetInt64(FlagAmount)
+	if amount <= 0 {
+		return fmt.Errorf("Amount must be positive interger")
+	}
+
+	slotId := viper.GetString(FlagSlotId)
+	if slotId == "" {
+		return fmt.Errorf("please enter slot ID using --slot-id")
+	}
+
+	tx := stake.NewTxAcceptSlot(amount, slotId)
+	return txcmd.DoTx(tx)
 }
 
 func cmdCancelSlot(cmd *cobra.Command, args []string) error {
