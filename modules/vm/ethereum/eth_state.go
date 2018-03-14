@@ -3,7 +3,6 @@ package ethereum
 import (
 	"math/big"
 	"sync"
-	"bytes"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
@@ -11,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	//"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -22,10 +20,6 @@ import (
 	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
 	"github.com/CyberMiles/travis/errors"
 	"github.com/CyberMiles/travis/utils"
-)
-
-const (
-	MinGasPrice = 2e9 // 2 Gwei
 )
 
 //----------------------------------------------------------------------
@@ -126,6 +120,7 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 		header:       ethHeader,
 		parent:       currentBlock,
 		state:        state,
+		stakedTxIndex: 0,
 		txIndex:      0,
 		totalUsedGas: big.NewInt(0),
 		totalUsedGasFee: big.NewInt(0),
@@ -174,6 +169,7 @@ type workState struct {
 	header *ethTypes.Header
 	parent *ethTypes.Block
 	state  *state.StateDB
+	stakedTxIndex int //coped StateChangeObject index in the queue
 
 	txIndex      int
 	transactions []*ethTypes.Transaction
@@ -198,6 +194,17 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
 	tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
 
+	// Iterate to sub balance of staker from state
+	// ws.stakedTxIndex used for record coped index of every staker
+	for i := ws.stakedTxIndex; i < len(utils.StateChangeQueue); i++ {
+		scObj := utils.StateChangeQueue[i]
+		ws.state.SubBalance(common.BytesToAddress(scObj.From.Bytes()), scObj.Amount)
+		if scObj.To != nil {
+			ws.state.AddBalance(common.BytesToAddress(scObj.To.Bytes()), scObj.Amount)
+		}
+	}
+	ws.stakedTxIndex = len(utils.StateChangeQueue)
+
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	receipt, usedGas, err := core.ApplyTransaction(
 		chainConfig,
@@ -212,27 +219,6 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	)
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
-	}
-
-	oriMsg, err := tx.AsMessage(types.MakeSigner(chainConfig, ws.header.Number))
-	if err != nil {
-		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
-	}
-
-	// Iterate over all transactions to check if the gas price is too low for the
-	// non-first transaction from the same account
-	// Todo performance maybe
-	for _, itx := range ws.transactions {
-		msg, err := itx.AsMessage(types.MakeSigner(chainConfig, ws.header.Number))
-		if err != nil {
-			return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
-		}
-
-		if bytes.Equal(oriMsg.From().Bytes(), msg.From().Bytes()) {
-			if oriMsg.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
-				return abciTypes.ResponseDeliverTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
-			}
-		}
 	}
 
 	usedGasFee := big.NewInt(0).Mul(usedGas, tx.GasPrice())

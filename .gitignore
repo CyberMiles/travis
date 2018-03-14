@@ -18,3 +18,5 @@ vendor
 
 # sqlite db file
 *.db
+
+*.swp

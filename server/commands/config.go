@@ -130,6 +130,9 @@ rpcapi = "cmt,stake,eth,net,web3,personal,admin"
 rpcport = 8545
 ws = false
 verbosity = 3
+
+[consensus]
+timeout_commit = 10000
 `
 
 var defaultMoniker = getDefaultMoniker()
