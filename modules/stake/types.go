@@ -25,6 +25,7 @@ type Params struct {
 	GasDelegate         int64 `json:"gas_delegate"`
 	GasUnbond           int64 `json:"gas_unbond"`
 	GasProposeSlot		int64 `json:"gas_propose_slot"`
+	GasAcceptSlot		int64 `json:"gas_accept_slot"`
 	Validators			string `json:"validators"`
 }
 
@@ -281,5 +282,14 @@ func NewSlot(id string, validatorPubKey crypto.PubKey, totalAmount uint64, avail
 		AvailableAmount: availableAmount,
 		ProposedRoi: proposedRoi,
 	}
+}
+
+type SlotDelegate struct {
+	// todo
+}
+
+func NewSlotDelegate() *SlotDelegate {
+	// todo
+	return nil
 }
 

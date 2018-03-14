@@ -52,8 +52,9 @@ const (
 
 	FlagName = "name"
 
-	FlagOfferAmount = "amount"
+	FlagCmtAmount   = "amount"
 	FlagProposedRoi = "proposed-roi"
+	FlagSlotId = "slot-id"
 )
 
 // nolint
@@ -115,8 +116,11 @@ func init() {
 	fsCandidate.String(FlagDetails, "", "optional detailed description space")
 
 	fsProposeSlot := flag.NewFlagSet("", flag.ContinueOnError)
-	fsProposeSlot.Int64(FlagOfferAmount, 0, "Amount offered")
+	fsProposeSlot.Int64(FlagCmtAmount, 0, "amount")
 	fsProposeSlot.Float64(FlagProposedRoi, 0, "corresponding ROI")
+
+	fsAcceptSlot := flag.NewFlagSet("", flag.ContinueOnError)
+	fsAcceptSlot.String(FlagSlotId, "", "Slot ID")
 
 	// add the flags
 	CmdDelegate.Flags().AddFlagSet(fsPk)
@@ -235,7 +239,7 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 }
 
 func cmdProposeSlot(cmd *cobra.Command, args []string) error {
-	offerAmount := viper.GetInt64(FlagOfferAmount)
+	offerAmount := viper.GetInt64(FlagCmtAmount)
 	if offerAmount <= 0 {
 		return fmt.Errorf("Offer amount must be positive interger")
 	}
@@ -255,9 +259,18 @@ func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdAcceptSlot(cmd *cobra.Command, args []string) error {
-	// todo
+	amount := viper.GetInt64(FlagCmtAmount)
+	if amount <= 0 {
+		return fmt.Errorf("Amount must be positive interger")
+	}
 
-	return nil
+	slotId := viper.GetString(FlagSlotId)
+	if slotId == "" {
+		return fmt.Errorf("please enter slot ID using --slot-id")
+	}
+
+	tx := stake.NewTxAcceptSlot(uint64(amount), slotId)
+	return txcmd.DoTx(tx)
 }
 
 func cmdCancelSlot(cmd *cobra.Command, args []string) error {

@@ -187,3 +187,30 @@ func (tx TxUnbond) ValidateBasic() error {
 	}
 	return nil
 }
+
+type TxAcceptSlot struct {
+	Amount uint64
+	SlotId string
+}
+
+func NewTxAcceptSlot(amount uint64, slotId string) sdk.Tx {
+	return TxAcceptSlot{
+		Amount: amount,
+		SlotId: slotId,
+	}.Wrap()
+}
+
+// ValidateBasic - Check for non-empty candidate, positive shares
+func (tx TxAcceptSlot) ValidateBasic() error {
+	if tx.Amount <= 0 {
+		return fmt.Errorf("Amount must be positive interger")
+	}
+
+	if tx.SlotId == "" {
+		return fmt.Errorf("Slot ID must be provided")
+	}
+	return nil
+}
+
+// Wrap - Wrap a Tx as a Basecoin Tx
+func (tx TxAcceptSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }

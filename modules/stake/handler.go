@@ -150,6 +150,9 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 	case TxProposeSlot:
 		return sdk.NewCheck(params.GasProposeSlot, ""),
 			checker.proposeSlot(txInner)
+	case TxAcceptSlot:
+		return sdk.NewCheck(params.GasAcceptSlot, ""),
+			checker.acceptSlot(txInner)
 	}
 
 	return res, errors.ErrUnknownTxType(tx)
@@ -208,6 +211,9 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 		hash, err := deliverer.proposeSlot(_tx)
 		res.Data = hash
 		return res, err
+	case TxAcceptSlot:
+		res.GasUsed = params.GasAcceptSlot
+		return res, deliverer.acceptSlot(_tx)
 	}
 
 	return
@@ -321,6 +327,18 @@ func (c check) proposeSlot(tx TxProposeSlot) error {
 	candidate := loadCandidate(c.store, tx.PubKey)
 	if candidate == nil {
 		return fmt.Errorf("cannot propose slot for non-existant PubKey %v", tx.PubKey)
+	}
+
+	return nil
+}
+func (c check) acceptSlot(tx TxAcceptSlot) error {
+	slot, err := getSlot(tx.SlotId)
+	if err != nil {
+		return err
+	}
+
+	if slot != nil {
+		return fmt.Errorf("slot %v not exists", tx.SlotId)
 	}
 
 	return nil
@@ -489,4 +507,12 @@ func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
 	hexHash := hex.EncodeToString(hash)
 	slot := NewSlot(hexHash, tx.PubKey, tx.OfferAmount, tx.OfferAmount, tx.ProposedRoi)
 	return hash, saveSlot(slot)
+}
+func (d deliver) acceptSlot(tx TxAcceptSlot) error {
+	//slot, err := getSlot(tx.SlotId)
+	//if err != nil {
+	//	return err
+	//}
+
+	return nil
 }

@@ -33,15 +33,24 @@ import (
 //	return nil
 //}
 
-func saveSlot(slot *Slot) error {
+func getDb() (*sql.DB, error) {
 	rootDir := viper.GetString(cli.HomeFlag)
 	stakeDbPath := path.Join(rootDir, "data", "stake.db")
 
 	db, err := sql.Open("sqlite3", stakeDbPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer db.Close()
+
+	return db, nil
+}
+
+func saveSlot(slot *Slot) error {
+	db, err := getDb()
+	if err != nil {
+		return err
+	}
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -61,4 +70,32 @@ func saveSlot(slot *Slot) error {
 	tx.Commit()
 
 	return nil
+}
+
+func getSlot(slotId string) (*Slot, error) {
+	db, err := getDb()
+	if err != nil {
+		return &Slot{}, err
+	}
+
+	stmt, err := db.Prepare("select * from slots where id = ?")
+	if err != nil {
+		return &Slot{}, err
+	}
+	defer stmt.Close()
+
+	var validatorPubKey string
+	var totalAmount, availableAmount, proposedRoi uint64
+	err = stmt.QueryRow(slotId).Scan(&validatorPubKey, &totalAmount, &availableAmount, &proposedRoi)
+	if err != nil {
+		return &Slot{}, err
+	}
+
+	pk, _ := GetPubKey(validatorPubKey)
+	return NewSlot(slotId, pk, totalAmount, availableAmount, proposedRoi), nil
+}
+
+func getSlotDelegates(delegatorAddress string, slotId string) (*SlotDelegate, error) {
+	// todo
+	return nil, nil
 }
