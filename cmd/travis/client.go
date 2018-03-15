@@ -28,11 +28,6 @@ func prepareClientCommands() {
 
 	query.RootCmd.AddCommand(
 		noncecmd.NonceQueryCmd,
-		stakecmd.CmdQueryCandidates,
-		stakecmd.CmdQueryCandidate,
-		stakecmd.CmdQueryDelegatorBond,
-		stakecmd.CmdQueryDelegatorCandidates,
-
 		stakecmd.CmdQueryValidator,
 		stakecmd.CmdQueryValidators,
 		stakecmd.CmdQueryDelegator,

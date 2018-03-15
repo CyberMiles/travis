@@ -12,6 +12,8 @@ import (
 	"github.com/CyberMiles/travis/modules/coin"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/tendermint/go-wire/data"
+	"github.com/tendermint/go-wire"
 	"fmt"
 )
 
@@ -27,30 +29,6 @@ The stake/query/delegator is to query the current stake status of a delegator. N
 
 //nolint
 var (
-	//CmdQueryCandidates = &cobra.Command{
-	//	Use:   "candidates",
-	//	Short: "Query for the set of validator-candidates pubkeys",
-	//	RunE:  cmdQueryCandidates,
-	//}
-	//
-	//CmdQueryCandidate = &cobra.Command{
-	//	Use:   "candidate",
-	//	Short: "Query a validator-candidate account",
-	//	RunE:  cmdQueryCandidate,
-	//}
-	//
-	//CmdQueryDelegatorBond = &cobra.Command{
-	//	Use:   "delegator-bond",
-	//	Short: "Query a delegators bond based on address and candidate pubkey",
-	//	RunE:  cmdQueryDelegatorBond,
-	//}
-	//
-	//CmdQueryDelegatorCandidates = &cobra.Command{
-	//	Use:   "delegator-candidates",
-	//	RunE:  cmdQueryDelegatorCandidates,
-	//	Short: "Query all delegators candidates' pubkeys based on address",
-	//}
-
 	CmdQueryValidator = &cobra.Command{
 		Use:   "validator",
 		RunE:  cmdQueryValidator,
@@ -90,25 +68,21 @@ func init() {
 	fsPk.String(FlagPubKey, "", "PubKey of the validator-candidate")
 	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
 	fsAddr.String(FlagDelegatorAddress, "", "Delegator Hex Address")
+	fsSlot := flag.NewFlagSet("", flag.ContinueOnError)
+	fsSlot.String(FlagSlotId, "", "Slot ID")
 
-	CmdQueryCandidate.Flags().AddFlagSet(fsPk)
-	CmdQueryDelegatorBond.Flags().AddFlagSet(fsPk)
-	CmdQueryDelegatorBond.Flags().AddFlagSet(fsAddr)
-	CmdQueryDelegatorCandidates.Flags().AddFlagSet(fsAddr)
+	CmdQueryValidator.Flags().AddFlagSet(fsPk)
+	CmdQueryDelegator.Flags().AddFlagSet(fsAddr)
+	CmdQuerySlot.Flags().AddFlagSet(fsSlot)
 }
 
-func cmdQueryCandidates(cmd *cobra.Command, args []string) error {
+func cmdQueryValidators(cmd *cobra.Command, args []string) error {
 
 	var pks []crypto.PubKey
 
 	prove := !viper.GetBool(commands.FlagTrustNode)
-	h := viper.GetInt64("height")
-	fmt.Printf("height", h)
 	key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
-	fmt.Printf("cmdQueryCandidats, key: %v", key)
-	//height, err := query.GetParsed(key, &pks, query.GetHeight(), prove)
-	h = query.GetHeight()
-	height, err := query.GetParsed(key, &pks, h, prove)
+	height, err := query.GetParsed(key, &pks, query.GetHeight(), prove)
 	if err != nil {
 		return err
 	}
@@ -116,7 +90,7 @@ func cmdQueryCandidates(cmd *cobra.Command, args []string) error {
 	return query.OutputProof(pks, height)
 }
 
-func cmdQueryCandidate(cmd *cobra.Command, args []string) error {
+func cmdQueryValidator(cmd *cobra.Command, args []string) error {
 
 	var candidate stake.Candidate
 
@@ -135,33 +109,49 @@ func cmdQueryCandidate(cmd *cobra.Command, args []string) error {
 	return query.OutputProof(candidate, height)
 }
 
-func cmdQueryDelegatorBond(cmd *cobra.Command, args []string) error {
+func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
 
-	var bond stake.DelegatorBond
-
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
-	delegatorAddr := viper.GetString(FlagDelegatorAddress)
-	delegator, err := commands.ParseActor(delegatorAddr)
-	if err != nil {
-		return err
-	}
-	delegator = coin.ChainAddr(delegator)
-
-	prove := !viper.GetBool(commands.FlagTrustNode)
-	key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondKey(delegator, pk))
-	height, err := query.GetParsed(key, &bond, query.GetHeight(), prove)
-	if err != nil {
-		return err
-	}
-
-	return query.OutputProof(bond, height)
+	//var bond stake.DelegatorBond
+	//
+	//pk, err := GetPubKey(viper.GetString(FlagPubKey))
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//delegatorAddr := viper.GetString(FlagDelegatorAddress)
+	//delegator, err := commands.ParseActor(delegatorAddr)
+	//if err != nil {
+	//	return err
+	//}
+	//delegator = coin.ChainAddr(delegator)
+	//
+	//prove := !viper.GetBool(commands.FlagTrustNode)
+	//key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondKey(delegator, pk))
+	//height, err := query.GetParsed(key, &bond, query.GetHeight(), prove)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//return query.OutputProof(bond, height)
+	return nil
 }
 
-func cmdQueryDelegatorCandidates(cmd *cobra.Command, args []string) error {
+func cmdQuerySlot(cmd *cobra.Command, args []string) error {
+	var slot stake.Slot
+	slotId := viper.GetString(FlagSlotId)
+	if slotId == "" {
+		return fmt.Errorf("please enter slot ID using --slot-id")
+	}
+
+	err := GetParsed("slot", []byte(slotId), &slot)
+	if err != nil {
+		return err
+	}
+
+	return Foutput(slot)
+}
+
+func cmdQuerySlots(cmd *cobra.Command, args []string) error {
 
 	delegatorAddr := viper.GetString(FlagDelegatorAddress)
 	delegator, err := commands.ParseActor(delegatorAddr)
@@ -181,32 +171,33 @@ func cmdQueryDelegatorCandidates(cmd *cobra.Command, args []string) error {
 	return query.OutputProof(candidates, height)
 }
 
-func cmdQueryValidator(cmd *cobra.Command, args []string) error {
-	// todo
+func Get(path string, params []byte) (data.Bytes, error) {
+	node := commands.GetNode()
+	resp, err := node.ABCIQuery(path, params)
+	if resp == nil {
+		return nil, err
+	}
+	return data.Bytes(resp.Response.Value), err
+}
 
+func GetParsed(path string, params []byte, data interface{}) error {
+	bs, err := Get(path, params)
+	if err != nil {
+		return err
+	}
+
+	err = wire.ReadBinaryBytes(bs, data)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func cmdQueryValidators(cmd *cobra.Command, args []string) error {
-	// todo
-
-	return nil
-}
-
-func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
-	// todo
-
-	return nil
-}
-
-func cmdQuerySlot(cmd *cobra.Command, args []string) error {
-	// todo
-
-	return nil
-}
-
-func cmdQuerySlots(cmd *cobra.Command, args []string) error {
-	// todo
-
+func Foutput(v interface{}) error {
+	blob, err := data.ToJSON(v)
+	if err != nil {
+		return err
+	}
+	fmt.Sprintf( "%s\n", blob)
 	return nil
 }

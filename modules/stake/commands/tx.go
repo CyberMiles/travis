@@ -11,8 +11,6 @@ import (
 	crypto "github.com/tendermint/go-crypto"
 
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
-	"github.com/CyberMiles/travis/modules/coin"
-
 	"github.com/CyberMiles/travis/modules/stake"
 )
 
@@ -43,7 +41,6 @@ The stake/slot/cancel tx is to cancel all remianing amounts from an unaccepted s
 const (
 	FlagPubKey = "pubkey"
 	FlagAmount = "amount"
-	FlagMoniker  = "moniker"
 	FlagName = "name"
 	FlagProposedRoi = "proposed-roi"
 	FlagSlotId = "slot-id"
@@ -87,9 +84,6 @@ func init() {
 	fsAmount := flag.NewFlagSet("", flag.ContinueOnError)
 	fsAmount.Int64(FlagAmount, 0, "Amount of CMT")
 
-	fsCandidate := flag.NewFlagSet("", flag.ContinueOnError)
-	fsCandidate.String(FlagMoniker, "", "validator-candidate name")
-
 	fsProposeSlot := flag.NewFlagSet("", flag.ContinueOnError)
 	fsProposeSlot.Float64(FlagProposedRoi, 0, "corresponding ROI")
 
@@ -98,7 +92,6 @@ func init() {
 
 	// add the flags
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
-	CmdDeclareCandidacy.Flags().AddFlagSet(fsCandidate)
 
 	CmdProposeSlot.Flags().AddFlagSet(fsPk)
 	CmdProposeSlot.Flags().AddFlagSet(fsAmount)
@@ -118,10 +111,6 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 	pk, err := GetPubKey(viper.GetString(FlagPubKey))
 	if err != nil {
 		return err
-	}
-
-	if viper.GetString(FlagMoniker) == "" {
-		return fmt.Errorf("please enter a moniker for the validator-candidate using --moniker")
 	}
 
 	tx := stake.NewTxDeclareCandidacy(pk)
