@@ -41,7 +41,6 @@ The stake/slot/cancel tx is to cancel all remianing amounts from an unaccepted s
 const (
 	FlagPubKey = "pubkey"
 	FlagAmount = "amount"
-	FlagName = "name"
 	FlagProposedRoi = "proposed-roi"
 	FlagSlotId = "slot-id"
 )
@@ -190,7 +189,16 @@ func cmdWidthdrawSlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdCancelSlot(cmd *cobra.Command, args []string) error {
-	// todo
+	pk, err := GetPubKey(viper.GetString(FlagPubKey))
+	if err != nil {
+		return err
+	}
 
-	return nil
+	slotId := viper.GetString(FlagSlotId)
+	if slotId == "" {
+		return fmt.Errorf("please enter slot ID using --slot-id")
+	}
+
+	tx := stake.NewTxCancelSlot(pk, slotId)
+	return txcmd.DoTx(tx)
 }
