@@ -15,6 +15,7 @@ import (
 	"github.com/tendermint/go-wire/data"
 	"github.com/tendermint/go-wire"
 	"fmt"
+	"os"
 )
 
 /**
@@ -143,7 +144,7 @@ func cmdQuerySlot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("please enter slot ID using --slot-id")
 	}
 
-	err := GetParsed("slot", []byte(slotId), &slot)
+	err := GetParsed("/slot", []byte(slotId), &slot)
 	if err != nil {
 		return err
 	}
@@ -198,6 +199,6 @@ func Foutput(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Sprintf( "%s\n", blob)
+	_, err = fmt.Fprintf(os.Stdout, "%s\n", blob)
 	return nil
 }

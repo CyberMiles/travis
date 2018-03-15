@@ -31,7 +31,7 @@ type delegatedProofOfStake interface {
 	declareCandidacy(TxDeclareCandidacy) error
 	proposeSlot(TxProposeSlot) ([]byte, error)
 	acceptSlot(TxAcceptSlot) error
-	widthdrawSlot(TxWidthdrawSlot) error
+	withdrawSlot(TxWithdrawSlot) error
 	cancelSlot(TxCancelSlot) error
 }
 
@@ -145,9 +145,9 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 	case TxAcceptSlot:
 		return sdk.NewCheck(params.GasAcceptSlot, ""),
 			checker.acceptSlot(txInner)
-	case TxWidthdrawSlot:
-		return sdk.NewCheck(params.GasWidthdrawSlot, ""),
-			checker.widthdrawSlot(txInner)
+	case TxWithdrawSlot:
+		return sdk.NewCheck(params.GasWithdrawSlot, ""),
+			checker.withdrawSlot(txInner)
 	case TxCancelSlot:
 		return sdk.NewCheck(params.GasCancelSlot, ""),
 			checker.cancelSlot(txInner)
@@ -195,17 +195,17 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 	case TxAcceptSlot:
 		res.GasUsed = params.GasAcceptSlot
 		return res, deliverer.acceptSlot(_tx)
-	case TxWidthdrawSlot:
+	case TxWithdrawSlot:
 		//context with hold account permissions
 		params := loadParams(store)
-		res.GasUsed = params.GasWidthdrawSlot
+		res.GasUsed = params.GasWithdrawSlot
 		ctx2 := ctx.WithPermissions(params.HoldAccount)
 		deliverer.transfer = coinSender{
 			store:    store,
 			dispatch: dispatch,
 			ctx:      ctx2,
 		}.transferFn
-		return res, deliverer.widthdrawSlot(_tx)
+		return res, deliverer.withdrawSlot(_tx)
 	case TxCancelSlot:
 		res.GasUsed = params.GasDelegate
 		return res, deliverer.cancelSlot(_tx)
@@ -271,7 +271,7 @@ var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
 func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	// check to see if the pubkey or sender has been registered before
-	candidate := loadCandidate(c.store, tx.PubKey)
+	candidate := GetCandidate(tx.PubKey.KeyString())
 	if candidate != nil {
 		return fmt.Errorf("cannot bond to pubkey which is already declared candidacy"+
 			" PubKey %v already registered with %v candidate address",
@@ -281,14 +281,14 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	return nil
 }
 
-func (c check) widthdrawSlot(tx TxWidthdrawSlot) error {
-	slot := getSlot(tx.SlotId)
+func (c check) withdrawSlot(tx TxWithdrawSlot) error {
+	slot := GetSlot(tx.SlotId)
 	if slot == nil {
 		return ErrBadSlot()
 	}
 
 	// check if have enough shares to unbond
-	slotDelegate := getSlotDelegates(c.sender.Address.String(), tx.SlotId)
+	slotDelegate := GetSlotDelegates(c.sender.Address.String(), tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()
 	}
@@ -300,7 +300,7 @@ func (c check) widthdrawSlot(tx TxWidthdrawSlot) error {
 }
 
 func (c check) proposeSlot(tx TxProposeSlot) ([]byte, error) {
-	candidate := loadCandidate(c.store, tx.PubKey)
+	candidate := GetCandidate(tx.PubKey.KeyString())
 	if candidate == nil {
 		return nil, fmt.Errorf("cannot propose slot for non-existant PubKey %v", tx.PubKey)
 	}
@@ -309,7 +309,7 @@ func (c check) proposeSlot(tx TxProposeSlot) ([]byte, error) {
 }
 
 func (c check) acceptSlot(tx TxAcceptSlot) error {
-	slot := getSlot(tx.SlotId)
+	slot := GetSlot(tx.SlotId)
 	if slot == nil {
 		return ErrBadSlot()
 	}
@@ -324,7 +324,7 @@ func (c check) acceptSlot(tx TxAcceptSlot) error {
 }
 
 func (c check) cancelSlot(tx TxCancelSlot) error {
-	slot := getSlot(tx.SlotId)
+	slot := GetSlot(tx.SlotId)
 	if slot == nil {
 		return ErrBadSlot()
 	}
@@ -354,22 +354,22 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 
 	// create and save the empty candidate
-	bond := loadCandidate(d.store, tx.PubKey)
+	bond := GetCandidate(tx.PubKey.KeyString())
 	if bond != nil {
 		return ErrCandidateExistsAddr()
 	}
 	candidate := NewCandidate(tx.PubKey, d.sender)
-	saveCandidate(d.store, candidate)
+	saveCandidate(candidate)
 
 	return nil
 }
 
 func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	// Get the slot
-	slot := getSlot(tx.SlotId)
+	slot := GetSlot(tx.SlotId)
 
 	// Get the pubKey bond account
-	candidate := loadCandidate(d.store, slot.ValidatorPubKey)
+	candidate := GetCandidate(slot.ValidatorPubKey.KeyString())
 	if candidate == nil {
 		return ErrBondNotNominated()
 	}
@@ -389,7 +389,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 
 	// Get or create the delegate slot
 	delegatorAddress := d.sender.Address.String()
-	slotDelegate := getSlotDelegates(delegatorAddress, tx.SlotId)
+	slotDelegate := GetSlotDelegates(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		slotDelegate = NewSlotDelegate(delegatorAddress, tx.SlotId, 0)
 	}
@@ -401,7 +401,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 
 	delegateHistory := DelegateHistory{delegatorAddress, tx.SlotId, tx.Amount, "accept"}
 
-	saveCandidate(d.store, candidate)
+	saveCandidate(candidate)
 	saveSlot(slot)
 	saveSlotDelegate(*slotDelegate)
 	saveDelegateHistory(delegateHistory)
@@ -409,9 +409,9 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	return nil
 }
 
-func (d deliver) widthdrawSlot(tx TxWidthdrawSlot) error {
+func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	// Get the slot
-	slot := getSlot(tx.SlotId)
+	slot := GetSlot(tx.SlotId)
 
 	if slot == nil {
 		return ErrBadSlot()
@@ -419,13 +419,13 @@ func (d deliver) widthdrawSlot(tx TxWidthdrawSlot) error {
 
 	// get the slot delegate
 	delegatorAddress := d.sender.Address.String()
-	slotDelegate := getSlotDelegates(delegatorAddress, tx.SlotId)
+	slotDelegate := GetSlotDelegates(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()
 	}
 
 	// get pubKey candidate
-	candidate := loadCandidate(d.store, slot.ValidatorPubKey)
+	candidate := GetCandidate(slot.ValidatorPubKey.KeyString())
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
@@ -446,9 +446,9 @@ func (d deliver) widthdrawSlot(tx TxWidthdrawSlot) error {
 	// deduct shares from the candidate
 	candidate.Shares -= uint64(tx.Amount)
 	if candidate.Shares == 0 {
-		removeCandidate(d.store, slot.ValidatorPubKey)
+		removeCandidate(slot.ValidatorPubKey.KeyString())
 	} else {
-		saveCandidate(d.store, candidate)
+		saveCandidate(candidate)
 	}
 
 	// transfer coins back to account
@@ -467,7 +467,7 @@ func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
 }
 
 func (d deliver) cancelSlot(tx TxCancelSlot) error {
-	slot := getSlot(tx.SlotId)
+	slot := GetSlot(tx.SlotId)
 	if slot == nil {
 		return ErrBadSlot()
 	}

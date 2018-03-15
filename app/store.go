@@ -20,6 +20,8 @@ import (
 	"database/sql"
 	"os"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/tendermint/go-wire"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -185,6 +187,11 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 			value := tree.Get(key)
 			resQuery.Value = value
 		}
+	case "/slot":
+		slotId := string(reqQuery.Data)
+		slot := stake.GetSlot(slotId)
+		b := wire.BinaryBytes(*slot)
+		resQuery.Value = b
 
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest
@@ -300,9 +307,10 @@ func initStakeDb() error {
 		defer db.Close()
 
 		sqlStmt := `
-		create table slots(id text not null primary key, validator_pub_key integer, total_amount integer, available_amount integer, proposed_roi integer, created_at text, updated_at text);
+		create table slots(id text not null primary key, validator_pub_key text, total_amount integer, available_amount integer, proposed_roi integer, created_at text, updated_at text);
 		create table delegate_history(delegator_address text, slot_id text, amount integer, op_code text, created_at text);
 		create table slot_delegates (delegator_address text, slot_id text, amount integer, created_at text, updated_at text);
+		create table candidates(pub_key text primary key, owner_address text, shares integer, voting_power integer, created_at text);
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {

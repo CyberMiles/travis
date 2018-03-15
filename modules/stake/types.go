@@ -20,15 +20,15 @@ type Params struct {
 	AllowedBondDenom string `json:"allowed_bond_denom"` // bondable coin denomination
 
 	// gas costs for txs
-	GasDeclareCandidacy int64 `json:"gas_declare_candidacy"`
-	GasEditCandidacy    int64 `json:"gas_edit_candidacy"`
-	GasDelegate         int64 `json:"gas_delegate"`
-	GasUnbond           int64 `json:"gas_unbond"`
-	GasProposeSlot		int64 `json:"gas_propose_slot"`
-	GasAcceptSlot		int64 `json:"gas_accept_slot"`
-	GasWidthdrawSlot	int64 `json:"gas_widthdraw_slot"`
-	GasCancelSlot		int64 `json:"gas_cancel_slot"`
-	Validators			string `json:"validators"`
+	GasDeclareCandidacy int64  `json:"gas_declare_candidacy"`
+	GasEditCandidacy    int64  `json:"gas_edit_candidacy"`
+	GasDelegate         int64  `json:"gas_delegate"`
+	GasUnbond           int64  `json:"gas_unbond"`
+	GasProposeSlot      int64  `json:"gas_propose_slot"`
+	GasAcceptSlot       int64  `json:"gas_accept_slot"`
+	GasWithdrawSlot     int64  `json:"gas_withdraw_slot"`
+	GasCancelSlot       int64  `json:"gas_cancel_slot"`
+	Validators          string `json:"validators"`
 }
 
 var DefaultHoldAccount = sdk.NewActor(stakingModuleName, []byte("00000000000000000000000000000000"))
@@ -42,9 +42,9 @@ func defaultParams() Params {
 		GasEditCandidacy:    0,
 		GasDelegate:         0,
 		GasUnbond:           0,
-		GasProposeSlot:		 0,
-		GasWidthdrawSlot:	 0,
-		GasCancelSlot:		 0,
+		GasProposeSlot:      0,
+		GasWithdrawSlot:     0,
+		GasCancelSlot:       0,
 	}
 }
 
@@ -140,7 +140,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 		if i >= int(loadParams(store).MaxVals) {
 			c.VotingPower = 0
 		}
-		saveCandidate(store, c)
+		saveCandidate(c)
 	}
 	return cs
 }
@@ -242,7 +242,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validato
 func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err error) {
 
 	// get the validators before update
-	candidates := loadCandidates(store)
+	candidates := GetCandidates()
 
 	v1 := candidates.Validators()
 	v2 := candidates.updateVotingPower(store).Validators()

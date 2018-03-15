@@ -15,14 +15,14 @@ import (
 // so it gets routed properly
 const (
 	ByteTxDeclareCandidacy = 0x55
-	ByteTxProposeSlot 	   = 0x56
+	ByteTxProposeSlot      = 0x56
 	ByteTxAcceptSlot       = 0x57
-	ByteTxWidthdrawSlot    = 0x58
+	ByteTxWithdrawSlot     = 0x58
 	ByteTxCancelSlot       = 0x59
 	TypeTxDeclareCandidacy = stakingModuleName + "/declareCandidacy"
 	TypeTxProposeSlot      = stakingModuleName + "/proposeSlot"
 	TypeTxAcceptSlot       = stakingModuleName + "/acceptSlot"
-	TypeTxWidthdrawSlot    = stakingModuleName + "/widthdrawSlot"
+	TypeTxWithdrawSlot     = stakingModuleName + "/withdrawSlot"
 	TypeTxCancelSlot       = stakingModuleName + "/cancelSlot"
 )
 
@@ -30,7 +30,7 @@ func init() {
 	sdk.TxMapper.RegisterImplementation(TxDeclareCandidacy{}, TypeTxDeclareCandidacy, ByteTxDeclareCandidacy)
 	sdk.TxMapper.RegisterImplementation(TxProposeSlot{}, TypeTxProposeSlot, ByteTxProposeSlot)
 	sdk.TxMapper.RegisterImplementation(TxAcceptSlot{}, TypeTxAcceptSlot, ByteTxAcceptSlot)
-	sdk.TxMapper.RegisterImplementation(TxWidthdrawSlot{}, TypeTxWidthdrawSlot, ByteTxWidthdrawSlot)
+	sdk.TxMapper.RegisterImplementation(TxWithdrawSlot{}, TypeTxWithdrawSlot, ByteTxWithdrawSlot)
 	sdk.TxMapper.RegisterImplementation(TxCancelSlot{}, TypeTxCancelSlot, ByteTxCancelSlot)
 }
 
@@ -120,19 +120,19 @@ func NewTxAcceptSlot(amount int64, slotId string) sdk.Tx {
 // Wrap - Wrap a Tx as a Travis Tx
 func (tx TxAcceptSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
-type TxWidthdrawSlot struct {
+type TxWithdrawSlot struct {
 	SlotUpdate
 }
 
-func NewTxWidthdrawSlot(amount int64, slotId string) sdk.Tx {
-	return TxWidthdrawSlot{ SlotUpdate{
+func NewTxWithdrawSlot(amount int64, slotId string) sdk.Tx {
+	return TxWithdrawSlot{ SlotUpdate{
 		Amount: amount,
 		SlotId: slotId,
 	}}.Wrap()
 }
 
 // Wrap - Wrap a Tx as a Travis Tx
-func (tx TxWidthdrawSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
+func (tx TxWithdrawSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxProposeSlot - struct for propose slot
 type TxCancelSlot struct {

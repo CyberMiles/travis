@@ -62,10 +62,10 @@ var (
 		Short: "Accept and stake CMTs for an Slot ID",
 		RunE:  cmdAcceptSlot,
 	}
-	CmdWidthdrawSlot = &cobra.Command{
-		Use:   "widthdraw-slot",
-		Short: "Widthdraw staked CMTs from a validator",
-		RunE:  cmdWidthdrawSlot,
+	CmdWithdrawSlot = &cobra.Command{
+		Use:   "withdraw-slot",
+		Short: "Withdraw staked CMTs from a validator",
+		RunE:  cmdWithdrawSlot,
 	}
 	CmdCancelSlot = &cobra.Command{
 		Use:   "cancel-slot",
@@ -99,8 +99,8 @@ func init() {
 	CmdAcceptSlot.Flags().AddFlagSet(fsSlot)
 	CmdAcceptSlot.Flags().AddFlagSet(fsAmount)
 
-	CmdWidthdrawSlot.Flags().AddFlagSet(fsSlot)
-	CmdWidthdrawSlot.Flags().AddFlagSet(fsAmount)
+	CmdWithdrawSlot.Flags().AddFlagSet(fsSlot)
+	CmdWithdrawSlot.Flags().AddFlagSet(fsAmount)
 
 	CmdCancelSlot.Flags().AddFlagSet(fsPk)
 	CmdCancelSlot.Flags().AddFlagSet(fsSlot)
@@ -173,7 +173,7 @@ func cmdAcceptSlot(cmd *cobra.Command, args []string) error {
 	return txcmd.DoTx(tx)
 }
 
-func cmdWidthdrawSlot(cmd *cobra.Command, args []string) error {
+func cmdWithdrawSlot(cmd *cobra.Command, args []string) error {
 	amount := viper.GetInt64(FlagAmount)
 	if amount <= 0 {
 		return fmt.Errorf("Amount must be positive interger")

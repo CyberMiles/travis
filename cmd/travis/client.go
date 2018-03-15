@@ -48,7 +48,7 @@ func prepareClientCommands() {
 		stakecmd.CmdDeclareCandidacy,
 		stakecmd.CmdProposeSlot,
 		stakecmd.CmdAcceptSlot,
-		stakecmd.CmdWidthdrawSlot,
+		stakecmd.CmdWithdrawSlot,
 		stakecmd.CmdCancelSlot,
 	)
 

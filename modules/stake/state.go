@@ -45,79 +45,6 @@ func GetDelegatorBondsKey(delegator sdk.Actor) []byte {
 
 //---------------------------------------------------------------------
 
-// Get the active list of all the candidate pubKeys and owners
-func loadCandidatesPubKeys(store state.SimpleDB) (pubKeys []crypto.PubKey) {
-	bytes := store.Get(CandidatesPubKeysKey)
-	if bytes == nil {
-		return
-	}
-	err := wire.ReadBinaryBytes(bytes, &pubKeys)
-	if err != nil {
-		panic(err)
-	}
-	return
-}
-func saveCandidatesPubKeys(store state.SimpleDB, pubKeys []crypto.PubKey) {
-	b := wire.BinaryBytes(pubKeys)
-	store.Set(CandidatesPubKeysKey, b)
-}
-
-// loadCandidates - get the active list of all candidates TODO replace with  multistore
-func loadCandidates(store state.SimpleDB) (candidates Candidates) {
-	pks := loadCandidatesPubKeys(store)
-	for _, pk := range pks {
-		candidates = append(candidates, loadCandidate(store, pk))
-	}
-	return
-}
-
-//---------------------------------------------------------------------
-
-// loadCandidate - loads the candidate object for the provided pubkey
-func loadCandidate(store state.SimpleDB, pubKey crypto.PubKey) *Candidate {
-	if pubKey.Empty() {
-		return nil
-	}
-	b := store.Get(GetCandidateKey(pubKey))
-	if b == nil {
-		return nil
-	}
-	candidate := new(Candidate)
-	err := wire.ReadBinaryBytes(b, candidate)
-	if err != nil {
-		panic(err) // This error should never occure big problem if does
-	}
-	return candidate
-}
-
-func saveCandidate(store state.SimpleDB, candidate *Candidate) {
-
-	if !store.Has(GetCandidateKey(candidate.PubKey)) {
-		// TODO to be replaced with iteration in the multistore?
-		pks := loadCandidatesPubKeys(store)
-		saveCandidatesPubKeys(store, append(pks, candidate.PubKey))
-	}
-
-	b := wire.BinaryBytes(*candidate)
-	store.Set(GetCandidateKey(candidate.PubKey), b)
-}
-
-func removeCandidate(store state.SimpleDB, pubKey crypto.PubKey) {
-	store.Remove(GetCandidateKey(pubKey))
-
-	// TODO to be replaced with iteration in the multistore?
-	pks := loadCandidatesPubKeys(store)
-	for i := range pks {
-		if pks[i].Equals(pubKey) {
-			saveCandidatesPubKeys(store,
-				append(pks[:i], pks[i+1:]...))
-			break
-		}
-	}
-}
-
-//---------------------------------------------------------------------
-
 // load/save the global staking params
 func loadParams(store state.SimpleDB) (params Params) {
 	b := store.Get(ParamKey)
@@ -138,17 +65,17 @@ func saveParams(store state.SimpleDB, params Params) {
 }
 
 func CalValidatorsStakeRatio(store state.SimpleDB, pubKeys [][]byte) (ratioMap map[string]float64) {
-	candidates := loadCandidates(store)
-	var totalVotingPower float64
-	for _, candidate := range candidates {
-		totalVotingPower += float64(candidate.VotingPower)
-	}
-
-	for _, pubKey := range pubKeys {
-		pk, _ := GetPubKey(string(pubKey))
-		candidate := loadCandidate(store, pk)
-		ratioMap[candidate.Owner.String()] = float64(candidate.VotingPower) / totalVotingPower
-	}
+	//candidates := loadCandidates(store)
+	//var totalVotingPower float64
+	//for _, candidate := range candidates {
+	//	totalVotingPower += float64(candidate.VotingPower)
+	//}
+	//
+	//for _, pubKey := range pubKeys {
+	//	pk, _ := GetPubKey(string(pubKey))
+	//	candidate := loadCandidate(store, pk)
+	//	ratioMap[candidate.Owner.String()] = float64(candidate.VotingPower) / totalVotingPower
+	//}
 
 	return ratioMap
 }

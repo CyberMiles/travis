@@ -5,33 +5,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
 	"path"
+	"strings"
+	"github.com/cosmos/cosmos-sdk"
 )
-
-// loadCandidate - loads the candidate object for the provided pubkey
-//func getCandidate(pubKey crypto.PubKey) *Candidate {
-//	if pubKey.Empty() {
-//		return nil
-//	}
-//
-//	db, err := sql.Open("sqlite3", "./stake.db")
-//	if err != nil {
-//		panic(err)
-//	}
-//	defer db.Close()
-//
-//	stmt, err := db.Prepare("select * from validators where pub_key = ?")
-//	if err != nil {
-//		panic(err)
-//	}
-//	defer stmt.Close()
-//	var name string
-//	err = stmt.QueryRow("3").Scan(&name)
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	return nil
-//}
 
 func getDb() *sql.DB {
 	rootDir := viper.GetString(cli.HomeFlag)
@@ -42,6 +18,109 @@ func getDb() *sql.DB {
 		panic(err)
 	}
 	return db
+}
+
+func GetCandidate(pubKey string) *Candidate {
+	db := getDb()
+	defer db.Close()
+	stmt, err := db.Prepare("select owner_address, shares, voting_power from candidates where pub_key = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var ownerAddress string
+	var shares, votingPower uint64
+	err = stmt.QueryRow(strings.ToUpper(pubKey)).Scan(&ownerAddress, &shares, &votingPower)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, _ := GetPubKey(pubKey)
+	return &Candidate{
+		PubKey:      pk,
+		Owner:       sdk.NewActor(stakingModuleName, []byte(ownerAddress)),
+		Shares:      shares,
+		VotingPower: votingPower,
+	}
+}
+
+func GetCandidates() (candidates Candidates) {
+	db := getDb()
+	defer db.Close()
+
+	rows, err := db.Query("select pub_key, owner_address, shares, voting_power from candidates")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var pubKey, ownerAddress string
+		var shares, votingPower uint64
+		err = rows.Scan(&pubKey, &ownerAddress, &shares, &votingPower)
+		if err != nil {
+			panic(err)
+		}
+
+		pk, _ := GetPubKey(pubKey)
+		candidate := &Candidate{
+			PubKey:      pk,
+			Owner:       sdk.NewActor(stakingModuleName, []byte(ownerAddress)),
+			Shares:      shares,
+			VotingPower: votingPower,
+		}
+		candidates = append(candidates, candidate)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return
+}
+
+func saveCandidate(candidate *Candidate) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	stmt, err := tx.Prepare("insert into candidates(pub_key, owner_address, shares, voting_power) values(?, ?, ?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.Owner.Address, candidate.Shares, candidate.VotingPower)
+	if err != nil {
+		panic(err)
+	}
+	tx.Commit()
+}
+
+func removeCandidate(pubKey string) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	stmt, err := tx.Prepare("delete from candidates where pub_key = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(pubKey)
+	if err != nil {
+		panic(err)
+	}
+	tx.Commit()
 }
 
 func saveSlot(slot *Slot) {
@@ -58,17 +137,17 @@ func saveSlot(slot *Slot) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slot.Id, slot.ValidatorPubKey.KeyString(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi)
+	_, err = stmt.Exec(strings.ToUpper(slot.Id), slot.ValidatorPubKey.KeyString(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi)
 	if err != nil {
 		panic(err)
 	}
 	tx.Commit()
 }
 
-func getSlot(slotId string) *Slot {
+func GetSlot(slotId string) *Slot {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select * from slots where id = ?")
+	stmt, err := db.Prepare("select validator_pub_key, total_amount, available_amount, proposed_roi from slots where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +155,7 @@ func getSlot(slotId string) *Slot {
 
 	var validatorPubKey string
 	var totalAmount, availableAmount, proposedRoi int64
-	err = stmt.QueryRow(slotId).Scan(&validatorPubKey, &totalAmount, &availableAmount, &proposedRoi)
+	err = stmt.QueryRow(strings.ToUpper(slotId)).Scan(&validatorPubKey, &totalAmount, &availableAmount, &proposedRoi)
 	if err != nil {
 		panic(err)
 	}
@@ -85,7 +164,7 @@ func getSlot(slotId string) *Slot {
 	return NewSlot(slotId, pk, totalAmount, availableAmount, proposedRoi)
 }
 
-func getSlotDelegates(delegatorAddress string, slotId string) *SlotDelegate {
+func GetSlotDelegates(delegatorAddress string, slotId string) *SlotDelegate {
 	db := getDb()
 	defer db.Close()
 	stmt, err := db.Prepare("select Amount from slot_delegates where slot_id = ? and delegator_address = ?")
