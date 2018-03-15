@@ -146,11 +146,9 @@ func fetchKeystore(am *accounts.Manager) *keystore.KeyStore {
 }
 
 type DeclareCandidacyArgs struct {
-	Sequence    uint32            `json:"sequence"`
-	From        string            `json:"from"`
-	PubKey      string            `json:"pubKey"`
-	Bond        coin.Coin         `json:"bond"`
-	Description stake.Description `json:"description"`
+	Sequence uint32 `json:"sequence"`
+	From     string `json:"from"`
+	PubKey   string `json:"pubKey"`
 }
 
 func (s *StakeRPCService) DeclareCandidacy(di DeclareCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -166,10 +164,11 @@ func (s *StakeRPCService) prepareDeclareCandidacyTx(di DeclareCandidacyArgs) (sd
 	if err != nil {
 		return sdk.Tx{}, err
 	}
-	tx := stake.NewTxDeclareCandidacy(di.Bond, pubKey, di.Description)
+	tx := stake.NewTxDeclareCandidacy(pubKey)
 	return s.wrapAndSignTx(tx, di.From, di.Sequence)
 }
 
+/*
 type DelegateArgs struct {
 	Sequence uint32    `json:"sequence"`
 	From     string    `json:"from"`
@@ -217,7 +216,7 @@ func (s *StakeRPCService) prepareUnbondTx(di UnbondArgs) (sdk.Tx, error) {
 	tx := stake.NewTxUnbond(di.Amount, pubKey)
 	return s.wrapAndSignTx(tx, di.From, di.Sequence)
 }
-
+*/
 func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32) (sdk.Tx, error) {
 	// wrap
 	// only add the actual signer to the nonce
@@ -342,6 +341,7 @@ func (s *StakeRPCService) QueryCandidate(pubkey string, height uint64) (*StakeQu
 	return &StakeQueryResult{h, candidate}, nil
 }
 
+/*
 func (s *StakeRPCService) QueryDelegatorBond(address string, pubkey string, height uint64) (*StakeQueryResult, error) {
 	delegator, err := commands.ParseActor(address)
 	if err != nil {
@@ -360,7 +360,7 @@ func (s *StakeRPCService) QueryDelegatorBond(address string, pubkey string, heig
 	}
 	return &StakeQueryResult{h, bond}, nil
 }
-
+*/
 func (s *StakeRPCService) QueryDelegatorCandidates(address string, height uint64) (*StakeQueryResult, error) {
 	delegator, err := commands.ParseActor(address)
 	if err != nil {
