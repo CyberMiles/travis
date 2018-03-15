@@ -41,13 +41,12 @@ func getDb() *sql.DB {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
-
 	return db
 }
 
 func saveSlot(slot *Slot) {
 	db := getDb()
+	defer db.Close()
 	tx, err := db.Begin()
 	if err != nil {
 		panic(err)
@@ -68,6 +67,7 @@ func saveSlot(slot *Slot) {
 
 func getSlot(slotId string) *Slot {
 	db := getDb()
+	defer db.Close()
 	stmt, err := db.Prepare("select * from slots where id = ?")
 	if err != nil {
 		panic(err)
@@ -87,6 +87,7 @@ func getSlot(slotId string) *Slot {
 
 func getSlotDelegates(delegatorAddress string, slotId string) *SlotDelegate {
 	db := getDb()
+	defer db.Close()
 	stmt, err := db.Prepare("select Amount from slot_delegates where slot_id = ? and delegator_address = ?")
 	if err != nil {
 		panic(err)
@@ -110,7 +111,7 @@ func getSlotDelegates(delegatorAddress string, slotId string) *SlotDelegate {
 
 func saveSlotDelegate(slotDelegate SlotDelegate) {
 	db := getDb()
-
+	defer db.Close()
 	tx, err := db.Begin()
 	if err != nil {
 		panic(err)
@@ -131,7 +132,7 @@ func saveSlotDelegate(slotDelegate SlotDelegate) {
 
 func removeSlotDelegate(slotDelegate SlotDelegate) {
 	db := getDb()
-
+	defer db.Close()
 	tx, err := db.Begin()
 	if err != nil {
 		panic(err)
@@ -152,7 +153,7 @@ func removeSlotDelegate(slotDelegate SlotDelegate) {
 
 func saveDelegateHistory(delegateHistory DelegateHistory) {
 	db := getDb()
-
+	defer db.Close()
 	tx, err := db.Begin()
 	if err != nil {
 		panic(err)

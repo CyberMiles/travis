@@ -59,7 +59,7 @@ var (
 		Short: "Query all open and close slots for staking",
 	}
 
-	FlagDelegatorAddress = "delegator-address"
+	FlagDelegatorAddress = "address"
 )
 
 func init() {
