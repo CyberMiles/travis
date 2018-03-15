@@ -308,9 +308,12 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 			Log: core.ErrGasLimitReached.Error()}
 	}
 
-	// Check if nonce is not strictly increasing
+	// Check nonce
+	// pass if strictly increasing
+	// reject if > last + 1
+	// pass if < last + 1 but will be rejected in DeliverTx
 	nonce := currentState.GetNonce(from)
-	if nonce != tx.Nonce() {
+	if nonce < tx.Nonce() {
 		return abciTypes.ResponseCheckTx{
 			Code: errors.CodeTypeBadNonce,
 			Log:  fmt.Sprintf(
@@ -345,8 +348,10 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 			Log: core.ErrIntrinsicGas.Error()}
 	}
 
-	// Iterate over all transactions to check if the gas price is too low for the
-	// non-first transaction from the same account
+	// Iterate over all transactions
+	// reject if
+	// 1. the nonce is strictly increasing and
+	// 2. the gas price is too low for the non-first transaction with the same from/to address
 	// Todo performance maybe
 	for _, itx := range app.checkedTransactions {
 		iFrom, err := ethTypes.Sender(signer, itx)
@@ -356,8 +361,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 				Log: core.ErrInvalidSender.Error()}
 		}
 
-		if bytes.Equal(from.Bytes(), iFrom.Bytes()) {
-			if tx.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
+		if bytes.Equal(from.Bytes(), iFrom.Bytes()) && bytes.Equal(tx.To().Bytes(), itx.To().Bytes()) {
+			if nonce == tx.Nonce() && tx.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
 				return abciTypes.ResponseCheckTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
 			}
 		}
