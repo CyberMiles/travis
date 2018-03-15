@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"bytes"
 
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -13,9 +14,14 @@ import (
 	"github.com/CyberMiles/travis/modules/vm/ethereum"
 	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
 
-	"github.com/cosmos/cosmos-sdk/errors"
+	"github.com/CyberMiles/travis/errors"
+	"github.com/CyberMiles/travis/utils"
 	abciTypes "github.com/tendermint/abci/types"
 	tmLog "github.com/tendermint/tmlibs/log"
+)
+
+const (
+	MinGasPrice = 2e9 // 2 Gwei
 )
 
 // EthermintApplication implements an ABCI application
@@ -38,6 +44,8 @@ type EthermintApplication struct {
 	strategy *emtTypes.Strategy
 
 	logger tmLog.Logger
+
+	checkedTransactions []*ethTypes.Transaction
 }
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
@@ -56,6 +64,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		getCurrentState: backend.Ethereum().BlockChain().State,
 		checkTxState:    state.Copy(),
 		strategy:        strategy,
+		checkedTransactions: make([]*ethTypes.Transaction, 0, 10),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
@@ -217,6 +226,9 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 	}
 
 	app.checkTxState = state.Copy()
+
+	app.checkedTransactions = make([]*ethTypes.Transaction, 0, 10)
+
 	return abciTypes.ResponseCommit{
 		Data: blockHash[:],
 	}
@@ -307,8 +319,16 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	}
 
 	// Transactor should have enough funds to cover the costs
-	// cost == V + GP * GL
 	currentBalance := currentState.GetBalance(from)
+
+	// Iterate StateChangeQueue to pre sub the balance
+	for _, scObj := range utils.StateChangeQueue {
+		if bytes.Equal(from[:], scObj.From) {
+			currentBalance.Sub(currentBalance, scObj.Amount)
+		}
+	}
+
+	// cost == V + GP * GL
 	if currentBalance.Cmp(tx.Cost()) < 0 {
 		return abciTypes.ResponseCheckTx{
 			// TODO: Add errors.CodeTypeInsufficientFunds ?
@@ -324,6 +344,26 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 			Code: errors.CodeTypeBaseInvalidInput,
 			Log: core.ErrIntrinsicGas.Error()}
 	}
+
+	// Iterate over all transactions to check if the gas price is too low for the
+	// non-first transaction from the same account
+	// Todo performance maybe
+	for _, itx := range app.checkedTransactions {
+		iFrom, err := ethTypes.Sender(signer, itx)
+		if err != nil {
+			return abciTypes.ResponseCheckTx {
+				Code: errors.CodeTypeInternalErr,
+				Log: core.ErrInvalidSender.Error()}
+		}
+
+		if bytes.Equal(from.Bytes(), iFrom.Bytes()) {
+			if tx.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
+				return abciTypes.ResponseCheckTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
+			}
+		}
+	}
+
+	app.checkedTransactions = append(app.checkedTransactions, tx)
 
 	// Update ether balances
 	// amount + gasprice * gaslimit
