@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 	"github.com/cosmos/cosmos-sdk"
+	"encoding/hex"
 )
 
 func getDb() *sql.DB {
@@ -32,14 +33,18 @@ func GetCandidate(pubKey string) *Candidate {
 	var ownerAddress string
 	var shares, votingPower uint64
 	err = stmt.QueryRow(strings.ToUpper(pubKey)).Scan(&ownerAddress, &shares, &votingPower)
-	if err != nil {
+	switch {
+	case err == sql.ErrNoRows:
+		return nil
+	case err != nil:
 		panic(err)
 	}
 
 	pk, _ := GetPubKey(pubKey)
+	bs, _ := hex.DecodeString(ownerAddress)
 	return &Candidate{
 		PubKey:      pk,
-		Owner:       sdk.NewActor(stakingModuleName, []byte(ownerAddress)),
+		Owner:       sdk.NewActor(stakingModuleName, bs),
 		Shares:      shares,
 		VotingPower: votingPower,
 	}
@@ -64,9 +69,10 @@ func GetCandidates() (candidates Candidates) {
 		}
 
 		pk, _ := GetPubKey(pubKey)
+		bs, _ := hex.DecodeString(ownerAddress)
 		candidate := &Candidate{
 			PubKey:      pk,
-			Owner:       sdk.NewActor(stakingModuleName, []byte(ownerAddress)),
+			Owner:       sdk.NewActor(stakingModuleName, bs),
 			Shares:      shares,
 			VotingPower: votingPower,
 		}
@@ -95,7 +101,7 @@ func saveCandidate(candidate *Candidate) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.Owner.Address, candidate.Shares, candidate.VotingPower)
+	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.Owner.Address.String(), candidate.Shares, candidate.VotingPower)
 	if err != nil {
 		panic(err)
 	}
@@ -156,7 +162,10 @@ func GetSlot(slotId string) *Slot {
 	var validatorPubKey string
 	var totalAmount, availableAmount, proposedRoi int64
 	err = stmt.QueryRow(strings.ToUpper(slotId)).Scan(&validatorPubKey, &totalAmount, &availableAmount, &proposedRoi)
-	if err != nil {
+	switch {
+	case err == sql.ErrNoRows:
+		return nil
+	case err != nil:
 		panic(err)
 	}
 
@@ -164,7 +173,31 @@ func GetSlot(slotId string) *Slot {
 	return NewSlot(slotId, pk, totalAmount, availableAmount, proposedRoi)
 }
 
-func GetSlotDelegates(delegatorAddress string, slotId string) *SlotDelegate {
+func GetSlots() (slots []*Slot) {
+	db := getDb()
+	defer db.Close()
+	rows, err := db.Query("select id, validator_pub_key, total_amount, available_amount, proposed_roi from slots")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var slotId, validatorPubKey string
+		var totalAmount, availableAmount, proposedRoi int64
+		err = rows.Scan(&slotId, &validatorPubKey, &totalAmount, &availableAmount, &proposedRoi)
+		if err != nil {
+			panic(err)
+		}
+
+		pk, _ := GetPubKey(validatorPubKey)
+		slots = append(slots, NewSlot(slotId, pk, totalAmount, availableAmount, proposedRoi))
+	}
+
+	return
+}
+
+func GetSlotDelegate(delegatorAddress string, slotId string) *SlotDelegate {
 	db := getDb()
 	defer db.Close()
 	stmt, err := db.Prepare("select Amount from slot_delegates where slot_id = ? and delegator_address = ?")
@@ -175,13 +208,10 @@ func GetSlotDelegates(delegatorAddress string, slotId string) *SlotDelegate {
 
 	var amount int64
 	err = stmt.QueryRow(slotId, delegatorAddress).Scan(&amount)
-	if err != nil {
-		//switch err.(type) {
-		//case sql.ErrNoRows:
-		//	return &SlotDelegate{}
-		//default:
-		//	panic(err)
-		//}
+	switch {
+	case err == sql.ErrNoRows:
+		return nil
+	case err != nil:
 		panic(err)
 	}
 

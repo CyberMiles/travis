@@ -4,13 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-
-	crypto "github.com/tendermint/go-crypto"
-
 	"github.com/cosmos/cosmos-sdk/client/commands"
-	"github.com/cosmos/cosmos-sdk/client/commands/query"
-	"github.com/CyberMiles/travis/modules/coin"
-	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/tendermint/go-wire/data"
 	"github.com/tendermint/go-wire"
@@ -79,16 +73,14 @@ func init() {
 
 func cmdQueryValidators(cmd *cobra.Command, args []string) error {
 
-	var pks []crypto.PubKey
+	var candidates stake.Candidates
 
-	prove := !viper.GetBool(commands.FlagTrustNode)
-	key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
-	height, err := query.GetParsed(key, &pks, query.GetHeight(), prove)
+	err := GetParsed("/validators", []byte{0}, &candidates)
 	if err != nil {
 		return err
 	}
 
-	return query.OutputProof(pks, height)
+	return Foutput(candidates)
 }
 
 func cmdQueryValidator(cmd *cobra.Command, args []string) error {
@@ -100,40 +92,28 @@ func cmdQueryValidator(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	prove := !viper.GetBool(commands.FlagTrustNode)
-	key := stack.PrefixedKey(stake.Name(), stake.GetCandidateKey(pk))
-	height, err := query.GetParsed(key, &candidate, query.GetHeight(), prove)
+	err = GetParsed("/validator", []byte(pk.KeyString()), &candidate)
 	if err != nil {
 		return err
 	}
 
-	return query.OutputProof(candidate, height)
+	return Foutput(candidate)
 }
 
 func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
-
-	//var bond stake.DelegatorBond
+	//var candidate stake.Candidate
 	//
 	//pk, err := GetPubKey(viper.GetString(FlagPubKey))
 	//if err != nil {
 	//	return err
 	//}
 	//
-	//delegatorAddr := viper.GetString(FlagDelegatorAddress)
-	//delegator, err := commands.ParseActor(delegatorAddr)
-	//if err != nil {
-	//	return err
-	//}
-	//delegator = coin.ChainAddr(delegator)
-	//
-	//prove := !viper.GetBool(commands.FlagTrustNode)
-	//key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondKey(delegator, pk))
-	//height, err := query.GetParsed(key, &bond, query.GetHeight(), prove)
+	//err = GetParsed("/validator", pk.Address(), &candidate)
 	//if err != nil {
 	//	return err
 	//}
 	//
-	//return query.OutputProof(bond, height)
+	//return Foutput(candidate)
 	return nil
 }
 
@@ -153,23 +133,14 @@ func cmdQuerySlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdQuerySlots(cmd *cobra.Command, args []string) error {
+	var slots []*stake.Slot
 
-	delegatorAddr := viper.GetString(FlagDelegatorAddress)
-	delegator, err := commands.ParseActor(delegatorAddr)
-	if err != nil {
-		return err
-	}
-	delegator = coin.ChainAddr(delegator)
-
-	prove := !viper.GetBool(commands.FlagTrustNode)
-	key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondsKey(delegator))
-	var candidates []crypto.PubKey
-	height, err := query.GetParsed(key, &candidates, query.GetHeight(), prove)
+	err := GetParsed("/slots", []byte{0}, &slots)
 	if err != nil {
 		return err
 	}
 
-	return query.OutputProof(candidates, height)
+	return Foutput(slots)
 }
 
 func Get(path string, params []byte) (data.Bytes, error) {

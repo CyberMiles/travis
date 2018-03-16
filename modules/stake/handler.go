@@ -288,7 +288,7 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// check if have enough shares to unbond
-	slotDelegate := GetSlotDelegates(c.sender.Address.String(), tx.SlotId)
+	slotDelegate := GetSlotDelegate(c.sender.Address.String(), tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()
 	}
@@ -389,7 +389,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 
 	// Get or create the delegate slot
 	delegatorAddress := d.sender.Address.String()
-	slotDelegate := GetSlotDelegates(delegatorAddress, tx.SlotId)
+	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		slotDelegate = NewSlotDelegate(delegatorAddress, tx.SlotId, 0)
 	}
@@ -419,7 +419,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 
 	// get the slot delegate
 	delegatorAddress := d.sender.Address.String()
-	slotDelegate := GetSlotDelegates(delegatorAddress, tx.SlotId)
+	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()
 	}

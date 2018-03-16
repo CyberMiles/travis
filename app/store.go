@@ -192,11 +192,25 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		slot := stake.GetSlot(slotId)
 		b := wire.BinaryBytes(*slot)
 		resQuery.Value = b
-
+	case "/slots":
+		slots := stake.GetSlots()
+		b := wire.BinaryBytes(slots)
+		resQuery.Value = b
+	case "/validators":
+		candidates := stake.GetCandidates()
+		b := wire.BinaryBytes(candidates)
+		resQuery.Value = b
+	case "/validator":
+		pubKey := string(reqQuery.Data)
+		candidate := stake.GetCandidate(pubKey)
+		b := wire.BinaryBytes(*candidate)
+		resQuery.Value = b
+	case "/delegator/":
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest
 		resQuery.Log = cmn.Fmt("Unexpected Query path: %v", reqQuery.Path)
 	}
+
 	return
 }
 
