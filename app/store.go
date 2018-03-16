@@ -22,6 +22,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/tendermint/go-wire"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -205,7 +206,12 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		candidate := stake.GetCandidate(pubKey)
 		b := wire.BinaryBytes(*candidate)
 		resQuery.Value = b
-	case "/delegator/":
+	case "/delegator":
+		addrStr := string(reqQuery.Data)
+		addr := common.HexToAddress(addrStr)
+		slotDelegates := stake.GetSlotDelegatesByAddress(addr.String())
+		b := wire.BinaryBytes(slotDelegates)
+		resQuery.Value = b
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest
 		resQuery.Log = cmn.Fmt("Unexpected Query path: %v", reqQuery.Path)

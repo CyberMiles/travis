@@ -84,7 +84,6 @@ func cmdQueryValidators(cmd *cobra.Command, args []string) error {
 }
 
 func cmdQueryValidator(cmd *cobra.Command, args []string) error {
-
 	var candidate stake.Candidate
 
 	pk, err := GetPubKey(viper.GetString(FlagPubKey))
@@ -101,20 +100,15 @@ func cmdQueryValidator(cmd *cobra.Command, args []string) error {
 }
 
 func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
-	//var candidate stake.Candidate
-	//
-	//pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//err = GetParsed("/validator", pk.Address(), &candidate)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//return Foutput(candidate)
-	return nil
+	var slotDelegates []*stake.SlotDelegate
+	address := viper.GetString(FlagDelegatorAddress)
+
+	err := GetParsed("/delegator", []byte(address), &slotDelegates)
+	if err != nil {
+		return err
+	}
+
+	return Foutput(slotDelegates)
 }
 
 func cmdQuerySlot(cmd *cobra.Command, args []string) error {

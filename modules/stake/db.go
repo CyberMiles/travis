@@ -260,6 +260,40 @@ func GetSlotDelegate(delegatorAddress string, slotId string) *SlotDelegate {
 	return NewSlotDelegate(delegatorAddress, slotId, amount)
 }
 
+func GetSlotDelegatesByAddress(delegatorAddress string) (slotDelegates []*SlotDelegate) {
+	db := getDb()
+	defer db.Close()
+
+	delegatorAddress = strings.TrimPrefix(delegatorAddress, "0x")
+	rows, err := db.Query("select slot_id, amount from slot_delegates where delegator_address = ?", delegatorAddress)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var slotId string
+		var amount int64
+		err = rows.Scan(&slotId, &amount)
+
+		switch {
+		case err == sql.ErrNoRows:
+			return
+		case err != nil:
+			panic(err)
+		}
+
+		slotDelegates = append(slotDelegates, NewSlotDelegate(delegatorAddress, slotId, amount))
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return
+}
+
 func saveSlotDelegate(slotDelegate SlotDelegate) {
 	db := getDb()
 	defer db.Close()
