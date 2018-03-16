@@ -151,72 +151,112 @@ type DeclareCandidacyArgs struct {
 	PubKey   string `json:"pubKey"`
 }
 
-func (s *StakeRPCService) DeclareCandidacy(di DeclareCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareDeclareCandidacyTx(di)
+func (s *StakeRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareDeclareCandidacyTx(args)
 	if err != nil {
 		return nil, err
 	}
 	return s.broadcastTx(tx)
 }
 
-func (s *StakeRPCService) prepareDeclareCandidacyTx(di DeclareCandidacyArgs) (sdk.Tx, error) {
-	pubKey, err := stake.GetPubKey(di.PubKey)
+func (s *StakeRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (sdk.Tx, error) {
+	pubKey, err := stake.GetPubKey(args.PubKey)
 	if err != nil {
 		return sdk.Tx{}, err
 	}
 	tx := stake.NewTxDeclareCandidacy(pubKey)
-	return s.wrapAndSignTx(tx, di.From, di.Sequence)
+	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
-/*
-type DelegateArgs struct {
-	Sequence uint32    `json:"sequence"`
-	From     string    `json:"from"`
-	PubKey   string    `json:"pubKey"`
-	Bond     coin.Coin `json:"bond"`
+type ProposeSlotArgs struct {
+	Sequence    uint32 `json:"sequence"`
+	From        string `json:"from"`
+	PubKey      string `json:"pubKey"`
+	Amount      int64  `json:"amount"`
+	ProposedRoi int64  `json:"proposedRoi"`
 }
 
-func (s *StakeRPCService) Delegate(di DelegateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareDelegateTx(di)
+func (s *StakeRPCService) ProposeSlot(args ProposeSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareProposeSlotTx(args)
 	if err != nil {
 		return nil, err
 	}
 	return s.broadcastTx(tx)
 }
 
-func (s *StakeRPCService) prepareDelegateTx(di DelegateArgs) (sdk.Tx, error) {
-	pubKey, err := stake.GetPubKey(di.PubKey)
+func (s *StakeRPCService) prepareProposeSlotTx(args ProposeSlotArgs) (sdk.Tx, error) {
+	pubKey, err := stake.GetPubKey(args.PubKey)
 	if err != nil {
 		return sdk.Tx{}, err
 	}
-	tx := stake.NewTxDelegate(di.Bond, pubKey)
-	return s.wrapAndSignTx(tx, di.From, di.Sequence)
+	tx := stake.NewTxProposeSlot(pubKey, args.Amount, args.ProposedRoi)
+	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
-type UnbondArgs struct {
+type AcceptSlotArgs struct {
+	Sequence uint32 `json:"sequence"`
+	From     string `json:"from"`
+	Amount   int64  `json:"amount"`
+	SlotId   string `json:"slotId"`
+}
+
+func (s *StakeRPCService) AcceptSlot(args AcceptSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareAcceptSlotTx(args)
+	if err != nil {
+		return nil, err
+	}
+	return s.broadcastTx(tx)
+}
+
+func (s *StakeRPCService) prepareAcceptSlotTx(args AcceptSlotArgs) (sdk.Tx, error) {
+	tx := stake.NewTxAcceptSlot(args.Amount, args.SlotId)
+	return s.wrapAndSignTx(tx, args.From, args.Sequence)
+}
+
+type WithdrawSlotArgs struct {
+	Sequence uint32 `json:"sequence"`
+	From     string `json:"from"`
+	Amount   int64  `json:"amount"`
+	SlotId   string `json:"slotId"`
+}
+
+func (s *StakeRPCService) WithdrawSlot(args WithdrawSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareWithdrawSlotTx(args)
+	if err != nil {
+		return nil, err
+	}
+	return s.broadcastTx(tx)
+}
+
+func (s *StakeRPCService) prepareWithdrawSlotTx(args WithdrawSlotArgs) (sdk.Tx, error) {
+	tx := stake.NewTxWithdrawSlot(args.Amount, args.SlotId)
+	return s.wrapAndSignTx(tx, args.From, args.Sequence)
+}
+
+type CancelSlotArgs struct {
 	Sequence uint32 `json:"sequence"`
 	From     string `json:"from"`
 	PubKey   string `json:"pubKey"`
-	Amount   uint64 `json:"amount"`
+	SlotId   string `json:"slotId"`
 }
 
-func (s *StakeRPCService) Unbond(di UnbondArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareUnbondTx(di)
+func (s *StakeRPCService) CancelSlot(args CancelSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareCancelSlotTx(args)
 	if err != nil {
 		return nil, err
 	}
 	return s.broadcastTx(tx)
 }
 
-func (s *StakeRPCService) prepareUnbondTx(di UnbondArgs) (sdk.Tx, error) {
-	pubKey, err := stake.GetPubKey(di.PubKey)
+func (s *StakeRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, error) {
+	pubKey, err := stake.GetPubKey(args.PubKey)
 	if err != nil {
 		return sdk.Tx{}, err
 	}
-	tx := stake.NewTxUnbond(di.Amount, pubKey)
-	return s.wrapAndSignTx(tx, di.From, di.Sequence)
+	tx := stake.NewTxCancelSlot(pubKey, args.SlotId)
+	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
-*/
+
 func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32) (sdk.Tx, error) {
 	// wrap
 	// only add the actual signer to the nonce
@@ -317,72 +357,72 @@ type StakeQueryResult struct {
 	Data   interface{} `json:"data"`
 }
 
-func (s *StakeRPCService) QueryCandidates(height uint64) (*StakeQueryResult, error) {
-	key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
+func (s *StakeRPCService) QueryValidators(height uint64) (*StakeQueryResult, error) {
 	var pks []crypto.PubKey
-	h, err := s.getParsed(key, &pks, cast.ToInt64(height))
+	key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
+	h, err := s.getParsed("/key", key, &pks, height)
 	if err != nil {
 		return nil, err
 	}
+
 	return &StakeQueryResult{h, pks}, nil
 }
 
-func (s *StakeRPCService) QueryCandidate(pubkey string, height uint64) (*StakeQueryResult, error) {
+func (s *StakeRPCService) QueryValidator(pubkey string, height uint64) (*StakeQueryResult, error) {
 	pk, err := stake.GetPubKey(pubkey)
 	if err != nil {
 		return nil, err
 	}
-	key := stack.PrefixedKey(stake.Name(), stake.GetCandidateKey(pk))
+
 	var candidate stake.Candidate
-	h, err := s.getParsed(key, &candidate, cast.ToInt64(height))
+	key := stack.PrefixedKey(stake.Name(), stake.GetCandidateKey(pk))
+	h, err := s.getParsed("/key", key, &candidate, height)
 	if err != nil {
 		return nil, err
 	}
+
 	return &StakeQueryResult{h, candidate}, nil
 }
 
-/*
-func (s *StakeRPCService) QueryDelegatorBond(address string, pubkey string, height uint64) (*StakeQueryResult, error) {
+func (s *StakeRPCService) QuerySlots(address string, height uint64) (*StakeQueryResult, error) {
 	delegator, err := commands.ParseActor(address)
 	if err != nil {
 		return nil, err
 	}
 	delegator = coin.ChainAddr(delegator)
-	pk, err := stake.GetPubKey(pubkey)
-	if err != nil {
-		return nil, err
-	}
-	key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondKey(delegator, pk))
-	var bond stake.DelegatorBond
-	h, err := s.getParsed(key, &bond, cast.ToInt64(height))
-	if err != nil {
-		return nil, err
-	}
-	return &StakeQueryResult{h, bond}, nil
-}
-*/
-func (s *StakeRPCService) QueryDelegatorCandidates(address string, height uint64) (*StakeQueryResult, error) {
-	delegator, err := commands.ParseActor(address)
-	if err != nil {
-		return nil, err
-	}
-	delegator = coin.ChainAddr(delegator)
-	key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondsKey(delegator))
+
 	var candidates []crypto.PubKey
-	h, err := s.getParsed(key, &candidates, cast.ToInt64(height))
+	key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondsKey(delegator))
+	h, err := s.getParsed("/key", key, &candidates, height)
 	if err != nil {
 		return nil, err
 	}
+
 	return &StakeQueryResult{h, candidates}, nil
 }
 
-func (s *StakeRPCService) QueryValidators(height uint64) (*ctypes.ResultValidators, error) {
-	h := cast.ToInt64(height)
-	return s.backend.localClient.Validators(&h)
+func (s *StakeRPCService) QuerySlot(slotId string, height uint64) (*StakeQueryResult, error) {
+	var slot stake.Slot
+	h, err := s.getParsed("/slot", []byte(slotId), &slot, height)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StakeQueryResult{h, slot}, nil
 }
 
-func (s *StakeRPCService) getParsed(key []byte, data interface{}, height int64) (int64, error) {
-	bs, h, err := s.get(key, height)
+func (s *StakeRPCService) QueryDelegator(address string, height uint64) (*StakeQueryResult, error) {
+	var slotDelegates []*stake.SlotDelegate
+	h, err := s.getParsed("/delegator", []byte(address), &slotDelegates, height)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StakeQueryResult{h, slotDelegates}, nil
+}
+
+func (s *StakeRPCService) getParsed(path string, key []byte, data interface{}, height uint64) (int64, error) {
+	bs, h, err := s.get(path, key, cast.ToInt64(height))
 	if err != nil {
 		return 0, err
 	}
@@ -396,9 +436,9 @@ func (s *StakeRPCService) getParsed(key []byte, data interface{}, height int64) 
 	return h, nil
 }
 
-func (s *StakeRPCService) get(key []byte, height int64) (data.Bytes, int64, error) {
+func (s *StakeRPCService) get(path string, key []byte, height int64) (data.Bytes, int64, error) {
 	node := s.backend.localClient
-	resp, err := node.ABCIQueryWithOptions("/key", key,
+	resp, err := node.ABCIQueryWithOptions(path, key,
 		rpcclient.ABCIQueryOptions{Trusted: true, Height: int64(height)})
 	if resp == nil {
 		return nil, height, err
