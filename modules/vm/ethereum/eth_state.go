@@ -3,7 +3,6 @@ package ethereum
 import (
 	"math/big"
 	"sync"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
@@ -194,12 +193,6 @@ func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
 	tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
-
-	msg, err := tx.AsMessage(ethTypes.MakeSigner(chainConfig, ws.header.Number))
-	from := msg.From()
-	if n := ws.state.GetNonce(from); n != msg.Nonce() {
-		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeBadNonce, Log: fmt.Sprintf("invalid nonce: have %d, expected %d", msg.Nonce(), n)}
-	}
 
 	// Iterate to sub balance of staker from state
 	// ws.stakedTxIndex used for record coped index of every staker
