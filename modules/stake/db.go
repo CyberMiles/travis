@@ -108,6 +108,27 @@ func saveCandidate(candidate *Candidate) {
 	tx.Commit()
 }
 
+func updateCandidate(candidate *Candidate) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	stmt, err := tx.Prepare("update  candidates set shares = ?, voting_power = ? where pub_key = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(candidate.Shares, candidate.VotingPower, candidate.PubKey.KeyString())
+	if err != nil {
+		panic(err)
+	}
+	tx.Commit()
+}
+
 func removeCandidate(pubKey string) {
 	db := getDb()
 	defer db.Close()
@@ -144,6 +165,27 @@ func saveSlot(slot *Slot) {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(strings.ToUpper(slot.Id), slot.ValidatorPubKey.KeyString(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi)
+	if err != nil {
+		panic(err)
+	}
+	tx.Commit()
+}
+
+func updateSlot(slot *Slot) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	stmt, err := tx.Prepare("update slots set available_amount = ? where id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(slot.AvailableAmount, strings.ToUpper(slot.Id))
 	if err != nil {
 		panic(err)
 	}

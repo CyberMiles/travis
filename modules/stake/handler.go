@@ -401,8 +401,8 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 
 	delegateHistory := DelegateHistory{delegatorAddress, tx.SlotId, tx.Amount, "accept"}
 
-	saveCandidate(candidate)
-	saveSlot(slot)
+	updateCandidate(candidate)
+	updateSlot(slot)
 	saveSlotDelegate(*slotDelegate)
 	saveDelegateHistory(delegateHistory)
 
@@ -448,8 +448,11 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	if candidate.Shares == 0 {
 		removeCandidate(slot.ValidatorPubKey.KeyString())
 	} else {
-		saveCandidate(candidate)
+		updateCandidate(candidate)
 	}
+
+	slot.AvailableAmount -= tx.Amount
+	updateSlot(slot)
 
 	// transfer coins back to account
 	returnCoins := tx.Amount
@@ -477,7 +480,7 @@ func (d deliver) cancelSlot(tx TxCancelSlot) error {
 	}
 
 	slot.AvailableAmount = 0
-	saveSlot(slot)
+	updateSlot(slot)
 
 	return nil
 }
