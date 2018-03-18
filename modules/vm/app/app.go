@@ -135,16 +135,7 @@ func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) (
 
 // CheckTx checks a transaction is valid but does not mutate the state
 // #stable - 0.4.0
-func (app *EthermintApplication) CheckTx(txBytes []byte) abciTypes.ResponseCheckTx {
-	tx, err := decodeTx(txBytes)
-	if err != nil {
-		// nolint: errcheck
-		app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx)
-		return abciTypes.ResponseCheckTx{
-			Code: errors.CodeTypeInternalErr,
-			Log:  err.Error(),
-		}
-	}
+func (app *EthermintApplication) CheckTx(tx *ethTypes.Transaction) abciTypes.ResponseCheckTx {
 	app.logger.Debug("CheckTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
 	return app.validateTx(tx)
@@ -152,23 +143,14 @@ func (app *EthermintApplication) CheckTx(txBytes []byte) abciTypes.ResponseCheck
 
 // DeliverTx executes a transaction against the latest state
 // #stable - 0.4.0
-func (app *EthermintApplication) DeliverTx(txBytes []byte) abciTypes.ResponseDeliverTx {
-	tx, err := decodeTx(txBytes)
-	if err != nil {
-		// nolint: errcheck
-		app.logger.Debug("DelivexTx: Received invalid transaction", "tx", tx, "err", err)
-		return abciTypes.ResponseDeliverTx{
-			Code: errors.CodeTypeInternalErr,
-			Log:  err.Error(),
-		}
-	}
+func (app *EthermintApplication) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
 	res := app.backend.DeliverTx(tx)
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
-			"err", err)
+			"err", res.Error())
 		return res
 	}
 	app.CollectTx(tx)

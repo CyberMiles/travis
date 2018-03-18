@@ -79,8 +79,15 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 			return errors.DeliverResult(err)
 		}
 
+		// force cache from of tx
+		// TODO: Get chainID from config
+		if _, err := types.Sender(types.NewEIP155Signer(big.NewInt(111)), tx); err != nil {
+			app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
+
+			return errors.DeliverResult(err)
+		}
 		//resp, err := app.client.DeliverTxSync(txBytes)
-		resp := app.EthApp.DeliverTx(txBytes)
+		resp := app.EthApp.DeliverTx(tx)
 		fmt.Printf("ethermint DeliverTx response: %v\n", resp)
 
 		return resp
@@ -125,7 +132,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		}
 
 		//resp, err := app.client.CheckTxSync(txBytes)
-		resp := app.EthApp.CheckTx(txBytes)
+		resp := app.EthApp.CheckTx(tx)
 		fmt.Printf("ethermint CheckTx response: %v\n", resp)
 
 		if resp.IsErr() {
