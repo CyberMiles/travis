@@ -20,3 +20,6 @@ vendor
 *.db
 
 *.swp
+
+# build output folder
+build/*

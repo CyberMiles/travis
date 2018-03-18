@@ -1,19 +1,31 @@
 language: go
 
+branches:
+  only:
+  - deploy
+
 services:
   - docker
 
-#before_install:
-# for fork repo
-#  - SrcDir=`dirname $PWD`
-#  - DestDir=`dirname $SrcDir`/CyberMiles
-#  - mv $SrcDir $DestDir
-#  - cd ../../CyberMiles/travis
+addons:
+  hosts:
+    - node-1
+    - node-2
+    - node-3
+    - node-4
+    - node-5
+    - node-6
+
+install:
+  - . $HOME/.nvm/nvm.sh
+  - nvm install stable
+  - nvm use stable
+  - npm install
 
 script:
-#  - make all
-#after_success:
+  - make docker
+  - ./scripts/smoke_test.sh
+
+after_success:
   - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - cd Docker
-  - make build
   - make push
