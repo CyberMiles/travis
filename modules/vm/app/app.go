@@ -92,7 +92,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 	blockchain := app.backend.Ethereum().BlockChain()
 	currentBlock := blockchain.CurrentBlock()
 	height := currentBlock.Number()
-	hash := currentBlock.TxHash()
+	hash := currentBlock.Hash()
 
 	app.logger.Debug("Info", "height", height) // nolint: errcheck
 
