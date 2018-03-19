@@ -168,6 +168,29 @@ func (s *StakeRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
+type WithdrawCandidacyArgs struct {
+	Sequence uint32 `json:"sequence"`
+	From     string `json:"from"`
+	PubKey   string `json:"pubKey"`
+}
+
+func (s *StakeRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareWithdrawCandidacyTx(args)
+	if err != nil {
+		return nil, err
+	}
+	return s.broadcastTx(tx)
+}
+
+func (s *StakeRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs) (sdk.Tx, error) {
+	pubKey, err := stake.GetPubKey(args.PubKey)
+	if err != nil {
+		return sdk.Tx{}, err
+	}
+	tx := stake.NewTxWithdraw(pubKey)
+	return s.wrapAndSignTx(tx, args.From, args.Sequence)
+}
+
 type ProposeSlotArgs struct {
 	Sequence    uint32 `json:"sequence"`
 	From        string `json:"from"`
@@ -360,7 +383,7 @@ type StakeQueryResult struct {
 func (s *StakeRPCService) QueryValidators(height uint64) (*StakeQueryResult, error) {
 	var pks []crypto.PubKey
 	key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
-	h, err := s.getParsed("/key", key, &pks, height)
+	h, err := s.getParsed("/validators", key, &pks, height)
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +399,7 @@ func (s *StakeRPCService) QueryValidator(pubkey string, height uint64) (*StakeQu
 
 	var candidate stake.Candidate
 	key := stack.PrefixedKey(stake.Name(), stake.GetCandidateKey(pk))
-	h, err := s.getParsed("/key", key, &candidate, height)
+	h, err := s.getParsed("/validator", key, &candidate, height)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +416,7 @@ func (s *StakeRPCService) QuerySlots(address string, height uint64) (*StakeQuery
 
 	var candidates []crypto.PubKey
 	key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondsKey(delegator))
-	h, err := s.getParsed("/key", key, &candidates, height)
+	h, err := s.getParsed("/slots", key, &candidates, height)
 	if err != nil {
 		return nil, err
 	}
