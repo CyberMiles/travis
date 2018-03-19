@@ -7,15 +7,15 @@ import (
 
 	"github.com/tendermint/tmlibs/cli"
 
-	basecmd "github.com/cosmos/cosmos-sdk/server/commands"
+	basecmd "github.com/CyberMiles/travis/server/commands"
 	"github.com/cosmos/cosmos-sdk/client/commands/auto"
 )
 
-// GaiaCmd is the entry point for this binary
+// TravisCmd is the entry point for this binary
 var (
-	GaiaCmd = &cobra.Command{
+	TravisCmd = &cobra.Command{
 		Use:   "travis",
-		Short: "The Travis Network delegation-game test",
+		Short: "The Travis Network",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
@@ -30,16 +30,18 @@ func main() {
 
 	// add commands
 	prepareNodeCommands()
+	prepareClientCommands()
 
-	GaiaCmd.AddCommand(
+	TravisCmd.AddCommand(
 		nodeCmd,
+		clientCmd,
 
 		lineBreak,
 		auto.AutoCompleteCmd,
 	)
 
 	// prepare and add flags
-	basecmd.SetUpRoot(GaiaCmd)
-	executor := cli.PrepareMainCmd(GaiaCmd, "GA", os.ExpandEnv("$HOME/.cybermiles-travis"))
+	basecmd.SetUpRoot(TravisCmd)
+	executor := cli.PrepareMainCmd(TravisCmd, "TR", os.ExpandEnv("$HOME/.travis-cli"))
 	executor.Execute()
 }

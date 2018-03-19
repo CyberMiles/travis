@@ -15,3 +15,11 @@
 
 vendor
 .idea
+
+# sqlite db file
+*.db
+
+*.swp
+
+# build output folder
+build/*

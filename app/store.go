@@ -7,14 +7,22 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/errors"
+	sm "github.com/cosmos/cosmos-sdk/state"
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/iavl"
 	cmn "github.com/tendermint/tmlibs/common"
 	dbm "github.com/tendermint/tmlibs/db"
 	"github.com/tendermint/tmlibs/log"
 
-	"github.com/cosmos/cosmos-sdk/errors"
-	sm "github.com/cosmos/cosmos-sdk/state"
+	"github.com/spf13/viper"
+	"github.com/tendermint/tmlibs/cli"
+	"database/sql"
+	"os"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/tendermint/go-wire"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -51,6 +59,12 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 	if err != nil {
 		return nil, err
 	}
+
+	err = initStakeDb()
+	if err != nil {
+		return nil, err
+	}
+
 	app := &StoreApp{
 		Name:   appName,
 		state:  state,
@@ -174,11 +188,35 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 			value := tree.Get(key)
 			resQuery.Value = value
 		}
-
+	case "/slot":
+		slotId := string(reqQuery.Data)
+		slot := stake.GetSlot(slotId)
+		b := wire.BinaryBytes(*slot)
+		resQuery.Value = b
+	case "/slots":
+		slots := stake.GetSlots()
+		b := wire.BinaryBytes(slots)
+		resQuery.Value = b
+	case "/validators":
+		candidates := stake.GetCandidates()
+		b := wire.BinaryBytes(candidates)
+		resQuery.Value = b
+	case "/validator":
+		pubKey := string(reqQuery.Data)
+		candidate := stake.GetCandidate(pubKey)
+		b := wire.BinaryBytes(*candidate)
+		resQuery.Value = b
+	case "/delegator":
+		addrStr := string(reqQuery.Data)
+		addr := common.HexToAddress(addrStr)
+		slotDelegates := stake.GetSlotDelegatesByAddress(addr.String())
+		b := wire.BinaryBytes(slotDelegates)
+		resQuery.Value = b
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest
 		resQuery.Log = cmn.Fmt("Unexpected Query path: %v", reqQuery.Path)
 	}
+
 	return
 }
 
@@ -187,6 +225,9 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 	app.height++
 
 	hash, err := app.state.Commit(app.height)
+
+	fmt.Printf("Commit, height: %v, hash: %v\n", app.height, hash)
+
 	if err != nil {
 		// die if we can't commit, not to recover
 		panic(err)
@@ -272,4 +313,30 @@ func loadState(dbName string, cacheSize int, historySize int64) (*sm.State, erro
 	}
 
 	return sm.NewState(tree, historySize), nil
+}
+
+func initStakeDb() error {
+	rootDir := viper.GetString(cli.HomeFlag)
+	stakeDbPath := path.Join(rootDir, "data", "stake.db")
+	_, err := os.OpenFile(stakeDbPath, os.O_RDONLY, 0444)
+	if err != nil {
+		db, err := sql.Open("sqlite3", stakeDbPath)
+		if err != nil {
+			return errors.ErrInternal("Initializing stake db: " + err.Error())
+		}
+		defer db.Close()
+
+		sqlStmt := `
+		create table slots(id text not null primary key, validator_pub_key text, total_amount integer, available_amount integer, proposed_roi integer, created_at text, updated_at text);
+		create table delegate_history(delegator_address text, slot_id text, amount integer, op_code text, created_at text);
+		create table slot_delegates (delegator_address text, slot_id text, amount integer, created_at text, updated_at text);
+		create table candidates(pub_key text primary key, owner_address text, shares integer, voting_power integer, created_at text);
+		`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			return errors.ErrInternal("Initializing stake tables: " + err.Error())
+		}
+	}
+
+	return nil
 }

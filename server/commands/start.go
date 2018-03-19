@@ -9,57 +9,34 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/abci/server"
-	abci "github.com/tendermint/abci/types"
+	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/tendermint/tmlibs/cli"
 	cmn "github.com/tendermint/tmlibs/common"
-	sdk "github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/genesis"
-	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/CyberMiles/travis/app"
-)
 
-// StartCmd - command to start running the abci app (and tendermint)!
-var StartCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start this full node",
-	RunE:  startCmd,
-}
+	"github.com/CyberMiles/travis/app"
+	"github.com/CyberMiles/travis/genesis"
+	ethapp "github.com/CyberMiles/travis/modules/vm/app"
+)
 
 // GetTickStartCmd - initialize a command as the start command with tick
 func GetTickStartCmd(tick sdk.Ticker) *cobra.Command {
 	startCmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start this full node",
-		RunE:  startCmd,
+		RunE:  tickStartCmd(tick),
 	}
-	startCmd.RunE = tickStartCmd(tick)
-	addStartFlag(startCmd)
 	return startCmd
 }
 
 // nolint TODO: move to config file
 const EyesCacheSize = 10000
 
-//nolint
-const (
-	FlagAddress           = "address"
-)
-
 var (
 	// Handler - use a global to store the handler, so we can set it in main.
 	// TODO: figure out a cleaner way to register plugins
 	Handler sdk.Handler
 )
-
-func init() {
-	addStartFlag(StartCmd)
-}
-
-func addStartFlag(startCmd *cobra.Command) {
-	flags := startCmd.Flags()
-	flags.String(FlagAddress, "tcp://0.0.0.0:46658", "Listen address")
-}
 
 //returns the start command which uses the tick
 func tickStartCmd(clock sdk.Ticker) func(cmd *cobra.Command, args []string) error {
@@ -77,33 +54,29 @@ func tickStartCmd(clock sdk.Ticker) func(cmd *cobra.Command, args []string) erro
 			return err
 		}
 
-		// Create Basecoin app
-		basecoinApp := app.NewBaseApp(storeApp, Handler, clock)
-		return start(rootDir, basecoinApp)
+		return start(rootDir, storeApp)
 	}
 }
 
-func startCmd(cmd *cobra.Command, args []string) error {
-	rootDir := viper.GetString(cli.HomeFlag)
-
-	cmdName := cmd.Root().Name()
-	appName := fmt.Sprintf("%s v%v", cmdName, version.Version)
-	storeApp, err := app.NewStoreApp(
-		appName,
-		path.Join(rootDir, "data", "merkleeyes.db"),
-		EyesCacheSize,
-		logger.With("module", "app"))
+func start(rootDir string, storeApp *app.StoreApp) error {
+	srvs, err := startServices(rootDir, storeApp)
 	if err != nil {
-		return err
+		return errors.Errorf("Error in start services: %v\n", err)
 	}
 
-	// Create Basecoin app
-	basecoinApp := app.NewBaseApp(storeApp, Handler, nil)
-	return start(rootDir, basecoinApp)
+	// wait forever
+	cmn.TrapSignal(func() {
+		srvs.tmNode.Stop()
+	})
+
+	return nil
 }
 
-func start(rootDir string, basecoinApp *app.BaseApp) error {
-
+func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication) (*app.BaseApp, error) {
+	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, Handler, nil)
+	if err != nil {
+		return nil, err
+	}
 	// if chain_id has not been set yet, load the genesis.
 	// else, assume it's been loaded
 	if basecoinApp.GetChainID() == "" {
@@ -112,7 +85,7 @@ func start(rootDir string, basecoinApp *app.BaseApp) error {
 		if _, err := os.Stat(genesisFile); err == nil {
 			err = genesis.Load(basecoinApp, genesisFile)
 			if err != nil {
-				return errors.Errorf("Error in LoadGenesis: %v\n", err)
+				return nil, errors.Errorf("Error in LoadGenesis: %v\n", err)
 			}
 		} else {
 			fmt.Printf("No genesis file at %s, skipping...\n", genesisFile)
@@ -121,25 +94,6 @@ func start(rootDir string, basecoinApp *app.BaseApp) error {
 
 	chainID := basecoinApp.GetChainID()
 	logger.Info("Starting Travis", "chain_id", chainID)
-	// run just the abci app/server
-	return startTravisABCI(basecoinApp)
+
+	return basecoinApp, nil
 }
-
-func startTravisABCI(basecoinApp abci.Application) error {
-	// Start the ABCI listener
-	addr := viper.GetString(FlagAddress)
-	svr, err := server.NewServer(addr, "socket", basecoinApp)
-	if err != nil {
-		return errors.Errorf("Error creating listener: %v\n", err)
-	}
-	svr.SetLogger(logger.With("module", "abci-server"))
-	svr.Start()
-
-	// Wait forever
-	cmn.TrapSignal(func() {
-		// Cleanup
-		svr.Stop()
-	})
-	return nil
-}
-
