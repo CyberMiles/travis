@@ -382,12 +382,29 @@ func (d deliver) declare(tx TxDeclare) error {
 func (d deliver) withdraw(tx TxWithdraw) error {
 
 	// create and save the empty candidate
-	candidate := GetCandidate(tx.PubKey.KeyString())
+	pubKey := tx.PubKey.KeyString()
+	candidate := GetCandidate(pubKey)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
 
-	// todo All staked tokens will be distributed back to delegator addresses.
+	// All staked tokens will be distributed back to delegator addresses.
+	slots := GetSlotsByValidator(pubKey)
+	for _, slot := range slots {
+		slotId := slot.Id
+		delegates := GetSlotDelegatesBySlot(slotId)
+		for _, delegate := range delegates {
+			delegator := sdk.Actor{"", stakingModuleName, []byte(delegate.DelegatorAddress)}
+			d.transfer(d.params.HoldAccount, delegator,
+				coin.Coins{{d.params.AllowedBondDenom, delegate.Amount}})
+			delegate.Amount = 0
+			saveSlotDelegate(*delegate)
+		}
+		slot.AvailableAmount = 0
+		updateSlot(slot)
+	}
+	candidate.Shares = 0
+	updateCandidate(candidate)
 
 	return nil
 }

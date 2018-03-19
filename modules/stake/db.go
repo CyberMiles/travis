@@ -239,6 +239,30 @@ func GetSlots() (slots []*Slot) {
 	return
 }
 
+func GetSlotsByValidator(validatorPubKey string) (slots []*Slot) {
+	db := getDb()
+	defer db.Close()
+	rows, err := db.Query("select id, validator_pub_key, total_amount, available_amount, proposed_roi from slots where validator_pub_key = ?", validatorPubKey)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var slotId, validatorPubKey string
+		var totalAmount, availableAmount, proposedRoi int64
+		err = rows.Scan(&slotId, &validatorPubKey, &totalAmount, &availableAmount, &proposedRoi)
+		if err != nil {
+			panic(err)
+		}
+
+		pk, _ := GetPubKey(validatorPubKey)
+		slots = append(slots, NewSlot(slotId, pk, totalAmount, availableAmount, proposedRoi))
+	}
+
+	return
+}
+
 func GetSlotDelegate(delegatorAddress string, slotId string) *SlotDelegate {
 	db := getDb()
 	defer db.Close()
@@ -273,6 +297,39 @@ func GetSlotDelegatesByAddress(delegatorAddress string) (slotDelegates []*SlotDe
 
 	for rows.Next() {
 		var slotId string
+		var amount int64
+		err = rows.Scan(&slotId, &amount)
+
+		switch {
+		case err == sql.ErrNoRows:
+			return
+		case err != nil:
+			panic(err)
+		}
+
+		slotDelegates = append(slotDelegates, NewSlotDelegate(delegatorAddress, slotId, amount))
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return
+}
+
+func GetSlotDelegatesBySlot(slotId string) (slotDelegates []*SlotDelegate) {
+	db := getDb()
+	defer db.Close()
+
+	rows, err := db.Query("select slot_id, amount from slot_delegates where slot_id = ?", slotId)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var slotId, delegatorAddress string
 		var amount int64
 		err = rows.Scan(&slotId, &amount)
 
