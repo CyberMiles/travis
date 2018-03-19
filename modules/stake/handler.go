@@ -28,7 +28,8 @@ func Name() string {
 
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
-	declareCandidacy(TxDeclareCandidacy) error
+	declare(TxDeclare) error
+	withdraw(TxWithdraw) error
 	proposeSlot(TxProposeSlot) ([]byte, error)
 	acceptSlot(TxAcceptSlot) error
 	withdrawSlot(TxWithdrawSlot) error
@@ -90,10 +91,6 @@ func (Handler) initState(module, key, value string, store state.SimpleDB) error 
 		switch key {
 		case "max_vals":
 			params.MaxVals = uint16(i)
-		case "gas_bond":
-			params.GasDelegate = int64(i)
-		case "gas_unbound":
-			params.GasUnbond = int64(i)
 		}
 	case "validators":
 		params.Validators = value
@@ -136,9 +133,12 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 
 	// return the fee for each tx type
 	switch txInner := tx.Unwrap().(type) {
-	case TxDeclareCandidacy:
-		return sdk.NewCheck(params.GasDeclareCandidacy, ""),
-			checker.declareCandidacy(txInner)
+	case TxDeclare:
+		return sdk.NewCheck(params.GasDeclare, ""),
+			checker.declare(txInner)
+	case TxWithdraw:
+		return sdk.NewCheck(params.GasWithdraw, ""),
+			checker.withdraw(txInner)
 	case TxProposeSlot:
 		_, err := checker.proposeSlot(txInner)
 		return sdk.NewCheck(params.GasProposeSlot, ""), err
@@ -184,9 +184,12 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 
 	// Run the transaction
 	switch _tx := tx.Unwrap().(type) {
-	case TxDeclareCandidacy:
-		res.GasUsed = params.GasDeclareCandidacy
-		return res, deliverer.declareCandidacy(_tx)
+	case TxDeclare:
+		res.GasUsed = params.GasDeclare
+		return res, deliverer.declare(_tx)
+	case TxWithdraw:
+		res.GasUsed = params.GasWithdraw
+		return res, deliverer.withdraw(_tx)
 	case TxProposeSlot:
 		res.GasUsed = params.GasProposeSlot
 		hash, err := deliverer.proposeSlot(_tx)
@@ -207,7 +210,7 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 		}.transferFn
 		return res, deliverer.withdrawSlot(_tx)
 	case TxCancelSlot:
-		res.GasUsed = params.GasDelegate
+		res.GasUsed = params.GasCancelSlot
 		return res, deliverer.cancelSlot(_tx)
 	}
 
@@ -269,11 +272,23 @@ type check struct {
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
-func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
+func (c check) declare(tx TxDeclare) error {
 	// check to see if the pubkey or sender has been registered before
 	candidate := GetCandidate(tx.PubKey.KeyString())
 	if candidate != nil {
-		return fmt.Errorf("cannot bond to pubkey which is already declared candidacy"+
+		return fmt.Errorf("cannot declare pubkey which is already declared"+
+			" PubKey %v already registered with %v candidate address",
+			candidate.PubKey, candidate.Owner)
+	}
+
+	return nil
+}
+
+func (c check) withdraw(tx TxWithdraw) error {
+	// check to see if the pubkey or sender has been registered before
+	candidate := GetCandidate(tx.PubKey.KeyString())
+	if candidate == nil {
+		return fmt.Errorf("cannot withdraw pubkey which is not declared"+
 			" PubKey %v already registered with %v candidate address",
 			candidate.PubKey, candidate.Owner)
 	}
@@ -351,7 +366,7 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 
 // These functions assume everything has been authenticated,
 // now we just perform action and save
-func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
+func (d deliver) declare(tx TxDeclare) error {
 
 	// create and save the empty candidate
 	bond := GetCandidate(tx.PubKey.KeyString())
@@ -360,6 +375,19 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	}
 	candidate := NewCandidate(tx.PubKey, d.sender)
 	saveCandidate(candidate)
+
+	return nil
+}
+
+func (d deliver) withdraw(tx TxWithdraw) error {
+
+	// create and save the empty candidate
+	candidate := GetCandidate(tx.PubKey.KeyString())
+	if candidate == nil {
+		return ErrNoCandidateForAddress()
+	}
+
+	// todo All staked tokens will be distributed back to delegator addresses.
 
 	return nil
 }

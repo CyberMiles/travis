@@ -20,31 +20,26 @@ type Params struct {
 	AllowedBondDenom string `json:"allowed_bond_denom"` // bondable coin denomination
 
 	// gas costs for txs
-	GasDeclareCandidacy int64  `json:"gas_declare_candidacy"`
-	GasEditCandidacy    int64  `json:"gas_edit_candidacy"`
-	GasDelegate         int64  `json:"gas_delegate"`
-	GasUnbond           int64  `json:"gas_unbond"`
-	GasProposeSlot      int64  `json:"gas_propose_slot"`
-	GasAcceptSlot       int64  `json:"gas_accept_slot"`
-	GasWithdrawSlot     int64  `json:"gas_withdraw_slot"`
-	GasCancelSlot       int64  `json:"gas_cancel_slot"`
-	Validators          string `json:"validators"`
+	GasDeclare       int64  `json:"gas_declare"`
+	GasWithdraw      int64  `json:"gas_withdraw"`
+	GasProposeSlot   int64  `json:"gas_propose_slot"`
+	GasAcceptSlot    int64  `json:"gas_accept_slot"`
+	GasWithdrawSlot  int64  `json:"gas_withdraw_slot"`
+	GasCancelSlot    int64  `json:"gas_cancel_slot"`
+	Validators       string `json:"validators"`
 }
 
 var DefaultHoldAccount = sdk.NewActor(stakingModuleName, []byte("00000000000000000000000000000000"))
 
 func defaultParams() Params {
 	return Params{
-		HoldAccount:         DefaultHoldAccount,
-		MaxVals:             100,
-		AllowedBondDenom:    "cmt",
-		GasDeclareCandidacy: 0,
-		GasEditCandidacy:    0,
-		GasDelegate:         0,
-		GasUnbond:           0,
-		GasProposeSlot:      0,
-		GasWithdrawSlot:     0,
-		GasCancelSlot:       0,
+		HoldAccount:      DefaultHoldAccount,
+		MaxVals:          100,
+		AllowedBondDenom: "cmt",
+		GasDeclare:       0,
+		GasProposeSlot:   0,
+		GasWithdrawSlot:  0,
+		GasCancelSlot:    0,
 	}
 }
 

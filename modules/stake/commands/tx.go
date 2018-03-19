@@ -47,10 +47,15 @@ const (
 
 // nolint
 var (
-	CmdDeclareCandidacy = &cobra.Command{
-		Use:   "declare-candidacy",
+	CmdDeclare = &cobra.Command{
+		Use:   "declare",
 		Short: "Allows a potential validator to declare its candidacy",
-		RunE:  cmdDeclareCandidacy,
+		RunE:  cmdDeclare,
+	}
+	CmdWithdraw = &cobra.Command{
+		Use:   "withdraw",
+		Short: "Allows a validator to withdraw",
+		RunE:  cmdWithdraw,
 	}
 	CmdProposeSlot = &cobra.Command{
 		Use:   "propose-slot",
@@ -90,7 +95,7 @@ func init() {
 	fsSlot.String(FlagSlotId, "", "Slot ID")
 
 	// add the flags
-	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
+	CmdDeclare.Flags().AddFlagSet(fsPk)
 
 	CmdProposeSlot.Flags().AddFlagSet(fsPk)
 	CmdProposeSlot.Flags().AddFlagSet(fsAmount)
@@ -106,13 +111,23 @@ func init() {
 	CmdCancelSlot.Flags().AddFlagSet(fsSlot)
 }
 
-func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
+func cmdDeclare(cmd *cobra.Command, args []string) error {
 	pk, err := GetPubKey(viper.GetString(FlagPubKey))
 	if err != nil {
 		return err
 	}
 
-	tx := stake.NewTxDeclareCandidacy(pk)
+	tx := stake.NewTxDeclare(pk)
+	return txcmd.DoTx(tx)
+}
+
+func cmdWithdraw(cmd *cobra.Command, args []string) error {
+	pk, err := GetPubKey(viper.GetString(FlagPubKey))
+	if err != nil {
+		return err
+	}
+
+	tx := stake.NewTxWithdraw(pk)
 	return txcmd.DoTx(tx)
 }
 

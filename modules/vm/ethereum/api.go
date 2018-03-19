@@ -164,7 +164,7 @@ func (s *StakeRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (
 	if err != nil {
 		return sdk.Tx{}, err
 	}
-	tx := stake.NewTxDeclareCandidacy(pubKey)
+	tx := stake.NewTxDeclare(pubKey)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
