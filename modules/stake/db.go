@@ -6,7 +6,6 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 	"path"
 	"strings"
-	"github.com/cosmos/cosmos-sdk"
 	"encoding/hex"
 )
 
@@ -44,7 +43,7 @@ func GetCandidate(pubKey string) *Candidate {
 	bs, _ := hex.DecodeString(ownerAddress)
 	return &Candidate{
 		PubKey:      pk,
-		Owner:       sdk.NewActor(stakingModuleName, bs),
+		Owner:       NewActor(bs),
 		Shares:      shares,
 		VotingPower: votingPower,
 	}
@@ -72,7 +71,7 @@ func GetCandidates() (candidates Candidates) {
 		bs, _ := hex.DecodeString(ownerAddress)
 		candidate := &Candidate{
 			PubKey:      pk,
-			Owner:       sdk.NewActor(stakingModuleName, bs),
+			Owner:       NewActor(bs),
 			Shares:      shares,
 			VotingPower: votingPower,
 		}
@@ -87,7 +86,7 @@ func GetCandidates() (candidates Candidates) {
 	return
 }
 
-func saveCandidate(candidate *Candidate) {
+func SaveCandidate(candidate *Candidate) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
