@@ -26,10 +26,14 @@ type Params struct {
 	GasAcceptSlot    int64  `json:"gas_accept_slot"`
 	GasWithdrawSlot  int64  `json:"gas_withdraw_slot"`
 	GasCancelSlot    int64  `json:"gas_cancel_slot"`
-	Validators       string `json:"validators"`
+	Validators		 string `json:"validators"`
 }
 
-var DefaultHoldAccount = sdk.NewActor(stakingModuleName, []byte("00000000000000000000000000000000"))
+var DefaultHoldAccount = NewActor([]byte("00000000000000000000000000000000"))
+
+func NewActor(addr []byte) sdk.Actor {
+	return sdk.NewActor(stakingModuleName, addr)
+}
 
 func defaultParams() Params {
 	return Params{
@@ -40,6 +44,7 @@ func defaultParams() Params {
 		GasProposeSlot:   0,
 		GasWithdrawSlot:  0,
 		GasCancelSlot:    0,
+		Validators:       "",
 	}
 }
 
@@ -61,12 +66,12 @@ type Candidate struct {
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, owner sdk.Actor) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, owner sdk.Actor, shares uint64, votingPower uint64) *Candidate {
 	return &Candidate{
 		PubKey:      pubKey,
 		Owner:       owner,
-		Shares:      0,
-		VotingPower: 0,
+		Shares:      shares,
+		VotingPower: votingPower,
 	}
 }
 
@@ -135,7 +140,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 		if i >= int(loadParams(store).MaxVals) {
 			c.VotingPower = 0
 		}
-		saveCandidate(c)
+		SaveCandidate(c)
 	}
 	return cs
 }

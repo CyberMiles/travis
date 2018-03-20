@@ -14,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/tendermint/tmlibs/merkle"
 	"encoding/hex"
+	"github.com/tendermint/go-wire/data"
 )
 
 // nolint
@@ -93,12 +94,32 @@ func (Handler) initState(module, key, value string, store state.SimpleDB) error 
 			params.MaxVals = uint16(i)
 		}
 	case "validators":
-		params.Validators = value
+		setValidators(value)
 	default:
 		return errors.ErrUnknownKey(key)
 	}
 
 	saveParams(store, params)
+	return nil
+}
+
+func setValidators(value string) error {
+	var doc genesisValidators
+	err := data.FromJSON([]byte(value), &doc)
+	if err != nil {
+		return fmt.Errorf("error reading validators")
+	}
+
+	for _, val := range doc.Validators {
+		// create and save the empty candidate
+		bond := GetCandidate(val.PubKey.KeyString())
+		if bond != nil {
+			return ErrCandidateExistsAddr()
+		}
+		candidate := NewCandidate(val.PubKey, NewActor([]byte(val.Address)), val.power, val.power)
+		SaveCandidate(candidate)
+	}
+
 	return nil
 }
 
@@ -373,8 +394,8 @@ func (d deliver) declare(tx TxDeclare) error {
 	if bond != nil {
 		return ErrCandidateExistsAddr()
 	}
-	candidate := NewCandidate(tx.PubKey, d.sender)
-	saveCandidate(candidate)
+	candidate := NewCandidate(tx.PubKey, d.sender, 0, 0)
+	SaveCandidate(candidate)
 
 	return nil
 }

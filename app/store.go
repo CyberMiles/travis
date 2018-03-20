@@ -20,9 +20,9 @@ import (
 	"database/sql"
 	"os"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/tendermint/go-wire"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/CyberMiles/travis/modules/stake"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -246,6 +246,13 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 
 // InitChain - ABCI
 func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+	// create and save the empty candidate
+	//for _, validator := range req.Validators {
+	//	pk, _ := stake.GetPubKey(string(validator.PubKey))
+	//	candidate := stake.NewCandidate(pk, d.sender, uint64(validator.Power), uint64(validator.Power))
+	//	stake.SaveCandidate(candidate)
+	//}
+
 	return
 }
 
