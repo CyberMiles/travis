@@ -20,6 +20,7 @@ import (
 	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
 	"github.com/CyberMiles/travis/errors"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 //----------------------------------------------------------------------
@@ -290,7 +291,18 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 	return &ethTypes.Header{
 		Number:     prevBlock.Number().Add(prevBlock.Number(), big.NewInt(1)),
 		ParentHash: prevBlock.Hash(),
-		GasLimit:   core.CalcGasLimit(prevBlock),
+		//GasLimit:   core.CalcGasLimit(prevBlock),
+		GasLimit:   calcGasLimit(prevBlock),
 		Coinbase:   receiver,
 	}
+}
+
+// CalcGasLimit computes the gas limit of the next block after parent.
+// The result may be modified by the caller.
+// This is miner strategy, not consensus protocol.
+func calcGasLimit(parent *types.Block) *big.Int {
+	// 0xF00000000 = 64424509440
+	gl := big.NewInt(64424509440)
+
+	return gl
 }
