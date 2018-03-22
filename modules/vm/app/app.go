@@ -7,6 +7,7 @@ import (
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -23,6 +24,11 @@ import (
 const (
 	MinGasPrice = 2e9 // 2 Gwei
 )
+
+type FromTo struct {
+	from common.Address
+	to   common.Address
+}
 
 // EthermintApplication implements an ABCI application
 // #stable - 0.4.0
@@ -45,7 +51,7 @@ type EthermintApplication struct {
 
 	logger tmLog.Logger
 
-	checkedTransactions []*ethTypes.Transaction
+	checkedTransactions map[FromTo]*ethTypes.Transaction
 }
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
@@ -64,7 +70,7 @@ func NewEthermintApplication(backend *ethereum.Backend,
 		getCurrentState: backend.Ethereum().BlockChain().State,
 		checkTxState:    state.Copy(),
 		strategy:        strategy,
-		checkedTransactions: make([]*ethTypes.Transaction, 0, 10),
+		checkedTransactions: make(map[FromTo]*ethTypes.Transaction),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
@@ -209,7 +215,7 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 
 	app.checkTxState = state.Copy()
 
-	app.checkedTransactions = make([]*ethTypes.Transaction, 0, 10)
+	app.checkedTransactions = make(map[FromTo]*ethTypes.Transaction)
 
 	return abciTypes.ResponseCommit{
 		Data: blockHash[:],
@@ -330,22 +336,20 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	// Iterate over all transactions to check if the gas price is too low for the
 	// non-first transaction with the same from/to address
 	// Todo performance maybe
-	for _, itx := range app.checkedTransactions {
-		iFrom, err := ethTypes.Sender(signer, itx)
-		if err != nil {
-			return abciTypes.ResponseCheckTx {
-				Code: errors.CodeTypeInternalErr,
-				Log: core.ErrInvalidSender.Error()}
-		}
-
-		if bytes.Equal(from.Bytes(), iFrom.Bytes()) && bytes.Equal(tx.To().Bytes(), itx.To().Bytes()) {
+	for ft, _ := range app.checkedTransactions {
+		if bytes.Equal(from.Bytes(), ft.from.Bytes()) && bytes.Equal(tx.To().Bytes(), ft.to.Bytes()) {
 			if tx.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
 				return abciTypes.ResponseCheckTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
 			}
 		}
 	}
-
-	app.checkedTransactions = append(app.checkedTransactions, tx)
+	if tx.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
+		ft := FromTo {
+			from: from,
+			to: *tx.To(),
+		}
+		app.checkedTransactions[ft] = tx
+	}
 
 	// Update ether balances
 	// amount + gasprice * gaslimit
