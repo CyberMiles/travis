@@ -23,6 +23,8 @@ import (
 	abciApp "github.com/CyberMiles/travis/modules/vm/app"
 	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
 	"github.com/CyberMiles/travis/modules/vm/ethereum"
+	"net/http"
+	_ "net/http/pprof"
 )
 
 type Services struct {
@@ -31,6 +33,15 @@ type Services struct {
 }
 
 func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
+	// pprof server
+	address := fmt.Sprintf("127.0.0.1:6061")
+	go func() {
+		log.Info("Starting pprof server", "addr", fmt.Sprintf("http://%s/debug/pprof", address))
+		if err := http.ListenAndServe(":6061", nil); err != nil {
+			log.Error("Failure in running pprof server", "err", err)
+		}
+	}()
+
 	// Setup the go-ethereum node and start it
 	emNode := emtUtils.MakeFullNode(context)
 	startNode(context, emNode)
