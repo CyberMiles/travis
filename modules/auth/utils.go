@@ -24,7 +24,6 @@ func makeAccountManager() (*accounts.Manager, string, error) {
 	scryptN := keystore.StandardScryptN
 	scryptP := keystore.StandardScryptP
 	keydir := filepath.Join(emHome, datadirDefaultKeyStore)
-	fmt.Println(keydir)
 
 	ephemeral := keydir
 	if err := os.MkdirAll(keydir, 0700); err != nil {

@@ -226,8 +226,6 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 
 	hash, err := app.state.Commit(app.height)
 
-	fmt.Printf("Commit, height: %v, hash: %v\n", app.height, hash)
-
 	if err != nil {
 		// die if we can't commit, not to recover
 		panic(err)

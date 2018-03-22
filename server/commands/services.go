@@ -61,7 +61,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 	// Create the ABCI app
 	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Warn(err.Error())
 		os.Exit(1)
 	}
 	ethApp.SetLogger(emtUtils.EthermintLogger().With("module", "vm"))
@@ -69,14 +69,14 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 	// Create Basecoin app
 	basecoinApp, err := createBaseCoinApp(rootDir, storeApp, ethApp)
 	if err != nil {
-		fmt.Println(err)
+		log.Warn(err.Error())
 		os.Exit(1)
 	}
 
 	// Create & start tendermint node
 	tmNode, err := startTendermint(basecoinApp)
 	if err != nil {
-		fmt.Println(err)
+		log.Warn(err.Error())
 		os.Exit(1)
 	}
 	backend.SetTMNode(tmNode)
@@ -183,7 +183,7 @@ func getPassPhrase(prompt string, confirmation bool, i int, passwords []string) 
 	}
 	// Otherwise prompt the user for the password
 	if prompt != "" {
-		fmt.Println(prompt)
+		log.Info(prompt)
 	}
 	password, err := console.Stdin.PromptPassword("Passphrase: ")
 	if err != nil {
