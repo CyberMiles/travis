@@ -23,8 +23,6 @@ import (
 	abciApp "github.com/CyberMiles/travis/modules/vm/app"
 	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
 	"github.com/CyberMiles/travis/modules/vm/ethereum"
-	"runtime/pprof"
-	"runtime"
 )
 
 type Services struct {
@@ -33,16 +31,6 @@ type Services struct {
 }
 
 func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
-
-	f, err := os.Create(os.ExpandEnv("$HOME/cpu.prof"))
-	if err != nil {
-		ethUtils.Fatalf("could not create CPU profile: ", err)
-	}
-	if err := pprof.StartCPUProfile(f); err != nil {
-		ethUtils.Fatalf("could not start CPU profile: ", err)
-	}
-	defer pprof.StopCPUProfile()
-
 	// Setup the go-ethereum node and start it
 	emNode := emtUtils.MakeFullNode(context)
 	startNode(context, emNode)
@@ -81,16 +69,6 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 		os.Exit(1)
 	}
 	backend.SetTMNode(tmNode)
-
-	f, err = os.Create(os.ExpandEnv("$HOME/mem.prof"))
-	if err != nil {
-		ethUtils.Fatalf("could not create memory profile: ", err)
-	}
-	runtime.GC() // get up-to-date statistics
-	if err := pprof.WriteHeapProfile(f); err != nil {
-		ethUtils.Fatalf("could not write memory profile: ", err)
-	}
-	f.Close()
 
 	return &Services{backend, tmNode}, nil
 }
