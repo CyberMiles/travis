@@ -336,9 +336,13 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	// Iterate over all transactions to check if the gas price is too low for the
 	// non-first transaction with the same from/to address
 	// Todo performance maybe
+	var to common.Address
+	if tx.To() != nil {
+		to = *tx.To()
+	}
 	ft := FromTo {
 		from: from,
-		to: *tx.To(),
+		to: to,
 	}
 	if _, ok := app.checkedTransactions[ft]; ok {
 		if tx.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
