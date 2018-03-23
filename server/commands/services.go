@@ -23,8 +23,6 @@ import (
 	abciApp "github.com/CyberMiles/travis/modules/vm/app"
 	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
 	"github.com/CyberMiles/travis/modules/vm/ethereum"
-	"net/http"
-	_ "net/http/pprof"
 )
 
 type Services struct {
