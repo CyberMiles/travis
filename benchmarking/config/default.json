@@ -25,7 +25,8 @@
     "version": 3
   },
   "password": "1234",
-  "n": 2000,
-  "accounts": 5,
-  "blockTimeout": 20
+  "txs": 100,
+  "accounts": 100,
+  "blockTimeout": 20,
+  "concurrency": 100
 }

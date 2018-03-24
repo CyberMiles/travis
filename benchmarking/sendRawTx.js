@@ -1,7 +1,7 @@
 const config = require("config")
 const Wallet = require("ethereumjs-wallet")
 const Web3pool = require("./web3pool")
-const utils = require("./utils")
+const utils = require("./util")
 
 const web3p = new Web3pool(config.get("providers"))
 const web3 = web3p.web3
@@ -36,12 +36,13 @@ if (cost.comparedTo(balance) > 0) {
 console.log(`Generating ${totalTxs} transactions`)
 for (let i = 0; i < totalTxs; i++) {
   let nonce = i + initialNonce
-  let tx = utils.generateTransaction({
+  let tx = utils.generateRawTransaction({
     from: walletAddress,
     to: dest,
     privKey: privKey,
     nonce: nonce,
-    gasPrice: gasPrice
+    gasPrice: gasPrice,
+    value: 1
   })
 
   transactions.push(tx)
@@ -49,8 +50,10 @@ for (let i = 0; i < totalTxs; i++) {
 console.log("Generated.")
 
 // Send transactions
+console.log(`Starting to send raw transactions in parallel`)
 const start = new Date()
-utils.sendTransactions(web3p, transactions, (err, ms) => {
+console.log("start time: ", start)
+utils.sendRawTransactions(web3p, transactions, (err, ms) => {
   if (err) {
     console.error("Couldn't send Transactions:")
     console.error(err)
@@ -69,6 +72,7 @@ utils.sendTransactions(web3p, transactions, (err, ms) => {
     let timePassed = (endDate - start) / 1000
     let perSecond = processed / timePassed
 
+    console.log("end time: ", endDate)
     console.log(
       `Processed ${processed} of ${sent} transactions ` +
         `from one account in ${timePassed}s, ${perSecond} tx/s`

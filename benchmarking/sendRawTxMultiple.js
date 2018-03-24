@@ -1,7 +1,7 @@
 const config = require("config")
 const Web3 = require("web3")
 const Wallet = require("ethereumjs-wallet")
-const utils = require("./utils")
+const utils = require("./util")
 const async = require("async")
 const Web3pool = require("./web3pool")
 
@@ -40,11 +40,11 @@ let privKey = wallet.getPrivateKey()
 console.log("Generating wallets and sending funds")
 let wallets = []
 let nonce = web3.eth.getTransactionCount(walletAddress)
-
+let transactions = []
 for (let i = 0; i < totalAccounts; i++) {
   wallets.push(Wallet.generate())
 
-  let tx = utils.generateTransaction({
+  let tx = utils.generateRawTransaction({
     nonce: nonce + i,
     gasPrice: gasPrice,
     from: walletAddress,
@@ -52,54 +52,53 @@ for (let i = 0; i < totalAccounts; i++) {
     value: costPerAccount,
     privKey: privKey
   })
-
-  web3.eth.sendRawTransaction(tx)
+  transactions.push(tx)
 }
-console.log("Distributed Funds.")
 
-// wait for 200 blocks this case. Initial Fund distribution
-utils.waitMultipleProcessedInterval(web3p, 100, 200, (err, endDate) => {
+utils.sendRawTransactions(web3p, transactions, (err, ms) => {
   if (err) {
+    console.error("Couldn't send Transactions:")
     console.error(err)
     return
   }
-  // Send Transactions
-  let dest = config.get("address")
-  let initialNonces = {}
-  wallets.forEach(w => {
-    let addr = w.getAddressString()
-    initialNonces[addr] = web3.eth.getTransactionCount(addr)
-  })
 
-  let runTransactionsFromAccount = (wallet, cb) => {
-    let address = wallet.getAddressString()
-    let privKey = wallet.getPrivateKey()
-    let initialNonce = initialNonces[address]
-    let transactions = []
-    let totalTxs = config.get("txs")
-
-    console.log(`Generating ${totalTxs} transactions for ${address}`)
-    for (let i = 0; i < totalTxs; i++) {
-      let tx = utils.generateTransaction({
-        nonce: initialNonce + i,
-        gasPrice: gasPrice,
-        from: address,
-        to: dest,
-        privKey: privKey
-      })
-
-      transactions.push(tx)
+  // wait for 200 blocks this case. Initial Fund distribution
+  utils.waitMultipleProcessedInterval(web3p, 100, 200, (err, endDate) => {
+    if (err) {
+      console.error(err)
+      return
     }
-    console.log(`Generated, starting sending transactions from ${address}`)
+    console.log("Distributed Funds.")
 
-    utils.sendTransactions(web3p, transactions, cb)
-  }
+    // Generate Transactions
+    let dest = config.get("address")
+    let initialNonces = {}
+    let txsPerAccount = config.get("txs")
+    let transactions = []
+    console.log(
+      `Generating ${txsPerAccount} transactions for ${totalAccounts} accounts`
+    )
+    wallets.forEach(w => {
+      let addr = w.getAddressString()
+      initialNonces[addr] = web3.eth.getTransactionCount(addr)
+      for (let i = 0; i < txsPerAccount; i++) {
+        let tx = utils.generateRawTransaction({
+          nonce: initialNonces[addr] + i,
+          gasPrice: gasPrice,
+          from: addr,
+          to: dest,
+          privKey: w.getPrivateKey()
+        })
+        transactions.push(tx)
+      }
+    })
+    console.log(`Generated`)
 
-  const start = new Date()
-  const blockTimeout = config.get("blockTimeout")
-  async.parallel(
-    wallets.map(w => runTransactionsFromAccount.bind(null, w)),
-    (err, res) => {
+    console.log(`Starting to send transactions in parallel`)
+    const start = new Date()
+    console.log("start time: ", start)
+    const blockTimeout = config.get("blockTimeout")
+    utils.sendRawTransactions(web3p, transactions, (err, res) => {
       if (err) {
         console.log("Error on transactions:", err)
         return
@@ -122,15 +121,17 @@ utils.waitMultipleProcessedInterval(web3p, 100, 200, (err, endDate) => {
               sum + (web3.eth.getTransactionCount(addr) - initialNonces[addr])
             )
           }, 0)
+          console.log("end time: ", endDate)
           let timePassed = (endDate - start) / 1000
           let perSecond = processed / timePassed
 
+          console.log("end time: ", endDate)
           console.log(
             `Processed ${processed} of ${sent} transactions ` +
               `from ${totalAccounts} account in ${timePassed}s, ${perSecond} tx/s`
           )
         }
       )
-    }
-  )
+    })
+  })
 })

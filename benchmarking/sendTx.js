@@ -1,7 +1,7 @@
 const config = require("config")
 const Wallet = require("ethereumjs-wallet")
 const Web3pool = require("./web3pool")
-const utils = require("./utils")
+const utils = require("./util")
 
 const web3p = new Web3pool(config.get("providers"))
 const web3 = web3p.web3
@@ -39,17 +39,22 @@ for (let i = 0; i < totalTxs; i++) {
   let tx = utils.generateTransaction({
     from: walletAddress,
     to: dest,
-    privKey: privKey,
-    nonce: nonce,
-    gasPrice: gasPrice
+    gasPrice: gasPrice,
+    value: 1
   })
 
   transactions.push(tx)
 }
 console.log("Generated.")
 
+console.log(`Unlock account ${walletAddress}`)
+web3.personal.unlockAccount(walletAddress, config.get("password"))
+console.log("done.")
+
 // Send transactions
+console.log(`Starting to send transactions in parallel`)
 const start = new Date()
+console.log("start time: ", start)
 utils.sendTransactions(web3p, transactions, (err, ms) => {
   if (err) {
     console.error("Couldn't send Transactions:")
@@ -69,6 +74,7 @@ utils.sendTransactions(web3p, transactions, (err, ms) => {
     let timePassed = (endDate - start) / 1000
     let perSecond = processed / timePassed
 
+    console.log("end time: ", endDate)
     console.log(
       `Processed ${processed} of ${sent} transactions ` +
         `from one account in ${timePassed}s, ${perSecond} tx/s`
