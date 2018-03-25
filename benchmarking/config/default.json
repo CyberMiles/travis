@@ -1,7 +1,5 @@
 {
-  "providers": [
-    "http://localhost:8545"
-  ],
+  "provider": "http://localhost:8545",
   "address": "0xb6b29ef90120bec597939e0eda6b8a9164f75deb",
   "wallet": {
     "address": "7eff122b94897ea5b0e2a9abf47b86337fafebdc",
@@ -25,8 +23,8 @@
     "version": 3
   },
   "password": "1234",
-  "txs": 100,
-  "accounts": 100,
+  "txs": 1000,
   "blockTimeout": 20,
-  "concurrency": 100
+  "concurrency": 200,
+  "waitInterval": 100
 }
