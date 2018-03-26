@@ -70,6 +70,23 @@ exports.sendTransactions = (web3, transactions, cb) => {
   )
 }
 
+exports.tokenTransfer = (web3, tokenInstance, transactions, cb) => {
+  let start = new Date()
+  async.parallelLimit(
+    transactions.map(tx => {
+      return tokenInstance.transfer.sendTransaction.bind(null, tx.to, tx.value)
+    }),
+    config.get("concurrency"),
+    err => {
+      if (err) {
+        return cb(err)
+      }
+
+      cb(null, new Date() - start)
+    }
+  )
+}
+
 exports.waitProcessedInterval = function(web3, fromAddr, endBalance, cb) {
   let startingBlock = web3.cmt.blockNumber
 
@@ -84,11 +101,8 @@ exports.waitProcessedInterval = function(web3, fromAddr, endBalance, cb) {
 
     let balance = web3.cmt.getBalance(fromAddr)
     console.log(
-      `Blocks Passed ${blocksGone}, current balance: ${web3.toHex(
-        balance.toString()
-      )}`
+      `Blocks Passed ${blocksGone}, current balance: ${balance.toString()}`
     )
-
     if (balance.comparedTo(endBalance) <= 0) {
       clearInterval(interval)
       cb(null, new Date())

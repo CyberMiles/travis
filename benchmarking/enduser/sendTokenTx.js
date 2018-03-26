@@ -3,6 +3,7 @@ const Web3 = require("web3-cmt")
 const utils = require("./utils")
 
 const web3 = new Web3(new Web3.providers.HttpProvider(config.get("provider")))
+const contractAddress = config.get("contractAddress")
 const fromAddress = config.get("from")
 let destAddress = config.get("to")
 let value = config.get("value")
@@ -30,16 +31,20 @@ if (cost.comparedTo(balance) > 0) {
 console.log(`Generating ${totalTxs} transactions`)
 let transactions = []
 for (let i = 0; i < totalTxs; i++) {
-  let tx = utils.generateTransaction({
-    from: fromAddress,
+  let tx = {
     to: destAddress,
-    gasPrice: gasPrice,
     value: value
-  })
+  }
 
   transactions.push(tx)
 }
 console.log("Generated.")
+
+const fs = require("fs")
+const abi = JSON.parse(fs.readFileSync("TestToken.json").toString())["abi"]
+const tokenContract = web3.cmt.contract(abi)
+const tokenInstance = tokenContract.at(contractAddress)
+web3.cmt.defaultAccount = fromAddress
 
 console.log(`Unlock account ${fromAddress}`)
 web3.personal.unlockAccount(fromAddress, config.get("password"))
@@ -50,7 +55,7 @@ console.log(`Starting to send transactions in parallel`)
 const initialNonce = web3.cmt.getTransactionCount(fromAddress)
 const start = new Date()
 console.log("start time: ", start)
-utils.sendTransactions(web3, transactions, (err, ms) => {
+utils.tokenTransfer(web3, tokenInstance, transactions, (err, ms) => {
   if (err) {
     console.error("Couldn't send Transactions:")
     console.error(err)

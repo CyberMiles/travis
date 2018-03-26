@@ -35,7 +35,6 @@ if (cost.comparedTo(balance) > 0) {
 console.log(`Generating ${totalTxs} transactions`)
 let transactions = []
 for (let i = 0; i < totalTxs; i++) {
-  let nonce = i + initialNonce
   let tx = utils.generateTransaction({
     from: walletAddress,
     to: dest,

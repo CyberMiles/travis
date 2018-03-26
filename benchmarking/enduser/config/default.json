@@ -1,9 +1,13 @@
 {
   "provider": "http://localhost:8545",
+
   "from": "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
   "password": "1234",
   "to": "0xb6b29ef90120bec597939e0eda6b8a9164f75deb",
-  "txs": 1000,
+  "contractAddress": "0xb6b29ef90120bec597939e0eda6b8a9164f75deb",
+  "value": 1,
+
+  "txs": 10000,
   "blockTimeout": 20,
   "concurrency": 100,
   "waitInterval": 100
