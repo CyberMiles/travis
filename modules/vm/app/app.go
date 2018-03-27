@@ -297,13 +297,24 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	}
 
 	// Check if nonce is not strictly increasing
+	// if not then recheck with feeding failed count
 	nonce := currentState.GetNonce(from)
 	if nonce != tx.Nonce() {
-		return abciTypes.ResponseCheckTx{
-			Code: errors.CodeTypeBadNonce,
-			Log:  fmt.Sprintf(
-				"Nonce not strictly increasing. Expected %d Got %d",
-				nonce, tx.Nonce())}
+		if c, ok := utils.CheckFailedCount[from]; ok {
+			if nonce + c != tx.Nonce() {
+				return abciTypes.ResponseCheckTx{
+					Code: errors.CodeTypeBadNonce,
+					Log:  fmt.Sprintf(
+						"Nonce not strictly increasing. Expected %d Got %d",
+						nonce, tx.Nonce())}
+			}
+		} else {
+			return abciTypes.ResponseCheckTx{
+				Code: errors.CodeTypeBadNonce,
+				Log:  fmt.Sprintf(
+					"Nonce not strictly increasing. Expected %d Got %d",
+					nonce, tx.Nonce())}
+		}
 	}
 
 	// Transactor should have enough funds to cover the costs
@@ -346,6 +357,9 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	}
 	if _, ok := app.checkedTransactions[ft]; ok {
 		if tx.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
+			// add failed count
+			// this map will keep growing because the nonce check will use it ongoing
+			utils.CheckFailedCount[from] = utils.CheckFailedCount[from] + 1
 			return abciTypes.ResponseCheckTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
 		}
 	}
@@ -361,7 +375,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	if to := tx.To(); to != nil {
 		currentState.AddBalance(*to, tx.Value())
 	}
-	currentState.SetNonce(from, tx.Nonce()+1)
+	currentState.SetNonce(from, nonce+1)
 
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }

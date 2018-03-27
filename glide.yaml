@@ -47,7 +47,7 @@ import:
 - package: github.com/gorilla/mux
   version: ^1.5.0
 - package: github.com/ethereum/go-ethereum
-  version: f1.6.7
+  version: test
   repo: https://github.com/CyberMiles/go-ethereum.git
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
