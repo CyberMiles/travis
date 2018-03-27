@@ -10,6 +10,7 @@ import (
 	abci "github.com/tendermint/abci/types"
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // Params defines the high level settings for staking
@@ -63,15 +64,20 @@ type Candidate struct {
 	Owner       sdk.Actor     `json:"owner"`        // Sender of BondTx - UnbondTx returns here
 	Shares      uint64        `json:"shares"`       // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower uint64        `json:"voting_power"` // Voting power if pubKey is a considered a validator
+	CreatedAt 	string		  `json:"created_at"`
+	UpdatedAt 	string		  `json:"updated_at"`
 }
 
 // NewCandidate - initialize a new candidate
 func NewCandidate(pubKey crypto.PubKey, owner sdk.Actor, shares uint64, votingPower uint64) *Candidate {
+	now := utils.GetNow()
 	return &Candidate{
 		PubKey:      pubKey,
 		Owner:       owner,
 		Shares:      shares,
 		VotingPower: votingPower,
+		CreatedAt: 	 now,
+		UpdatedAt: 	 now,
 	}
 }
 

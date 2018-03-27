@@ -43,6 +43,7 @@ const (
 	FlagAmount = "amount"
 	FlagProposedRoi = "proposed-roi"
 	FlagSlotId = "slot-id"
+	FlagAddress = "address"
 )
 
 // nolint
@@ -97,7 +98,6 @@ func init() {
 	// add the flags
 	CmdDeclare.Flags().AddFlagSet(fsPk)
 
-	CmdProposeSlot.Flags().AddFlagSet(fsPk)
 	CmdProposeSlot.Flags().AddFlagSet(fsAmount)
 	CmdProposeSlot.Flags().AddFlagSet(fsProposeSlot)
 
@@ -107,7 +107,6 @@ func init() {
 	CmdWithdrawSlot.Flags().AddFlagSet(fsSlot)
 	CmdWithdrawSlot.Flags().AddFlagSet(fsAmount)
 
-	CmdCancelSlot.Flags().AddFlagSet(fsPk)
 	CmdCancelSlot.Flags().AddFlagSet(fsSlot)
 }
 

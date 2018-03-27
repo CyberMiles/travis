@@ -30,7 +30,7 @@ import:
   - config
   - node
   - proxy
-  - rpc/client
+  - rpc/clientw
   - rpc/core/types
   - rpc/lib/client
   - rpc/lib/types
