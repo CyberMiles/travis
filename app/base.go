@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 	_ "github.com/tendermint/abci/client"
 	abci "github.com/tendermint/abci/types"
@@ -28,6 +29,7 @@ type BaseApp struct {
 	clock   sdk.Ticker
 	//client abcicli.Client
 	EthApp *ethapp.EthermintApplication
+	checkedTx map[common.Hash]*types.Transaction
 }
 
 const (
@@ -51,6 +53,7 @@ func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, handler sd
 		handler:  handler,
 		clock:    clock,
 		EthApp:   ethApp,
+		checkedTx: make(map[common.Hash]*types.Transaction),
 	}
 	//client, err := abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
 	//if err != nil {
@@ -79,13 +82,18 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 			return errors.DeliverResult(err)
 		}
 
-		// force cache from of tx
-		// TODO: Get chainID from config
-		if _, err := types.Sender(types.NewEIP155Signer(big.NewInt(111)), tx); err != nil {
-			app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
+		if ctx, ok := app.checkedTx[tx.Hash()]; ok {
+			tx = ctx
+		} else {
+			// force cache from of tx
+			// TODO: Get chainID from config
+			if _, err := types.Sender(types.NewEIP155Signer(big.NewInt(111)), tx); err != nil {
+				app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
 
-			return errors.DeliverResult(err)
+				return errors.DeliverResult(err)
+			}
 		}
+
 		//resp, err := app.client.DeliverTxSync(txBytes)
 		resp := app.EthApp.DeliverTx(tx)
 		app.logger.Debug("ethermint DeliverTx response: %v\n", resp)
@@ -138,6 +146,8 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		if resp.IsErr() {
 			return errors.CheckResult(goerr.New(resp.Error()))
 		}
+
+		app.checkedTx[tx.Hash()] = tx
 
 		return sdk.NewCheck(21000, "").ToABCI()
 	}
@@ -230,6 +240,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	//if err != nil {
 	//	panic(err)
 	//}
+	app.checkedTx = make(map[common.Hash]*types.Transaction)
 
 	resp := app.EthApp.Commit()
 	var hash = resp.Data
