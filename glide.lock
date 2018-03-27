@@ -37,7 +37,7 @@ imports:
   version: 0bce6a6887123b67a60366d2c9fe2dfb74289d2e
 - name: github.com/ethereum/go-ethereum
   version: d9e23666755ebeb632dc8c3f902650971594e5a7
-  repo: https://github.com/tendermint/go-ethereum.git
+  repo: https://github.com/CyberMiles/go-ethereum.git
   subpackages:
   - accounts
   - accounts/keystore
