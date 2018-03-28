@@ -202,10 +202,14 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		b := wire.BinaryBytes(candidates)
 		resQuery.Value = b
 	case "/validator":
-		pubKey := string(reqQuery.Data)
-		candidate := stake.GetCandidate(pubKey)
-		b := wire.BinaryBytes(*candidate)
-		resQuery.Value = b
+		address := string(reqQuery.Data)
+		candidate := stake.GetCandidate(address)
+		if candidate != nil {
+			b := wire.BinaryBytes(*candidate)
+			resQuery.Value = b
+		} else {
+			resQuery.Value = []byte{}
+		}
 	case "/delegator":
 		addrStr := string(reqQuery.Data)
 		addr := common.HexToAddress(addrStr)

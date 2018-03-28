@@ -85,23 +85,23 @@ func (tx TxWithdraw) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxProposeSlot - struct for propose slot
 type TxProposeSlot struct {
-	PubKey      crypto.PubKey
-	Amount      int64
-	ProposedRoi int64
+	ValidatorAddress      	string
+	Amount      			int64
+	ProposedRoi 			int64
 }
 
 // NewTxProposeSlot - new TxProposeSlot
-func NewTxProposeSlot(pubKey crypto.PubKey, amount int64, proposedRoi int64) sdk.Tx {
+func NewTxProposeSlot(validatorAddress string, amount int64, proposedRoi int64) sdk.Tx {
 	return TxProposeSlot{
-		PubKey:      pubKey,
-		Amount:      amount,
-		ProposedRoi: proposedRoi,
+		ValidatorAddress:      	validatorAddress,
+		Amount:      			amount,
+		ProposedRoi: 			proposedRoi,
 	}.Wrap()
 }
 
 // ValidateBasic - Check for non-empty candidate, positive shares
 func (tx TxProposeSlot) ValidateBasic() error {
-	if tx.PubKey.Empty() {
+	if tx.ValidatorAddress == "" {
 		return errCandidateEmpty
 	}
 

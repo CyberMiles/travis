@@ -13,8 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	_ "github.com/tendermint/abci/client"
 	abci "github.com/tendermint/abci/types"
-	//"github.com/tendermint/go-wire/data"
-	//auth "github.com/cosmos/cosmos-sdk/modules/auth"
 
 	"github.com/CyberMiles/travis/modules/stake"
 	ethapp "github.com/CyberMiles/travis/modules/vm/app"
@@ -26,12 +24,10 @@ type BaseApp struct {
 	*StoreApp
 	handler sdk.Handler
 	clock   sdk.Ticker
-	//client abcicli.Client
 	EthApp *ethapp.EthermintApplication
 }
 
 const (
-	ETHERMINT_ADDR  = "localhost:8848"
 	BLOCK_AWARD_STR = "10000000000000000000000"
 )
 
@@ -39,7 +35,6 @@ var (
 	blockAward, _ = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
 
 	_ abci.Application = &BaseApp{}
-	//client, err = abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
 	handler = stake.NewHandler()
 )
 
@@ -52,15 +47,6 @@ func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, handler sd
 		clock:    clock,
 		EthApp:   ethApp,
 	}
-	//client, err := abcicli.NewClient(ETHERMINT_ADDR, "socket", true)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//if err := client.Start(); err != nil {
-	//	return nil, err
-	//}
-	//
-	//app.client = client
 
 	return app, nil
 }
@@ -226,16 +212,11 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.logger.Debug("Commit")
 
-	//resp, err := app.client.CommitSync()
-	//if err != nil {
-	//	panic(err)
-	//}
-
 	resp := app.EthApp.Commit()
-	var hash = resp.Data
-	app.logger.Debug("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
+	//var hash = resp.Data
+	//app.logger.Debug("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
 
-	app.StoreApp.Commit()
+	resp = app.StoreApp.Commit()
 	return resp
 }
 
@@ -259,17 +240,6 @@ func (app *BaseApp) InitState(module, key, value string) error {
 		logger.Info(log)
 	}
 	return err
-}
-
-func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
-	//resp, err := app.client.InfoSync(res)
-	//app.EthApp.Info(res)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//return *resp
-	return app.EthApp.Info(req)
 }
 
 //func (app *BaseApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQuery) {

@@ -93,8 +93,8 @@ func (Handler) initState(module, key, value string, store state.SimpleDB) error 
 		case "max_vals":
 			params.MaxVals = uint16(i)
 		}
-	case "validators":
-		setValidators(value)
+	case "validator":
+		setValidator(value)
 	default:
 		return errors.ErrUnknownKey(key)
 	}
@@ -103,22 +103,21 @@ func (Handler) initState(module, key, value string, store state.SimpleDB) error 
 	return nil
 }
 
-func setValidators(value string) error {
-	var doc genesisValidators
-	err := data.FromJSON([]byte(value), &doc)
+func setValidator(value string) error {
+	var val genesisValidator
+	err := data.FromJSON([]byte(value), &val)
 	if err != nil {
 		return fmt.Errorf("error reading validators")
 	}
 
-	for _, val := range doc.Validators {
-		// create and save the empty candidate
-		bond := GetCandidate(val.PubKey.KeyString())
-		if bond != nil {
-			return ErrCandidateExistsAddr()
-		}
-		candidate := NewCandidate(val.PubKey, NewActor([]byte(val.Address)), val.power, val.power)
-		SaveCandidate(candidate)
+	// create and save the empty candidate
+	bond := GetCandidate(val.Address.String())
+	if bond != nil {
+		return ErrCandidateExistsAddr()
 	}
+
+	candidate := NewCandidate(val.PubKey, NewActor([]byte(val.Address)), val.Power, val.Power, "Y")
+	SaveCandidate(candidate)
 
 	return nil
 }
@@ -336,9 +335,9 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 }
 
 func (c check) proposeSlot(tx TxProposeSlot) ([]byte, error) {
-	candidate := GetCandidate(tx.PubKey.KeyString())
+	candidate := GetCandidate(tx.ValidatorAddress)
 	if candidate == nil {
-		return nil, fmt.Errorf("cannot propose slot for non-existant PubKey %v", tx.PubKey)
+		return nil, fmt.Errorf("cannot propose slot for non-existant validator address %v", tx.ValidatorAddress)
 	}
 
 	return nil, nil
@@ -394,7 +393,7 @@ func (d deliver) declare(tx TxDeclare) error {
 	if bond != nil {
 		return ErrCandidateExistsAddr()
 	}
-	candidate := NewCandidate(tx.PubKey, d.sender, 0, 0)
+	candidate := NewCandidate(tx.PubKey, d.sender, 0, 0, "Y")
 	SaveCandidate(candidate)
 
 	return nil
@@ -435,7 +434,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	slot := GetSlot(tx.SlotId)
 
 	// Get the pubKey bond account
-	candidate := GetCandidate(slot.ValidatorPubKey.KeyString())
+	candidate := GetCandidate(slot.ValidatorAddress)
 	if candidate == nil {
 		return ErrBondNotNominated()
 	}
@@ -491,7 +490,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// get pubKey candidate
-	candidate := GetCandidate(slot.ValidatorPubKey.KeyString())
+	candidate := GetCandidate(slot.ValidatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
@@ -512,10 +511,9 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	// deduct shares from the candidate
 	candidate.Shares -= uint64(tx.Amount)
 	if candidate.Shares == 0 {
-		removeCandidate(slot.ValidatorPubKey.KeyString())
-	} else {
-		updateCandidate(candidate)
+		candidate.State = "N"
 	}
+	updateCandidate(candidate)
 
 	slot.AvailableAmount -= tx.Amount
 	updateSlot(slot)
@@ -529,7 +527,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
 	hash := merkle.SimpleHashFromBinary(tx)
 	hexHash := hex.EncodeToString(hash)
-	slot := NewSlot(hexHash, tx.PubKey, tx.Amount, tx.Amount, tx.ProposedRoi)
+	slot := NewSlot(hexHash, tx.ValidatorAddress, tx.Amount, tx.Amount, tx.ProposedRoi, "Y")
 	saveSlot(slot)
 
 	return hash, nil

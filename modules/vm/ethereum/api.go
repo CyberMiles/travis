@@ -194,7 +194,7 @@ func (s *StakeRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs)
 type ProposeSlotArgs struct {
 	Sequence    uint32 `json:"sequence"`
 	From        string `json:"from"`
-	PubKey      string `json:"pubKey"`
+	Address      string `json:"pubKey"`
 	Amount      int64  `json:"amount"`
 	ProposedRoi int64  `json:"proposedRoi"`
 }
@@ -208,11 +208,11 @@ func (s *StakeRPCService) ProposeSlot(args ProposeSlotArgs) (*ctypes.ResultBroad
 }
 
 func (s *StakeRPCService) prepareProposeSlotTx(args ProposeSlotArgs) (sdk.Tx, error) {
-	pubKey, err := stake.GetPubKey(args.PubKey)
-	if err != nil {
-		return sdk.Tx{}, err
-	}
-	tx := stake.NewTxProposeSlot(pubKey, args.Amount, args.ProposedRoi)
+	//pubKey, err := stake.GetPubKey(args.PubKey)
+	//if err != nil {
+	//	return sdk.Tx{}, err
+	//}
+	tx := stake.NewTxProposeSlot(args.Address, args.Amount, args.ProposedRoi)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 

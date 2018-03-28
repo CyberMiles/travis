@@ -11,11 +11,8 @@ import (
 type genesisValidator struct {
 	Address data.Bytes 		`json:"address"`
 	PubKey  crypto.PubKey 	`json:"pub_key"`
-	power 	uint64         	`json:"power"`
-}
-
-type genesisValidators struct {
-	Validators []genesisValidator `json:"validators"`
+	Power 	uint64         	`json:"power"`
+	Name    string          `json:"name"`
 }
 
 // ToAccount - GenesisAccount struct to a basecoin Account

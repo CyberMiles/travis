@@ -153,14 +153,11 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 }
 
 func cmdProposeSlot(cmd *cobra.Command, args []string) error {
+	address := viper.GetString(FlagAddress)
+
 	amount := viper.GetInt64(FlagAmount)
 	if amount <= 0 {
 		return fmt.Errorf("amount must be positive interger")
-	}
-
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
 	}
 
 	proposedRoi := viper.GetInt64(FlagProposedRoi)
@@ -168,7 +165,7 @@ func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("proposed ROI must be positive interger")
 	}
 
-	tx := stake.NewTxProposeSlot(pk, amount, proposedRoi)
+	tx := stake.NewTxProposeSlot(address, amount, proposedRoi)
 	return txcmd.DoTx(tx)
 }
 

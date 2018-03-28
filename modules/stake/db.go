@@ -20,18 +20,19 @@ func getDb() *sql.DB {
 	return db
 }
 
-func GetCandidate(pubKey string) *Candidate {
+func GetCandidate(address string) *Candidate {
+	address = strings.TrimPrefix(address, "0x")
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select owner_address, shares, voting_power from candidates where pub_key = ?")
+	stmt, err := db.Prepare("select pub_key, shares, voting_power, state, created_at, updated_at from candidates where address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var ownerAddress string
+	var pubKey, state, createdAt, updatedAt string
 	var shares, votingPower uint64
-	err = stmt.QueryRow(strings.ToUpper(pubKey)).Scan(&ownerAddress, &shares, &votingPower)
+	err = stmt.QueryRow(strings.ToUpper(address)).Scan(&pubKey, &shares, &votingPower, &state, &createdAt, &updatedAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -40,12 +41,15 @@ func GetCandidate(pubKey string) *Candidate {
 	}
 
 	pk, _ := GetPubKey(pubKey)
-	bs, _ := hex.DecodeString(ownerAddress)
+	bs, _ := hex.DecodeString(address)
 	return &Candidate{
 		PubKey:      pk,
 		Owner:       NewActor(bs),
 		Shares:      shares,
 		VotingPower: votingPower,
+		State:       state,
+		CreatedAt: 	 createdAt,
+		UpdatedAt:   updatedAt,
 	}
 }
 
@@ -53,16 +57,16 @@ func GetCandidates() (candidates Candidates) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, owner_address, shares, voting_power from candidates")
+	rows, err := db.Query("select pub_key, address, shares, voting_power, state, created_at, updated_at from candidates")
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var pubKey, ownerAddress string
+		var pubKey, ownerAddress, state, createdAt, updatedAt string
 		var shares, votingPower uint64
-		err = rows.Scan(&pubKey, &ownerAddress, &shares, &votingPower)
+		err = rows.Scan(&pubKey, &ownerAddress, &shares, &votingPower, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -74,6 +78,10 @@ func GetCandidates() (candidates Candidates) {
 			Owner:       NewActor(bs),
 			Shares:      shares,
 			VotingPower: votingPower,
+			State:       state,
+			CreatedAt: 	 createdAt,
+			UpdatedAt:   updatedAt,
+
 		}
 		candidates = append(candidates, candidate)
 	}
@@ -94,13 +102,13 @@ func SaveCandidate(candidate *Candidate) {
 		panic(err)
 	}
 
-	stmt, err := tx.Prepare("insert into candidates(pub_key, owner_address, shares, voting_power) values(?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.Owner.Address.String(), candidate.Shares, candidate.VotingPower)
+	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.Owner.Address.String(), candidate.Shares, candidate.VotingPower, candidate.State, candidate.CreatedAt, candidate.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -115,39 +123,39 @@ func updateCandidate(candidate *Candidate) {
 		panic(err)
 	}
 
-	stmt, err := tx.Prepare("update  candidates set shares = ?, voting_power = ? where pub_key = ?")
+	stmt, err := tx.Prepare("update  candidates set shares = ?, voting_power = ?, state = ? where pub_key = ?, updated_at = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.Shares, candidate.VotingPower, candidate.PubKey.KeyString())
+	_, err = stmt.Exec(candidate.Shares, candidate.VotingPower, candidate.State, candidate.PubKey.KeyString(), candidate.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
 	tx.Commit()
 }
 
-func removeCandidate(pubKey string) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-
-	stmt, err := tx.Prepare("delete from candidates where pub_key = ?")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(pubKey)
-	if err != nil {
-		panic(err)
-	}
-	tx.Commit()
-}
+//func removeCandidate(pubKey string) {
+//	db := getDb()
+//	defer db.Close()
+//	tx, err := db.Begin()
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	stmt, err := tx.Prepare("delete from candidates where pub_key = ?")
+//	if err != nil {
+//		panic(err)
+//	}
+//	defer stmt.Close()
+//
+//	_, err = stmt.Exec(pubKey)
+//	if err != nil {
+//		panic(err)
+//	}
+//	tx.Commit()
+//}
 
 func saveSlot(slot *Slot) {
 	db := getDb()
@@ -157,13 +165,13 @@ func saveSlot(slot *Slot) {
 		panic(err)
 	}
 
-	stmt, err := tx.Prepare("insert into slots(id, validator_pub_key, total_amount, available_amount, proposed_roi) values(?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into slots(id, validator_address, total_amount, available_amount, proposed_roi, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(strings.ToUpper(slot.Id), slot.ValidatorPubKey.KeyString(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi)
+	_, err = stmt.Exec(strings.ToUpper(slot.Id), slot.ValidatorAddress, slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.CreatedAt, slot.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -178,13 +186,13 @@ func updateSlot(slot *Slot) {
 		panic(err)
 	}
 
-	stmt, err := tx.Prepare("update slots set available_amount = ? where id = ?")
+	stmt, err := tx.Prepare("update slots set available_amount = ?, upudated_at = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slot.AvailableAmount, strings.ToUpper(slot.Id))
+	_, err = stmt.Exec(slot.AvailableAmount, slot.UpdatedAt, strings.ToUpper(slot.Id))
 	if err != nil {
 		panic(err)
 	}
@@ -194,15 +202,15 @@ func updateSlot(slot *Slot) {
 func GetSlot(slotId string) *Slot {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select validator_pub_key, total_amount, available_amount, proposed_roi from slots where id = ?")
+	stmt, err := db.Prepare("select validator_address, total_amount, available_amount, proposed_roi, state, created_at, updated_at from slots where id = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var validatorPubKey string
+	var validatorAddress, state, createdAt, updatedAt string
 	var totalAmount, availableAmount, proposedRoi int64
-	err = stmt.QueryRow(strings.ToUpper(slotId)).Scan(&validatorPubKey, &totalAmount, &availableAmount, &proposedRoi)
+	err = stmt.QueryRow(strings.ToUpper(slotId)).Scan(&validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -210,53 +218,70 @@ func GetSlot(slotId string) *Slot {
 		panic(err)
 	}
 
-	pk, _ := GetPubKey(validatorPubKey)
-	return NewSlot(slotId, pk, totalAmount, availableAmount, proposedRoi)
+	return NewSlot(slotId, validatorAddress, totalAmount, availableAmount, proposedRoi, state)
 }
 
 func GetSlots() (slots []*Slot) {
 	db := getDb()
 	defer db.Close()
-	rows, err := db.Query("select id, validator_pub_key, total_amount, available_amount, proposed_roi from slots")
+	rows, err := db.Query("select id, validator_address, total_amount, available_amount, proposed_roi, state, created_at, updated_at from slots")
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var slotId, validatorPubKey string
+		var slotId, validatorAddress, state, createdAt, updatedAt string
 		var totalAmount, availableAmount, proposedRoi int64
-		err = rows.Scan(&slotId, &validatorPubKey, &totalAmount, &availableAmount, &proposedRoi)
+		err = rows.Scan(&slotId, &validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
 
-		pk, _ := GetPubKey(validatorPubKey)
-		slots = append(slots, NewSlot(slotId, pk, totalAmount, availableAmount, proposedRoi))
+		slot := &Slot{
+			Id: 				slotId,
+			ValidatorAddress: 	validatorAddress,
+			TotalAmount: 		totalAmount,
+			AvailableAmount: 	availableAmount,
+			ProposedRoi: 		proposedRoi,
+			State:       		state,
+			CreatedAt: 			createdAt,
+			UpdatedAt: 			updatedAt,
+		}
+		slots = append(slots, slot)
 	}
 
 	return
 }
 
-func GetSlotsByValidator(validatorPubKey string) (slots []*Slot) {
+func GetSlotsByValidator(validatorAddress string) (slots []*Slot) {
 	db := getDb()
 	defer db.Close()
-	rows, err := db.Query("select id, validator_pub_key, total_amount, available_amount, proposed_roi from slots where validator_pub_key = ?", validatorPubKey)
+	rows, err := db.Query("select id, validator_address, total_amount, available_amount, proposed_roi, state, created_at, updated_at from slots where validator_address = ?", validatorAddress)
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var slotId, validatorPubKey string
+		var slotId, validatorAddress, state, createdAt, updatedAt string
 		var totalAmount, availableAmount, proposedRoi int64
-		err = rows.Scan(&slotId, &validatorPubKey, &totalAmount, &availableAmount, &proposedRoi)
+		err = rows.Scan(&slotId, &validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
 
-		pk, _ := GetPubKey(validatorPubKey)
-		slots = append(slots, NewSlot(slotId, pk, totalAmount, availableAmount, proposedRoi))
+		slot := &Slot{
+			Id: 				slotId,
+			ValidatorAddress: 	validatorAddress,
+			TotalAmount: 		totalAmount,
+			AvailableAmount: 	availableAmount,
+			ProposedRoi: 		proposedRoi,
+			State:       		state,
+			CreatedAt: 			createdAt,
+			UpdatedAt: 			updatedAt,
+		}
+		slots = append(slots, slot)
 	}
 
 	return

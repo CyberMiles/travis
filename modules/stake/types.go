@@ -66,16 +66,18 @@ type Candidate struct {
 	VotingPower uint64        `json:"voting_power"` // Voting power if pubKey is a considered a validator
 	CreatedAt 	string		  `json:"created_at"`
 	UpdatedAt 	string		  `json:"updated_at"`
+	State       string		  `json:"state"`
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, owner sdk.Actor, shares uint64, votingPower uint64) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, owner sdk.Actor, shares uint64, votingPower uint64, state string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:      pubKey,
 		Owner:       owner,
 		Shares:      shares,
 		VotingPower: votingPower,
+		State:       state,
 		CreatedAt: 	 now,
 		UpdatedAt: 	 now,
 	}
@@ -260,20 +262,27 @@ func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err err
 //_________________________________________________________________________
 
 type Slot struct {
-	Id string
-	ValidatorPubKey crypto.PubKey
-	TotalAmount int64
-	AvailableAmount int64
-	ProposedRoi int64
+	Id 					string
+	ValidatorAddress 	string
+	TotalAmount 		int64
+	AvailableAmount 	int64
+	ProposedRoi 		int64
+	State 				string
+	CreatedAt        	string
+	UpdatedAt          	string
 }
 
-func NewSlot(id string, validatorPubKey crypto.PubKey, totalAmount int64, availableAmount int64, proposedRoi int64) *Slot {
+func NewSlot(id string, validatorAddress string, totalAmount int64, availableAmount int64, proposedRoi int64, state string) *Slot {
+	now := utils.GetNow()
 	return &Slot{
-		Id: id,
-		ValidatorPubKey: validatorPubKey,
-		TotalAmount: totalAmount,
-		AvailableAmount: availableAmount,
-		ProposedRoi: proposedRoi,
+		Id: 				id,
+		ValidatorAddress: 	validatorAddress,
+		TotalAmount: 		totalAmount,
+		AvailableAmount: 	availableAmount,
+		ProposedRoi: 		proposedRoi,
+		State:       		state,
+		CreatedAt: 			now,
+		UpdatedAt: 			now,
 	}
 }
 
