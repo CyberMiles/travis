@@ -16,7 +16,7 @@ console.log(
   `Will send ${totalTxs} transactions and wait for ${blockTimeout} blocks`
 )
 
-let gasPrice = web3.cmt.gasPrice
+let gasPrice = web3.toWei(5, "gwei")
 let cost = utils.calculateTransactionsPrice(gasPrice, value, totalTxs)
 let balance = web3.cmt.getBalance(fromAddress)
 let endBalance = balance.minus(cost)
