@@ -17,6 +17,5 @@ var(
 	StateChangeQueue []StateChangeObject
 	ValidatorPubKeys [][]byte
 
-	// record count of failed CheckTx of each from account; used to feed in the nonce check
-	CheckFailedCount map[common.Address]uint64 = make(map[common.Address]uint64)
+	NonceCheckedTx map[common.Hash]bool = make(map[common.Hash]bool)
 )

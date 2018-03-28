@@ -195,6 +195,8 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
 	tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
 
+	delete(utils.NonceCheckedTx, tx.Hash())
+
 	// Iterate to sub balance of staker from state
 	// ws.stakedTxIndex used for record coped index of every staker
 	for i := ws.stakedTxIndex; i < len(utils.StateChangeQueue); i++ {

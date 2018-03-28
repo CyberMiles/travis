@@ -468,3 +468,19 @@ func (s *StakeRPCService) get(path string, key []byte, height int64) (data.Bytes
 	}
 	return data.Bytes(resp.Response.Value), resp.Response.Height, err
 }
+
+// GovernanceRPCService offers stake related RPC methods
+type GovernanceRPCService struct {
+	backend *Backend
+}
+
+// NewGovernanceRPCAPI create a new StakeRPCAPI.
+func NewGovernanceRPCService(b *Backend) *GovernanceRPCService {
+	return &GovernanceRPCService{
+		backend: b,
+	}
+}
+
+func (g *GovernanceRPCService) Test() (bool, error) {
+	return true, nil
+}

@@ -161,6 +161,12 @@ func (b *Backend) APIs() []rpc.API {
 			Service:   NewStakeRPCService(b),
 			Public:    true,
 		},
+		{
+			Namespace: "governance",
+			Version:   "1.0",
+			Service:   NewGovernanceRPCService(b),
+			Public:    true,
+		},
 	}...)
 
 	retApis := []rpc.API{}
