@@ -200,16 +200,12 @@ func cmdWithdrawSlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdCancelSlot(cmd *cobra.Command, args []string) error {
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
+	address := viper.GetString(FlagAddress)
 	slotId := viper.GetString(FlagSlotId)
 	if slotId == "" {
 		return fmt.Errorf("please enter slot ID using --slot-id")
 	}
 
-	tx := stake.NewTxCancelSlot(pk, slotId)
+	tx := stake.NewTxCancelSlot(address, slotId)
 	return txcmd.DoTx(tx)
 }

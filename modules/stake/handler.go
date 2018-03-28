@@ -294,7 +294,7 @@ var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
 func (c check) declare(tx TxDeclare) error {
 	// check to see if the pubkey or sender has been registered before
-	candidate := GetCandidate(tx.PubKey.KeyString())
+	candidate := GetCandidate(c.sender.Address.String())
 	if candidate != nil {
 		return fmt.Errorf("cannot declare pubkey which is already declared"+
 			" PubKey %v already registered with %v candidate address",
@@ -389,7 +389,7 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 func (d deliver) declare(tx TxDeclare) error {
 
 	// create and save the empty candidate
-	bond := GetCandidate(tx.PubKey.KeyString())
+	bond := GetCandidate(d.sender.Address.String())
 	if bond != nil {
 		return ErrCandidateExistsAddr()
 	}
@@ -402,14 +402,14 @@ func (d deliver) declare(tx TxDeclare) error {
 func (d deliver) withdraw(tx TxWithdraw) error {
 
 	// create and save the empty candidate
-	pubKey := tx.PubKey.KeyString()
-	candidate := GetCandidate(pubKey)
+	validatorAddress := d.sender.Address.String()
+	candidate := GetCandidate(validatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
 
 	// All staked tokens will be distributed back to delegator addresses.
-	slots := GetSlotsByValidator(pubKey)
+	slots := GetSlotsByValidator(validatorAddress)
 	for _, slot := range slots {
 		slotId := slot.Id
 		delegates := GetSlotDelegatesBySlot(slotId)

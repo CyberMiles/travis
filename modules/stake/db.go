@@ -101,6 +101,7 @@ func SaveCandidate(candidate *Candidate) {
 	if err != nil {
 		panic(err)
 	}
+	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
@@ -112,7 +113,6 @@ func SaveCandidate(candidate *Candidate) {
 	if err != nil {
 		panic(err)
 	}
-	tx.Commit()
 }
 
 func updateCandidate(candidate *Candidate) {
@@ -122,6 +122,7 @@ func updateCandidate(candidate *Candidate) {
 	if err != nil {
 		panic(err)
 	}
+	defer tx.Commit()
 
 	stmt, err := tx.Prepare("update  candidates set shares = ?, voting_power = ?, state = ? where pub_key = ?, updated_at = ?")
 	if err != nil {
@@ -133,7 +134,6 @@ func updateCandidate(candidate *Candidate) {
 	if err != nil {
 		panic(err)
 	}
-	tx.Commit()
 }
 
 //func removeCandidate(pubKey string) {
@@ -164,6 +164,7 @@ func saveSlot(slot *Slot) {
 	if err != nil {
 		panic(err)
 	}
+	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into slots(id, validator_address, total_amount, available_amount, proposed_roi, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
@@ -175,7 +176,6 @@ func saveSlot(slot *Slot) {
 	if err != nil {
 		panic(err)
 	}
-	tx.Commit()
 }
 
 func updateSlot(slot *Slot) {
@@ -185,6 +185,7 @@ func updateSlot(slot *Slot) {
 	if err != nil {
 		panic(err)
 	}
+	defer tx.Commit()
 
 	stmt, err := tx.Prepare("update slots set available_amount = ?, upudated_at = ? where id = ?")
 	if err != nil {
@@ -196,7 +197,6 @@ func updateSlot(slot *Slot) {
 	if err != nil {
 		panic(err)
 	}
-	tx.Commit()
 }
 
 func GetSlot(slotId string) *Slot {
@@ -382,6 +382,7 @@ func saveSlotDelegate(slotDelegate SlotDelegate) {
 	if err != nil {
 		panic(err)
 	}
+	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into slot_delegates(delegator_address, slot_id, Amount) values(?, ?, ?)")
 	if err != nil {
@@ -393,7 +394,6 @@ func saveSlotDelegate(slotDelegate SlotDelegate) {
 	if err != nil {
 		panic(err)
 	}
-	tx.Commit()
 }
 
 func removeSlotDelegate(slotDelegate SlotDelegate) {
@@ -403,6 +403,7 @@ func removeSlotDelegate(slotDelegate SlotDelegate) {
 	if err != nil {
 		panic(err)
 	}
+	defer tx.Commit()
 
 	stmt, err := tx.Prepare("delete from slot_delegates where delegator_address = ? and slot_id =?")
 	if err != nil {
@@ -414,7 +415,6 @@ func removeSlotDelegate(slotDelegate SlotDelegate) {
 	if err != nil {
 		panic(err)
 	}
-	tx.Commit()
 }
 
 func saveDelegateHistory(delegateHistory DelegateHistory) {
@@ -424,6 +424,7 @@ func saveDelegateHistory(delegateHistory DelegateHistory) {
 	if err != nil {
 		panic(err)
 	}
+	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into slot_delegates(delegator_address, slot_id, Amount, op_code) values(?, ?, ?, ?)")
 	if err != nil {
@@ -435,5 +436,4 @@ func saveDelegateHistory(delegateHistory DelegateHistory) {
 	if err != nil {
 		panic(err)
 	}
-	tx.Commit()
 }

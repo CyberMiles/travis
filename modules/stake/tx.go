@@ -158,14 +158,14 @@ func (tx TxWithdrawSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxProposeSlot - struct for propose slot
 type TxCancelSlot struct {
-	PubKey      crypto.PubKey
-	SlotId		string
+	ValidatorAddress	string
+	SlotId				string
 }
 
 // NewTxProposeSlot - new TxProposeSlot
-func NewTxCancelSlot(pubKey crypto.PubKey, slotId string) sdk.Tx {
+func NewTxCancelSlot(validatorAddress string, slotId string) sdk.Tx {
 	return TxCancelSlot{
-		PubKey: pubKey,
+		ValidatorAddress: validatorAddress,
 		SlotId:	slotId,
 	}.Wrap()
 }
