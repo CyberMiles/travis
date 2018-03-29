@@ -202,7 +202,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		b := wire.BinaryBytes(candidates)
 		resQuery.Value = b
 	case "/validator":
-		address := common.BytesToAddress(reqQuery.Data)
+		address := common.HexToAddress(string(reqQuery.Data))
 		candidate := stake.GetCandidate(address)
 		if candidate != nil {
 			b := wire.BinaryBytes(*candidate)
@@ -211,7 +211,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 			resQuery.Value = []byte{}
 		}
 	case "/delegator":
-		address := common.BytesToAddress(reqQuery.Data)
+		address := common.HexToAddress(string(reqQuery.Data))
 		slotDelegates := stake.GetSlotDelegatesByAddress(address)
 		b := wire.BinaryBytes(slotDelegates)
 		resQuery.Value = b

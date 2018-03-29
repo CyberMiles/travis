@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 	"github.com/ethereum/go-ethereum/common"
+	"fmt"
 )
 
 func getDb() *sql.DB {
@@ -21,7 +22,6 @@ func getDb() *sql.DB {
 }
 
 func GetCandidate(address common.Address) *Candidate {
-	//address = strings.TrimPrefix(address, "0x")
 	db := getDb()
 	defer db.Close()
 	stmt, err := db.Prepare("select pub_key, shares, voting_power, state, created_at, updated_at from candidates where address = ?")
@@ -211,7 +211,7 @@ func GetSlot(slotId string) *Slot {
 
 	var validatorAddress, state, createdAt, updatedAt string
 	var totalAmount, availableAmount, proposedRoi int64
-	err = stmt.QueryRow(strings.ToUpper(slotId)).Scan(&validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
+	err = stmt.QueryRow(strings.ToLower(slotId)).Scan(&validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
