@@ -19,11 +19,12 @@ console.log(
 // let privKey = wallet.getPrivateKey()
 let dest = config.get("address")
 let value = 1
-let gasPrice = web3.toWei(5, "gwei")
+let gasPrice = web3.toBigNumber(web3.toWei("5", "gwei"))
 
 let cost = utils.calculateTransactionsPrice(gasPrice, value, totalTxs)
 let balance = web3.cmt.getBalance(walletAddress)
 let endBalance = balance.minus(cost)
+console.log("balance after transfer will be: ", endBalance.toString())
 
 if (cost.comparedTo(balance) > 0) {
   let error =
