@@ -45,7 +45,8 @@ func prepareClientCommands() {
 	txcmd.Middleware.Register(txcmd.RootCmd.PersistentFlags())
 
 	txcmd.RootCmd.AddCommand(
-		stakecmd.CmdDeclare,
+		stakecmd.CmdDeclareCandidacy,
+		stakecmd.CmdEditCandidacy,
 		stakecmd.CmdWithdraw,
 		stakecmd.CmdProposeSlot,
 		stakecmd.CmdAcceptSlot,

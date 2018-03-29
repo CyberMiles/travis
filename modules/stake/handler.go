@@ -30,7 +30,8 @@ func Name() string {
 
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
-	declare(TxDeclare) error
+	declareCandidacy(TxDeclareCandidacy) error
+	editCandidacy(TxEditCandidacy) error
 	withdraw(TxWithdraw) error
 	proposeSlot(TxProposeSlot) ([]byte, error)
 	acceptSlot(TxAcceptSlot) error
@@ -154,9 +155,12 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 
 	// return the fee for each tx type
 	switch txInner := tx.Unwrap().(type) {
-	case TxDeclare:
-		return sdk.NewCheck(params.GasDeclare, ""),
-			checker.declare(txInner)
+	case TxDeclareCandidacy:
+		return sdk.NewCheck(params.GasDeclareCandidacy, ""),
+			checker.declareCandidacy(txInner)
+	case TxEditCandidacy:
+		return sdk.NewCheck(params.GasEditCandidacy, ""),
+			checker.editCandidacy(txInner)
 	case TxWithdraw:
 		return sdk.NewCheck(params.GasWithdraw, ""),
 			checker.withdraw(txInner)
@@ -205,9 +209,12 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 
 	// Run the transaction
 	switch _tx := tx.Unwrap().(type) {
-	case TxDeclare:
-		res.GasUsed = params.GasDeclare
-		return res, deliverer.declare(_tx)
+	case TxDeclareCandidacy:
+		res.GasUsed = params.GasDeclareCandidacy
+		return res, deliverer.declareCandidacy(_tx)
+	case TxEditCandidacy:
+		res.GasUsed = params.GasEditCandidacy
+		return res, deliverer.editCandidacy(_tx)
 	case TxWithdraw:
 		res.GasUsed = params.GasWithdraw
 		return res, deliverer.withdraw(_tx)
@@ -293,7 +300,7 @@ type check struct {
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
-func (c check) declare(tx TxDeclare) error {
+func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	// check to see if the pubkey or sender has been registered before
 	candidate := GetCandidate(common.BytesToAddress(c.sender.Address))
 	if candidate != nil && candidate.State == "Y" {
@@ -305,8 +312,17 @@ func (c check) declare(tx TxDeclare) error {
 	return nil
 }
 
+func (c check) editCandidacy(tx TxEditCandidacy) error {
+	candidate := GetCandidate(common.BytesToAddress(c.sender.Address))
+	if candidate == nil {
+		return fmt.Errorf("cannot edit non-exsits candidacy")
+	}
+
+	return nil
+}
+
 func (c check) withdraw(tx TxWithdraw) error {
-	// check to see if the pubkey or sender has been registered before
+	// check to see if the address has been registered before
 	candidate := GetCandidate(tx.Address)
 	if candidate == nil {
 		return fmt.Errorf("cannot withdraw pubkey which is not declared"+
@@ -388,7 +404,7 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 
 // These functions assume everything has been authenticated,
 // now we just perform action and save
-func (d deliver) declare(tx TxDeclare) error {
+func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 
 	// create and save the empty candidate
 	ownerAddress := common.BytesToAddress(d.sender.Address)
@@ -406,6 +422,22 @@ func (d deliver) declare(tx TxDeclare) error {
 		candidate.UpdatedAt = utils.GetNow()
 		updateCandidate(candidate)
 	}
+
+	return nil
+}
+
+func (d deliver) editCandidacy(tx TxEditCandidacy) error {
+
+	// create and save the empty candidate
+	ownerAddress := common.BytesToAddress(d.sender.Address)
+	candidate := GetCandidate(ownerAddress)
+	if candidate == nil {
+		return ErrNoCandidateForAddress()
+	}
+
+	candidate.OwnerAddress = tx.NewAddress
+	candidate.UpdatedAt = utils.GetNow()
+	updateCandidate(candidate)
 
 	return nil
 }

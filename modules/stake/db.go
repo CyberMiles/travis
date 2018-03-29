@@ -124,13 +124,13 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update  candidates set shares = ?, voting_power = ?, state = ?, updated_at = ? where address = ?")
+	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, state = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.Shares, candidate.VotingPower, candidate.State, candidate.UpdatedAt, candidate.OwnerAddress.String())
+	_, err = stmt.Exec(candidate.OwnerAddress.String(), candidate.Shares, candidate.VotingPower, candidate.State, candidate.UpdatedAt, candidate.PubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
