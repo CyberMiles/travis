@@ -6,7 +6,7 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 	"path"
 	"strings"
-	"encoding/hex"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 func getDb() *sql.DB {
@@ -20,8 +20,8 @@ func getDb() *sql.DB {
 	return db
 }
 
-func GetCandidate(address string) *Candidate {
-	address = strings.TrimPrefix(address, "0x")
+func GetCandidate(address common.Address) *Candidate {
+	//address = strings.TrimPrefix(address, "0x")
 	db := getDb()
 	defer db.Close()
 	stmt, err := db.Prepare("select pub_key, shares, voting_power, state, created_at, updated_at from candidates where address = ?")
@@ -32,7 +32,7 @@ func GetCandidate(address string) *Candidate {
 
 	var pubKey, state, createdAt, updatedAt string
 	var shares, votingPower uint64
-	err = stmt.QueryRow(strings.ToUpper(address)).Scan(&pubKey, &shares, &votingPower, &state, &createdAt, &updatedAt)
+	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &state, &createdAt, &updatedAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -41,15 +41,15 @@ func GetCandidate(address string) *Candidate {
 	}
 
 	pk, _ := GetPubKey(pubKey)
-	bs, _ := hex.DecodeString(address)
+	//bs, _ := hex.DecodeString(address)
 	return &Candidate{
-		PubKey:      pk,
-		Owner:       NewActor(bs),
-		Shares:      shares,
-		VotingPower: votingPower,
-		State:       state,
-		CreatedAt: 	 createdAt,
-		UpdatedAt:   updatedAt,
+		PubKey:      	pk,
+		OwnerAddress: 	address,
+		Shares:      	shares,
+		VotingPower: 	votingPower,
+		State:       	state,
+		CreatedAt: 	 	createdAt,
+		UpdatedAt:   	updatedAt,
 	}
 }
 
@@ -72,15 +72,16 @@ func GetCandidates() (candidates Candidates) {
 		}
 
 		pk, _ := GetPubKey(pubKey)
-		bs, _ := hex.DecodeString(ownerAddress)
+		//bs, _ := hex.DecodeString(ownerAddress)
 		candidate := &Candidate{
-			PubKey:      pk,
-			Owner:       NewActor(bs),
-			Shares:      shares,
-			VotingPower: votingPower,
-			State:       state,
-			CreatedAt: 	 createdAt,
-			UpdatedAt:   updatedAt,
+			PubKey:      	pk,
+			//OwnerAddress:       NewActor(bs),
+			OwnerAddress:   common.HexToAddress(ownerAddress),
+			Shares:      	shares,
+			VotingPower: 	votingPower,
+			State:       	state,
+			CreatedAt: 	 	createdAt,
+			UpdatedAt:   	updatedAt,
 
 		}
 		candidates = append(candidates, candidate)
@@ -109,7 +110,7 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.Owner.Address.String(), candidate.Shares, candidate.VotingPower, candidate.State, candidate.CreatedAt, candidate.UpdatedAt)
+	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.OwnerAddress.String(), candidate.Shares, candidate.VotingPower, candidate.State, candidate.CreatedAt, candidate.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -124,13 +125,13 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update  candidates set shares = ?, voting_power = ?, state = ?, updated_at = ? where pub_key = ?")
+	stmt, err := tx.Prepare("update  candidates set shares = ?, voting_power = ?, state = ?, updated_at = ? where address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.Shares, candidate.VotingPower, candidate.State, candidate.UpdatedAt, candidate.PubKey.KeyString())
+	_, err = stmt.Exec(candidate.Shares, candidate.VotingPower, candidate.State, candidate.UpdatedAt, candidate.OwnerAddress.String())
 	if err != nil {
 		panic(err)
 	}
@@ -218,7 +219,7 @@ func GetSlot(slotId string) *Slot {
 		panic(err)
 	}
 
-	return NewSlot(slotId, validatorAddress, totalAmount, availableAmount, proposedRoi, state)
+	return NewSlot(slotId, common.HexToAddress(validatorAddress), totalAmount, availableAmount, proposedRoi, state)
 }
 
 func GetSlots() (slots []*Slot) {
@@ -240,7 +241,7 @@ func GetSlots() (slots []*Slot) {
 
 		slot := &Slot{
 			Id: 				slotId,
-			ValidatorAddress: 	validatorAddress,
+			ValidatorAddress: 	common.HexToAddress(validatorAddress),
 			TotalAmount: 		totalAmount,
 			AvailableAmount: 	availableAmount,
 			ProposedRoi: 		proposedRoi,
@@ -254,19 +255,19 @@ func GetSlots() (slots []*Slot) {
 	return
 }
 
-func GetSlotsByValidator(validatorAddress string) (slots []*Slot) {
+func GetSlotsByValidator(validatorAddress common.Address) (slots []*Slot) {
 	db := getDb()
 	defer db.Close()
-	rows, err := db.Query("select id, validator_address, total_amount, available_amount, proposed_roi, state, created_at, updated_at from slots where validator_address = ?", validatorAddress)
+	rows, err := db.Query("select id, total_amount, available_amount, proposed_roi, state, created_at, updated_at from slots where validator_address = ?", validatorAddress.String())
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var slotId, validatorAddress, state, createdAt, updatedAt string
+		var slotId, state, createdAt, updatedAt string
 		var totalAmount, availableAmount, proposedRoi int64
-		err = rows.Scan(&slotId, &validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
+		err = rows.Scan(&slotId, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -287,17 +288,17 @@ func GetSlotsByValidator(validatorAddress string) (slots []*Slot) {
 	return
 }
 
-func GetSlotDelegate(delegatorAddress string, slotId string) *SlotDelegate {
+func GetSlotDelegate(delegatorAddress common.Address, slotId string) *SlotDelegate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select Amount from slot_delegates where slot_id = ? and delegator_address = ?")
+	stmt, err := db.Prepare("select amount from slot_delegates where slot_id = ? and delegator_address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	var amount int64
-	err = stmt.QueryRow(slotId, delegatorAddress).Scan(&amount)
+	err = stmt.QueryRow(slotId, delegatorAddress.String()).Scan(&amount)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -308,12 +309,11 @@ func GetSlotDelegate(delegatorAddress string, slotId string) *SlotDelegate {
 	return NewSlotDelegate(delegatorAddress, slotId, amount)
 }
 
-func GetSlotDelegatesByAddress(delegatorAddress string) (slotDelegates []*SlotDelegate) {
+func GetSlotDelegatesByAddress(delegatorAddress common.Address) (slotDelegates []*SlotDelegate) {
 	db := getDb()
 	defer db.Close()
 
-	delegatorAddress = strings.TrimPrefix(delegatorAddress, "0x")
-	rows, err := db.Query("select slot_id, amount from slot_delegates where delegator_address = ?", delegatorAddress)
+	rows, err := db.Query("select slot_id, amount from slot_delegates where delegator_address = ?", delegatorAddress.String())
 	if err != nil {
 		panic(err)
 	}
@@ -364,7 +364,7 @@ func GetSlotDelegatesBySlot(slotId string) (slotDelegates []*SlotDelegate) {
 			panic(err)
 		}
 
-		slotDelegates = append(slotDelegates, NewSlotDelegate(delegatorAddress, slotId, amount))
+		slotDelegates = append(slotDelegates, NewSlotDelegate(common.HexToAddress(delegatorAddress), slotId, amount))
 	}
 
 	err = rows.Err()

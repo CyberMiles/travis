@@ -11,6 +11,7 @@ import (
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // Params defines the high level settings for staking
@@ -60,26 +61,26 @@ func defaultParams() Params {
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
-	PubKey      crypto.PubKey `json:"pub_key"`      // Pubkey of candidate
-	Owner       sdk.Actor     `json:"owner"`        // Sender of BondTx - UnbondTx returns here
-	Shares      uint64        `json:"shares"`       // Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower uint64        `json:"voting_power"` // Voting power if pubKey is a considered a validator
-	CreatedAt 	string		  `json:"created_at"`
-	UpdatedAt 	string		  `json:"updated_at"`
-	State       string		  `json:"state"`
+	PubKey      	crypto.PubKey 	`json:"pub_key"`      // Pubkey of candidate
+	OwnerAddress    common.Address 	`json:"owner"`        // Sender of BondTx - UnbondTx returns here
+	Shares      	uint64        	`json:"shares"`       // Total number of delegated shares to this candidate, equivalent to coins held in bond account
+	VotingPower 	uint64        	`json:"voting_power"` // Voting power if pubKey is a considered a validator
+	CreatedAt 		string		  	`json:"created_at"`
+	UpdatedAt 		string		  	`json:"updated_at"`
+	State       	string		  	`json:"state"`
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, owner sdk.Actor, shares uint64, votingPower uint64, state string) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares uint64, votingPower uint64, state string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
-		PubKey:      pubKey,
-		Owner:       owner,
-		Shares:      shares,
-		VotingPower: votingPower,
-		State:       state,
-		CreatedAt: 	 now,
-		UpdatedAt: 	 now,
+		PubKey:      	pubKey,
+		OwnerAddress:   ownerAddress,
+		Shares:      	shares,
+		VotingPower: 	votingPower,
+		State:       	state,
+		CreatedAt: 	 	now,
+		UpdatedAt: 	 	now,
 	}
 }
 
@@ -263,7 +264,7 @@ func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err err
 
 type Slot struct {
 	Id 					string
-	ValidatorAddress 	string
+	ValidatorAddress 	common.Address
 	TotalAmount 		int64
 	AvailableAmount 	int64
 	ProposedRoi 		int64
@@ -272,7 +273,7 @@ type Slot struct {
 	UpdatedAt          	string
 }
 
-func NewSlot(id string, validatorAddress string, totalAmount int64, availableAmount int64, proposedRoi int64, state string) *Slot {
+func NewSlot(id string, validatorAddress common.Address, totalAmount int64, availableAmount int64, proposedRoi int64, state string) *Slot {
 	now := utils.GetNow()
 	return &Slot{
 		Id: 				id,
@@ -287,19 +288,19 @@ func NewSlot(id string, validatorAddress string, totalAmount int64, availableAmo
 }
 
 type SlotDelegate struct {
-	DelegatorAddress string
-	SlotId string
-	Amount int64
+	DelegatorAddress 	common.Address
+	SlotId 				string
+	Amount 				int64
 }
 
-func NewSlotDelegate(delegatorAddress string, slotId string, amount int64) *SlotDelegate {
+func NewSlotDelegate(delegatorAddress common.Address, slotId string, amount int64) *SlotDelegate {
 	return &SlotDelegate{DelegatorAddress: delegatorAddress, SlotId: slotId, Amount: amount}
 }
 
 type DelegateHistory struct {
-	DelegatorAddress string
-	SlotId string
-	Amount int64
-	OpCode string
+	DelegatorAddress 	common.Address
+	SlotId 				string
+	Amount 				int64
+	OpCode 				string
 }
 

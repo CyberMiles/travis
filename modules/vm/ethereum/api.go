@@ -169,9 +169,9 @@ func (s *StakeRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (
 }
 
 type WithdrawCandidacyArgs struct {
-	Sequence uint32 `json:"sequence"`
-	From     string `json:"from"`
-	Address  string `json:"address"`
+	Sequence uint32 		`json:"sequence"`
+	From     string 		`json:"from"`
+	Address  common.Address `json:"address"`
 }
 
 func (s *StakeRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -183,7 +183,7 @@ func (s *StakeRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes
 }
 
 func (s *StakeRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs) (sdk.Tx, error) {
-	if args.Address == "" {
+	if len(args.Address) == 0 {
 		return sdk.Tx{}, fmt.Errorf("must provide address")
 	}
 	tx := stake.NewTxWithdraw(args.Address)
@@ -211,7 +211,7 @@ func (s *StakeRPCService) prepareProposeSlotTx(args ProposeSlotArgs) (sdk.Tx, er
 	//if err != nil {
 	//	return sdk.Tx{}, err
 	//}
-	tx := stake.NewTxProposeSlot(args.Address, args.Amount, args.ProposedRoi)
+	tx := stake.NewTxProposeSlot(common.HexToAddress(args.Address), args.Amount, args.ProposedRoi)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
@@ -256,10 +256,10 @@ func (s *StakeRPCService) prepareWithdrawSlotTx(args WithdrawSlotArgs) (sdk.Tx, 
 }
 
 type CancelSlotArgs struct {
-	Sequence uint32 `json:"sequence"`
-	From     string `json:"from"`
-	Address  string `json:"address"`
-	SlotId   string `json:"slotId"`
+	Sequence uint32 		`json:"sequence"`
+	From     string 		`json:"from"`
+	Address  common.Address `json:"address"`
+	SlotId   string 		`json:"slotId"`
 }
 
 func (s *StakeRPCService) CancelSlot(args CancelSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -271,7 +271,7 @@ func (s *StakeRPCService) CancelSlot(args CancelSlotArgs) (*ctypes.ResultBroadca
 }
 
 func (s *StakeRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, error) {
-	if args.Address == "" {
+	if len(args.Address) == 0 {
 		return sdk.Tx{}, fmt.Errorf("must provide validator address")
 	}
 	tx := stake.NewTxCancelSlot(args.Address, args.SlotId)

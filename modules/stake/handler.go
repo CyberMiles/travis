@@ -16,6 +16,7 @@ import (
 	"encoding/hex"
 	"github.com/tendermint/go-wire/data"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // nolint
@@ -112,12 +113,12 @@ func setValidator(value string) error {
 	}
 
 	// create and save the empty candidate
-	bond := GetCandidate(val.Address.String())
+	bond := GetCandidate(val.Address)
 	if bond != nil {
 		return ErrCandidateExistsAddr()
 	}
 
-	candidate := NewCandidate(val.PubKey, NewActor([]byte(val.Address)), val.Power, val.Power, "Y")
+	candidate := NewCandidate(val.PubKey, val.Address, val.Power, val.Power, "Y")
 	SaveCandidate(candidate)
 
 	return nil
@@ -295,11 +296,11 @@ var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
 func (c check) declare(tx TxDeclare) error {
 	// check to see if the pubkey or sender has been registered before
-	candidate := GetCandidate(c.sender.Address.String())
+	candidate := GetCandidate(common.BytesToAddress(c.sender.Address))
 	if candidate != nil {
 		return fmt.Errorf("cannot declare pubkey which is already declared"+
 			" PubKey %v already registered with %v candidate address",
-			candidate.PubKey, candidate.Owner)
+			candidate.PubKey, candidate.OwnerAddress.String())
 	}
 
 	return nil
@@ -311,7 +312,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 	if candidate == nil {
 		return fmt.Errorf("cannot withdraw pubkey which is not declared"+
 			" PubKey %v already registered with %v candidate address",
-			candidate.PubKey, candidate.Owner)
+			candidate.PubKey, candidate.OwnerAddress.String())
 	}
 
 	return nil
@@ -324,7 +325,8 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// check if have enough shares to unbond
-	slotDelegate := GetSlotDelegate(c.sender.Address.String(), tx.SlotId)
+	delegatorAddress := common.BytesToAddress(c.sender.Address)
+	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()
 	}
@@ -390,11 +392,12 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 func (d deliver) declare(tx TxDeclare) error {
 
 	// create and save the empty candidate
-	bond := GetCandidate(d.sender.Address.String())
+	ownerAddress := common.BytesToAddress(d.sender.Address)
+	bond := GetCandidate(ownerAddress)
 	if bond != nil {
 		return ErrCandidateExistsAddr()
 	}
-	candidate := NewCandidate(tx.PubKey, d.sender, 0, 0, "Y")
+	candidate := NewCandidate(tx.PubKey, ownerAddress, 0, 0, "Y")
 	SaveCandidate(candidate)
 
 	return nil
@@ -403,7 +406,7 @@ func (d deliver) declare(tx TxDeclare) error {
 func (d deliver) withdraw(tx TxWithdraw) error {
 
 	// create and save the empty candidate
-	validatorAddress := d.sender.Address.String()
+	validatorAddress := common.BytesToAddress(d.sender.Address)
 	candidate := GetCandidate(validatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
@@ -415,7 +418,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		slotId := slot.Id
 		delegates := GetSlotDelegatesBySlot(slotId)
 		for _, delegate := range delegates {
-			delegator := sdk.Actor{"", stakingModuleName, []byte(delegate.DelegatorAddress)}
+			delegator := sdk.Actor{"", stakingModuleName, delegate.DelegatorAddress.Bytes()}
 			d.transfer(d.params.HoldAccount, delegator,
 				coin.Coins{{d.params.AllowedBondDenom, delegate.Amount}})
 			delegate.Amount = 0
@@ -442,9 +445,6 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	if candidate == nil {
 		return ErrBondNotNominated()
 	}
-	if candidate.Owner.Empty() { //candidate has been withdrawn
-		return ErrBondNotNominated()
-	}
 
 	if tx.Amount > slot.AvailableAmount {
 		return ErrFullSlot()
@@ -457,7 +457,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	}
 
 	// Get or create the delegate slot
-	delegatorAddress := d.sender.Address.String()
+	delegatorAddress := common.BytesToAddress(d.sender.Address)
 	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		slotDelegate = NewSlotDelegate(delegatorAddress, tx.SlotId, 0)
@@ -487,7 +487,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// get the slot delegate
-	delegatorAddress := d.sender.Address.String()
+	delegatorAddress := common.BytesToAddress(d.sender.Address)
 	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()

@@ -12,6 +12,7 @@ import (
 
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 /*
@@ -126,7 +127,7 @@ func cmdDeclare(cmd *cobra.Command, args []string) error {
 }
 
 func cmdWithdraw(cmd *cobra.Command, args []string) error {
-	address := viper.GetString(FlagAddress)
+	address := common.HexToAddress(viper.GetString(FlagAddress))
 	tx := stake.NewTxWithdraw(address)
 	return txcmd.DoTx(tx)
 }
@@ -154,8 +155,7 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 }
 
 func cmdProposeSlot(cmd *cobra.Command, args []string) error {
-	address := viper.GetString(FlagAddress)
-
+	address := common.HexToAddress(viper.GetString(FlagAddress))
 	amount := viper.GetInt64(FlagAmount)
 	if amount <= 0 {
 		return fmt.Errorf("amount must be positive interger")
@@ -201,7 +201,7 @@ func cmdWithdrawSlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdCancelSlot(cmd *cobra.Command, args []string) error {
-	address := viper.GetString(FlagAddress)
+	address := common.HexToAddress(viper.GetString(FlagAddress))
 	slotId := viper.GetString(FlagSlotId)
 	if slotId == "" {
 		return fmt.Errorf("please enter slot ID using --slot-id")

@@ -2,14 +2,14 @@ package stake
 
 import (
 	crypto "github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-wire/data"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 /**** code to parse accounts from genesis docs ***/
 
 // GenesisValidator - genesis validator parameters
 type genesisValidator struct {
-	Address data.Bytes 		`json:"address"`
+	Address common.Address 	`json:"address"`
 	PubKey  crypto.PubKey 	`json:"pub_key"`
 	Power 	uint64         	`json:"power"`
 	Name    string          `json:"name"`
