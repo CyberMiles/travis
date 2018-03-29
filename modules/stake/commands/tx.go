@@ -12,6 +12,7 @@ import (
 
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 /*
@@ -43,6 +44,7 @@ const (
 	FlagAmount = "amount"
 	FlagProposedRoi = "proposed-roi"
 	FlagSlotId = "slot-id"
+	FlagAddress = "address"
 )
 
 // nolint
@@ -94,10 +96,14 @@ func init() {
 	fsSlot := flag.NewFlagSet("", flag.ContinueOnError)
 	fsSlot.String(FlagSlotId, "", "Slot ID")
 
+	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
+	fsAddr.String(FlagAddress, "", "Hex Address")
+
 	// add the flags
 	CmdDeclare.Flags().AddFlagSet(fsPk)
 
-	CmdProposeSlot.Flags().AddFlagSet(fsPk)
+	CmdWithdraw.Flags().AddFlagSet(fsAddr)
+
 	CmdProposeSlot.Flags().AddFlagSet(fsAmount)
 	CmdProposeSlot.Flags().AddFlagSet(fsProposeSlot)
 
@@ -107,7 +113,6 @@ func init() {
 	CmdWithdrawSlot.Flags().AddFlagSet(fsSlot)
 	CmdWithdrawSlot.Flags().AddFlagSet(fsAmount)
 
-	CmdCancelSlot.Flags().AddFlagSet(fsPk)
 	CmdCancelSlot.Flags().AddFlagSet(fsSlot)
 }
 
@@ -122,12 +127,8 @@ func cmdDeclare(cmd *cobra.Command, args []string) error {
 }
 
 func cmdWithdraw(cmd *cobra.Command, args []string) error {
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
-	tx := stake.NewTxWithdraw(pk)
+	address := common.HexToAddress(viper.GetString(FlagAddress))
+	tx := stake.NewTxWithdraw(address)
 	return txcmd.DoTx(tx)
 }
 
@@ -154,14 +155,10 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 }
 
 func cmdProposeSlot(cmd *cobra.Command, args []string) error {
+	address := common.HexToAddress(viper.GetString(FlagAddress))
 	amount := viper.GetInt64(FlagAmount)
 	if amount <= 0 {
 		return fmt.Errorf("amount must be positive interger")
-	}
-
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
 	}
 
 	proposedRoi := viper.GetInt64(FlagProposedRoi)
@@ -169,7 +166,7 @@ func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("proposed ROI must be positive interger")
 	}
 
-	tx := stake.NewTxProposeSlot(pk, amount, proposedRoi)
+	tx := stake.NewTxProposeSlot(address, amount, proposedRoi)
 	return txcmd.DoTx(tx)
 }
 
@@ -204,16 +201,12 @@ func cmdWithdrawSlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdCancelSlot(cmd *cobra.Command, args []string) error {
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
+	address := common.HexToAddress(viper.GetString(FlagAddress))
 	slotId := viper.GetString(FlagSlotId)
 	if slotId == "" {
 		return fmt.Errorf("please enter slot ID using --slot-id")
 	}
 
-	tx := stake.NewTxCancelSlot(pk, slotId)
+	tx := stake.NewTxCancelSlot(address, slotId)
 	return txcmd.DoTx(tx)
 }

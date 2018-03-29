@@ -5,6 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk"
 	crypto "github.com/tendermint/go-crypto"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // Tx
@@ -62,21 +63,21 @@ func NewTxDeclare(pubKey crypto.PubKey) sdk.Tx {
 func (tx TxDeclare) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxWithdraw struct {
-	PubKey crypto.PubKey `json:"pub_key"`
+	Address common.Address `json:"address"`
 }
 
 // ValidateBasic - Check for non-empty candidate, and valid coins
 func (tx TxWithdraw) ValidateBasic() error {
-	if tx.PubKey.Empty() {
+	if len(tx.Address) == 0 {
 		return errCandidateEmpty
 	}
 
 	return nil
 }
 
-func NewTxWithdraw(pubKey crypto.PubKey) sdk.Tx {
+func NewTxWithdraw(address common.Address) sdk.Tx {
 	return TxWithdraw{
-		PubKey: pubKey,
+		Address: address,
 	}.Wrap()
 }
 
@@ -85,23 +86,23 @@ func (tx TxWithdraw) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxProposeSlot - struct for propose slot
 type TxProposeSlot struct {
-	PubKey      crypto.PubKey
-	Amount      int64
-	ProposedRoi int64
+	ValidatorAddress      	common.Address
+	Amount      			int64
+	ProposedRoi 			int64
 }
 
 // NewTxProposeSlot - new TxProposeSlot
-func NewTxProposeSlot(pubKey crypto.PubKey, amount int64, proposedRoi int64) sdk.Tx {
+func NewTxProposeSlot(validatorAddress common.Address, amount int64, proposedRoi int64) sdk.Tx {
 	return TxProposeSlot{
-		PubKey:      pubKey,
-		Amount:      amount,
-		ProposedRoi: proposedRoi,
+		ValidatorAddress:      	validatorAddress,
+		Amount:      			amount,
+		ProposedRoi: 			proposedRoi,
 	}.Wrap()
 }
 
 // ValidateBasic - Check for non-empty candidate, positive shares
 func (tx TxProposeSlot) ValidateBasic() error {
-	if tx.PubKey.Empty() {
+	if len(tx.ValidatorAddress) == 0 {
 		return errCandidateEmpty
 	}
 
@@ -158,21 +159,21 @@ func (tx TxWithdrawSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxProposeSlot - struct for propose slot
 type TxCancelSlot struct {
-	PubKey      crypto.PubKey
-	SlotId		string
+	ValidatorAddress	common.Address
+	SlotId				string
 }
 
 // NewTxProposeSlot - new TxProposeSlot
-func NewTxCancelSlot(pubKey crypto.PubKey, slotId string) sdk.Tx {
+func NewTxCancelSlot(validatorAddress common.Address, slotId string) sdk.Tx {
 	return TxCancelSlot{
-		PubKey: pubKey,
+		ValidatorAddress: validatorAddress,
 		SlotId:	slotId,
 	}.Wrap()
 }
 
 // ValidateBasic - Check for non-empty candidate, positive shares
 func (tx TxCancelSlot) ValidateBasic() error {
-	if tx.PubKey.Empty() {
+	if len(tx.ValidatorAddress) == 0 {
 		return errCandidateEmpty
 	}
 

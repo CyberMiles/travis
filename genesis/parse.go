@@ -61,11 +61,10 @@ func GetOptions(path string) ([]Option, error) {
 	res := make([]Option, 0, cnt)
 	res = append(res, Option{sdk.ModuleNameBase, sdk.ChainKey, genDoc.ChainID})
 
-	// set accounts
-	//for _, validator := range validators {
-	//	res = append(res, Option{"coin", "validator", string(validator)})
-	//}
-	res = append(res, Option{"stake", "validators", string(validators)})
+	// set validators
+	for _, val := range validators {
+		res = append(res, Option{"stake", "validator", string(val)})
+	}
 
 	// set accounts
 	for _, acct := range opts.Accounts {
@@ -84,7 +83,7 @@ type keyValue struct {
 type FullDoc struct {
 	ChainID    string `json:"chain_id"`
 	AppOptions *Doc   `json:"app_options"`
-	Validators json.RawMessage	`json:"validators"`
+	Validators []json.RawMessage	`json:"validators"`
 }
 
 // Doc - All genesis values

@@ -132,9 +132,7 @@ func Sign(tx keys.Signable, address string, passphrase string) error {
 
 	am, _, _ := makeAccountManager()
 	addr := common.HexToAddress(address)
-	suc, err := UnlockAccount(am, addr, passphrase, nil)
-	fmt.Printf("unlock result: %v\n", suc)
-
+	_, err := UnlockAccount(am, addr, passphrase, nil)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
