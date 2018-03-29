@@ -65,6 +65,8 @@ utils.sendTransactions(web3, transactions, (err, ms) => {
     web3,
     walletAddress,
     endBalance,
+    initialNonce,
+    totalTxs,
     (err, endDate) => {
       if (err) {
         console.error("Couldn't process transactions in blocks")

@@ -87,7 +87,14 @@ exports.tokenTransfer = (web3, tokenInstance, transactions, cb) => {
   )
 }
 
-exports.waitProcessedInterval = function(web3, fromAddr, endBalance, cb) {
+exports.waitProcessedInterval = function(
+  web3,
+  fromAddr,
+  endBalance,
+  initialNonce,
+  totalTxs,
+  cb
+) {
   let startingBlock = web3.cmt.blockNumber
 
   console.log("Starting block:", startingBlock)
@@ -103,7 +110,9 @@ exports.waitProcessedInterval = function(web3, fromAddr, endBalance, cb) {
     console.log(
       `Blocks Passed ${blocksGone}, current balance: ${balance.toString()}`
     )
-    if (balance.comparedTo(endBalance) <= 0) {
+    let processed = web3.cmt.getTransactionCount(fromAddr) - initialNonce
+
+    if (balance.comparedTo(endBalance) <= 0 && processed >= totalTxs) {
       clearInterval(interval)
       cb(null, new Date())
     }

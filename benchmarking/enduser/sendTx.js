@@ -57,22 +57,29 @@ utils.sendTransactions(web3, transactions, (err, ms) => {
     return
   }
 
-  utils.waitProcessedInterval(web3, fromAddress, endBalance, (err, endDate) => {
-    if (err) {
-      console.error("Couldn't process transactions in blocks")
-      console.error(err)
-      return
+  utils.waitProcessedInterval(
+    web3,
+    fromAddress,
+    endBalance,
+    initialNonce,
+    totalTxs,
+    (err, endDate) => {
+      if (err) {
+        console.error("Couldn't process transactions in blocks")
+        console.error(err)
+        return
+      }
+
+      let sent = transactions.length
+      let processed = web3.cmt.getTransactionCount(fromAddress) - initialNonce
+      let timePassed = (endDate - start) / 1000
+      let perSecond = processed / timePassed
+
+      console.log("end time: ", endDate)
+      console.log(
+        `Processed ${processed} of ${sent} transactions ` +
+          `from one account in ${timePassed}s, ${perSecond} tx/s`
+      )
     }
-
-    let sent = transactions.length
-    let processed = web3.cmt.getTransactionCount(fromAddress) - initialNonce
-    let timePassed = (endDate - start) / 1000
-    let perSecond = processed / timePassed
-
-    console.log("end time: ", endDate)
-    console.log(
-      `Processed ${processed} of ${sent} transactions ` +
-        `from one account in ${timePassed}s, ${perSecond} tx/s`
-    )
-  })
+  )
 })
