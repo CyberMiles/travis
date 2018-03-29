@@ -11,6 +11,9 @@ import (
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
+var (
+	local = true
+)
 //----------------------------------------------------------------------
 // Transactions sent via the go-ethereum rpc need to be routed to tendermint
 
@@ -18,7 +21,12 @@ import (
 func (b *Backend) txBroadcastLoop() {
 	b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
 
-	waitForServer(b.client)
+	if b.localClient != nil {
+		if _, err := b.localClient.Status(); err != nil {
+			waitForServer(b.client)
+			local = false
+		}
+	}
 
 	for obj := range b.txSub.Chan() {
 		event := obj.Data.(core.TxPreEvent)
@@ -43,7 +51,12 @@ func (b *Backend) BroadcastTx(tx *ethTypes.Transaction) (*ctypes.ResultBroadcast
 		return nil, err
 	}
 
-	return  b.client.BroadcastTxSync(buf.Bytes())
+	if local {
+		return b.localClient.BroadcastTxSync(buf.Bytes())
+	} else {
+		return  b.client.BroadcastTxSync(buf.Bytes())
+	}
+
 }
 
 //----------------------------------------------------------------------
