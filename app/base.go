@@ -26,6 +26,7 @@ type BaseApp struct {
 	handler sdk.Handler
 	clock   sdk.Ticker
 	EthApp *ethapp.EthermintApplication
+	checkedTx map[common.Hash]*types.Transaction
 }
 
 const (
