@@ -171,7 +171,7 @@ func (s *StakeRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (
 type WithdrawCandidacyArgs struct {
 	Sequence uint32 `json:"sequence"`
 	From     string `json:"from"`
-	PubKey   string `json:"pubKey"`
+	Address  string `json:"address"`
 }
 
 func (s *StakeRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -183,11 +183,10 @@ func (s *StakeRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes
 }
 
 func (s *StakeRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs) (sdk.Tx, error) {
-	pubKey, err := stake.GetPubKey(args.PubKey)
-	if err != nil {
-		return sdk.Tx{}, err
+	if args.Address == "" {
+		return sdk.Tx{}, fmt.Errorf("must provide address")
 	}
-	tx := stake.NewTxWithdraw(pubKey)
+	tx := stake.NewTxWithdraw(args.Address)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
@@ -259,7 +258,7 @@ func (s *StakeRPCService) prepareWithdrawSlotTx(args WithdrawSlotArgs) (sdk.Tx, 
 type CancelSlotArgs struct {
 	Sequence uint32 `json:"sequence"`
 	From     string `json:"from"`
-	PubKey   string `json:"pubKey"`
+	Address  string `json:"address"`
 	SlotId   string `json:"slotId"`
 }
 
@@ -272,11 +271,10 @@ func (s *StakeRPCService) CancelSlot(args CancelSlotArgs) (*ctypes.ResultBroadca
 }
 
 func (s *StakeRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, error) {
-	pubKey, err := stake.GetPubKey(args.PubKey)
-	if err != nil {
-		return sdk.Tx{}, err
+	if args.Address == "" {
+		return sdk.Tx{}, fmt.Errorf("must provide validator address")
 	}
-	tx := stake.NewTxCancelSlot(pubKey, args.SlotId)
+	tx := stake.NewTxCancelSlot(args.Address, args.SlotId)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 

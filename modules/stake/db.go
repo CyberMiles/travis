@@ -124,13 +124,13 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update  candidates set shares = ?, voting_power = ?, state = ? where pub_key = ?, updated_at = ?")
+	stmt, err := tx.Prepare("update  candidates set shares = ?, voting_power = ?, state = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.Shares, candidate.VotingPower, candidate.State, candidate.PubKey.KeyString(), candidate.UpdatedAt)
+	_, err = stmt.Exec(candidate.Shares, candidate.VotingPower, candidate.State, candidate.UpdatedAt, candidate.PubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
@@ -384,7 +384,7 @@ func saveSlotDelegate(slotDelegate SlotDelegate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into slot_delegates(delegator_address, slot_id, Amount) values(?, ?, ?)")
+	stmt, err := tx.Prepare("insert into slot_delegates(delegator_address, slot_id, amount) values(?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}

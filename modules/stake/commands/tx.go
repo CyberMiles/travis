@@ -95,8 +95,13 @@ func init() {
 	fsSlot := flag.NewFlagSet("", flag.ContinueOnError)
 	fsSlot.String(FlagSlotId, "", "Slot ID")
 
+	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
+	fsAddr.String(FlagAddress, "", "Hex Address")
+
 	// add the flags
 	CmdDeclare.Flags().AddFlagSet(fsPk)
+
+	CmdWithdraw.Flags().AddFlagSet(fsAddr)
 
 	CmdProposeSlot.Flags().AddFlagSet(fsAmount)
 	CmdProposeSlot.Flags().AddFlagSet(fsProposeSlot)
@@ -121,12 +126,8 @@ func cmdDeclare(cmd *cobra.Command, args []string) error {
 }
 
 func cmdWithdraw(cmd *cobra.Command, args []string) error {
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
-	}
-
-	tx := stake.NewTxWithdraw(pk)
+	address := viper.GetString(FlagAddress)
+	tx := stake.NewTxWithdraw(address)
 	return txcmd.DoTx(tx)
 }
 

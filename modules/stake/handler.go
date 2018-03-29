@@ -15,6 +15,7 @@ import (
 	"github.com/tendermint/tmlibs/merkle"
 	"encoding/hex"
 	"github.com/tendermint/go-wire/data"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // nolint
@@ -306,7 +307,7 @@ func (c check) declare(tx TxDeclare) error {
 
 func (c check) withdraw(tx TxWithdraw) error {
 	// check to see if the pubkey or sender has been registered before
-	candidate := GetCandidate(tx.PubKey.KeyString())
+	candidate := GetCandidate(tx.Address)
 	if candidate == nil {
 		return fmt.Errorf("cannot withdraw pubkey which is not declared"+
 			" PubKey %v already registered with %v candidate address",
@@ -424,6 +425,9 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		updateSlot(slot)
 	}
 	candidate.Shares = 0
+	candidate.VotingPower = 0
+	candidate.UpdatedAt = utils.GetNow()
+	candidate.State = "N"
 	updateCandidate(candidate)
 
 	return nil

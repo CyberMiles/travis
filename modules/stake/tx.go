@@ -62,21 +62,21 @@ func NewTxDeclare(pubKey crypto.PubKey) sdk.Tx {
 func (tx TxDeclare) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxWithdraw struct {
-	PubKey crypto.PubKey `json:"pub_key"`
+	Address string `json:"address"`
 }
 
 // ValidateBasic - Check for non-empty candidate, and valid coins
 func (tx TxWithdraw) ValidateBasic() error {
-	if tx.PubKey.Empty() {
+	if tx.Address == "" {
 		return errCandidateEmpty
 	}
 
 	return nil
 }
 
-func NewTxWithdraw(pubKey crypto.PubKey) sdk.Tx {
+func NewTxWithdraw(address string) sdk.Tx {
 	return TxWithdraw{
-		PubKey: pubKey,
+		Address: address,
 	}.Wrap()
 }
 
@@ -172,7 +172,7 @@ func NewTxCancelSlot(validatorAddress string, slotId string) sdk.Tx {
 
 // ValidateBasic - Check for non-empty candidate, positive shares
 func (tx TxCancelSlot) ValidateBasic() error {
-	if tx.PubKey.Empty() {
+	if tx.ValidatorAddress == "" {
 		return errCandidateEmpty
 	}
 
