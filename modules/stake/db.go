@@ -7,7 +7,6 @@ import (
 	"path"
 	"strings"
 	"github.com/ethereum/go-ethereum/common"
-	"fmt"
 )
 
 func getDb() *sql.DB {

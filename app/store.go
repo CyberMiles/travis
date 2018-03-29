@@ -191,8 +191,11 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/slot":
 		slotId := string(reqQuery.Data)
 		slot := stake.GetSlot(slotId)
-		b := wire.BinaryBytes(*slot)
-		resQuery.Value = b
+		if slot != nil {
+			resQuery.Value = wire.BinaryBytes(*slot)
+		} else {
+			resQuery.Value = []byte{}
+		}
 	case "/slots":
 		slots := stake.GetSlots()
 		b := wire.BinaryBytes(slots)
