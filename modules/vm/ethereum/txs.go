@@ -8,6 +8,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 //----------------------------------------------------------------------
@@ -21,22 +22,28 @@ func (b *Backend) txBroadcastLoop() {
 
 	for obj := range b.txSub.Chan() {
 		event := obj.Data.(core.TxPreEvent)
-		if err := b.BroadcastTx(event.Tx); err != nil {
+		result, err := b.BroadcastTx(event.Tx)
+		if err != nil {
 			log.Error("Broadcast error", "err", err)
+		} else {
+			if result.Code != uint32(0) {
+				b.Ethereum().TxPool().Remove(event.Tx.Hash())
+			} else {
+				// TODO: do something else?
+			}
 		}
 	}
 }
 
 // BroadcastTx broadcasts a transaction to tendermint core
 // #unstable
-func (b *Backend) BroadcastTx(tx *ethTypes.Transaction) error {
+func (b *Backend) BroadcastTx(tx *ethTypes.Transaction) (*ctypes.ResultBroadcastTx, error) {
 	buf := new(bytes.Buffer)
 	if err := tx.EncodeRLP(buf); err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err := b.client.BroadcastTxSync(buf.Bytes())
-	return err
+	return  b.client.BroadcastTxSync(buf.Bytes())
 }
 
 //----------------------------------------------------------------------
