@@ -16,10 +16,11 @@ console.log(
   `Will send ${totalTxs} transactions and wait for ${blockTimeout} blocks`
 )
 
-let gasPrice = web3.toWei(5, "gwei")
-let cost = utils.calculateTransactionsPrice(gasPrice, value, totalTxs)
+let gasPrice = web3.toBigNumber(web3.toWei("5", "gwei"))
+let cost = utils.calculateTokenTransactionsPrice(gasPrice, totalTxs)
 let balance = web3.cmt.getBalance(fromAddress)
 let endBalance = balance.minus(cost)
+console.log("balance after transfer will be(estimate): ", endBalance.toString())
 
 if (cost.comparedTo(balance) > 0) {
   let error =
@@ -27,6 +28,21 @@ if (cost.comparedTo(balance) > 0) {
     `it needs ${cost} wei, but you have ${balance}`
   throw new Error(error)
 }
+
+let balanceToken = utils.getTokenBalance(web3, fromAddress)
+let costToken = web3.toBigNumber(value).times(totalTxs)
+if (costToken.comparedTo(balanceToken) > 0) {
+  let error =
+    `You don't have enough token to make ${totalTxs} transactions, ` +
+    `it needs ${costToken} wei, but you have ${balanceToken}`
+  throw new Error(error)
+}
+let endBalanceToken = balanceToken.minus(costToken)
+console.log("token balance before transfer: ", balanceToken.toString())
+console.log(
+  "token balance after transfer will be: ",
+  endBalanceToken.toString()
+)
 
 console.log(`Generating ${totalTxs} transactions`)
 let transactions = []
