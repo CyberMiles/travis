@@ -15,22 +15,25 @@ import (
 // make sure to use the name of the handler as the prefix in the tx type,
 // so it gets routed properly
 const (
-	ByteTxDeclare      = 0x55
-	ByteTxWithdraw     = 0x56
-	ByteTxProposeSlot  = 0x57
-	ByteTxAcceptSlot   = 0x58
-	ByteTxWithdrawSlot = 0x59
-	ByteTxCancelSlot   = 0x60
-	TypeTxDeclare      = stakingModuleName + "/declare"
-	TypeTxWithdraw     = stakingModuleName + "/withdraw"
-	TypeTxProposeSlot  = stakingModuleName + "/proposeSlot"
-	TypeTxAcceptSlot   = stakingModuleName + "/acceptSlot"
-	TypeTxWithdrawSlot = stakingModuleName + "/withdrawSlot"
-	TypeTxCancelSlot   = stakingModuleName + "/cancelSlot"
+	ByteTxDeclareCandidacy = 0x55
+	ByteTxEditCandidacy    = 0x56
+	ByteTxWithdraw         = 0x57
+	ByteTxProposeSlot      = 0x58
+	ByteTxAcceptSlot       = 0x59
+	ByteTxWithdrawSlot     = 0x60
+	ByteTxCancelSlot       = 0x61
+	TypeTxDeclareCandidacy = stakingModuleName + "/declareCandidacy"
+	TypeTxEditCandidacy    = stakingModuleName + "/editCandidacy"
+	TypeTxWithdraw         = stakingModuleName + "/withdraw"
+	TypeTxProposeSlot      = stakingModuleName + "/proposeSlot"
+	TypeTxAcceptSlot       = stakingModuleName + "/acceptSlot"
+	TypeTxWithdrawSlot     = stakingModuleName + "/withdrawSlot"
+	TypeTxCancelSlot       = stakingModuleName + "/cancelSlot"
 )
 
 func init() {
-	sdk.TxMapper.RegisterImplementation(TxDeclare{}, TypeTxDeclare, ByteTxDeclare)
+	sdk.TxMapper.RegisterImplementation(TxDeclareCandidacy{}, TypeTxDeclareCandidacy, ByteTxDeclareCandidacy)
+	sdk.TxMapper.RegisterImplementation(TxEditCandidacy{}, TypeTxEditCandidacy, ByteTxEditCandidacy)
 	sdk.TxMapper.RegisterImplementation(TxWithdraw{}, TypeTxWithdraw, ByteTxWithdraw)
 	sdk.TxMapper.RegisterImplementation(TxProposeSlot{}, TypeTxProposeSlot, ByteTxProposeSlot)
 	sdk.TxMapper.RegisterImplementation(TxAcceptSlot{}, TypeTxAcceptSlot, ByteTxAcceptSlot)
@@ -39,13 +42,13 @@ func init() {
 }
 
 //Verify interface at compile time
-var _, _ sdk.TxInner = &TxDeclare{}, &TxProposeSlot{}
+var _, _, _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxProposeSlot{}, &TxEditCandidacy{}, &TxWithdraw{}, &TxProposeSlot{}, &TxAcceptSlot{}, &TxCancelSlot{}, &TxWithdrawSlot{}
 
-type TxDeclare struct {
+type TxDeclareCandidacy struct {
 	PubKey crypto.PubKey `json:"pub_key"`
 }
 
-func (tx TxDeclare) ValidateBasic() error {
+func (tx TxDeclareCandidacy) ValidateBasic() error {
 	if tx.PubKey.Empty() {
 		return errCandidateEmpty
 	}
@@ -53,14 +56,33 @@ func (tx TxDeclare) ValidateBasic() error {
 	return nil
 }
 
-func NewTxDeclare(pubKey crypto.PubKey) sdk.Tx {
-	return TxDeclare{
+func NewTxDeclareCandidacy(pubKey crypto.PubKey) sdk.Tx {
+	return TxDeclareCandidacy{
 		PubKey: pubKey,
 	}.Wrap()
 }
 
-// Wrap - Wrap a Tx as a Basecoin Tx
-func (tx TxDeclare) Wrap() sdk.Tx { return sdk.Tx{tx} }
+func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
+type TxEditCandidacy struct {
+	NewAddress common.Address `json:"new_address"`
+}
+
+func (tx TxEditCandidacy) ValidateBasic() error {
+	if len(tx.NewAddress) == 0 {
+		return errCandidateEmpty
+	}
+
+	return nil
+}
+
+func NewTxEditCandidacy(newAddress common.Address) sdk.Tx {
+	return TxEditCandidacy{
+		NewAddress: newAddress,
+	}.Wrap()
+}
+
+func (tx TxEditCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxWithdraw struct {
 	Address common.Address `json:"address"`

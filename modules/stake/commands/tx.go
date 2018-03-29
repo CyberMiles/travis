@@ -45,14 +45,20 @@ const (
 	FlagProposedRoi = "proposed-roi"
 	FlagSlotId = "slot-id"
 	FlagAddress = "address"
+	FlagNewAddress = "new-address"
 )
 
 // nolint
 var (
-	CmdDeclare = &cobra.Command{
-		Use:   "declare",
+	CmdDeclareCandidacy = &cobra.Command{
+		Use:   "declare-candidacy",
 		Short: "Allows a potential validator to declare its candidacy",
-		RunE:  cmdDeclare,
+		RunE:  cmdDeclareCandidacy,
+	}
+	CmdEditCandidacy = &cobra.Command{
+		Use:   "edit-candidacy",
+		Short: "Allows a candidacy to change its address",
+		RunE:  cmdEditCandidacy,
 	}
 	CmdWithdraw = &cobra.Command{
 		Use:   "withdraw",
@@ -99,8 +105,13 @@ func init() {
 	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
 	fsAddr.String(FlagAddress, "", "Hex Address")
 
+	fsEditCandidacy := flag.NewFlagSet("", flag.ContinueOnError)
+	fsEditCandidacy.String(FlagNewAddress, "", "New hex Address")
+
 	// add the flags
-	CmdDeclare.Flags().AddFlagSet(fsPk)
+	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
+
+	CmdEditCandidacy.Flags().AddFlagSet(fsEditCandidacy)
 
 	CmdWithdraw.Flags().AddFlagSet(fsAddr)
 
@@ -116,13 +127,19 @@ func init() {
 	CmdCancelSlot.Flags().AddFlagSet(fsSlot)
 }
 
-func cmdDeclare(cmd *cobra.Command, args []string) error {
+func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 	pk, err := GetPubKey(viper.GetString(FlagPubKey))
 	if err != nil {
 		return err
 	}
 
-	tx := stake.NewTxDeclare(pk)
+	tx := stake.NewTxDeclareCandidacy(pk)
+	return txcmd.DoTx(tx)
+}
+
+func cmdEditCandidacy(cmd *cobra.Command, args []string) error {
+	newAddress := common.HexToAddress(viper.GetString(FlagNewAddress))
+	tx := stake.NewTxEditCandidacy(newAddress)
 	return txcmd.DoTx(tx)
 }
 
