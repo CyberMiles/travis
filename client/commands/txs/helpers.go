@@ -162,10 +162,11 @@ func OutputTx(res *ctypes.ResultBroadcastTxCommit) error {
 	if res.DeliverTx.IsErr() {
 		return errors.Errorf("DeliverTx: (%d): %s", res.DeliverTx.Code, res.DeliverTx.Log)
 	}
-	_, err := json.MarshalIndent(res, "", "  ")
+	js, err := json.MarshalIndent(res, "", "  ")
 	if err != nil {
 		return err
 	}
+	fmt.Println(string(js))
 	return nil
 }
 

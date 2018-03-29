@@ -173,7 +173,7 @@ func saveSlot(slot *Slot) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(strings.ToUpper(slot.Id), slot.ValidatorAddress, slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.CreatedAt, slot.UpdatedAt)
+	_, err = stmt.Exec(slot.Id, slot.ValidatorAddress.String(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.CreatedAt, slot.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -188,13 +188,13 @@ func updateSlot(slot *Slot) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update slots set available_amount = ?, upudated_at = ? where id = ?")
+	stmt, err := tx.Prepare("update slots set validator_address = ?, total_amount = ?, available_amount = ?, proposed_roi = ?, state = ?, updated_at = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slot.AvailableAmount, slot.UpdatedAt, strings.ToUpper(slot.Id))
+	_, err = stmt.Exec(slot.ValidatorAddress.String(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.UpdatedAt, strings.ToUpper(slot.Id))
 	if err != nil {
 		panic(err)
 	}

@@ -12,11 +12,10 @@ import (
 	"github.com/CyberMiles/travis/modules/coin"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/tendermint/tmlibs/merkle"
-	"encoding/hex"
 	"github.com/tendermint/go-wire/data"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"encoding/hex"
 )
 
 // nolint
@@ -214,8 +213,8 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 		return res, deliverer.withdraw(_tx)
 	case TxProposeSlot:
 		res.GasUsed = params.GasProposeSlot
-		hash, err := deliverer.proposeSlot(_tx)
-		res.Data = hash
+		id, err := deliverer.proposeSlot(_tx)
+		res.Data = []byte(id)
 		return res, err
 	case TxAcceptSlot:
 		res.GasUsed = params.GasAcceptSlot
@@ -297,7 +296,7 @@ var _ delegatedProofOfStake = check{} // enforce interface at compile time
 func (c check) declare(tx TxDeclare) error {
 	// check to see if the pubkey or sender has been registered before
 	candidate := GetCandidate(common.BytesToAddress(c.sender.Address))
-	if candidate != nil {
+	if candidate != nil && candidate.State == "Y" {
 		return fmt.Errorf("cannot declare pubkey which is already declared"+
 			" PubKey %v already registered with %v candidate address",
 			candidate.PubKey, candidate.OwnerAddress.String())
@@ -367,8 +366,8 @@ func (c check) cancelSlot(tx TxCancelSlot) error {
 		return ErrBadSlot()
 	}
 
-	if slot.AvailableAmount == 0 {
-		return ErrFullSlot()
+	if slot.State == "N" {
+		return ErrCancelledSlot()
 	}
 
 	return nil
@@ -393,12 +392,20 @@ func (d deliver) declare(tx TxDeclare) error {
 
 	// create and save the empty candidate
 	ownerAddress := common.BytesToAddress(d.sender.Address)
-	bond := GetCandidate(ownerAddress)
-	if bond != nil {
+	candidate := GetCandidate(ownerAddress)
+	if candidate != nil && candidate.State == "Y" {
 		return ErrCandidateExistsAddr()
 	}
-	candidate := NewCandidate(tx.PubKey, ownerAddress, 0, 0, "Y")
-	SaveCandidate(candidate)
+
+	if candidate == nil {
+		candidate = NewCandidate(tx.PubKey, ownerAddress, 0, 0, "Y")
+		SaveCandidate(candidate)
+	} else {
+		candidate.State = "Y"
+		candidate.OwnerAddress = ownerAddress
+		candidate.UpdatedAt = utils.GetNow()
+		updateCandidate(candidate)
+	}
 
 	return nil
 }
@@ -529,12 +536,14 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 }
 
 func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
-	hash := merkle.SimpleHashFromBinary(tx)
-	hexHash := hex.EncodeToString(hash)
-	slot := NewSlot(hexHash, tx.ValidatorAddress, tx.Amount, tx.Amount, tx.ProposedRoi, "Y")
+	//hash := merkle.SimpleHashFromBinary(tx)
+	//hexHash := hex.EncodeToString(hash)
+	uuid := utils.GetUUID()
+	hexStr := hex.EncodeToString(uuid)
+	slot := NewSlot(hexStr, tx.ValidatorAddress, tx.Amount, tx.Amount, tx.ProposedRoi, "Y")
 	saveSlot(slot)
 
-	return hash, nil
+	return uuid, nil
 }
 
 func (d deliver) cancelSlot(tx TxCancelSlot) error {
@@ -543,11 +552,13 @@ func (d deliver) cancelSlot(tx TxCancelSlot) error {
 		return ErrBadSlot()
 	}
 
-	if slot.AvailableAmount == 0 {
-		return ErrFullSlot()
+	if slot.State == "N" {
+		return ErrCancelledSlot()
 	}
 
 	slot.AvailableAmount = 0
+	slot.State = "N"
+	slot.UpdatedAt = utils.GetNow()
 	updateSlot(slot)
 
 	return nil
