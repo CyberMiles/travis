@@ -4,23 +4,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
-	"time"
 
 	"github.com/spf13/cast"
 
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/commands"
 	"github.com/cosmos/cosmos-sdk/modules/base"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
@@ -28,7 +23,6 @@ import (
 	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/modules/auth"
-	"github.com/CyberMiles/travis/modules/coin"
 	"github.com/CyberMiles/travis/modules/keys"
 	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/modules/stake"
@@ -125,26 +119,6 @@ func (s *StakeRPCService) getChainID() (string, error) {
 	return s.backend.chainID, nil
 }
 
-// copied from ethapi/api.go
-func (s *StakeRPCService) UnlockAccount(addr common.Address, password string, duration *uint64) (bool, error) {
-	const max = uint64(time.Duration(math.MaxInt64) / time.Second)
-	var d time.Duration
-	if duration == nil {
-		d = 300 * time.Second
-	} else if *duration > max {
-		return false, errors.New("unlock duration too large")
-	} else {
-		d = time.Duration(*duration) * time.Second
-	}
-	err := fetchKeystore(s.am).TimedUnlock(accounts.Account{Address: addr}, password, d)
-	return err == nil, err
-}
-
-// fetchKeystore retrives the encrypted keystore from the account manager.
-func fetchKeystore(am *accounts.Manager) *keystore.KeyStore {
-	return am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-}
-
 type DeclareCandidacyArgs struct {
 	Sequence uint32 `json:"sequence"`
 	From     string `json:"from"`
@@ -169,9 +143,8 @@ func (s *StakeRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (
 }
 
 type WithdrawCandidacyArgs struct {
-	Sequence uint32 		`json:"sequence"`
-	From     string 		`json:"from"`
-	Address  common.Address `json:"address"`
+	Sequence uint32 `json:"sequence"`
+	From     string `json:"from"`
 }
 
 func (s *StakeRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -183,17 +156,37 @@ func (s *StakeRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes
 }
 
 func (s *StakeRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs) (sdk.Tx, error) {
-	if len(args.Address) == 0 {
-		return sdk.Tx{}, fmt.Errorf("must provide address")
+	address := common.HexToAddress(args.From)
+	tx := stake.NewTxWithdraw(address)
+	return s.wrapAndSignTx(tx, args.From, args.Sequence)
+}
+
+type EditCandidacyArgs struct {
+	Sequence   uint32 `json:"sequence"`
+	From       string `json:"from"`
+	NewAddress string `json:"newAddress"`
+}
+
+func (s *StakeRPCService) EditCandidacy(args EditCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareEditCandidacyTx(args)
+	if err != nil {
+		return nil, err
 	}
-	tx := stake.NewTxWithdraw(args.Address)
+	return s.broadcastTx(tx)
+}
+
+func (s *StakeRPCService) prepareEditCandidacyTx(args EditCandidacyArgs) (sdk.Tx, error) {
+	if len(args.NewAddress) == 0 {
+		return sdk.Tx{}, fmt.Errorf("must provide new address")
+	}
+	address := common.HexToAddress(args.NewAddress)
+	tx := stake.NewTxEditCandidacy(address)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
 type ProposeSlotArgs struct {
 	Sequence    uint32 `json:"sequence"`
 	From        string `json:"from"`
-	Address      string `json:"pubKey"`
 	Amount      int64  `json:"amount"`
 	ProposedRoi int64  `json:"proposedRoi"`
 }
@@ -207,11 +200,8 @@ func (s *StakeRPCService) ProposeSlot(args ProposeSlotArgs) (*ctypes.ResultBroad
 }
 
 func (s *StakeRPCService) prepareProposeSlotTx(args ProposeSlotArgs) (sdk.Tx, error) {
-	//pubKey, err := stake.GetPubKey(args.PubKey)
-	//if err != nil {
-	//	return sdk.Tx{}, err
-	//}
-	tx := stake.NewTxProposeSlot(common.HexToAddress(args.Address), args.Amount, args.ProposedRoi)
+	address := common.HexToAddress(args.From)
+	tx := stake.NewTxProposeSlot(address, args.Amount, args.ProposedRoi)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
@@ -256,10 +246,9 @@ func (s *StakeRPCService) prepareWithdrawSlotTx(args WithdrawSlotArgs) (sdk.Tx, 
 }
 
 type CancelSlotArgs struct {
-	Sequence uint32 		`json:"sequence"`
-	From     string 		`json:"from"`
-	Address  common.Address `json:"address"`
-	SlotId   string 		`json:"slotId"`
+	Sequence uint32 `json:"sequence"`
+	From     string `json:"from"`
+	SlotId   string `json:"slotId"`
 }
 
 func (s *StakeRPCService) CancelSlot(args CancelSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -271,10 +260,8 @@ func (s *StakeRPCService) CancelSlot(args CancelSlotArgs) (*ctypes.ResultBroadca
 }
 
 func (s *StakeRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, error) {
-	if len(args.Address) == 0 {
-		return sdk.Tx{}, fmt.Errorf("must provide validator address")
-	}
-	tx := stake.NewTxCancelSlot(args.Address, args.SlotId)
+	address := common.HexToAddress(args.From)
+	tx := stake.NewTxCancelSlot(address, args.SlotId)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
@@ -353,6 +340,9 @@ func (s *StakeRPCService) sign(data keys.Signable, address string) error {
 	addr := common.HexToAddress(address)
 	account := accounts.Account{Address: addr}
 	wallet, err := s.am.Find(account)
+	if err != nil {
+		return err
+	}
 	signed, err := wallet.SignTx(account, ethTx, big.NewInt(15)) //TODO: use defaultEthChainId
 	if err != nil {
 		return err
@@ -379,25 +369,19 @@ type StakeQueryResult struct {
 }
 
 func (s *StakeRPCService) QueryValidators(height uint64) (*StakeQueryResult, error) {
-	var pks []crypto.PubKey
-	key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
-	h, err := s.getParsed("/validators", key, &pks, height)
+	var candidates stake.Candidates
+	//key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
+	h, err := s.getParsed("/validators", []byte{0}, &candidates, height)
 	if err != nil {
 		return nil, err
 	}
 
-	return &StakeQueryResult{h, pks}, nil
+	return &StakeQueryResult{h, candidates}, nil
 }
 
-func (s *StakeRPCService) QueryValidator(pubkey string, height uint64) (*StakeQueryResult, error) {
-	pk, err := stake.GetPubKey(pubkey)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *StakeRPCService) QueryValidator(address string, height uint64) (*StakeQueryResult, error) {
 	var candidate stake.Candidate
-	key := stack.PrefixedKey(stake.Name(), stake.GetCandidateKey(pk))
-	h, err := s.getParsed("/validator", key, &candidate, height)
+	h, err := s.getParsed("/validator", []byte(address), &candidate, height)
 	if err != nil {
 		return nil, err
 	}
@@ -405,21 +389,14 @@ func (s *StakeRPCService) QueryValidator(pubkey string, height uint64) (*StakeQu
 	return &StakeQueryResult{h, candidate}, nil
 }
 
-func (s *StakeRPCService) QuerySlots(address string, height uint64) (*StakeQueryResult, error) {
-	delegator, err := commands.ParseActor(address)
-	if err != nil {
-		return nil, err
-	}
-	delegator = coin.ChainAddr(delegator)
-
-	var candidates []crypto.PubKey
-	key := stack.PrefixedKey(stake.Name(), stake.GetDelegatorBondsKey(delegator))
-	h, err := s.getParsed("/slots", key, &candidates, height)
+func (s *StakeRPCService) QuerySlots(height uint64) (*StakeQueryResult, error) {
+	var slots []*stake.Slot
+	h, err := s.getParsed("/slots", []byte{0}, &slots, height)
 	if err != nil {
 		return nil, err
 	}
 
-	return &StakeQueryResult{h, candidates}, nil
+	return &StakeQueryResult{h, slots}, nil
 }
 
 func (s *StakeRPCService) QuerySlot(slotId string, height uint64) (*StakeQueryResult, error) {
