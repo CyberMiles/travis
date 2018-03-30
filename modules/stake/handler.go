@@ -113,7 +113,7 @@ func setValidator(value string) error {
 	}
 
 	// create and save the empty candidate
-	bond := GetCandidate(val.Address)
+	bond := GetCandidateByAddress(val.Address)
 	if bond != nil {
 		return ErrCandidateExistsAddr()
 	}
@@ -301,19 +301,22 @@ type check struct {
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
 func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
-	// check to see if the pubkey or sender has been registered before
-	candidate := GetCandidate(common.BytesToAddress(c.sender.Address))
+	// check to see if the pubkey or address has been registered before
+	candidate := GetCandidateByAddress(common.BytesToAddress(c.sender.Address))
 	if candidate != nil && candidate.State == "Y" {
-		return fmt.Errorf("cannot declare pubkey which is already declared"+
-			" PubKey %v already registered with %v candidate address",
-			candidate.PubKey, candidate.OwnerAddress.String())
+		return fmt.Errorf("address has been declared")
+	}
+
+	candidate = GetCandidateByPubKey(tx.PubKey.KeyString())
+	if candidate != nil && candidate.State == "Y" {
+		return fmt.Errorf("pubkey has been declared")
 	}
 
 	return nil
 }
 
 func (c check) editCandidacy(tx TxEditCandidacy) error {
-	candidate := GetCandidate(common.BytesToAddress(c.sender.Address))
+	candidate := GetCandidateByAddress(common.BytesToAddress(c.sender.Address))
 	if candidate == nil {
 		return fmt.Errorf("cannot edit non-exsits candidacy")
 	}
@@ -323,7 +326,7 @@ func (c check) editCandidacy(tx TxEditCandidacy) error {
 
 func (c check) withdraw(tx TxWithdraw) error {
 	// check to see if the address has been registered before
-	candidate := GetCandidate(tx.Address)
+	candidate := GetCandidateByAddress(tx.Address)
 	if candidate == nil {
 		return fmt.Errorf("cannot withdraw pubkey which is not declared"+
 			" PubKey %v already registered with %v candidate address",
@@ -353,7 +356,7 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 }
 
 func (c check) proposeSlot(tx TxProposeSlot) ([]byte, error) {
-	candidate := GetCandidate(tx.ValidatorAddress)
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
 		return nil, fmt.Errorf("cannot propose slot for non-existant validator address %v", tx.ValidatorAddress)
 	}
@@ -408,7 +411,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 
 	// create and save the empty candidate
 	ownerAddress := common.BytesToAddress(d.sender.Address)
-	candidate := GetCandidate(ownerAddress)
+	candidate := GetCandidateByAddress(ownerAddress)
 	if candidate != nil && candidate.State == "Y" {
 		return ErrCandidateExistsAddr()
 	}
@@ -430,7 +433,7 @@ func (d deliver) editCandidacy(tx TxEditCandidacy) error {
 
 	// create and save the empty candidate
 	ownerAddress := common.BytesToAddress(d.sender.Address)
-	candidate := GetCandidate(ownerAddress)
+	candidate := GetCandidateByAddress(ownerAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
@@ -446,7 +449,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 
 	// create and save the empty candidate
 	validatorAddress := common.BytesToAddress(d.sender.Address)
-	candidate := GetCandidate(validatorAddress)
+	candidate := GetCandidateByAddress(validatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
@@ -480,7 +483,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	slot := GetSlot(tx.SlotId)
 
 	// Get the pubKey bond account
-	candidate := GetCandidate(slot.ValidatorAddress)
+	candidate := GetCandidateByAddress(slot.ValidatorAddress)
 	if candidate == nil {
 		return ErrBondNotNominated()
 	}
@@ -533,7 +536,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// get pubKey candidate
-	candidate := GetCandidate(slot.ValidatorAddress)
+	candidate := GetCandidateByAddress(slot.ValidatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
