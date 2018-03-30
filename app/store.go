@@ -191,14 +191,20 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/slot":
 		slotId := string(reqQuery.Data)
 		slot := stake.GetSlot(slotId)
-		if slot != nil {
+		if slot != nil && slot.State == "Y" {
 			resQuery.Value = wire.BinaryBytes(*slot)
 		} else {
 			resQuery.Value = []byte{}
 		}
 	case "/slots":
 		slots := stake.GetSlots()
-		b := wire.BinaryBytes(slots)
+		var filtered []*stake.Slot
+		for _, slot := range slots {
+			if slot.State == "Y" {
+				filtered = append(filtered, slot)
+			}
+		}
+		b := wire.BinaryBytes(filtered)
 		resQuery.Value = b
 	case "/validators":
 		candidates := stake.GetCandidates()
@@ -206,7 +212,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		resQuery.Value = b
 	case "/validator":
 		address := common.HexToAddress(string(reqQuery.Data))
-		candidate := stake.GetCandidate(address)
+		candidate := stake.GetCandidateByAddress(address)
 		if candidate != nil {
 			b := wire.BinaryBytes(*candidate)
 			resQuery.Value = b

@@ -20,7 +20,7 @@ func getDb() *sql.DB {
 	return db
 }
 
-func GetCandidate(address common.Address) *Candidate {
+func GetCandidateByAddress(address common.Address) *Candidate {
 	db := getDb()
 	defer db.Close()
 	stmt, err := db.Prepare("select pub_key, shares, voting_power, state, created_at, updated_at from candidates where address = ?")
@@ -44,6 +44,37 @@ func GetCandidate(address common.Address) *Candidate {
 	return &Candidate{
 		PubKey:      	pk,
 		OwnerAddress: 	address,
+		Shares:      	shares,
+		VotingPower: 	votingPower,
+		State:       	state,
+		CreatedAt: 	 	createdAt,
+		UpdatedAt:   	updatedAt,
+	}
+}
+
+func GetCandidateByPubKey(pubKey string) *Candidate {
+	db := getDb()
+	defer db.Close()
+	stmt, err := db.Prepare("select address, shares, voting_power, state, created_at, updated_at from candidates where pub_key = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var address, state, createdAt, updatedAt string
+	var shares, votingPower uint64
+	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &state, &createdAt, &updatedAt)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil
+	case err != nil:
+		panic(err)
+	}
+
+	pk, _ := GetPubKey(pubKey)
+	return &Candidate{
+		PubKey:      	pk,
+		OwnerAddress: 	common.HexToAddress(address),
 		Shares:      	shares,
 		VotingPower: 	votingPower,
 		State:       	state,
@@ -172,7 +203,7 @@ func saveSlot(slot *Slot) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slot.Id, slot.ValidatorAddress.String(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.CreatedAt, slot.UpdatedAt)
+	_, err = stmt.Exec(strings.ToUpper(slot.Id), slot.ValidatorAddress.String(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.CreatedAt, slot.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -210,7 +241,7 @@ func GetSlot(slotId string) *Slot {
 
 	var validatorAddress, state, createdAt, updatedAt string
 	var totalAmount, availableAmount, proposedRoi int64
-	err = stmt.QueryRow(strings.ToLower(slotId)).Scan(&validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
+	err = stmt.QueryRow(strings.ToUpper(slotId)).Scan(&validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
