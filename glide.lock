@@ -1,5 +1,5 @@
-hash: 3fabd4ffa84ccabc5512d5ffdd3acc9bad37676e79e270acdd60f8e784302367
-updated: 2018-03-09T11:19:41.682685+08:00
+hash: cbbd9806c49e13060f5226eefe7d43bf09058d068e2df26614ea9915c5fe917f
+updated: 2018-03-30T11:40:34.080627+08:00
 imports:
 - name: github.com/aristanetworks/goarista
   version: c294d07ad966d5db9cedf32a67c62837a46e9d90
@@ -208,6 +208,8 @@ imports:
   - token
 - name: github.com/rs/cors
   version: feef513b9575b32f84bafa580aad89b011259019
+- name: github.com/satori/go.uuid
+  version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/spf13/afero
   version: bb8f1927f2a9d3ab41c9340aa034f6b803f4359c
   subpackages:
@@ -259,7 +261,7 @@ imports:
   - keys/storage/filestorage
   - keys/wordlist
 - name: github.com/tendermint/go-wire
-  version: 26b0b2772d913790a42d2cfac4f4a055764dbfaa
+  version: b8470691aa56b059e06dbfced95a4a21a407df81
   subpackages:
   - data
   - data/base58
@@ -287,6 +289,7 @@ imports:
   - p2p/upnp
   - proxy
   - rpc/client
+  - rpc/clientw
   - rpc/core
   - rpc/core/types
   - rpc/grpc
