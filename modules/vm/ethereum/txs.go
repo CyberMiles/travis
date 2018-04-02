@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	local = true
+	local = false
 )
 //----------------------------------------------------------------------
 // Transactions sent via the go-ethereum rpc need to be routed to tendermint
@@ -21,11 +21,19 @@ var (
 func (b *Backend) txBroadcastLoop() {
 	b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
 
-	if b.localClient != nil {
-		if _, err := b.localClient.Status(); err != nil {
-			waitForServer(b.client)
-			local = false
+	for tries := 0; tries < 3; tries++ { // wait a moment for localClient initialized properly
+		time.Sleep(time.Second)
+		if b.localClient != nil {
+			if _, err := b.localClient.Status(); err != nil {
+				log.Info("Using local client for forwarding tx to tendermint!")
+				local = true
+				break
+			}
 		}
+	}
+
+	if !local {
+		waitForServer(b.client)
 	}
 
 	for obj := range b.txSub.Chan() {
@@ -35,7 +43,7 @@ func (b *Backend) txBroadcastLoop() {
 			log.Error("Broadcast error", "err", err)
 		} else {
 			if result.Code != uint32(0) {
-				b.Ethereum().TxPool().Remove(event.Tx.Hash())
+				go removeTx(b, event.Tx)
 			} else {
 				// TODO: do something else?
 			}
@@ -72,4 +80,8 @@ func waitForServer(c *rpcClient.HTTP) {
 		log.Info("Waiting for tendermint endpoint to start", "err", err)
 		time.Sleep(time.Second * 3)
 	}
+}
+
+func removeTx(b *Backend, tx *ethTypes.Transaction) {
+	b.Ethereum().TxPool().Remove(tx.Hash())
 }
