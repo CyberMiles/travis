@@ -119,6 +119,13 @@ func (s *StakeRPCService) getChainID() (string, error) {
 	return s.backend.chainID, nil
 }
 
+func (s *StakeRPCService) GetSequence(address string) (*uint32, error) {
+	signers := []sdk.Actor{getSignerAct(address)}
+	var sequence uint32
+	err := s.getSequence(signers, &sequence)
+	return &sequence, err
+}
+
 type DeclareCandidacyArgs struct {
 	Sequence uint32 `json:"sequence"`
 	From     string `json:"from"`
