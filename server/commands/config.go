@@ -55,6 +55,7 @@ type EthermintConfig struct {
 	WSPortFlag        uint   `mapstructure:"wsport"`
 	WSApiFlag         string `mapstructure:"wsapi"`
 	VerbosityFlag     uint   `mapstructure:"verbosity"`
+	TxPoolGlobalQueueFlag     uint   `mapstructure:"txpool.globalqueue"`
 }
 
 func DefaultEthermintConfig() EthermintConfig {
@@ -71,6 +72,7 @@ func DefaultEthermintConfig() EthermintConfig {
 		WSPortFlag:        node.DefaultWSPort,
 		WSApiFlag:         "",
 		VerbosityFlag:     3,
+		TxPoolGlobalQueueFlag:     50000,
 	}
 }
 
@@ -131,6 +133,8 @@ rpcaddr = "0.0.0.0"
 rpcport = 8545
 ws = false
 verbosity = 3
+txpool.globalqueue = 50000
+
 
 [consensus]
 timeout_commit = 10000
