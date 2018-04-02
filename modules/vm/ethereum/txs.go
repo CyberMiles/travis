@@ -43,7 +43,7 @@ func (b *Backend) txBroadcastLoop() {
 			log.Error("Broadcast error", "err", err)
 		} else {
 			if result.Code != uint32(0) {
-				b.Ethereum().TxPool().Remove(event.Tx.Hash())
+				go removeTx(b, event.Tx)
 			} else {
 				// TODO: do something else?
 			}
@@ -80,4 +80,8 @@ func waitForServer(c *rpcClient.HTTP) {
 		log.Info("Waiting for tendermint endpoint to start", "err", err)
 		time.Sleep(time.Second * 3)
 	}
+}
+
+func removeTx(b *Backend, tx *ethTypes.Transaction) {
+	b.Ethereum().TxPool().Remove(tx.Hash())
 }
