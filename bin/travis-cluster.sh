@@ -3,6 +3,7 @@
 INST_COUNT=$1
 CLEAR=$2
 CLS='--clear'
+MV='--mv' #multi validators
 
 BASE_DIR=~/.travis
 
@@ -22,6 +23,9 @@ else
 	if [[ ! $INST_COUNT =~ ^[0-9]+$ ]]; then
 		if [ $INST_COUNT == "$CLS" ]; then
 			CLEAR="$CLS"
+		fi
+		if [ $INST_COUNT == "$MV" ]; then
+			CLEAR="$MV"
 		fi
 		INST_COUNT=1
 	else
@@ -106,6 +110,15 @@ do
 		else
 			sed -i '' "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
 		fi
+	fi
+
+	if [ $CLEAR == "$MV" ] ; then
+		# ....
+		cd ..
+		rm -rf $dir
+		cp -r ~/.o_travis/.travis$seq ~
+		cd $dir
+		# ....
 	fi
 
 	travis node start --home . > travis.log 2>&1 &
