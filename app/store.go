@@ -334,7 +334,7 @@ func loadState(dbName string, cacheSize int, historySize int64) (*sm.State, erro
 
 func initStakeDb() error {
 	rootDir := viper.GetString(cli.HomeFlag)
-	stakeDbPath := path.Join(rootDir, "data", "stake.db")
+	stakeDbPath := path.Join(rootDir, "data", "travis.db")
 	_, err := os.OpenFile(stakeDbPath, os.O_RDONLY, 0444)
 	if err != nil {
 		db, err := sql.Open("sqlite3", stakeDbPath)
@@ -353,6 +353,11 @@ func initStakeDb() error {
 		create index idx_candidates_pub_key on candidates(pub_key);
 		create index idx_slot_delegates_delegator_address on slot_delegates(delegator_address);
 		create index idx_slot_delegates_slot_id on slot_delegates(slot_id);
+
+		create table governance_proposal(id integer not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount integer not null, reason text not null, created_at text not null);
+		create table governance_vote(proposal_id integer not null, voter text not null, block_height integer not null, answer integer not null);
+		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
+		create index idx_governance_vote_voter on governance_vote(voter);
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {

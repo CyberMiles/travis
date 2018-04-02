@@ -11,7 +11,7 @@ import (
 
 func getDb() *sql.DB {
 	rootDir := viper.GetString(cli.HomeFlag)
-	stakeDbPath := path.Join(rootDir, "data", "stake.db")
+	stakeDbPath := path.Join(rootDir, "data", "travis.db")
 
 	db, err := sql.Open("sqlite3", stakeDbPath)
 	if err != nil {
