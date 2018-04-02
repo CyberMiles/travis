@@ -18,8 +18,10 @@ tools:
 build: get_vendor_deps
 	go build -o build/travis ./cmd/travis
 
-docker:
-	docker build -t "ywonline/travis:latest" .
+IMAGE := ywonline/travis
 
-push:
-	docker push "ywonline/travis:latest"
+docker_image:
+	docker build -t $(IMAGE) .
+
+push_image:
+	docker push $(IMAGE)

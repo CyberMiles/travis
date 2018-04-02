@@ -30,7 +30,7 @@ import:
   - config
   - node
   - proxy
-  - rpc/client
+  - rpc/clientw
   - rpc/core/types
   - rpc/lib/client
   - rpc/lib/types
@@ -53,6 +53,8 @@ import:
   version: 1.x
 - package: github.com/mattn/go-sqlite3
   version: v1.6.0
+- package: github.com/satori/go.uuid
+  version: master
 testImport:
 - package: github.com/stretchr/testify
   subpackages:

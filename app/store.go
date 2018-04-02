@@ -191,25 +191,37 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/slot":
 		slotId := string(reqQuery.Data)
 		slot := stake.GetSlot(slotId)
-		b := wire.BinaryBytes(*slot)
-		resQuery.Value = b
+		if slot != nil && slot.State == "Y" {
+			resQuery.Value = wire.BinaryBytes(*slot)
+		} else {
+			resQuery.Value = []byte{}
+		}
 	case "/slots":
 		slots := stake.GetSlots()
-		b := wire.BinaryBytes(slots)
+		var filtered []*stake.Slot
+		for _, slot := range slots {
+			if slot.State == "Y" {
+				filtered = append(filtered, slot)
+			}
+		}
+		b := wire.BinaryBytes(filtered)
 		resQuery.Value = b
 	case "/validators":
 		candidates := stake.GetCandidates()
 		b := wire.BinaryBytes(candidates)
 		resQuery.Value = b
 	case "/validator":
-		pubKey := string(reqQuery.Data)
-		candidate := stake.GetCandidate(pubKey)
-		b := wire.BinaryBytes(*candidate)
-		resQuery.Value = b
+		address := common.HexToAddress(string(reqQuery.Data))
+		candidate := stake.GetCandidateByAddress(address)
+		if candidate != nil {
+			b := wire.BinaryBytes(*candidate)
+			resQuery.Value = b
+		} else {
+			resQuery.Value = []byte{}
+		}
 	case "/delegator":
-		addrStr := string(reqQuery.Data)
-		addr := common.HexToAddress(addrStr)
-		slotDelegates := stake.GetSlotDelegatesByAddress(addr.String())
+		address := common.HexToAddress(string(reqQuery.Data))
+		slotDelegates := stake.GetSlotDelegatesByAddress(address)
 		b := wire.BinaryBytes(slotDelegates)
 		resQuery.Value = b
 	default:
@@ -327,19 +339,25 @@ func initStakeDb() error {
 	if err != nil {
 		db, err := sql.Open("sqlite3", stakeDbPath)
 		if err != nil {
-			return errors.ErrInternal("Initializing stake db: " + err.Error())
+			return errors.ErrInternal("Initializing stake database: " + err.Error())
 		}
 		defer db.Close()
 
 		sqlStmt := `
-		create table slots(id text not null primary key, validator_pub_key text, total_amount integer, available_amount integer, proposed_roi integer, created_at text, updated_at text);
-		create table delegate_history(delegator_address text, slot_id text, amount integer, op_code text, created_at text);
-		create table slot_delegates (delegator_address text, slot_id text, amount integer, created_at text, updated_at text);
-		create table candidates(pub_key text primary key, owner_address text, shares integer, voting_power integer, created_at text);
+		create table candidates(address text not null primary key, pub_key text not null, shares integer default 0, voting_power integer default 0, state text not null default 'Y', created_at text not null, updated_at text);
+		create table delegators(address text not null primary key, created_at text not null);
+		create table slots(id text not null primary key, validator_address text not null, total_amount integer not null default 0, available_amount integer not null default 0, proposed_roi integer not null default 0, state text not null default 'Y', created_at text not null, updated_at text);
+		create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, slot_id text not null, amount integer not null default 0, op_code text not null default '', created_at text not null);
+		create table slot_delegates (delegator_address text not null, slot_id text not null, amount integer not null default 0, created_at text not null, updated_at text);
+		create index idx_slots_validator_address on slots(validator_address);
+		create index idx_candidates_pub_key on candidates(pub_key);
+		create index idx_slot_delegates_delegator_address on slot_delegates(delegator_address);
+		create index idx_slot_delegates_slot_id on slot_delegates(slot_id);
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {
-			return errors.ErrInternal("Initializing stake tables: " + err.Error())
+			//os.Remove(stakeDbPath)
+			return errors.ErrInternal("Initializing stake database: " + err.Error())
 		}
 	}
 

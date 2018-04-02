@@ -12,9 +12,10 @@ import (
 	"github.com/CyberMiles/travis/modules/coin"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/tendermint/tmlibs/merkle"
-	"encoding/hex"
 	"github.com/tendermint/go-wire/data"
+	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/common"
+	"encoding/hex"
 )
 
 // nolint
@@ -29,7 +30,8 @@ func Name() string {
 
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
-	declare(TxDeclare) error
+	declareCandidacy(TxDeclareCandidacy) error
+	editCandidacy(TxEditCandidacy) error
 	withdraw(TxWithdraw) error
 	proposeSlot(TxProposeSlot) ([]byte, error)
 	acceptSlot(TxAcceptSlot) error
@@ -93,8 +95,8 @@ func (Handler) initState(module, key, value string, store state.SimpleDB) error 
 		case "max_vals":
 			params.MaxVals = uint16(i)
 		}
-	case "validators":
-		setValidators(value)
+	case "validator":
+		setValidator(value)
 	default:
 		return errors.ErrUnknownKey(key)
 	}
@@ -103,22 +105,21 @@ func (Handler) initState(module, key, value string, store state.SimpleDB) error 
 	return nil
 }
 
-func setValidators(value string) error {
-	var doc genesisValidators
-	err := data.FromJSON([]byte(value), &doc)
+func setValidator(value string) error {
+	var val genesisValidator
+	err := data.FromJSON([]byte(value), &val)
 	if err != nil {
 		return fmt.Errorf("error reading validators")
 	}
 
-	for _, val := range doc.Validators {
-		// create and save the empty candidate
-		bond := GetCandidate(val.PubKey.KeyString())
-		if bond != nil {
-			return ErrCandidateExistsAddr()
-		}
-		candidate := NewCandidate(val.PubKey, NewActor([]byte(val.Address)), val.power, val.power)
-		SaveCandidate(candidate)
+	// create and save the empty candidate
+	bond := GetCandidateByAddress(val.Address)
+	if bond != nil {
+		return ErrCandidateExistsAddr()
 	}
+
+	candidate := NewCandidate(val.PubKey, val.Address, val.Power, val.Power, "Y")
+	SaveCandidate(candidate)
 
 	return nil
 }
@@ -154,9 +155,12 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 
 	// return the fee for each tx type
 	switch txInner := tx.Unwrap().(type) {
-	case TxDeclare:
-		return sdk.NewCheck(params.GasDeclare, ""),
-			checker.declare(txInner)
+	case TxDeclareCandidacy:
+		return sdk.NewCheck(params.GasDeclareCandidacy, ""),
+			checker.declareCandidacy(txInner)
+	case TxEditCandidacy:
+		return sdk.NewCheck(params.GasEditCandidacy, ""),
+			checker.editCandidacy(txInner)
 	case TxWithdraw:
 		return sdk.NewCheck(params.GasWithdraw, ""),
 			checker.withdraw(txInner)
@@ -205,16 +209,19 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 
 	// Run the transaction
 	switch _tx := tx.Unwrap().(type) {
-	case TxDeclare:
-		res.GasUsed = params.GasDeclare
-		return res, deliverer.declare(_tx)
+	case TxDeclareCandidacy:
+		res.GasUsed = params.GasDeclareCandidacy
+		return res, deliverer.declareCandidacy(_tx)
+	case TxEditCandidacy:
+		res.GasUsed = params.GasEditCandidacy
+		return res, deliverer.editCandidacy(_tx)
 	case TxWithdraw:
 		res.GasUsed = params.GasWithdraw
 		return res, deliverer.withdraw(_tx)
 	case TxProposeSlot:
 		res.GasUsed = params.GasProposeSlot
-		hash, err := deliverer.proposeSlot(_tx)
-		res.Data = hash
+		id, err := deliverer.proposeSlot(_tx)
+		res.Data = []byte(id)
 		return res, err
 	case TxAcceptSlot:
 		res.GasUsed = params.GasAcceptSlot
@@ -293,25 +300,37 @@ type check struct {
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
-func (c check) declare(tx TxDeclare) error {
-	// check to see if the pubkey or sender has been registered before
-	candidate := GetCandidate(tx.PubKey.KeyString())
-	if candidate != nil {
-		return fmt.Errorf("cannot declare pubkey which is already declared"+
-			" PubKey %v already registered with %v candidate address",
-			candidate.PubKey, candidate.Owner)
+func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
+	// check to see if the pubkey or address has been registered before
+	candidate := GetCandidateByAddress(common.BytesToAddress(c.sender.Address))
+	if candidate != nil && candidate.State == "Y" {
+		return fmt.Errorf("address has been declared")
+	}
+
+	candidate = GetCandidateByPubKey(tx.PubKey.KeyString())
+	if candidate != nil && candidate.State == "Y" {
+		return fmt.Errorf("pubkey has been declared")
+	}
+
+	return nil
+}
+
+func (c check) editCandidacy(tx TxEditCandidacy) error {
+	candidate := GetCandidateByAddress(common.BytesToAddress(c.sender.Address))
+	if candidate == nil {
+		return fmt.Errorf("cannot edit non-exsits candidacy")
 	}
 
 	return nil
 }
 
 func (c check) withdraw(tx TxWithdraw) error {
-	// check to see if the pubkey or sender has been registered before
-	candidate := GetCandidate(tx.PubKey.KeyString())
+	// check to see if the address has been registered before
+	candidate := GetCandidateByAddress(tx.Address)
 	if candidate == nil {
 		return fmt.Errorf("cannot withdraw pubkey which is not declared"+
 			" PubKey %v already registered with %v candidate address",
-			candidate.PubKey, candidate.Owner)
+			candidate.PubKey, candidate.OwnerAddress.String())
 	}
 
 	return nil
@@ -324,7 +343,8 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// check if have enough shares to unbond
-	slotDelegate := GetSlotDelegate(c.sender.Address.String(), tx.SlotId)
+	delegatorAddress := common.BytesToAddress(c.sender.Address)
+	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()
 	}
@@ -336,9 +356,9 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 }
 
 func (c check) proposeSlot(tx TxProposeSlot) ([]byte, error) {
-	candidate := GetCandidate(tx.PubKey.KeyString())
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
-		return nil, fmt.Errorf("cannot propose slot for non-existant PubKey %v", tx.PubKey)
+		return nil, fmt.Errorf("cannot propose slot for non-existant validator address %v", tx.ValidatorAddress)
 	}
 
 	return nil, nil
@@ -365,8 +385,8 @@ func (c check) cancelSlot(tx TxCancelSlot) error {
 		return ErrBadSlot()
 	}
 
-	if slot.AvailableAmount == 0 {
-		return ErrFullSlot()
+	if slot.State == "N" {
+		return ErrCancelledSlot()
 	}
 
 	return nil
@@ -387,15 +407,40 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 
 // These functions assume everything has been authenticated,
 // now we just perform action and save
-func (d deliver) declare(tx TxDeclare) error {
+func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 
 	// create and save the empty candidate
-	bond := GetCandidate(tx.PubKey.KeyString())
-	if bond != nil {
+	ownerAddress := common.BytesToAddress(d.sender.Address)
+	candidate := GetCandidateByAddress(ownerAddress)
+	if candidate != nil && candidate.State == "Y" {
 		return ErrCandidateExistsAddr()
 	}
-	candidate := NewCandidate(tx.PubKey, d.sender, 0, 0)
-	SaveCandidate(candidate)
+
+	if candidate == nil {
+		candidate = NewCandidate(tx.PubKey, ownerAddress, 0, 0, "Y")
+		SaveCandidate(candidate)
+	} else {
+		candidate.State = "Y"
+		candidate.OwnerAddress = ownerAddress
+		candidate.UpdatedAt = utils.GetNow()
+		updateCandidate(candidate)
+	}
+
+	return nil
+}
+
+func (d deliver) editCandidacy(tx TxEditCandidacy) error {
+
+	// create and save the empty candidate
+	ownerAddress := common.BytesToAddress(d.sender.Address)
+	candidate := GetCandidateByAddress(ownerAddress)
+	if candidate == nil {
+		return ErrNoCandidateForAddress()
+	}
+
+	candidate.OwnerAddress = tx.NewAddress
+	candidate.UpdatedAt = utils.GetNow()
+	updateCandidate(candidate)
 
 	return nil
 }
@@ -403,19 +448,19 @@ func (d deliver) declare(tx TxDeclare) error {
 func (d deliver) withdraw(tx TxWithdraw) error {
 
 	// create and save the empty candidate
-	pubKey := tx.PubKey.KeyString()
-	candidate := GetCandidate(pubKey)
+	validatorAddress := common.BytesToAddress(d.sender.Address)
+	candidate := GetCandidateByAddress(validatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
 
 	// All staked tokens will be distributed back to delegator addresses.
-	slots := GetSlotsByValidator(pubKey)
+	slots := GetSlotsByValidator(validatorAddress)
 	for _, slot := range slots {
 		slotId := slot.Id
 		delegates := GetSlotDelegatesBySlot(slotId)
 		for _, delegate := range delegates {
-			delegator := sdk.Actor{"", stakingModuleName, []byte(delegate.DelegatorAddress)}
+			delegator := sdk.Actor{"", stakingModuleName, delegate.DelegatorAddress.Bytes()}
 			d.transfer(d.params.HoldAccount, delegator,
 				coin.Coins{{d.params.AllowedBondDenom, delegate.Amount}})
 			delegate.Amount = 0
@@ -425,6 +470,9 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		updateSlot(slot)
 	}
 	candidate.Shares = 0
+	candidate.VotingPower = 0
+	candidate.UpdatedAt = utils.GetNow()
+	candidate.State = "N"
 	updateCandidate(candidate)
 
 	return nil
@@ -435,11 +483,8 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	slot := GetSlot(tx.SlotId)
 
 	// Get the pubKey bond account
-	candidate := GetCandidate(slot.ValidatorPubKey.KeyString())
+	candidate := GetCandidateByAddress(slot.ValidatorAddress)
 	if candidate == nil {
-		return ErrBondNotNominated()
-	}
-	if candidate.Owner.Empty() { //candidate has been withdrawn
 		return ErrBondNotNominated()
 	}
 
@@ -454,7 +499,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	}
 
 	// Get or create the delegate slot
-	delegatorAddress := d.sender.Address.String()
+	delegatorAddress := common.BytesToAddress(d.sender.Address)
 	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		slotDelegate = NewSlotDelegate(delegatorAddress, tx.SlotId, 0)
@@ -484,14 +529,14 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// get the slot delegate
-	delegatorAddress := d.sender.Address.String()
+	delegatorAddress := common.BytesToAddress(d.sender.Address)
 	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()
 	}
 
 	// get pubKey candidate
-	candidate := GetCandidate(slot.ValidatorPubKey.KeyString())
+	candidate := GetCandidateByAddress(slot.ValidatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
@@ -512,10 +557,9 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	// deduct shares from the candidate
 	candidate.Shares -= uint64(tx.Amount)
 	if candidate.Shares == 0 {
-		removeCandidate(slot.ValidatorPubKey.KeyString())
-	} else {
-		updateCandidate(candidate)
+		candidate.State = "N"
 	}
+	updateCandidate(candidate)
 
 	slot.AvailableAmount -= tx.Amount
 	updateSlot(slot)
@@ -527,12 +571,14 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 }
 
 func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
-	hash := merkle.SimpleHashFromBinary(tx)
-	hexHash := hex.EncodeToString(hash)
-	slot := NewSlot(hexHash, tx.PubKey, tx.Amount, tx.Amount, tx.ProposedRoi)
+	//hash := merkle.SimpleHashFromBinary(tx)
+	//hexHash := hex.EncodeToString(hash)
+	uuid := utils.GetUUID()
+	hexStr := hex.EncodeToString(uuid)
+	slot := NewSlot(hexStr, tx.ValidatorAddress, tx.Amount, tx.Amount, tx.ProposedRoi, "Y")
 	saveSlot(slot)
 
-	return hash, nil
+	return uuid, nil
 }
 
 func (d deliver) cancelSlot(tx TxCancelSlot) error {
@@ -541,11 +587,13 @@ func (d deliver) cancelSlot(tx TxCancelSlot) error {
 		return ErrBadSlot()
 	}
 
-	if slot.AvailableAmount == 0 {
-		return ErrFullSlot()
+	if slot.State == "N" {
+		return ErrCancelledSlot()
 	}
 
 	slot.AvailableAmount = 0
+	slot.State = "N"
+	slot.UpdatedAt = utils.GetNow()
 	updateSlot(slot)
 
 	return nil

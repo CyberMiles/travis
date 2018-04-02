@@ -25,6 +25,7 @@ var (
 	errBadRemoveValidator    = fmt.Errorf("Error removing validator")
 	errFullSlot              = fmt.Errorf("Slot is full")
 	errBadSlot               = fmt.Errorf("Slot does not exist")
+	errCancelledSlot       	 = fmt.Errorf("Slot was cancelled already")
 	errBadSlotDelegate       = fmt.Errorf("Slot delegate does not exist")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
@@ -61,6 +62,10 @@ func ErrFullSlot() error {
 
 func ErrBadSlot() error {
 	return errors.WithCode(errBadSlot, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrCancelledSlot() error {
+	return errors.WithCode(errCancelledSlot, errors.CodeTypeBaseInvalidInput)
 }
 
 func ErrBadSlotDelegate() error {

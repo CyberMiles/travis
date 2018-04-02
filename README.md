@@ -1,4 +1,6 @@
 # Travis
+[![Build Status develop branch](https://travis-ci.org/CyberMiles/travis.svg?branch=develop)](https://travis-ci.org/CyberMiles/travis)
+
 The first production version of the CyberMiles blockchain.
 
 ## Installation

@@ -53,8 +53,6 @@ var (
 		RunE:  cmdQuerySlots,
 		Short: "Query all open and close slots for staking",
 	}
-
-	FlagDelegatorAddress = "address"
 )
 
 func init() {
@@ -62,11 +60,11 @@ func init() {
 	fsPk := flag.NewFlagSet("", flag.ContinueOnError)
 	fsPk.String(FlagPubKey, "", "PubKey of the validator-candidate")
 	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
-	fsAddr.String(FlagDelegatorAddress, "", "Delegator Hex Address")
+	fsAddr.String(FlagAddress, "", "Hex Address")
 	fsSlot := flag.NewFlagSet("", flag.ContinueOnError)
 	fsSlot.String(FlagSlotId, "", "Slot ID")
 
-	CmdQueryValidator.Flags().AddFlagSet(fsPk)
+	CmdQueryValidator.Flags().AddFlagSet(fsAddr)
 	CmdQueryDelegator.Flags().AddFlagSet(fsAddr)
 	CmdQuerySlot.Flags().AddFlagSet(fsSlot)
 }
@@ -86,12 +84,12 @@ func cmdQueryValidators(cmd *cobra.Command, args []string) error {
 func cmdQueryValidator(cmd *cobra.Command, args []string) error {
 	var candidate stake.Candidate
 
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
-	if err != nil {
-		return err
+	address := viper.GetString(FlagAddress)
+	if address == "" {
+		return fmt.Errorf("please enter validator address using --address")
 	}
 
-	err = GetParsed("/validator", []byte(pk.KeyString()), &candidate)
+	err := GetParsed("/validator", []byte(address), &candidate)
 	if err != nil {
 		return err
 	}
@@ -101,7 +99,7 @@ func cmdQueryValidator(cmd *cobra.Command, args []string) error {
 
 func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
 	var slotDelegates []*stake.SlotDelegate
-	address := viper.GetString(FlagDelegatorAddress)
+	address := viper.GetString(FlagAddress)
 
 	err := GetParsed("/delegator", []byte(address), &slotDelegates)
 	if err != nil {

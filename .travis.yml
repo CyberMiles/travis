@@ -2,6 +2,8 @@ language: go
 
 branches:
   only:
+  - master
+  - develop
   - deploy
 
 services:
@@ -23,9 +25,10 @@ install:
   - npm install
 
 script:
-  - make docker
-  - ./scripts/smoke_test.sh
+  - make docker_image && ./scripts/smoke_test.sh
 
 after_success:
-  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - make push
+  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      make push_image ;
+    fi

@@ -79,7 +79,7 @@ func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.Et
 	}
 	// if chain_id has not been set yet, load the genesis.
 	// else, assume it's been loaded
-	//if basecoinApp.GetChainID() == "" {
+	if basecoinApp.GetChainID() == "" {
 		// If genesis file exists, set key-value options
 		genesisFile := path.Join(rootDir, "genesis.json")
 		if _, err := os.Stat(genesisFile); err == nil {
@@ -90,7 +90,7 @@ func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.Et
 		} else {
 			fmt.Printf("No genesis file at %s, skipping...\n", genesisFile)
 		}
-	//}
+	}
 
 	chainID := basecoinApp.GetChainID()
 	logger.Info("Starting Travis", "chain_id", chainID)
