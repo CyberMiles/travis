@@ -139,8 +139,6 @@ func setupEmtContext() error {
 	context.GlobalSet(ethUtils.WSEnabledFlag.Name, strconv.FormatBool(config.EMConfig.WSEnabledFlag))
 	context.GlobalSet(ethUtils.WSApiFlag.Name, config.EMConfig.WSApiFlag)
 
-	context.GlobalSet(ethUtils.TxPoolGlobalQueueFlag.Name, strconv.Itoa(int(config.EMConfig.TxPoolGlobalQueueFlag)))
-
 	if err := emtUtils.Setup(context); err != nil {
 		return err
 	}
