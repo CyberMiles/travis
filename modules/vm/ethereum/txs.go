@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	local = true
+	local = false
 )
 //----------------------------------------------------------------------
 // Transactions sent via the go-ethereum rpc need to be routed to tendermint
@@ -23,9 +23,12 @@ func (b *Backend) txBroadcastLoop() {
 
 	if b.localClient != nil {
 		if _, err := b.localClient.Status(); err != nil {
-			waitForServer(b.client)
-			local = false
+			local = true
 		}
+	}
+
+	if !local {
+		waitForServer(b.client)
 	}
 
 	for obj := range b.txSub.Chan() {
