@@ -35,6 +35,7 @@ func main() {
 	TravisCmd.AddCommand(
 		nodeCmd,
 		clientCmd,
+		attachCmd,
 
 		lineBreak,
 		auto.AutoCompleteCmd,
