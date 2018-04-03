@@ -126,7 +126,7 @@ seeds = ""
 
 [vm]
 rpc = true
-rpcapi = "cmt,stake,eth,net,web3,personal,admin"
+rpcapi = "cmt,stake,governance,eth,net,web3,personal,admin"
 rpcaddr = "0.0.0.0"
 rpcport = 8545
 ws = false

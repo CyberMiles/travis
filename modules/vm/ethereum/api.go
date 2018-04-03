@@ -26,6 +26,7 @@ import (
 	"github.com/CyberMiles/travis/modules/keys"
 	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/modules/governance"
 )
 
 // We must implement our own net service since we don't have access to `internal/ethapi`
@@ -451,18 +452,135 @@ func (s *StakeRPCService) get(path string, key []byte, height int64) (data.Bytes
 	return data.Bytes(resp.Response.Value), resp.Response.Height, err
 }
 
-// GovernanceRPCService offers stake related RPC methods
+// GovernanceRPCService offers governance related RPC methods
 type GovernanceRPCService struct {
 	backend *Backend
+	am      *accounts.Manager
 }
 
 // NewGovernanceRPCAPI create a new StakeRPCAPI.
 func NewGovernanceRPCService(b *Backend) *GovernanceRPCService {
 	return &GovernanceRPCService{
 		backend: b,
+		am:      b.ethereum.AccountManager(),
 	}
 }
 
-func (g *GovernanceRPCService) Test() (bool, error) {
-	return true, nil
+type GovernanceProposalArgs struct {
+	Proposer string `json:"proposer"`
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Amount   string `json:"amount"`
+	Reason   string `json:"reason"`
+}
+
+func (s *GovernanceRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	proposer := common.HexToAddress(args.Proposer)
+	fromAddr := common.HexToAddress(args.From)
+	toAddr   := common.HexToAddress(args.To)
+	amount   := new(big.Int)
+	amount.SetString(args.Amount, 10)
+
+	tx := governance.NewTxPropose(proposer, fromAddr, toAddr, amount, args.Reason)
+	s.wrapAndSignTx(tx, args.Proposer)
+
+	return s.broadcastTx(tx)
+}
+
+func (s *GovernanceRPCService) wrapAndSignTx(tx sdk.Tx, address string) (sdk.Tx, error) {
+	// wrap
+	// only add the actual signer to the nonce
+	signers := []sdk.Actor{getSignerAct(address)}
+	var sequence  uint32
+	// calculate default sequence
+	err := s.getSequence(signers, &sequence)
+	if err != nil {
+		return sdk.Tx{}, err
+	}
+	sequence = sequence + 1
+	tx = nonce.NewTx(sequence, signers, tx)
+
+	chainID, err := s.getChainID()
+	if err != nil {
+		return sdk.Tx{}, err
+	}
+	tx = base.NewChainTx(chainID, 0, tx)
+	tx = auth.NewSig(tx).Wrap()
+
+	// sign
+	err = s.signTx(tx, address)
+	if err != nil {
+		return sdk.Tx{}, err
+	}
+	return tx, err
+}
+
+// sign the transaction with private key
+func (s *GovernanceRPCService) signTx(tx sdk.Tx, address string) error {
+	// validate tx client-side
+	err := tx.ValidateBasic()
+	if err != nil {
+		return err
+	}
+
+	if sign, ok := tx.Unwrap().(keys.Signable); ok {
+		if address == "" {
+			return errors.New("address is required to sign tx")
+		}
+		err := s.sign(sign, address)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func (s *GovernanceRPCService) sign(data keys.Signable, address string) error {
+	ethTx := types.NewTransaction(
+		0,
+		common.Address([20]byte{}),
+		big.NewInt(0),
+		big.NewInt(0),
+		big.NewInt(0),
+		data.SignBytes(),
+	)
+
+	addr := common.HexToAddress(address)
+	account := accounts.Account{Address: addr}
+	wallet, err := s.am.Find(account)
+	if err != nil {
+		return err
+	}
+	signed, err := wallet.SignTx(account, ethTx, big.NewInt(15)) //TODO: use defaultEthChainId
+	if err != nil {
+		return err
+	}
+
+	return data.Sign(signed)
+}
+
+func (s *GovernanceRPCService) broadcastTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
+	key := wire.BinaryBytes(tx)
+	return s.backend.localClient.BroadcastTxCommit(key)
+}
+
+func (s *GovernanceRPCService) getSequence(signers []sdk.Actor, sequence *uint32) error {
+	key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+	result, err := s.backend.localClient.ABCIQuery("/key", key)
+	if err != nil {
+		return err
+	}
+
+	if len(result.Response.Value) == 0 {
+		return nil
+	}
+	return wire.ReadBinaryBytes(result.Response.Value, sequence)
+}
+
+func (s *GovernanceRPCService) getChainID() (string, error) {
+	if s.backend.chainID == "" {
+		return "", errors.New("Empty chain id. Please wait for tendermint to finish starting up. ")
+	}
+
+	return s.backend.chainID, nil
 }
