@@ -32,13 +32,18 @@ func (c Context) BlockHeight() int64 {
 	return c.height
 }
 
-func (c Context) WithSigners(signers ...common.Address) {
-	c.signers = append(c.signers, signers...)
+func (c Context) WithSigners(signers ...common.Address) Context {
+	return Context{
+		id: c.id,
+		chain: c.chain,
+		height: c.height,
+		signers: append(c.signers, signers...),
+	}
 }
 
-func (c Context) HasSigner(singer common.Address) bool {
+func (c Context) HasSigner(signer common.Address) bool {
 	for _, s := range c.signers {
-		if s == singer {
+		if s == signer {
 			return true
 		}
 	}

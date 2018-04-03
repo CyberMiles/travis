@@ -106,7 +106,8 @@ func (app *StoreApp) Append() sm.SimpleDB {
 	return app.state.Append()
 }
 
-// Check returns the working state for CheckTx
+// Check returns the working state for Chec
+// kTx
 func (app *StoreApp) Check() sm.SimpleDB {
 	return app.state.Check()
 }

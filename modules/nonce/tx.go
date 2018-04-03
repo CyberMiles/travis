@@ -67,7 +67,7 @@ func (n Tx) Next() sdk.Tx {
 // and further increment the sequence number
 // NOTE It is okay to modify the sequence before running the wrapped TX because if the
 // wrapped Tx fails, the state changes are not applied
-func (n Tx) CheckIncrementSeq(ctx *types.Context, store state.SimpleDB) error {
+func (n Tx) CheckIncrementSeq(ctx types.Context, store state.SimpleDB) error {
 
 	seqKey := n.getSeqKey()
 

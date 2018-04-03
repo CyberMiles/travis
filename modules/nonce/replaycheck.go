@@ -1,31 +1,30 @@
 package nonce
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/CyberMiles/travis/types"
+	"fmt"
 )
 
 // nolint
 const (
 	NameNonce = "nonce"
-	CostNonce = 10
 )
 
 // Verifies tx is not being replayed
-func ReplayCheck(ctx *types.Context, store state.SimpleDB, tx *sdk.Tx) (res sdk.CheckResult, err error) {
+func ReplayCheck(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckResult, stx sdk.Tx, err error) {
 
-	stx, err := checkIncrementNonceTx(ctx, store, *tx)
+	stx, err = checkIncrementNonceTx(ctx, store, tx)
 	if err != nil {
-		return res, err
+		fmt.Print(err)
+		return res, sdk.Tx{}, err
 	}
-
-	tx = &stx
-	return res, err
+	return
 }
 
 // checkNonceTx varifies the nonce sequence, an increment sequence number
-func checkIncrementNonceTx(ctx *types.Context, store state.SimpleDB, tx sdk.Tx) (sdk.Tx, error) {
+func checkIncrementNonceTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (sdk.Tx, error) {
 
 	// make sure it is a the nonce Tx (Tx from this package)
 	nonceTx, ok := tx.Unwrap().(Tx)

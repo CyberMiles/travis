@@ -15,13 +15,13 @@ type Handler struct {
 
 func (h Handler) CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckResult, err error) {
 	// Verify signature
-	res, err = auth.VerifyTx(&ctx, &tx)
+	res, tx, ctx, err = auth.VerifyTx(ctx, tx)
 	if err != nil {
 		return res, fmt.Errorf("failed to verify signature")
 	}
 
 	// Check nonce
-	res, err = nonce.ReplayCheck(&ctx, store, &tx)
+	res, tx, err = nonce.ReplayCheck(ctx, store, tx)
 	if err != nil {
 		return res, fmt.Errorf("failed to check nonce")
 	}
