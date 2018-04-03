@@ -8,8 +8,6 @@ import (
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	stakecmd "github.com/CyberMiles/travis/modules/stake/commands"
 	authcmd "github.com/CyberMiles/travis/modules/auth/commands"
-	basecmd "github.com/cosmos/cosmos-sdk/modules/base/commands"
-	rolecmd "github.com/cosmos/cosmos-sdk/modules/roles/commands"
 	noncecmd "github.com/CyberMiles/travis/modules/nonce/commands"
 	"github.com/CyberMiles/travis/modules/keys"
 )
@@ -37,9 +35,9 @@ func prepareClientCommands() {
 
 	// set up the middleware
 	txcmd.Middleware = txcmd.Wrappers{
-		rolecmd.RoleWrapper{},
+		//rolecmd.RoleWrapper{},
 		noncecmd.NonceWrapper{},
-		basecmd.ChainWrapper{},
+		//basecmd.ChainWrapper{},
 		authcmd.SigWrapper{},
 	}
 	txcmd.Middleware.Register(txcmd.RootCmd.PersistentFlags())

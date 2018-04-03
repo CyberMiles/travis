@@ -12,6 +12,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/CyberMiles/travis/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // nolint
@@ -26,15 +28,15 @@ func init() {
 
 // Tx - Nonce transaction structure, contains list of signers and current sequence number
 type Tx struct {
-	Sequence uint32      `json:"sequence"`
-	Signers  []sdk.Actor `json:"signers"`
-	Tx       sdk.Tx      `json:"tx"`
+	Sequence uint32      		`json:"sequence"`
+	Signers  []common.Address 	`json:"signers"`
+	Tx       sdk.Tx      		`json:"tx"`
 }
 
 var _ sdk.TxInner = &Tx{}
 
 // NewTx wraps the tx with a signable nonce
-func NewTx(sequence uint32, signers []sdk.Actor, tx sdk.Tx) sdk.Tx {
+func NewTx(sequence uint32, signers []common.Address, tx sdk.Tx) sdk.Tx {
 	return (Tx{
 		Sequence: sequence,
 		Signers:  signers,
@@ -65,7 +67,7 @@ func (n Tx) Next() sdk.Tx {
 // and further increment the sequence number
 // NOTE It is okay to modify the sequence before running the wrapped TX because if the
 // wrapped Tx fails, the state changes are not applied
-func (n Tx) CheckIncrementSeq(ctx sdk.Context, store state.SimpleDB) error {
+func (n Tx) CheckIncrementSeq(ctx *types.Context, store state.SimpleDB) error {
 
 	seqKey := n.getSeqKey()
 
@@ -80,7 +82,7 @@ func (n Tx) CheckIncrementSeq(ctx sdk.Context, store state.SimpleDB) error {
 
 	// make sure they all signed
 	for _, s := range n.Signers {
-		if !ctx.HasPermission(s) {
+		if !ctx.HasSigner(s) {
 			return ErrNotMember()
 		}
 	}
@@ -99,12 +101,12 @@ func (n Tx) getSeqKey() (seqKey []byte) {
 }
 
 // GetSeqKey - Generate the sequence key as the concatenated list of signers, sorted by address.
-func GetSeqKey(signers []sdk.Actor) (seqKey []byte) {
+func GetSeqKey(signers []common.Address) (seqKey []byte) {
 
 	// First copy the list of signers to sort as sort is done in place
-	signers2sort := make([]sdk.Actor, len(signers))
+	signers2sort := make([]common.Address, len(signers))
 	copy(signers2sort, signers)
-	sort.Sort(sdk.ByAll(signers))
+	sort.Sort(types.ByAll(signers))
 
 	for _, signer := range signers {
 		seqKey = append(seqKey, signer.Bytes()...)

@@ -35,7 +35,7 @@ const (
 // nolint
 const (
 	// for signatures
-	TypeSingleTx = NameSigs + "/one"
+	TypeSingleTx = "sigs/one"
 )
 
 // Signed holds one signature of the data
@@ -54,8 +54,8 @@ func init() {
 
 // OneSig lets us wrap arbitrary data with a go-crypto signature
 type OneSig struct {
-	Tx     sdk.Tx `json:"tx"`
-	SignedTx []byte `json:"signature"`
+	Tx     sdk.Tx 		`json:"tx"`
+	SignedTx []byte 	`json:"signature"`
 }
 
 var _ keys.Signable = &OneSig{}

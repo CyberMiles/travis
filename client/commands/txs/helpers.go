@@ -42,15 +42,6 @@ func GetSigner() common.Address {
 	return common.HexToAddress(address)
 }
 
-// GetSignerAct returns the address of the signer of the tx
-// (as we still only support single sig)
-func GetSignerAct() (res sdk.Actor) {
-	// this could be much cooler with multisig...
-	signer := GetSigner()
-	res = auth.SigPerm(signer.Bytes())
-	return res
-}
-
 // DoTx is a helper function for the lazy :)
 //
 // It uses only public functions and goes through the standard sequence of

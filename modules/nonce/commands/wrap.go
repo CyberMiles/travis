@@ -7,9 +7,10 @@ import (
 	"github.com/spf13/viper"
 
 	sdk "github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/client/commands"
+	"github.com/CyberMiles/travis/client/commands"
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/nonce"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // nolint
@@ -48,16 +49,16 @@ func (NonceWrapper) Register(fs *pflag.FlagSet) {
 	fs.String(FlagNonceKey, "", "Set of comma-separated addresses for the nonce (for multisig)")
 }
 
-func readNonceKey() ([]sdk.Actor, error) {
+func readNonceKey() ([]common.Address, error) {
 	nonce := viper.GetString(FlagNonceKey)
 	if nonce == "" {
-		return []sdk.Actor{txcmd.GetSignerAct()}, nil
+		return []common.Address{txcmd.GetSigner()}, nil
 	}
 	return commands.ParseActors(nonce)
 }
 
 // read the sequence from the flag or query for it if flag is -1
-func readSequence(signers []sdk.Actor) (seq uint32, err error) {
+func readSequence(signers []common.Address) (seq uint32, err error) {
 	//add the nonce tx layer to the tx
 	seqFlag := viper.GetInt(FlagSequence)
 
@@ -66,7 +67,7 @@ func readSequence(signers []sdk.Actor) (seq uint32, err error) {
 		seq = uint32(seqFlag)
 
 	case seqFlag == -1:
-		//autocalculation for default sequence
+		//auto calculation for default sequence
 		seq, _, err = doNonceQuery(signers)
 		if err != nil {
 			return

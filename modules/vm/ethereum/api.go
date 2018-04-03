@@ -268,7 +268,7 @@ func (s *StakeRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, erro
 func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32) (sdk.Tx, error) {
 	// wrap
 	// only add the actual signer to the nonce
-	signers := []sdk.Actor{getSignerAct(address)}
+	signers := []common.Address{getSigner(address)}
 	if sequence <= 0 {
 		// calculate default sequence
 		err := s.getSequence(signers, &sequence)
@@ -294,7 +294,7 @@ func (s *StakeRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint
 	return tx, err
 }
 
-func (s *StakeRPCService) getSequence(signers []sdk.Actor, sequence *uint32) error {
+func (s *StakeRPCService) getSequence(signers []common.Address, sequence *uint32) error {
 	key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
 	result, err := s.backend.localClient.ABCIQuery("/key", key)
 	if err != nil {
@@ -356,10 +356,9 @@ func (s *StakeRPCService) broadcastTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommi
 	return s.backend.localClient.BroadcastTxCommit(key)
 }
 
-func getSignerAct(address string) (res sdk.Actor) {
+func getSigner(address string) (res common.Address) {
 	// this could be much cooler with multisig...
-	signer := common.HexToAddress(address)
-	res = auth.SigPerm(signer.Bytes())
+	res = common.HexToAddress(address)
 	return res
 }
 

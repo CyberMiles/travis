@@ -18,12 +18,14 @@ import (
 	ethapp "github.com/CyberMiles/travis/modules/vm/app"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
+	travistypes	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/modules"
 )
 
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler sdk.Handler
+	handler modules.Handler
 	clock   sdk.Ticker
 	EthApp *ethapp.EthermintApplication
 	checkedTx map[common.Hash]*types.Transaction
@@ -37,15 +39,15 @@ var (
 	blockAward, _ = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
 
 	_ abci.Application = &BaseApp{}
-	handler = stake.NewHandler()
+	//handler = stake.NewHandler()
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
-func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, handler sdk.Handler, clock sdk.Ticker) (*BaseApp, error) {
+func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.Ticker) (*BaseApp, error) {
 	app := &BaseApp{
 		StoreApp: store,
-		handler:  handler,
+		handler:  modules.Handler{},
 		clock:    clock,
 		EthApp:   ethApp,
 		checkedTx: make(map[common.Hash]*types.Transaction),
@@ -89,21 +91,8 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
 
-	ctx := stack.NewContext(
-		app.GetChainID(),
-		app.WorkingHeight(),
-		app.Logger().With("call", "delivertx"),
-	)
-
-	//// fixme check if it's sendTx
-	//switch tx.Unwrap().(type) {
-	//case coin.SendTx:
-	//	//return h.sendTx(ctx, store, t, cb)
-	//	fmt.Println("transfer tx")
-	//}
-
+	ctx := travistypes.NewContext(app.GetChainID(), app.WorkingHeight())
 	res, err := app.handler.DeliverTx(ctx, app.Append(), tx)
-
 	if err != nil {
 		return errors.DeliverResult(err)
 	}
@@ -140,24 +129,8 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 
 	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
 
-	ctx := stack.NewContext(
-		app.GetChainID(),
-		app.WorkingHeight(),
-		app.Logger().With("call", "checktx"),
-	)
-
-	//ctx2, err := verifySignature(ctx, tx)
-	//
-	//// fixme check if it's sendTx
-	//switch tx.Unwrap().(type) {
-	//case coin.SendTx:
-	//	//return h.sendTx(ctx, store, t, cb)
-	//	fmt.Println("checkTx: transfer")
-	//	return sdk.NewCheck(21000, "").ToABCI()
-	//}
-
+	ctx := travistypes.NewContext(app.GetChainID(), app.WorkingHeight())
 	res, err := app.handler.CheckTx(ctx, app.Check(), tx)
-
 	if err != nil {
 		return errors.CheckResult(err)
 	}
@@ -244,11 +217,9 @@ func (app *BaseApp) InitState(module, key, value string) error {
 		return fmt.Errorf("Unknown base option: %s", key)
 	}
 
-	log, err := app.handler.InitState(logger, state, module, key, value)
+	err := app.handler.InitState(key, value, state)
 	if err != nil {
 		logger.Error("Invalid genesis option", "err", err)
-	} else {
-		logger.Info(log)
 	}
 	return err
 }

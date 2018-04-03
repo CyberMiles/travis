@@ -7,12 +7,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/commands"
+	"github.com/CyberMiles/travis/client/commands"
 	"github.com/cosmos/cosmos-sdk/client/commands/query"
 	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/cosmos/cosmos-sdk/stack"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // NonceQueryCmd - command to query an nonce account
@@ -41,7 +41,7 @@ func nonceQueryCmd(cmd *cobra.Command, args []string) error {
 	return query.OutputProof(seq, height)
 }
 
-func doNonceQuery(signers []sdk.Actor) (sequence uint32, height int64, err error) {
+func doNonceQuery(signers []common.Address) (sequence uint32, height int64, err error) {
 	key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
 	prove := !viper.GetBool(commands.FlagTrustNode)
 	height, err = query.GetParsed(key, &sequence, query.GetHeight(), prove)

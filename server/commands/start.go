@@ -73,7 +73,7 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 }
 
 func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication) (*app.BaseApp, error) {
-	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, Handler, nil)
+	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, nil)
 	if err != nil {
 		return nil, err
 	}
