@@ -14,18 +14,18 @@ type Signable interface {
 }
 
 // verifies the signatures are correct
-func VerifyTx(ctx types.Context, tx sdk.Tx) (res sdk.CheckResult, stx sdk.Tx, nctx types.Context, err error) {
+func VerifyTx(ctx *types.Context, tx sdk.Tx) (res sdk.CheckResult, stx sdk.Tx, err error) {
 	signers, stx, err := getSigners(tx)
 	if err != nil {
-		return res, sdk.Tx{}, types.Context{}, err
+		return res, sdk.Tx{}, err
 	}
-	nctx = addSigners(ctx, signers)
+	addSigners(ctx, signers)
 	return
 }
 
 
-func addSigners(ctx types.Context, addr common.Address) types.Context {
-	return ctx.WithSigners(addr)
+func addSigners(ctx *types.Context, addr common.Address) {
+	ctx.WithSigners(addr)
 }
 
 func getSigners(tx sdk.Tx) (common.Address, sdk.Tx, error) {

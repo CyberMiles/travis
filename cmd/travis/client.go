@@ -35,9 +35,7 @@ func prepareClientCommands() {
 
 	// set up the middleware
 	txcmd.Middleware = txcmd.Wrappers{
-		//rolecmd.RoleWrapper{},
 		noncecmd.NonceWrapper{},
-		//basecmd.ChainWrapper{},
 		authcmd.SigWrapper{},
 	}
 	txcmd.Middleware.Register(txcmd.RootCmd.PersistentFlags())

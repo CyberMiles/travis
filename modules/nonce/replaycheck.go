@@ -23,7 +23,7 @@ func ReplayCheck(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.Ch
 	return
 }
 
-// checkNonceTx varifies the nonce sequence, an increment sequence number
+// checkNonceTx verifies the nonce sequence, an increment sequence number
 func checkIncrementNonceTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (sdk.Tx, error) {
 
 	// make sure it is a the nonce Tx (Tx from this package)
