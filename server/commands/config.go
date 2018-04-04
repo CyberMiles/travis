@@ -49,6 +49,7 @@ type EthermintConfig struct {
 	RPCEnabledFlag    bool   `mapstructure:"rpc"`
 	RPCListenAddrFlag string `mapstructure:"rpcaddr"`
 	RPCPortFlag       uint   `mapstructure:"rpcport"`
+	RPCCORSDomainFlag string `mapstructure:"rpccorsdomain"`
 	RPCApiFlag        string `mapstructure:"rpcapi"`
 	WSEnabledFlag     bool   `mapstructure:"ws"`
 	WSListenAddrFlag  string `mapstructure:"wsaddr"`
@@ -126,7 +127,7 @@ seeds = ""
 
 [vm]
 rpc = true
-rpcapi = "cmt,stake,governance,eth,net,web3,personal,admin"
+rpcapi = "cmt,eth,net,web3,personal,admin"
 rpcaddr = "0.0.0.0"
 rpcport = 8545
 ws = false

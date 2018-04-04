@@ -358,6 +358,8 @@ func initStakeDb() error {
 		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null, created_at text not null);
 		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 		create index idx_governance_vote_voter on governance_vote(voter);
+		
+		create table suicided_contracts(contract_address tx primary key, created_at text, updated_at text);
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {

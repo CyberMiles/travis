@@ -114,7 +114,7 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 
 	var answer, createdAt string
 	var blockHeight uint64
-	err = stmt.QueryRow(pid, voter).Scan(&blockHeight, &answer, &createdAt)
+	err = stmt.QueryRow(pid, voter).Scan(&answer, &blockHeight, &createdAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
