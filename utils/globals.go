@@ -14,7 +14,5 @@ type StateChangeObject struct {
 var(
 	BlockGasFee *big.Int
 	StateChangeQueue []StateChangeObject
-	ValidatorPubKeys [][]byte
-
 	NonceCheckedTx map[common.Hash]bool = make(map[common.Hash]bool)
 )

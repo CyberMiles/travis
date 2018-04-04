@@ -24,10 +24,11 @@ import (
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler modules.Handler
-	clock   sdk.Ticker
-	EthApp *ethapp.EthermintApplication
-	checkedTx map[common.Hash]*types.Transaction
+	handler                modules.Handler
+	clock                  sdk.Ticker
+	EthApp                 *ethapp.EthermintApplication
+	checkedTx              map[common.Hash]*types.Transaction
+	AbsentValidatorPubKeys [][]byte
 }
 
 const (
@@ -43,11 +44,12 @@ var (
 // which it binds to the proper abci calls
 func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.Ticker) (*BaseApp, error) {
 	app := &BaseApp{
-		StoreApp: store,
-		handler:  modules.Handler{},
-		clock:    clock,
-		EthApp:   ethApp,
-		checkedTx: make(map[common.Hash]*types.Transaction),
+		StoreApp:               store,
+		handler:                modules.Handler{},
+		clock:                  clock,
+		EthApp:                 ethApp,
+		checkedTx:              make(map[common.Hash]*types.Transaction),
+		AbsentValidatorPubKeys: [][]byte{},
 	}
 
 	return app, nil
@@ -57,31 +59,26 @@ func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.
 func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 	app.logger.Debug("DeliverTx")
 
-	tx, err := sdk.LoadTx(txBytes)
-	if err != nil {
-		// try to decode with ethereum
-		tx, err := decodeEthTx(txBytes)
-		if err != nil {
+	ok, tx := isTravisTx(txBytes)
+	if !ok {
+		ok, tx, err := isEthTx(txBytes)
+		if !ok {
 			app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
-
 			return errors.DeliverResult(err)
 		}
 
-		if ctx, ok := app.checkedTx[tx.Hash()]; ok {
-			tx = ctx
+		if checkedTx, ok := app.checkedTx[tx.Hash()]; ok {
+			tx = checkedTx
 		} else {
 			// force cache from of tx
 			// TODO: Get chainID from config
 			if _, err := types.Sender(types.NewEIP155Signer(big.NewInt(111)), tx); err != nil {
 				app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
-
 				return errors.DeliverResult(err)
 			}
 		}
-
 		resp := app.EthApp.DeliverTx(tx)
 		app.logger.Debug("ethermint DeliverTx response: %v\n", resp)
-
 		return resp
 	}
 
@@ -100,26 +97,21 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 	app.logger.Debug("CheckTx")
 
-	tx, err := sdk.LoadTx(txBytes)
-	if err != nil {
-		// try to decode with ethereum
-		tx, err := decodeEthTx(txBytes)
-		if err != nil {
+	ok, tx := isTravisTx(txBytes)
+	if !ok {
+		ok, tx, err := isEthTx(txBytes)
+		if !ok {
 			app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx, "err", err)
-
 			return errors.CheckResult(err)
 		}
 
 		resp := app.EthApp.CheckTx(tx)
 		app.logger.Debug("ethermint CheckTx response: %v\n", resp)
-
 		if resp.IsErr() {
 			return errors.CheckResult(goerr.New(resp.Error()))
 		}
-
 		app.checkedTx[tx.Hash()] = tx
-
-		return sdk.NewCheck(21000, "").ToABCI()
+		return sdk.NewCheck(0, "").ToABCI()
 	}
 
 	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
@@ -139,11 +131,11 @@ func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.Resp
 	resp := app.EthApp.BeginBlock(beginBlock)
 	app.logger.Debug("ethermint BeginBlock response: %v\n", resp)
 
+	app.AbsentValidatorPubKeys = [][]byte{}
 	evidences := beginBlock.ByzantineValidators
 	for _, evidence := range evidences {
-		utils.ValidatorPubKeys = append(utils.ValidatorPubKeys, evidence.GetPubKey())
+		app.AbsentValidatorPubKeys = append(app.AbsentValidatorPubKeys, evidence.GetPubKey())
 	}
-
 	return abci.ResponseBeginBlock{}
 }
 
@@ -171,7 +163,9 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 	}
 
 	// block award
-	ratioMap := stake.CalValidatorsStakeRatio(app.Append(), utils.ValidatorPubKeys)
+	// fixme exclude absent validators
+	var validatorPubKeys [][]byte
+	ratioMap := stake.CalValidatorsStakeRatio(app.Append(), validatorPubKeys)
 	for k, v := range ratioMap {
 		awardAmount := big.NewInt(0)
 		intv := int64(1000 * v)
@@ -226,4 +220,22 @@ func decodeEthTx(txBytes []byte) (*types.Transaction, error) {
 		return nil, err
 	}
 	return tx, nil
+}
+
+func isTravisTx(txBytes []byte) (bool, sdk.Tx) {
+	tx, err := sdk.LoadTx(txBytes)
+	if err != nil {
+		return false, sdk.Tx{}
+	}
+
+	return true, tx
+}
+
+func isEthTx(txBytes []byte) (bool, *types.Transaction, error) {
+	// try to decode with ethereum
+	tx, err := decodeEthTx(txBytes)
+	if err != nil {
+		return false, tx, err
+	}
+	return true, nil, nil
 }

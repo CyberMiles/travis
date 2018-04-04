@@ -50,9 +50,6 @@ type StoreApp struct {
 	logger log.Logger
 }
 
-// TODO should satisfy?
-//var _ abci.Application = &StoreApp{}
-
 // NewStoreApp creates a data store to handle queries
 func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*StoreApp, error) {
 	state, err := loadState(dbName, cacheSize, DefaultHistorySize)
@@ -256,16 +253,7 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 }
 
 // InitChain - ABCI
-func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
-	// create and save the empty candidate
-	//for _, validator := range req.Validators {
-	//	pk, _ := stake.GetPubKey(string(validator.PubKey))
-	//	candidate := stake.NewCandidate(pk, d.sender, uint64(validator.Power), uint64(validator.Power))
-	//	stake.SaveCandidate(candidate)
-	//}
-
-	return
-}
+func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) { return }
 
 // BeginBlock - ABCI
 func (app *StoreApp) BeginBlock(_ abci.RequestBeginBlock) (res abci.ResponseBeginBlock) { return }
