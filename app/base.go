@@ -11,7 +11,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	_ "github.com/tendermint/abci/client"
 	abci "github.com/tendermint/abci/types"
 
 	"github.com/CyberMiles/travis/modules/stake"
@@ -37,9 +36,7 @@ const (
 
 var (
 	blockAward, _ = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
-
 	_ abci.Application = &BaseApp{}
-	//handler = stake.NewHandler()
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
@@ -56,14 +53,14 @@ func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.
 	return app, nil
 }
 
-// DeliverTx - ABCI - dispatches to the handler
+// DeliverTx - ABCI
 func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 	app.logger.Debug("DeliverTx")
 
 	tx, err := sdk.LoadTx(txBytes)
 	if err != nil {
 		// try to decode with ethereum
-		tx, err := decodeTx(txBytes)
+		tx, err := decodeEthTx(txBytes)
 		if err != nil {
 			app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
 
@@ -82,7 +79,6 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 			}
 		}
 
-		//resp, err := app.client.DeliverTxSync(txBytes)
 		resp := app.EthApp.DeliverTx(tx)
 		app.logger.Debug("ethermint DeliverTx response: %v\n", resp)
 
@@ -100,21 +96,20 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 	return res.ToABCI()
 }
 
-// CheckTx - ABCI - dispatches to the handler
+// CheckTx - ABCI
 func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 	app.logger.Debug("CheckTx")
 
 	tx, err := sdk.LoadTx(txBytes)
 	if err != nil {
 		// try to decode with ethereum
-		tx, err := decodeTx(txBytes)
+		tx, err := decodeEthTx(txBytes)
 		if err != nil {
 			app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx, "err", err)
 
 			return errors.CheckResult(err)
 		}
 
-		//resp, err := app.client.CheckTxSync(txBytes)
 		resp := app.EthApp.CheckTx(tx)
 		app.logger.Debug("ethermint CheckTx response: %v\n", resp)
 
@@ -141,7 +136,6 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	app.logger.Debug("BeginBlock")
 
-	//resp, _ := app.client.BeginBlockSync(beginBlock)
 	resp := app.EthApp.BeginBlock(beginBlock)
 	app.logger.Debug("ethermint BeginBlock response: %v\n", resp)
 
@@ -184,7 +178,7 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 		awardAmount.Mul(blockAward, big.NewInt(intv))
 		awardAmount.Div(awardAmount, big.NewInt(1000))
 		utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
-			From: stake.DefaultHoldAccount.Address, To: []byte(k), Amount: awardAmount})
+			From: stake.DefaultHoldAccount, To: common.HexToAddress(k), Amount: awardAmount})
 	}
 
 	// todo send StateChangeQueue to VM
@@ -196,11 +190,11 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.logger.Debug("Commit")
 
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
-	resp := app.EthApp.Commit()
+	app.EthApp.Commit()
 	//var hash = resp.Data
 	//app.logger.Debug("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
 
-	resp = app.StoreApp.Commit()
+	resp := app.StoreApp.Commit()
 	return resp
 }
 
@@ -214,35 +208,18 @@ func (app *BaseApp) InitState(module, key, value string) error {
 			return nil
 		}
 		logger.Error("Invalid genesis option")
-		return fmt.Errorf("Unknown base option: %s", key)
+		return fmt.Errorf("unknown base option: %s", key)
 	}
 
-	err := app.handler.InitState(key, value, state)
+	err := stake.InitState(key, value, state)
 	if err != nil {
 		logger.Error("Invalid genesis option", "err", err)
 	}
 	return err
 }
 
-//func (app *BaseApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQuery) {
-//	fmt.Println("Query")
-//
-//	var d = data.Bytes(reqQuery.Data)
-//	fmt.Println(d)
-//	fmt.Println(d.MarshalJSON())
-//	reqQuery.Data, _ = d.MarshalJSON()
-//
-//	resp, err := client.QuerySync(reqQuery)
-//
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	return *resp
-//}
-
 // rlp decode an ethereum transaction
-func decodeTx(txBytes []byte) (*types.Transaction, error) {
+func decodeEthTx(txBytes []byte) (*types.Transaction, error) {
 	tx := new(types.Transaction)
 	rlpStream := rlp.NewStream(bytes.NewBuffer(txBytes), 0)
 	if err := tx.DecodeRLP(rlpStream); err != nil {

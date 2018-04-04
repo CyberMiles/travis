@@ -328,7 +328,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 
 	// Iterate StateChangeQueue to pre sub the balance
 	for _, scObj := range utils.StateChangeQueue {
-		if bytes.Equal(from[:], scObj.From) {
+		if bytes.Equal(from[:], scObj.From.Bytes()) {
 			currentBalance.Sub(currentBalance, scObj.Amount)
 		}
 	}
