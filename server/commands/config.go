@@ -49,6 +49,7 @@ type EthermintConfig struct {
 	RPCEnabledFlag    bool   `mapstructure:"rpc"`
 	RPCListenAddrFlag string `mapstructure:"rpcaddr"`
 	RPCPortFlag       uint   `mapstructure:"rpcport"`
+	RPCCORSDomainFlag string `mapstructure:"rpccorsdomain"`
 	RPCApiFlag        string `mapstructure:"rpcapi"`
 	WSEnabledFlag     bool   `mapstructure:"ws"`
 	WSListenAddrFlag  string `mapstructure:"wsaddr"`
