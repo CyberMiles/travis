@@ -17,7 +17,7 @@ import (
 	ethapp "github.com/CyberMiles/travis/modules/vm/app"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
-	travistypes	"github.com/CyberMiles/travis/types"
+	ttypes	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/modules"
 )
 
@@ -84,7 +84,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
 
-	ctx := travistypes.NewContext(app.GetChainID(), app.WorkingHeight())
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight())
 	res, err := app.handler.DeliverTx(ctx, app.Append(), tx)
 	if err != nil {
 		return errors.DeliverResult(err)
@@ -114,9 +114,9 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		return sdk.NewCheck(0, "").ToABCI()
 	}
 
-	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
+	app.logger.Info("CheckTx: Receivted valid transaction", "tx", tx)
 
-	ctx := travistypes.NewContext(app.GetChainID(), app.WorkingHeight())
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight())
 	res, err := app.handler.CheckTx(ctx, app.Check(), tx)
 	if err != nil {
 		return errors.CheckResult(err)

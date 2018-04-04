@@ -23,7 +23,6 @@ func VerifyTx(ctx *types.Context, tx sdk.Tx) (res sdk.CheckResult, stx sdk.Tx, e
 	return
 }
 
-
 func addSigners(ctx *types.Context, addr common.Address) {
 	ctx.WithSigners(addr)
 }

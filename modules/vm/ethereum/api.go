@@ -23,9 +23,9 @@ import (
 	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/modules/auth"
-	"github.com/CyberMiles/travis/modules/keys"
 	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/modules/stake"
+	ttypes "github.com/CyberMiles/travis/types"
 )
 
 // We must implement our own net service since we don't have access to `internal/ethapi`
@@ -315,7 +315,7 @@ func (s *StakeRPCService) signTx(tx sdk.Tx, address string) error {
 		return err
 	}
 
-	if sign, ok := tx.Unwrap().(keys.Signable); ok {
+	if sign, ok := tx.Unwrap().(ttypes.Signable); ok {
 		if address == "" {
 			return errors.New("address is required to sign tx")
 		}
@@ -327,7 +327,7 @@ func (s *StakeRPCService) signTx(tx sdk.Tx, address string) error {
 	return err
 }
 
-func (s *StakeRPCService) sign(data keys.Signable, address string) error {
+func (s *StakeRPCService) sign(data ttypes.Signable, address string) error {
 	ethTx := types.NewTransaction(
 		0,
 		common.Address([20]byte{}),

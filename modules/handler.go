@@ -10,6 +10,7 @@ import (
 	"github.com/CyberMiles/travis/types"
 	"strings"
 	"github.com/cosmos/cosmos-sdk/errors"
+	"github.com/CyberMiles/travis/modules/stake"
 )
 
 type Handler struct {
@@ -29,22 +30,41 @@ func (h Handler) CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (re
 	}
 
 	name, err := lookupRoute(tx)
-	fmt.Printf("Type of tx: %v\n", name)
-
+	//fmt.Printf("Type of tx: %v\n", name)
 	switch name {
 	case "stake":
-
+		return stake.CheckTx(ctx, store, tx)
 	default:
 		return res, errors.ErrUnknownTxType(tx.Unwrap())
 	}
-
 	return
 }
 
 func (h Handler) DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.DeliverResult, err error) {
-	_, err = h.CheckTx(ctx, store, tx)
+	//_, err = h.CheckTx(ctx, store, tx)
+	//if err != nil {
+	//	return
+	//}
+
+	// Verify signature
+	_, tx, err = auth.VerifyTx(&ctx, tx)
 	if err != nil {
-		return
+		return res, fmt.Errorf("failed to verify signature")
+	}
+
+	// Check nonce
+	_, tx, err = nonce.ReplayCheck(ctx, store, tx)
+	if err != nil {
+		return res, fmt.Errorf("failed to check nonce")
+	}
+
+	name, err := lookupRoute(tx)
+	//fmt.Printf("Type of tx: %v\n", name)
+	switch name {
+	case "stake":
+		return stake.DeliverTx(ctx, store, tx)
+	default:
+		return res, errors.ErrUnknownTxType(tx.Unwrap())
 	}
 
 	return

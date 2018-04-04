@@ -9,7 +9,6 @@ import (
 	stakecmd "github.com/CyberMiles/travis/modules/stake/commands"
 	authcmd "github.com/CyberMiles/travis/modules/auth/commands"
 	noncecmd "github.com/CyberMiles/travis/modules/nonce/commands"
-	"github.com/CyberMiles/travis/modules/keys"
 )
 
 // clientCmd is the entry point for this binary
@@ -53,9 +52,6 @@ func prepareClientCommands() {
 	clientCmd.AddCommand(
 		txcmd.RootCmd,
 		query.RootCmd,
-		lineBreak,
-
-		keys.RootCmd,
 		lineBreak,
 
 		commands.InitCmd,

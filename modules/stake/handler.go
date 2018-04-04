@@ -12,14 +12,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"encoding/hex"
 	"github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/modules"
+	"github.com/CyberMiles/travis/commons"
 	"math/big"
 )
 
 // nolint
 const stakingModuleName = "stake"
 
-// Name is the name of the modules.
+// Name is the name of the commons.
 func Name() string {
 	return stakingModuleName
 }
@@ -262,7 +262,7 @@ func (c check) acceptSlot(tx TxAcceptSlot) error {
 		return ErrBadSlot()
 	}
 
-	err := modules.CheckAccount(c.sender, big.NewInt(tx.Amount))
+	err := commons.CheckAccount(c.sender, big.NewInt(tx.Amount))
 	if err != nil {
 		return err
 	}
@@ -345,7 +345,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		slotId := slot.Id
 		delegates := GetSlotDelegatesBySlot(slotId)
 		for _, delegate := range delegates {
-			err := modules.Transfer(d.params.HoldAccount, delegate.DelegatorAddress, big.NewInt(delegate.Amount))
+			err := commons.Transfer(d.params.HoldAccount, delegate.DelegatorAddress, big.NewInt(delegate.Amount))
 			if err != nil {
 				return err
 			}
@@ -380,7 +380,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := modules.Transfer(d.sender, d.params.HoldAccount, big.NewInt(tx.Amount))
+	err := commons.Transfer(d.sender, d.params.HoldAccount, big.NewInt(tx.Amount))
 	if err != nil {
 		return err
 	}
@@ -450,7 +450,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	updateSlot(slot)
 
 	// transfer coins back to account
-	return modules.Transfer(d.params.HoldAccount, d.sender, big.NewInt(tx.Amount))
+	return commons.Transfer(d.params.HoldAccount, d.sender, big.NewInt(tx.Amount))
 }
 
 func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
