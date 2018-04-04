@@ -355,7 +355,7 @@ func initStakeDb() error {
 		create index idx_slot_delegates_slot_id on slot_delegates(slot_id);
 
 		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, created_at text not null);
-		create table governance_vote(proposal_id integer not null, voter text not null, block_height integer not null, answer integer not null);
+		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null, created_at text not null);
 		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 		create index idx_governance_vote_voter on governance_vote(voter);
 		`

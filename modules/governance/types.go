@@ -21,13 +21,33 @@ type Proposal struct {
 func NewProposal(id string, proposer common.Address, blockHeight uint64, from common.Address, to common.Address, amount *big.Int, reason string) *Proposal {
 	now := utils.GetNow()
 	return &Proposal {
-		Id:          id,
-		Proposer:    proposer,
-		BlockHeight: blockHeight,
-		From:        from,
-		To:          to,
-		Amount:      amount,
-		Reason:      reason,
-		CreatedAt:    now,
+		id,
+		proposer,
+		blockHeight,
+		from,
+		to,
+		amount,
+		reason,
+		now,
 	}
 }
+
+type Vote struct {
+	ProposalId     string
+	Voter          common.Address
+	BlockHeight    uint64
+	Answer         string
+	CreatedAt      string
+}
+
+func NewVote(proposalId string, voter common.Address, blockHeight uint64, answer string) *Vote {
+	now := utils.GetNow()
+	return &Vote {
+		proposalId,
+		voter,
+		blockHeight,
+		answer,
+		now,
+	}
+}
+

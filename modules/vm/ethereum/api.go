@@ -478,11 +478,32 @@ func (s *GovernanceRPCService) Propose(args GovernanceProposalArgs) (*ctypes.Res
 	proposer := common.HexToAddress(args.Proposer)
 	fromAddr := common.HexToAddress(args.From)
 	toAddr   := common.HexToAddress(args.To)
-	amount   := new(big.Int)
-	amount.SetString(args.Amount, 10)
 
-	tx := governance.NewTxPropose(proposer, fromAddr, toAddr, amount, args.Reason)
-	s.wrapAndSignTx(tx, args.Proposer)
+	tx := governance.NewTxPropose(proposer, fromAddr, toAddr, args.Amount, args.Reason)
+	tx, err := s.wrapAndSignTx(tx, args.Proposer)
+
+	if err != err {
+		return nil, err
+	}
+
+	return s.broadcastTx(tx)
+}
+
+type GovernanceVoteArgs struct {
+	ProposalId string `json:"proposal_id"`
+	Voter      string `json:"voter"`
+	Answer     string `json:"answer"`
+}
+
+func (s *GovernanceRPCService) Vote(args GovernanceVoteArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	voter := common.HexToAddress(args.Voter)
+
+	tx := governance.NewTxVote(args.ProposalId, voter, args.Answer)
+	tx, err := s.wrapAndSignTx(tx, args.Voter)
+
+	if err != err {
+		return nil, err
+	}
 
 	return s.broadcastTx(tx)
 }
@@ -507,11 +528,13 @@ func (s *GovernanceRPCService) wrapAndSignTx(tx sdk.Tx, address string) (sdk.Tx,
 	tx = base.NewChainTx(chainID, 0, tx)
 	tx = auth.NewSig(tx).Wrap()
 
+
 	// sign
 	err = s.signTx(tx, address)
 	if err != nil {
 		return sdk.Tx{}, err
 	}
+
 	return tx, err
 }
 

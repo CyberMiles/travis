@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/coin"
 	"github.com/CyberMiles/travis/modules/fee"
 	"github.com/cosmos/cosmos-sdk/modules/base"
@@ -38,6 +39,7 @@ func prepareNodeCommands() {
 		Dispatch(
 		coin.NewHandler(),
 		stake.NewHandler(),
+		governance.NewHandler(),
 	)
 
 	nodeCmd.AddCommand(
