@@ -20,13 +20,13 @@ func (h Handler) CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (re
 	// Verify signature
 	res, tx, err = auth.VerifyTx(&ctx, tx)
 	if err != nil {
-		return res, fmt.Errorf("failed to verify signature")
+		return res, fmt.Errorf("failed to verify signature: %v", err)
 	}
 
 	// Check nonce
 	res, tx, err = nonce.ReplayCheck(ctx, store, tx)
 	if err != nil {
-		return res, fmt.Errorf("failed to check nonce")
+		return res, fmt.Errorf("failed to check nonce: %v", err)
 	}
 
 	name, err := lookupRoute(tx)
@@ -49,13 +49,13 @@ func (h Handler) DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (
 	// Verify signature
 	_, tx, err = auth.VerifyTx(&ctx, tx)
 	if err != nil {
-		return res, fmt.Errorf("failed to verify signature")
+		return res, fmt.Errorf("failed to verify signature: %v", err)
 	}
 
 	// Check nonce
 	_, tx, err = nonce.ReplayCheck(ctx, store, tx)
 	if err != nil {
-		return res, fmt.Errorf("failed to check nonce")
+		return res, fmt.Errorf("failed to check nonce: %v", err)
 	}
 
 	name, err := lookupRoute(tx)

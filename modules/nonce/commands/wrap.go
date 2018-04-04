@@ -72,7 +72,7 @@ func readSequence(signers []common.Address) (seq uint32, err error) {
 		if err != nil {
 			return
 		}
-
+		fmt.Printf("doNonceQuery: %d\n", seq)
 		//increase the sequence by 1!
 		seq++
 

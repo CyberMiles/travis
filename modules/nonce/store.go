@@ -3,7 +3,7 @@ package nonce
 import (
 	"fmt"
 
-	wire "github.com/tendermint/go-wire"
+	"github.com/tendermint/go-wire"
 
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/cosmos/cosmos-sdk/state"
@@ -24,6 +24,7 @@ func getSeq(store state.SimpleDB, key []byte) (seq uint32, err error) {
 }
 
 func setSeq(store state.SimpleDB, key []byte, seq uint32) error {
+	//fmt.Printf("setSeq: %s\n", hex.EncodeToString(key))
 	bin := wire.BinaryBytes(seq)
 	store.Set(key, bin)
 	return nil // real stores can return error...

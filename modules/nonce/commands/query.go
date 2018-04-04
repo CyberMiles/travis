@@ -11,7 +11,6 @@ import (
 	"github.com/CyberMiles/travis/client/commands"
 	"github.com/cosmos/cosmos-sdk/client/commands/query"
 	"github.com/CyberMiles/travis/modules/nonce"
-	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -42,7 +41,10 @@ func nonceQueryCmd(cmd *cobra.Command, args []string) error {
 }
 
 func doNonceQuery(signers []common.Address) (sequence uint32, height int64, err error) {
-	key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+	//fmt.Printf("doNonceQuery, before prefixed: %s\n", hex.EncodeToString(nonce.GetSeqKey(signers)))
+	//key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+	key := nonce.GetSeqKey(signers)
+	//fmt.Printf("doNonceQuery, after prefixed: %s\n", hex.EncodeToString(key))
 	prove := !viper.GetBool(commands.FlagTrustNode)
 	height, err = query.GetParsed(key, &sequence, query.GetHeight(), prove)
 	if client.IsNoDataErr(err) {

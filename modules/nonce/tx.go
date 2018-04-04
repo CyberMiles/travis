@@ -10,7 +10,7 @@ package nonce
 import (
 	"sort"
 
-	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
@@ -70,6 +70,7 @@ func (n Tx) Next() sdk.Tx {
 func (n Tx) CheckIncrementSeq(ctx types.Context, store state.SimpleDB) error {
 
 	seqKey := n.getSeqKey()
+	//fmt.Printf("getSeqKey: %s\n", hex.EncodeToString(seqKey))
 
 	// check the current state
 	cur, err := getSeq(store, seqKey)
@@ -102,7 +103,6 @@ func (n Tx) getSeqKey() (seqKey []byte) {
 
 // GetSeqKey - Generate the sequence key as the concatenated list of signers, sorted by address.
 func GetSeqKey(signers []common.Address) (seqKey []byte) {
-
 	// First copy the list of signers to sort as sort is done in place
 	signers2sort := make([]common.Address, len(signers))
 	copy(signers2sort, signers)
