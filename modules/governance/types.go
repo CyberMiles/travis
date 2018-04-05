@@ -14,6 +14,7 @@ type Proposal struct {
 	From         common.Address
 	To           common.Address
 	Amount       *big.Int
+	AmtStr       string
 	Reason       string
 	CreatedAt    string
 }
@@ -27,6 +28,7 @@ func NewProposal(id string, proposer common.Address, blockHeight uint64, from co
 		from,
 		to,
 		amount,
+		amount.String(),
 		reason,
 		now,
 	}

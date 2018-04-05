@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/cosmos/cosmos-sdk/modules/auth"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/CyberMiles/travis/modules/stake"
 )
 
 // nolint
@@ -65,10 +66,19 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Address.Bytes()) {
 			return sdk.NewCheck(0,  ""), ErrMissingSignature()
 		}
+		candidate := stake.GetCandidateByAddress(txInner.Proposer)
+		if candidate == nil || candidate.State != "Y" || candidate.VotingPower == 0 {
+			return sdk.NewCheck(0, ""), ErrInvalidValidator()
+		}
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Address.Bytes()) {
 			return sdk.NewCheck(0,  ""), ErrMissingSignature()
 		}
+		validator := stake.GetCandidateByAddress(txInner.Voter)
+		if validator == nil || validator.State != "Y" {
+			return sdk.NewCheck(0, ""), ErrInvalidValidator()
+		}
+
 		if proposal := GetProposalById(txInner.ProposalId); proposal == nil {
 			return sdk.NewCheck(0, ""), ErrInvalidParamerter()
 		}
@@ -115,6 +125,33 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 			txInner.Answer,
 		)
 		SaveVote(vote)
+
+		votes := GetVotesByPid(txInner.ProposalId)
+		validators := stake.GetCandidates().Validators()
+
+		if validators == nil || validators.Len() == 0 {
+			return
+		}
+
+		if len(votes) * 3 < len(validators) * 2 {
+			return
+		}
+
+		var c int
+		for _, vo := range votes {
+			for _, va := range validators {
+				if bytes.Equal(vo.Voter.Bytes(), va.OwnerAddress.Bytes()) {
+					c++
+					continue
+				}
+			}
+		}
+
+		if c * 3 >= len(validators) * 2 {
+			proposal := GetProposalById(txInner.ProposalId)
+			utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
+				From: proposal.From.Bytes(), To: proposal.To.Bytes(), Amount: proposal.Amount})
+		}
 	}
 
 	return

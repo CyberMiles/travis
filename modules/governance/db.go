@@ -74,9 +74,55 @@ func GetProposalById(pid string) *Proposal {
 		common.HexToAddress(fromAddr),
 		common.HexToAddress(toAddr),
 		amt,
+		amount,
 		reason,
 		createdAt,
 	}
+}
+
+func GetProposals() (proposals []*Proposal) {
+	db := getDb()
+	defer db.Close()
+
+	rows, err := db.Query("select id, proposer, block_height, from_address, to_address, amount, reason, created_at from governance_proposal")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id, proposer, fromAddr, toAddr, amount, reason, createdAt string
+		var blockHeight uint64
+
+		err = rows.Scan(&id, &proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &createdAt)
+		if err != nil {
+			panic(err)
+		}
+
+		amt := new(big.Int)
+		amt.SetString(amount, 10)
+
+		pp := &Proposal{
+			id,
+			common.HexToAddress(proposer),
+			blockHeight,
+			common.HexToAddress(fromAddr),
+			common.HexToAddress(toAddr),
+			amt,
+			amount,
+			reason,
+			createdAt,
+		}
+
+		proposals = append(proposals, pp)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return
 }
 
 
@@ -129,4 +175,47 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 		answer,
 		createdAt,
 	}
+}
+
+func GetVotesByPid(pid string) (votes []*Vote) {
+	db := getDb()
+	defer db.Close()
+
+	stmt, err := db.Prepare("select voter, answer, block_height, created_at from governance_vote where proposal_id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(pid)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+		var voter, answer, createdAt string
+		var blockHeight uint64
+		err = rows.Scan(&voter, &answer, &blockHeight, &createdAt)
+		if err != nil {
+			panic(err)
+		}
+
+		vote := &Vote {
+			pid,
+			common.HexToAddress(voter),
+			blockHeight,
+			answer,
+			createdAt,
+		}
+
+		votes = append(votes, vote)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return
 }

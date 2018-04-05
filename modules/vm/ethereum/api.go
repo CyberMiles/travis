@@ -482,3 +482,14 @@ func (s *CmtRPCService) Vote(args GovernanceVoteArgs) (*ctypes.ResultBroadcastTx
 	}
 	return s.broadcastTx(tx)
 }
+
+func (s *CmtRPCService) QueryProposals() (*StakeQueryResult, error) {
+	var proposals []*governance.Proposal
+	//key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
+	h, err := s.getParsed("/governance/proposals", []byte{0}, &proposals, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StakeQueryResult{h, proposals}, nil
+}
