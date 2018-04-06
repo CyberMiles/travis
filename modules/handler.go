@@ -11,6 +11,7 @@ import (
 	"strings"
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/modules/governance"
 )
 
 type Handler struct {
@@ -34,6 +35,8 @@ func (h Handler) CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (re
 	switch name {
 	case "stake":
 		return stake.CheckTx(ctx, store, tx)
+	case "governance":
+		return governance.CheckTx(ctx, store, tx)
 	default:
 		return res, errors.ErrUnknownTxType(tx.Unwrap())
 	}
@@ -63,6 +66,8 @@ func (h Handler) DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (
 	switch name {
 	case "stake":
 		return stake.DeliverTx(ctx, store, tx)
+	case "governance":
+		return governance.DeliverTx(ctx, store, tx)
 	default:
 		return res, errors.ErrUnknownTxType(tx.Unwrap())
 	}

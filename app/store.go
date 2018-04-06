@@ -23,6 +23,7 @@ import (
 	"github.com/tendermint/go-wire"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/modules/governance"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -222,6 +223,10 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		slotDelegates := stake.GetSlotDelegatesByAddress(address)
 		b := wire.BinaryBytes(slotDelegates)
 		resQuery.Value = b
+	case "/governance/proposals":
+		proposals := governance.GetProposals()
+		b := wire.BinaryBytes(proposals)
+		resQuery.Value = b
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest
 		resQuery.Log = cmn.Fmt("Unexpected Query path: %v", reqQuery.Path)
@@ -323,7 +328,7 @@ func loadState(dbName string, cacheSize int, historySize int64) (*sm.State, erro
 
 func initStakeDb() error {
 	rootDir := viper.GetString(cli.HomeFlag)
-	stakeDbPath := path.Join(rootDir, "data", "stake.db")
+	stakeDbPath := path.Join(rootDir, "data", "travis.db")
 	_, err := os.OpenFile(stakeDbPath, os.O_RDONLY, 0444)
 	if err != nil {
 		db, err := sql.Open("sqlite3", stakeDbPath)
@@ -342,6 +347,13 @@ func initStakeDb() error {
 		create index idx_candidates_pub_key on candidates(pub_key);
 		create index idx_slot_delegates_delegator_address on slot_delegates(delegator_address);
 		create index idx_slot_delegates_slot_id on slot_delegates(slot_id);
+
+		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, created_at text not null);
+		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null, created_at text not null, unique(proposal_id, voter) ON conflict replace);
+		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
+		create index idx_governance_vote_voter on governance_vote(voter);
+		
+		create table suicided_contracts(contract_address tx primary key, created_at text, updated_at text);
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {

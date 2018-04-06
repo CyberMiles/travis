@@ -15,6 +15,7 @@ var (
 
 
 func TestSuicide(t *testing.T)  {
+	defer os.Remove("./foo.db")
 	defer func() {
 		err := recover()
 		assert.Nil(t, err, "expecting no panics")
