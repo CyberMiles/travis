@@ -10,7 +10,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -292,7 +291,8 @@ func (s *CmtRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32
 }
 
 func (s *CmtRPCService) getSequence(signers []common.Address, sequence *uint32) error {
-	key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+	// key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+	key := nonce.GetSeqKey(signers)
 	result, err := s.backend.localClient.ABCIQuery("/key", key)
 	if err != nil {
 		return err

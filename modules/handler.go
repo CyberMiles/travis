@@ -12,6 +12,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/modules/governance"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto/sha3"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 type Handler struct {
@@ -55,6 +58,8 @@ func (h Handler) DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (
 		return res, fmt.Errorf("failed to verify signature: %v", err)
 	}
 
+	hash := rlpHash(tx)
+
 	// Check nonce
 	_, tx, err = nonce.ReplayCheck(ctx, store, tx)
 	if err != nil {
@@ -65,9 +70,9 @@ func (h Handler) DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (
 	//fmt.Printf("Type of tx: %v\n", name)
 	switch name {
 	case "stake":
-		return stake.DeliverTx(ctx, store, tx)
+		return stake.DeliverTx(ctx, store, tx, hash)
 	case "governance":
-		return governance.DeliverTx(ctx, store, tx)
+		return governance.DeliverTx(ctx, store, tx, hash)
 	default:
 		return res, errors.ErrUnknownTxType(tx.Unwrap())
 	}
@@ -83,4 +88,11 @@ func lookupRoute(tx sdk.Tx) (string, error) {
 	// grab everything before the /
 	name := strings.SplitN(kind, "/", 2)[0]
 	return name, nil
+}
+
+func rlpHash(x interface{}) (h common.Hash) {
+	hw := sha3.NewKeccak256()
+	rlp.Encode(hw, x)
+	hw.Sum(h[:0])
+	return h
 }

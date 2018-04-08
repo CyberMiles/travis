@@ -70,7 +70,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 
 // DeliverTx executes the tx if valid
 func DeliverTx(ctx types.Context, store state.SimpleDB,
-	tx sdk.Tx) (res sdk.DeliverResult, err error) {
+	tx sdk.Tx, hash common.Hash) (res sdk.DeliverResult, err error) {
 
 	_, err = CheckTx(ctx, store, tx)
 	if err != nil {
@@ -79,12 +79,11 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxPropose:
-		pid := utils.GetUUID()
 		amount := new(big.Int)
 		amount.SetString(txInner.Amount, 10)
 
 		pp := NewProposal(
-			hex.EncodeToString(pid),
+			hex.EncodeToString(hash[:]),
 			txInner.Proposer,
 			uint64(ctx.BlockHeight()),
 			txInner.From,

@@ -31,7 +31,7 @@ type delegatedProofOfStake interface {
 	declareCandidacy(TxDeclareCandidacy) error
 	editCandidacy(TxEditCandidacy) error
 	withdraw(TxWithdraw) error
-	proposeSlot(TxProposeSlot) ([]byte, error)
+	proposeSlot(TxProposeSlot, common.Hash) ([]byte, error)
 	acceptSlot(TxAcceptSlot) error
 	withdrawSlot(TxWithdrawSlot) error
 	cancelSlot(TxCancelSlot) error
@@ -118,7 +118,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 	case TxWithdraw:
 		return res, checker.withdraw(txInner)
 	case TxProposeSlot:
-		_, err := checker.proposeSlot(txInner)
+		_, err := checker.proposeSlot(txInner, common.BytesToHash([]byte{}))
 		return res, err
 	case TxAcceptSlot:
 		return res, checker.acceptSlot(txInner)
@@ -132,7 +132,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 }
 
 // DeliverTx executes the tx if valid
-func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.DeliverResult, err error) {
+func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash common.Hash) (res sdk.DeliverResult, err error) {
 
 	_, err = CheckTx(ctx, store, tx)
 	if err != nil {
@@ -160,7 +160,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.Deli
 	case TxWithdraw:
 		return res, deliverer.withdraw(_tx)
 	case TxProposeSlot:
-		id, err := deliverer.proposeSlot(_tx)
+		id, err := deliverer.proposeSlot(_tx, hash)
 		res.Data = []byte(id)
 		return res, err
 	case TxAcceptSlot:
@@ -247,7 +247,7 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 	return nil
 }
 
-func (c check) proposeSlot(tx TxProposeSlot) ([]byte, error) {
+func (c check) proposeSlot(tx TxProposeSlot, hash common.Hash) ([]byte, error) {
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
 		return nil, fmt.Errorf("cannot propose slot for non-existant validator address %v", tx.ValidatorAddress)
@@ -453,13 +453,12 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	return commons.Transfer(d.params.HoldAccount, d.sender, big.NewInt(tx.Amount))
 }
 
-func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
-	uuid := utils.GetUUID()
-	hexStr := hex.EncodeToString(uuid)
-	slot := NewSlot(hexStr, tx.ValidatorAddress, tx.Amount, tx.Amount, tx.ProposedRoi, "Y")
+func (d deliver) proposeSlot(tx TxProposeSlot, hash common.Hash) ([]byte, error) {
+	h := hash[:]
+	slot := NewSlot(hex.EncodeToString(h), tx.ValidatorAddress, tx.Amount, tx.Amount, tx.ProposedRoi, "Y")
 	saveSlot(slot)
 
-	return uuid, nil
+	return h, nil
 }
 
 func (d deliver) cancelSlot(tx TxCancelSlot) error {
