@@ -15,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/CyberMiles/travis/modules/vm/ethereum"
+	"github.com/CyberMiles/travis/vm/ethereum"
 
 	abciTypes "github.com/tendermint/abci/types"
 	"github.com/cosmos/cosmos-sdk/errors"

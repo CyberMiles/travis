@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
 
-	"github.com/CyberMiles/travis/modules/vm/ethereum"
+	"github.com/CyberMiles/travis/vm/ethereum"
 
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 )

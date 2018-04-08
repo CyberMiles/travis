@@ -12,8 +12,8 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/CyberMiles/travis/modules/vm/ethereum"
-	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
+	"github.com/CyberMiles/travis/vm/ethereum"
+	emtTypes "github.com/CyberMiles/travis/vm/types"
 
 	"github.com/CyberMiles/travis/errors"
 	"github.com/CyberMiles/travis/utils"

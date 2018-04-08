@@ -14,7 +14,7 @@ import (
 	abci "github.com/tendermint/abci/types"
 
 	"github.com/CyberMiles/travis/modules/stake"
-	ethapp "github.com/CyberMiles/travis/modules/vm/app"
+	ethapp "github.com/CyberMiles/travis/vm/app"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	ttypes	"github.com/CyberMiles/travis/types"

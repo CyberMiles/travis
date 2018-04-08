@@ -16,7 +16,7 @@ import (
 
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/genesis"
-	ethapp "github.com/CyberMiles/travis/modules/vm/app"
+	ethapp "github.com/CyberMiles/travis/vm/app"
 )
 
 // GetTickStartCmd - initialize a command as the start command with tick
