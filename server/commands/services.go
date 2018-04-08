@@ -20,9 +20,9 @@ import (
 	"github.com/tendermint/tendermint/types"
 
 	"github.com/CyberMiles/travis/app"
-	abciApp "github.com/CyberMiles/travis/modules/vm/app"
-	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
-	"github.com/CyberMiles/travis/modules/vm/ethereum"
+	abciApp "github.com/CyberMiles/travis/vm/app"
+	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
+	"github.com/CyberMiles/travis/vm/ethereum"
 )
 
 type Services struct {

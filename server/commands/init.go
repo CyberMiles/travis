@@ -15,7 +15,7 @@ import (
 	"github.com/tendermint/tendermint/types"
 	cmn "github.com/tendermint/tmlibs/common"
 
-	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
+	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 )
 
 var (

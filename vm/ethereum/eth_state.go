@@ -17,7 +17,7 @@ import (
 
 	abciTypes "github.com/tendermint/abci/types"
 
-	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
+	emtTypes "github.com/CyberMiles/travis/vm/types"
 	"github.com/CyberMiles/travis/errors"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/core/types"

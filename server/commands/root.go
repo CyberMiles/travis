@@ -14,7 +14,7 @@ import (
 	tmflags "github.com/tendermint/tmlibs/cli/flags"
 	"github.com/tendermint/tmlibs/log"
 
-	emtUtils "github.com/CyberMiles/travis/modules/vm/cmd/utils"
+	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 )
 
 //nolint

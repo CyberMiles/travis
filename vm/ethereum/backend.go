@@ -16,7 +16,7 @@ import (
 	tmn "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
-	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
+	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
 
 //----------------------------------------------------------------------
