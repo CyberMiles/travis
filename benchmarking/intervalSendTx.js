@@ -1,26 +1,26 @@
-const Web3 = require("web3-cmt")
-const async = require("async")
+let async = require("async")
+let Web3 = require("web3-cmt")
 
-const provider = process.argv[2]
+let provider = process.argv[2]
 
-const source = "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc"
-const dest = "0x4044e64e49c2f5392e3885c8a6519933e7f4d790"
-const value = 1
-const gasPrice = 5000000000
+let source = "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc"
+let dest = "0x4044e64e49c2f5392e3885c8a6519933e7f4d790"
+let value = 1
+let gasPrice = 5000000000
 
-const payload = {
+let payload = {
   from: source,
   to: dest,
   gasPrice: gasPrice,
   value: value
 }
 
-const random = (min, max) => {
+let random = (min, max) => {
   return Math.floor(Math.random() * (max - min + 1) + min)
 }
 
 let web3 = null
-const connectWeb3 = () => {
+let connectWeb3 = () => {
   if (!web3) {
     web3 = new Web3(new Web3.providers.HttpProvider(provider))
     console.log(web3.currentProvider)

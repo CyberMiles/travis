@@ -1,10 +1,12 @@
-const config = require("config")
 const BigNumber = require("bignumber.js")
 const Tx = require("ethereumjs-tx")
 const async = require("async")
+const config = require("config")
 
 const blockTimeout = config.get("blockTimeout") || 20
 const waitInterval = config.get("waitInterval") || 100
+const concurrency = config.get("concurrency") || 100
+
 const sendTxGas = 21000 // Simple transaction gas requirement
 const sendTokenTxGas = 37611 // Token transaction gas requirement(estimate)
 
@@ -15,10 +17,9 @@ exports.generateRawTransaction = txObject => {
     gas: "0x" + new BigNumber(sendTxGas).toString(16),
     from: txObject.from,
     to: txObject.to,
-    value: txObject.value,
+    value: txObject.value ? "0x" + txObject.value.toString(16) : "0x00",
     data: "0x"
   }
-
   let tx = new Tx(txParams)
   tx.sign(txObject.privKey)
 
@@ -43,7 +44,7 @@ exports.sendRawTransactions = (web3, transactions, cb) => {
     transactions.map(tx => {
       return web3.cmt.sendRawTransaction.bind(null, tx)
     }),
-    config.get("concurrency"),
+    concurrency,
     err => {
       if (err) {
         return cb(err)
@@ -60,7 +61,7 @@ exports.sendTransactions = (web3, transactions, cb) => {
     transactions.map(tx => {
       return web3.cmt.sendTransaction.bind(null, tx)
     }),
-    config.get("concurrency"),
+    concurrency,
     err => {
       if (err) {
         return cb(err)
@@ -77,7 +78,7 @@ exports.tokenTransfer = (web3, tokenInstance, transactions, cb) => {
     transactions.map(tx => {
       return tokenInstance.transfer.sendTransaction.bind(null, tx.to, tx.value)
     }),
-    config.get("concurrency"),
+    concurrency,
     err => {
       if (err) {
         return cb(err)
@@ -88,17 +89,14 @@ exports.tokenTransfer = (web3, tokenInstance, transactions, cb) => {
   )
 }
 
-exports.waitProcessedInterval = function(
+exports.waitProcessedInterval = (
   web3,
+  startingBlock,
   fromAddr,
-  endBalance,
   initialNonce,
-  totalTxs,
+  txs,
   cb
-) {
-  let startingBlock = web3.cmt.blockNumber
-
-  console.log("Starting block:", startingBlock)
+) => {
   let interval = setInterval(() => {
     let blocksGone = web3.cmt.blockNumber - startingBlock
     if (blocksGone > blockTimeout) {
@@ -108,16 +106,38 @@ exports.waitProcessedInterval = function(
     }
 
     let balance = web3.cmt.getBalance(fromAddr)
-    console.log(
-      `Blocks Passed ${blocksGone}, current balance: ${balance.toString()}`
-    )
     let processed = web3.cmt.getTransactionCount(fromAddr) - initialNonce
+    console.log(
+      `Blocks Passed ${blocksGone}, current balance: ${balance.toString()}, processed transactions: ${processed}`
+    )
 
-    if (processed >= totalTxs) {
+    if (processed >= txs) {
       clearInterval(interval)
       cb(null, new Date())
     }
   }, waitInterval || 100)
+}
+
+exports.waitMultipleProcessed = (web3, startingBlock, accounts, txs, cb) => {
+  async.parallelLimit(
+    accounts.map(addr => {
+      return exports.waitProcessedInterval.bind(
+        null,
+        web3,
+        startingBlock,
+        addr,
+        0,
+        txs
+      )
+    }),
+    concurrency,
+    (err, ms) => {
+      if (err) {
+        return cb(err)
+      }
+      cb(null, new Date())
+    }
+  )
 }
 
 exports.calculateTransactionsPrice = (gasPrice, value, txcount) => {

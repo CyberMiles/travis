@@ -24,10 +24,12 @@ node sendTx
 ## Configuration
 Configuration file: config/default.json.
 
-* `providers` A provider list to connect.
-* `address` The address that all transactions are directed to.
+* `provider` The provider to connect.
 * `wallet` The wallet of the sending account.
 * `password` The password of the from account, to sign the transaction with.
+* `to` The address that all transactions are directed to.
+* `contractAddress` The contract address for testing token transfer.
+* `value` The value transferred for the transaction in Wei, or token number if it's a token transfer testing.
 * `txs` Number of transactions to send for each account.
 * `blockTimeout` Max blocks to wait before stop testing.
 * `concurrency` The maximum number of parallel requests at a time.

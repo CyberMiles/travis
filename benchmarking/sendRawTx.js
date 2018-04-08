@@ -1,28 +1,26 @@
-const config = require("config")
-const Wallet = require("ethereumjs-wallet")
-const Web3 = require("web3-cmt")
-const utils = require("./utils")
+let Wallet = require("ethereumjs-wallet")
+let Web3 = require("web3-cmt")
+let config = require("config")
+let utils = require("./utils")
 
-const web3 = new Web3(new Web3.providers.HttpProvider(config.get("provider")))
-const wallet = Wallet.fromV3(config.get("wallet"), config.get("password"))
+let web3 = new Web3(new Web3.providers.HttpProvider(config.get("provider")))
+let wallet = Wallet.fromV3(config.get("wallet"), config.get("password"))
 
-const walletAddress = wallet.getAddressString()
-const initialNonce = web3.cmt.getTransactionCount(walletAddress)
-const totalTxs = config.get("txs")
-const blockTimeout = config.get("blockTimeout")
+// from,to,value and total transactions
+let fromAddress = wallet.getAddressString()
+let destAddress = config.get("to")
+let value = 1
 
+let totalTxs = config.get("txs")
 console.log("Current block number:", web3.cmt.blockNumber)
 console.log(
-  `Will send ${totalTxs} transactions and wait for ${blockTimeout} blocks`
+  `Will send ${totalTxs} transactions from ${fromAddress} to ${destAddress}`
 )
 
-let privKey = wallet.getPrivateKey()
-let dest = config.get("address")
-let value = 1
+// check balance
 let gasPrice = web3.toBigNumber(web3.toWei("5", "gwei"))
-
 let cost = utils.calculateTransactionsPrice(gasPrice, value, totalTxs)
-let balance = web3.cmt.getBalance(walletAddress)
+let balance = web3.cmt.getBalance(fromAddress)
 let endBalance = balance.minus(cost)
 console.log("balance after transfer will be: ", endBalance.toString())
 
@@ -33,13 +31,16 @@ if (cost.comparedTo(balance) > 0) {
   throw new Error(error)
 }
 
+// generate raw transactions
 console.log(`Generating ${totalTxs} transactions`)
+let initialNonce = web3.cmt.getTransactionCount(fromAddress)
+let privKey = wallet.getPrivateKey()
 let transactions = []
 for (let i = 0; i < totalTxs; i++) {
   let nonce = i + initialNonce
   let tx = utils.generateRawTransaction({
-    from: walletAddress,
-    to: dest,
+    from: fromAddress,
+    to: destAddress,
     privKey: privKey,
     nonce: nonce,
     gasPrice: gasPrice,
@@ -48,12 +49,14 @@ for (let i = 0; i < totalTxs; i++) {
 
   transactions.push(tx)
 }
-console.log("Generated.")
+console.log("done.")
 
 // Send transactions
 console.log(`Starting to send raw transactions in parallel`)
-const start = new Date()
-console.log("start time: ", start)
+let startingBlock = web3.cmt.blockNumber
+let start = new Date()
+console.log(`start time: ${start.toISOString()}, block: ${startingBlock}`)
+
 utils.sendRawTransactions(web3, transactions, (err, ms) => {
   if (err) {
     console.error("Couldn't send Transactions:")
@@ -61,10 +64,11 @@ utils.sendRawTransactions(web3, transactions, (err, ms) => {
     return
   }
 
+  // wait for transactions finish processing
   utils.waitProcessedInterval(
     web3,
-    walletAddress,
-    endBalance,
+    startingBlock,
+    fromAddress,
     initialNonce,
     totalTxs,
     (err, endDate) => {
@@ -75,7 +79,7 @@ utils.sendRawTransactions(web3, transactions, (err, ms) => {
       }
 
       let sent = transactions.length
-      let processed = web3.cmt.getTransactionCount(walletAddress) - initialNonce
+      let processed = web3.cmt.getTransactionCount(fromAddress) - initialNonce
       let timePassed = (endDate - start) / 1000
       let perSecond = processed / timePassed
 
