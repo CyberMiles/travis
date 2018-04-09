@@ -1,26 +1,30 @@
 package types
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"sort"
 	"bytes"
 	"math/rand"
+	"sort"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/eth"
 )
 
 type nonce int64
 
 type Context struct {
-	id     nonce
-	chain  string
-	height int64
-	signers []common.Address
+	id       nonce
+	chain    string
+	height   int64
+	signers  []common.Address
+	ethereum *eth.Ethereum
 }
 
-func NewContext(chain string, height int64) Context {
+func NewContext(chain string, height int64, ethereum *eth.Ethereum) Context {
 	return Context{
-		id: 	nonce(rand.Int63()),
-		chain: 	chain,
-		height:	height,
+		id:       nonce(rand.Int63()),
+		chain:    chain,
+		height:   height,
+		ethereum: ethereum,
 	}
 }
 
@@ -40,6 +44,10 @@ func (c Context) BlockHeight() int64 {
 		signers: append(c.signers, signers...),
 	}
 }*/
+
+func (c Context) Ethereum() *eth.Ethereum {
+	return c.ethereum
+}
 
 func (c *Context) WithSigners(signers ...common.Address) {
 	c.signers = append(c.signers, signers...)

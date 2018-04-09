@@ -17,6 +17,7 @@ import (
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/genesis"
 	ethapp "github.com/CyberMiles/travis/vm/app"
+	"github.com/ethereum/go-ethereum/eth"
 )
 
 // GetTickStartCmd - initialize a command as the start command with tick
@@ -72,8 +73,8 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 	return nil
 }
 
-func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication) (*app.BaseApp, error) {
-	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, nil)
+func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication, ethereum *eth.Ethereum) (*app.BaseApp, error) {
+	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, nil, ethereum)
 	if err != nil {
 		return nil, err
 	}

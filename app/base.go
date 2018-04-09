@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
-	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -19,16 +19,18 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ttypes	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/modules"
+	"github.com/ethereum/go-ethereum/eth"
 )
 
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler                modules.Handler
-	clock                  sdk.Ticker
-	EthApp                 *ethapp.EthermintApplication
-	checkedTx              map[common.Hash]*types.Transaction
-	AbsentValidatorPubKeys [][]byte
+	handler                	modules.Handler
+	clock                  	sdk.Ticker
+	EthApp                 	*ethapp.EthermintApplication
+	checkedTx              	map[common.Hash]*types.Transaction
+	AbsentValidatorPubKeys 	[][]byte
+	ethereum    		    *eth.Ethereum
 }
 
 const (
@@ -42,7 +44,7 @@ var (
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
-func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.Ticker) (*BaseApp, error) {
+func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.Ticker, ethereum *eth.Ethereum) (*BaseApp, error) {
 	app := &BaseApp{
 		StoreApp:               store,
 		handler:                modules.Handler{},
@@ -50,6 +52,7 @@ func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.
 		EthApp:                 ethApp,
 		checkedTx:              make(map[common.Hash]*types.Transaction),
 		AbsentValidatorPubKeys: [][]byte{},
+		ethereum:               ethereum,
 	}
 
 	return app, nil
@@ -84,7 +87,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight())
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
 	res, err := app.handler.DeliverTx(ctx, app.Append(), tx)
 	if err != nil {
 		return errors.DeliverResult(err)
@@ -116,7 +119,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 
 	app.logger.Info("CheckTx: Receivted valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight())
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
 	res, err := app.handler.CheckTx(ctx, app.Check(), tx)
 	if err != nil {
 		return errors.CheckResult(err)

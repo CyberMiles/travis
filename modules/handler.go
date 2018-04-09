@@ -1,17 +1,19 @@
 package modules
 
 import (
-	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/CyberMiles/travis/modules/auth"
 	"fmt"
 
-	"github.com/CyberMiles/travis/modules/nonce"
-	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/modules/auth"
+	"github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk/state"
+
 	"strings"
-	"github.com/cosmos/cosmos-sdk/errors"
-	"github.com/CyberMiles/travis/modules/stake"
+
 	"github.com/CyberMiles/travis/modules/governance"
+	"github.com/CyberMiles/travis/modules/nonce"
+	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/types"
+	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto/sha3"
 	"github.com/ethereum/go-ethereum/rlp"

@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"strconv"
 
+	"encoding/hex"
+	"github.com/CyberMiles/travis/commons"
+	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/tendermint/go-wire/data"
-	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"encoding/hex"
-	"github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/commons"
+	"github.com/ethereum/go-ethereum/eth"
+	"github.com/tendermint/go-wire/data"
 	"math/big"
 )
 
@@ -104,9 +105,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 
 	// create the new checker object to
 	checker := check{
-		store:  store,
-		sender: sender,
-		params: params,
+		store:    store,
+		sender:   sender,
+		params:   params,
+		ethereum: ctx.Ethereum(),
 	}
 
 	// return the fee for each tx type
@@ -133,7 +135,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 
 // DeliverTx executes the tx if valid
 func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash common.Hash) (res sdk.DeliverResult, err error) {
-
 	_, err = CheckTx(ctx, store, tx)
 	if err != nil {
 		return
@@ -146,9 +147,10 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash common.H
 
 	params := loadParams(store)
 	deliverer := deliver{
-		store:  store,
-		sender: sender,
-		params: params,
+		store:    store,
+		sender:   sender,
+		params:   params,
+		ethereum: ctx.Ethereum(),
 	}
 
 	// Run the transaction
@@ -186,9 +188,10 @@ func getTxSender(ctx types.Context) (sender common.Address, err error) {
 //_______________________________________________________________________
 
 type check struct {
-	store  state.SimpleDB
-	sender common.Address
+	store    state.SimpleDB
+	sender   common.Address
 	params   Params
+	ethereum *eth.Ethereum
 }
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
@@ -262,11 +265,14 @@ func (c check) acceptSlot(tx TxAcceptSlot) error {
 		return ErrBadSlot()
 	}
 
-	err := commons.CheckAccount(c.sender, big.NewInt(tx.Amount))
+	balance, err := commons.GetBalance(c.ethereum, c.sender, big.NewInt(tx.Amount))
 	if err != nil {
 		return err
 	}
 
+	if balance.Cmp(big.NewInt(tx.Amount)) < 0 {
+		return ErrInsufficientFunds()
+	}
 	return nil
 }
 
@@ -289,6 +295,7 @@ type deliver struct {
 	store    state.SimpleDB
 	sender   common.Address
 	params   Params
+	ethereum *eth.Ethereum
 }
 
 var _ delegatedProofOfStake = deliver{} // enforce interface at compile time

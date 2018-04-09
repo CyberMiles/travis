@@ -11,6 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"math"
+	"github.com/ethereum/go-ethereum/eth"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -64,7 +66,10 @@ func Transfer(from, to common.Address, amount *big.Int) error {
 	return nil
 }
 
-func CheckAccount(from common.Address, amount *big.Int) error {
-	// todo check to see if balance of sender's account is enough to transfer
-	return nil
+func GetBalance(ethereum *eth.Ethereum, addr common.Address, amount *big.Int) (*big.Int, error) {
+	state, err := ethereum.BlockChain().State()
+	if err != nil {
+		return nil, errors.Errorf("Failed to get balance: %v", err)
+	}
+	return state.GetBalance(addr), nil
 }
