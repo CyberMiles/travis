@@ -338,11 +338,11 @@ func initTravisDb() error {
 		defer db.Close()
 
 		sqlStmt := `
-		create table candidates(address text not null primary key, pub_key text not null, shares integer default 0, voting_power integer default 0, state text not null default 'Y', created_at text not null, updated_at text);
+		create table candidates(address text not null primary key, pub_key text not null, shares integer default 0, voting_power integer default 0, state text not null default 'Y', created_at text not null, updated_at text not null default '');
 		create table delegators(address text not null primary key, created_at text not null);
-		create table slots(id text not null primary key, validator_address text not null, total_amount integer not null default 0, available_amount integer not null default 0, proposed_roi integer not null default 0, state text not null default 'Y', created_at text not null, updated_at text);
+		create table slots(id text not null primary key, validator_address text not null, total_amount integer not null default 0, available_amount integer not null default 0, proposed_roi integer not null default 0, state text not null default 'Y', created_at text not null, updated_at not null text default '');
 		create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, slot_id text not null, amount integer not null default 0, op_code text not null default '', created_at text not null);
-		create table slot_delegates (delegator_address text not null, slot_id text not null, amount integer not null default 0, created_at text not null, updated_at text);
+		create table slot_delegates (delegator_address text not null, slot_id text not null, amount integer not null default 0, created_at text not null, updated_at not null text default '');
 		create index idx_slots_validator_address on slots(validator_address);
 		create index idx_candidates_pub_key on candidates(pub_key);
 		create index idx_slot_delegates_delegator_address on slot_delegates(delegator_address);
@@ -353,7 +353,7 @@ func initTravisDb() error {
 		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 		create index idx_governance_vote_voter on governance_vote(voter);
 		
-		create table suicided_contracts(contract_address tx primary key, created_at text, updated_at text);
+		create table suicided_contracts(contract_address tx primary key, created_at text, updated_at not null text default '');
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {

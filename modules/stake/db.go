@@ -29,14 +29,9 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	}
 	defer stmt.Close()
 
-	var pubKey, state, createdAt string
+	var pubKey, state, createdAt, updatedAt string
 	var shares, votingPower uint64
-	var updatedAt interface{}
 	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &state, &createdAt, &updatedAt)
-
-	if _, ok := updatedAt.(string); !ok {
-		updatedAt = ""
-	}
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -54,7 +49,7 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 		VotingPower: 	votingPower,
 		State:       	state,
 		CreatedAt: 	 	createdAt,
-		UpdatedAt:   	updatedAt.(string),
+		UpdatedAt:   	updatedAt,
 	}
 }
 
