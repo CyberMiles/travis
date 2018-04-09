@@ -31,5 +31,5 @@ $ travis attach http://localhost:8545
 
 ```
 personal.unlockAccount("from_address")
-cmt.sendTransaction({"from": "from_address", "to": "to_address", "value": web3.toWei(0.001, "ether")})
+cmt.sendTransaction({"from": "from_address", "to": "to_address", "value": web3.toWei(0.001, "cmt")})
 ```
