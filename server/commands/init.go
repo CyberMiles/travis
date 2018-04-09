@@ -139,4 +139,7 @@ var keystoreFilesMap = map[string]string{
   }
 }
 `,
+	"UTC--2018-04-09T09-48-47.241470000Z--77beb894fc9b0ed41231e51f128a347043960a9d": `
+{"address":"77beb894fc9b0ed41231e51f128a347043960a9d","crypto":{"cipher":"aes-128-ctr","ciphertext":"a559667b38ab5b38aeadd22aef5b0582ef28bc86e9899d058ec41a5f8193ffd6","cipherparams":{"iv":"0efe57fb91b2eaf3f7c630037c531b13"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"21201b8cb9ad02be8744c44f82a6668d30eb9c2811b6038d9727bbd1034015aa"},"mac":"9f9e1e1877f55f22f8ca3fb36b0667caf02db3bc98717e62b40df18bdb33e766"},"id":"745b91e0-e760-4fa9-97b2-22a76745a25f","version":3}
+`,
 }
