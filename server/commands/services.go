@@ -19,6 +19,7 @@ import (
 	"github.com/tendermint/tendermint/proxy"
 	"github.com/tendermint/tendermint/types"
 
+	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/app"
 	abciApp "github.com/CyberMiles/travis/vm/app"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
@@ -26,7 +27,7 @@ import (
 )
 
 type Services struct {
-	backend *ethereum.Backend
+	backend *api.Backend
 	tmNode  *node.Node
 }
 
@@ -36,7 +37,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 	startNode(context, emNode)
 
 	// Fetch the registered service of this type
-	var backend *ethereum.Backend
+	var backend *api.Backend
 	if err := emNode.Service(&backend); err != nil {
 		ethUtils.Fatalf("ethereum backend service not running: %v", err)
 	}

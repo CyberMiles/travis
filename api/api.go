@@ -1,4 +1,4 @@
-package ethereum
+package api
 
 import (
 	"encoding/hex"
@@ -274,11 +274,11 @@ func (s *CmtRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32
 	tx = nonce.NewTx(sequence, signers, tx)
 
 	/*
-	chainID, err := s.getChainID()
-	if err != nil {
-		return sdk.Tx{}, err
-	}
-	tx = base.NewChainTx(chainID, 0, tx)
+		chainID, err := s.getChainID()
+		if err != nil {
+			return sdk.Tx{}, err
+		}
+		tx = base.NewChainTx(chainID, 0, tx)
 	*/
 	tx = auth.NewSig(tx).Wrap()
 
@@ -465,7 +465,7 @@ func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroa
 }
 
 type GovernanceVoteArgs struct {
-	Sequence uint32 `json:"sequence"`
+	Sequence   uint32 `json:"sequence"`
 	ProposalId string `json:"proposal_id"`
 	Voter      string `json:"voter"`
 	Answer     string `json:"answer"`

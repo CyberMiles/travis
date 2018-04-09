@@ -1,4 +1,4 @@
-package ethereum
+package api
 
 import (
 	"bytes"
@@ -14,6 +14,7 @@ import (
 var (
 	local = false
 )
+
 //----------------------------------------------------------------------
 // Transactions sent via the go-ethereum rpc need to be routed to tendermint
 
@@ -62,7 +63,7 @@ func (b *Backend) BroadcastTx(tx *ethTypes.Transaction) (*ctypes.ResultBroadcast
 	if local {
 		return b.localClient.BroadcastTxSync(buf.Bytes())
 	} else {
-		return  b.client.BroadcastTxSync(buf.Bytes())
+		return b.client.BroadcastTxSync(buf.Bytes())
 	}
 
 }
