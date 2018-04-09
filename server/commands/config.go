@@ -130,11 +130,12 @@ rpcapi = "cmt,stake,eth,net,web3,personal,admin"
 rpcaddr = "0.0.0.0"
 rpcport = 8545
 ws = false
-verbosity = 3
+verbosity = 1
 
 
 [consensus]
-timeout_commit = 10000
+timeout_commit = 1000
+max_block_size_txs = 50000
 `
 
 var defaultMoniker = getDefaultMoniker()
