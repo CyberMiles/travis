@@ -135,7 +135,7 @@ verbosity = 3
 
 
 [consensus]
-timeout_commit = 10000
+timeout_commit = 1000
 `
 
 var defaultMoniker = getDefaultMoniker()

@@ -17,6 +17,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto/sha3"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/tendermint/go-wire/data"
+	"os"
+	"github.com/tendermint/tmlibs/merkle"
 )
 
 type Handler struct {
@@ -60,7 +63,7 @@ func (h Handler) DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (
 		return res, fmt.Errorf("failed to verify signature: %v", err)
 	}
 
-	hash := rlpHash(tx)
+	hash := merkle.SimpleHashFromBinary(tx)
 
 	// Check nonce
 	_, tx, err = nonce.ReplayCheck(ctx, store, tx)
@@ -97,4 +100,13 @@ func rlpHash(x interface{}) (h common.Hash) {
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h
+}
+
+func output(v interface{}) error {
+	blob, err := data.ToJSON(v)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(os.Stdout, "%s\n", blob)
+	return nil
 }

@@ -70,7 +70,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 
 // DeliverTx executes the tx if valid
 func DeliverTx(ctx types.Context, store state.SimpleDB,
-	tx sdk.Tx, hash common.Hash) (res sdk.DeliverResult, err error) {
+	tx sdk.Tx, hash []byte) (res sdk.DeliverResult, err error) {
 
 	_, err = CheckTx(ctx, store, tx)
 	if err != nil {
@@ -83,7 +83,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		amount.SetString(txInner.Amount, 10)
 
 		pp := NewProposal(
-			hex.EncodeToString(hash[:]),
+			hex.EncodeToString(hash),
 			txInner.Proposer,
 			uint64(ctx.BlockHeight()),
 			txInner.From,
