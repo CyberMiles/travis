@@ -238,7 +238,7 @@ func isEthTx(txBytes []byte) (bool, *types.Transaction, error) {
 	// try to decode with ethereum
 	tx, err := decodeEthTx(txBytes)
 	if err != nil {
-		return false, tx, err
+		return false, nil, err
 	}
-	return true, nil, nil
+	return true, tx, nil
 }
