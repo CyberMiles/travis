@@ -76,6 +76,10 @@ func setValidator(value string) error {
 		return fmt.Errorf("error reading validators")
 	}
 
+	if val.Address == common.StringToAddress("0000000000000000000000000000000000000000") {
+		return ErrBadValidatorAddr()
+	}
+
 	// create and save the empty candidate
 	bond := GetCandidateByAddress(val.Address)
 	if bond != nil {

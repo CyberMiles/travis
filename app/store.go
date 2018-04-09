@@ -58,7 +58,7 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 		return nil, err
 	}
 
-	err = initStakeDb()
+	err = initTravisDb()
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +326,7 @@ func loadState(dbName string, cacheSize int, historySize int64) (*sm.State, erro
 	return sm.NewState(tree, historySize), nil
 }
 
-func initStakeDb() error {
+func initTravisDb() error {
 	rootDir := viper.GetString(cli.HomeFlag)
 	stakeDbPath := path.Join(rootDir, "data", "travis.db")
 	_, err := os.OpenFile(stakeDbPath, os.O_RDONLY, 0444)
