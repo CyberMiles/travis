@@ -55,20 +55,15 @@ func GetOptions(path string) ([]Option, error) {
 		return nil, err
 	}
 
-	opts := genDoc.AppOptions
+	//opts := genDoc.AppOptions
 	validators := genDoc.Validators
-	cnt := 1 + len(opts.Accounts) + len(validators)
+	cnt := 1 + len(validators)
 	res := make([]Option, 0, cnt)
 	res = append(res, Option{sdk.ModuleNameBase, sdk.ChainKey, genDoc.ChainID})
 
 	// set validators
 	for _, val := range validators {
 		res = append(res, Option{"stake", "validator", string(val)})
-	}
-
-	// set accounts
-	for _, acct := range opts.Accounts {
-		res = append(res, Option{"coin", "account", string(acct)})
 	}
 
 	return res, nil

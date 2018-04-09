@@ -17,7 +17,7 @@ import (
 
 	abciTypes "github.com/tendermint/abci/types"
 
-	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
+	emtTypes "github.com/CyberMiles/travis/vm/types"
 	"github.com/CyberMiles/travis/errors"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -201,9 +201,9 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	// ws.stakedTxIndex used for record coped index of every staker
 	for i := ws.stakedTxIndex; i < len(utils.StateChangeQueue); i++ {
 		scObj := utils.StateChangeQueue[i]
-		ws.state.SubBalance(common.BytesToAddress(scObj.From.Bytes()), scObj.Amount)
-		if scObj.To != nil {
-			ws.state.AddBalance(common.BytesToAddress(scObj.To.Bytes()), scObj.Amount)
+		ws.state.SubBalance(scObj.From, scObj.Amount)
+		if len(scObj.To.Bytes()) != 0 {
+			ws.state.AddBalance(scObj.To, scObj.Amount)
 		}
 	}
 	ws.stakedTxIndex = len(utils.StateChangeQueue)

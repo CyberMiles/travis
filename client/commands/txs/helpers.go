@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"github.com/CyberMiles/travis/modules/keys"
 	wire "github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
 
@@ -24,6 +23,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/commands"
 	"github.com/CyberMiles/travis/modules/auth"
 	"github.com/ethereum/go-ethereum/common"
+	ttypes "github.com/CyberMiles/travis/types"
 )
 
 // Validatable represents anything that can be Validated
@@ -40,15 +40,6 @@ func GetSigner() common.Address {
 	}
 
 	return common.HexToAddress(address)
-}
-
-// GetSignerAct returns the address of the signer of the tx
-// (as we still only support single sig)
-func GetSignerAct() (res sdk.Actor) {
-	// this could be much cooler with multisig...
-	signer := GetSigner()
-	res = auth.SigPerm(signer.Bytes())
-	return res
 }
 
 // DoTx is a helper function for the lazy :)
@@ -96,7 +87,7 @@ func SignTx(tx sdk.Tx) error {
 
 	address := viper.GetString(FlagAddress)
 
-	if sign, ok := tx.Unwrap().(keys.Signable); ok {
+	if sign, ok := tx.Unwrap().(ttypes.Signable); ok {
 		if address == "" {
 			return errors.New("--address is required to sign tx")
 		}
@@ -170,7 +161,7 @@ func OutputTx(res *ctypes.ResultBroadcastTxCommit) error {
 	return nil
 }
 
-func signTx(tx keys.Signable, address string) error {
+func signTx(tx ttypes.Signable, address string) error {
 	prompt := fmt.Sprintf("Please enter passphrase for %s: ", address)
 	pass, err := getPassword(prompt)
 	if err != nil {

@@ -51,9 +51,6 @@ type StoreApp struct {
 	logger log.Logger
 }
 
-// TODO should satisfy?
-//var _ abci.Application = &StoreApp{}
-
 // NewStoreApp creates a data store to handle queries
 func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*StoreApp, error) {
 	state, err := loadState(dbName, cacheSize, DefaultHistorySize)
@@ -61,7 +58,7 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 		return nil, err
 	}
 
-	err = initStakeDb()
+	err = initTravisDb()
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +104,8 @@ func (app *StoreApp) Append() sm.SimpleDB {
 	return app.state.Append()
 }
 
-// Check returns the working state for CheckTx
+// Check returns the working state for Chec
+// kTx
 func (app *StoreApp) Check() sm.SimpleDB {
 	return app.state.Check()
 }
@@ -260,16 +258,7 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 }
 
 // InitChain - ABCI
-func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
-	// create and save the empty candidate
-	//for _, validator := range req.Validators {
-	//	pk, _ := stake.GetPubKey(string(validator.PubKey))
-	//	candidate := stake.NewCandidate(pk, d.sender, uint64(validator.Power), uint64(validator.Power))
-	//	stake.SaveCandidate(candidate)
-	//}
-
-	return
-}
+func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) { return }
 
 // BeginBlock - ABCI
 func (app *StoreApp) BeginBlock(_ abci.RequestBeginBlock) (res abci.ResponseBeginBlock) { return }
@@ -337,7 +326,7 @@ func loadState(dbName string, cacheSize int, historySize int64) (*sm.State, erro
 	return sm.NewState(tree, historySize), nil
 }
 
-func initStakeDb() error {
+func initTravisDb() error {
 	rootDir := viper.GetString(cli.HomeFlag)
 	stakeDbPath := path.Join(rootDir, "data", "travis.db")
 	_, err := os.OpenFile(stakeDbPath, os.O_RDONLY, 0444)

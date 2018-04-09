@@ -1,4 +1,4 @@
-package ethereum
+package api
 
 import (
 	"encoding/hex"
@@ -10,8 +10,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/modules/base"
-	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -24,9 +22,9 @@ import (
 
 	"github.com/CyberMiles/travis/modules/auth"
 	"github.com/CyberMiles/travis/modules/governance"
-	"github.com/CyberMiles/travis/modules/keys"
 	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/modules/stake"
+	ttypes "github.com/CyberMiles/travis/types"
 )
 
 // We must implement our own net service since we don't have access to `internal/ethapi`
@@ -109,7 +107,7 @@ func (s *CmtRPCService) getChainID() (string, error) {
 }
 
 func (s *CmtRPCService) GetSequence(address string) (*uint32, error) {
-	signers := []sdk.Actor{getSignerAct(address)}
+	signers := []common.Address{getSigner(address)}
 	var sequence uint32
 	err := s.getSequence(signers, &sequence)
 	return &sequence, err
@@ -264,7 +262,7 @@ func (s *CmtRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, error)
 func (s *CmtRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32) (sdk.Tx, error) {
 	// wrap
 	// only add the actual signer to the nonce
-	signers := []sdk.Actor{getSignerAct(address)}
+	signers := []common.Address{getSigner(address)}
 	if sequence <= 0 {
 		// calculate default sequence
 		err := s.getSequence(signers, &sequence)
@@ -275,23 +273,26 @@ func (s *CmtRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32
 	}
 	tx = nonce.NewTx(sequence, signers, tx)
 
-	chainID, err := s.getChainID()
-	if err != nil {
-		return sdk.Tx{}, err
-	}
-	tx = base.NewChainTx(chainID, 0, tx)
+	/*
+		chainID, err := s.getChainID()
+		if err != nil {
+			return sdk.Tx{}, err
+		}
+		tx = base.NewChainTx(chainID, 0, tx)
+	*/
 	tx = auth.NewSig(tx).Wrap()
 
 	// sign
-	err = s.signTx(tx, address)
+	err := s.signTx(tx, address)
 	if err != nil {
 		return sdk.Tx{}, err
 	}
 	return tx, err
 }
 
-func (s *CmtRPCService) getSequence(signers []sdk.Actor, sequence *uint32) error {
-	key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+func (s *CmtRPCService) getSequence(signers []common.Address, sequence *uint32) error {
+	// key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+	key := nonce.GetSeqKey(signers)
 	result, err := s.backend.localClient.ABCIQuery("/key", key)
 	if err != nil {
 		return err
@@ -311,7 +312,7 @@ func (s *CmtRPCService) signTx(tx sdk.Tx, address string) error {
 		return err
 	}
 
-	if sign, ok := tx.Unwrap().(keys.Signable); ok {
+	if sign, ok := tx.Unwrap().(ttypes.Signable); ok {
 		if address == "" {
 			return errors.New("address is required to sign tx")
 		}
@@ -323,7 +324,7 @@ func (s *CmtRPCService) signTx(tx sdk.Tx, address string) error {
 	return err
 }
 
-func (s *CmtRPCService) sign(data keys.Signable, address string) error {
+func (s *CmtRPCService) sign(data ttypes.Signable, address string) error {
 	ethTx := types.NewTransaction(
 		0,
 		common.Address([20]byte{}),
@@ -352,10 +353,9 @@ func (s *CmtRPCService) broadcastTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit,
 	return s.backend.localClient.BroadcastTxCommit(key)
 }
 
-func getSignerAct(address string) (res sdk.Actor) {
+func getSigner(address string) (res common.Address) {
 	// this could be much cooler with multisig...
-	signer := common.HexToAddress(address)
-	res = auth.SigPerm(signer.Bytes())
+	res = common.HexToAddress(address)
 	return res
 }
 
@@ -465,7 +465,7 @@ func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroa
 }
 
 type GovernanceVoteArgs struct {
-	Sequence uint32 `json:"sequence"`
+	Sequence   uint32 `json:"sequence"`
 	ProposalId string `json:"proposal_id"`
 	Voter      string `json:"voter"`
 	Answer     string `json:"answer"`

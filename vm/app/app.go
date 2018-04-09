@@ -1,19 +1,19 @@
 package app
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"bytes"
 
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/CyberMiles/travis/modules/vm/ethereum"
-	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
+	"github.com/CyberMiles/travis/api"
+	emtTypes "github.com/CyberMiles/travis/vm/types"
 
 	"github.com/CyberMiles/travis/errors"
 	"github.com/CyberMiles/travis/utils"
@@ -36,7 +36,7 @@ type EthermintApplication struct {
 
 	// backend handles the ethereum state machine
 	// and wrangles other services started by an ethereum node (eg. tx pool)
-	backend *ethereum.Backend // backend ethereum struct
+	backend *api.Backend // backend ethereum struct
 
 	// a closure to return the latest current state from the ethereum blockchain
 	getCurrentState func() (*state.StateDB, error)
@@ -59,7 +59,7 @@ type EthermintApplication struct {
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
 // #stable - 0.4.0
-func NewEthermintApplication(backend *ethereum.Backend,
+func NewEthermintApplication(backend *api.Backend,
 	client *rpc.Client, strategy *emtTypes.Strategy) (*EthermintApplication, error) {
 
 	state, err := backend.Ethereum().BlockChain().State()
@@ -68,13 +68,13 @@ func NewEthermintApplication(backend *ethereum.Backend,
 	}
 
 	app := &EthermintApplication{
-		backend:         backend,
-		rpcClient:       client,
-		getCurrentState: backend.Ethereum().BlockChain().State,
-		checkTxState:    state.Copy(),
-		strategy:        strategy,
+		backend:              backend,
+		rpcClient:            client,
+		getCurrentState:      backend.Ethereum().BlockChain().State,
+		checkTxState:         state.Copy(),
+		strategy:             strategy,
 		lowPriceTransactions: make(map[FromTo]*ethTypes.Transaction),
-		checkFailedCount: make(map[common.Address]uint64),
+		checkFailedCount:     make(map[common.Address]uint64),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
@@ -126,8 +126,7 @@ func (app *EthermintApplication) Info(req abciTypes.RequestInfo) abciTypes.Respo
 
 // SetOption sets a configuration option
 // #stable - 0.4.0
-func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) (
-	abciTypes.ResponseSetOption) {
+func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) abciTypes.ResponseSetOption {
 
 	app.logger.Debug("SetOption", "key", req.GetKey(), "value", req.GetValue()) // nolint: errcheck
 	return abciTypes.ResponseSetOption{}
@@ -135,8 +134,7 @@ func (app *EthermintApplication) SetOption(req abciTypes.RequestSetOption) (
 
 // InitChain initializes the validator set
 // #stable - 0.4.0
-func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) (
-	abciTypes.ResponseInitChain) {
+func (app *EthermintApplication) InitChain(req abciTypes.RequestInitChain) abciTypes.ResponseInitChain {
 
 	app.logger.Debug("InitChain") // nolint: errcheck
 	app.SetValidators(req.GetValidators())
@@ -172,8 +170,7 @@ func (app *EthermintApplication) DeliverTx(tx *ethTypes.Transaction) abciTypes.R
 
 // BeginBlock starts a new Ethereum block
 // #stable - 0.4.0
-func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) (
-	abciTypes.ResponseBeginBlock) {
+func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlock) abciTypes.ResponseBeginBlock {
 
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 
@@ -184,8 +181,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 
 // EndBlock accumulates rewards for the validators and updates them
 // #stable - 0.4.0
-func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) (
-	abciTypes.ResponseEndBlock) {
+func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
 	app.backend.AccumulateRewards(app.strategy)
@@ -256,9 +252,9 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
 	if tx.Size() > maxTransactionSize {
-		return abciTypes.ResponseCheckTx {
+		return abciTypes.ResponseCheckTx{
 			Code: errors.CodeTypeInternalErr,
-			Log: core.ErrOversizedData.Error()}
+			Log:  core.ErrOversizedData.Error()}
 	}
 
 	var signer ethTypes.Signer = ethTypes.FrontierSigner{}
@@ -270,34 +266,34 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	from, err := ethTypes.Sender(signer, tx)
 	if err != nil {
 		// TODO: Add errors.CodeTypeInvalidSignature ?
-		return abciTypes.ResponseCheckTx {
+		return abciTypes.ResponseCheckTx{
 			Code: errors.CodeTypeInternalErr,
-			Log: core.ErrInvalidSender.Error()}
+			Log:  core.ErrInvalidSender.Error()}
 	}
 
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 {
-		return abciTypes.ResponseCheckTx {
+		return abciTypes.ResponseCheckTx{
 			Code: errors.CodeTypeBaseInvalidInput,
-			Log: core.ErrNegativeValue.Error()}
+			Log:  core.ErrNegativeValue.Error()}
 	}
 
 	currentState := app.checkTxState
 
 	// Make sure the account exist - cant send from non-existing account.
 	if !currentState.Exist(from) {
-		return abciTypes.ResponseCheckTx {
+		return abciTypes.ResponseCheckTx{
 			Code: errors.CodeTypeUnknownAddress,
-			Log: core.ErrInvalidSender.Error()}
+			Log:  core.ErrInvalidSender.Error()}
 	}
 
 	// Check the transaction doesn't exceed the current block limit gas.
 	gasLimit := app.backend.GasLimit()
 	if gasLimit.Cmp(tx.Gas()) < 0 {
-		return abciTypes.ResponseCheckTx {
+		return abciTypes.ResponseCheckTx{
 			Code: errors.CodeTypeInternalErr,
-			Log: core.ErrGasLimitReached.Error()}
+			Log:  core.ErrGasLimitReached.Error()}
 	}
 
 	nonce := currentState.GetNonce(from)
@@ -306,17 +302,17 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 		// if not then recheck with feeding failed count
 		if nonce != tx.Nonce() {
 			if c, ok := app.checkFailedCount[from]; ok {
-				if nonce + c != tx.Nonce() {
+				if nonce+c != tx.Nonce() {
 					return abciTypes.ResponseCheckTx{
 						Code: errors.CodeTypeBadNonce,
-						Log:  fmt.Sprintf(
+						Log: fmt.Sprintf(
 							"Nonce not strictly increasing. Expected %d Got %d",
 							nonce, tx.Nonce())}
 				}
 			} else {
 				return abciTypes.ResponseCheckTx{
 					Code: errors.CodeTypeBadNonce,
-					Log:  fmt.Sprintf(
+					Log: fmt.Sprintf(
 						"Nonce not strictly increasing. Expected %d Got %d",
 						nonce, tx.Nonce())}
 			}
@@ -328,7 +324,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 
 	// Iterate StateChangeQueue to pre sub the balance
 	for _, scObj := range utils.StateChangeQueue {
-		if bytes.Equal(from[:], scObj.From) {
+		if bytes.Equal(from[:], scObj.From.Bytes()) {
 			currentBalance.Sub(currentBalance, scObj.Amount)
 		}
 	}
@@ -338,16 +334,16 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 		return abciTypes.ResponseCheckTx{
 			// TODO: Add errors.CodeTypeInsufficientFunds ?
 			Code: errors.CodeTypeBaseInvalidInput,
-			Log:  fmt.Sprintf(
+			Log: fmt.Sprintf(
 				"Current balance: %s, tx cost: %s",
 				currentBalance, tx.Cost())}
 	}
 
 	intrGas := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
 	if tx.Gas().Cmp(intrGas) < 0 {
-		return abciTypes.ResponseCheckTx {
+		return abciTypes.ResponseCheckTx{
 			Code: errors.CodeTypeBaseInvalidInput,
-			Log: core.ErrIntrinsicGas.Error()}
+			Log:  core.ErrIntrinsicGas.Error()}
 	}
 
 	// Iterate over all transactions to check if the gas price is too low for the
@@ -357,19 +353,19 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	if tx.To() != nil {
 		to = *tx.To()
 	}
-	ft := FromTo {
+	ft := FromTo{
 		from: from,
-		to: to,
+		to:   to,
 	}
 	if _, ok := app.lowPriceTransactions[ft]; ok {
-		if tx.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
+		if tx.GasPrice().Cmp(big.NewInt(MinGasPrice)) < 0 {
 			// add failed count
 			// this map will keep growing because the nonce check will use it ongoing
 			app.checkFailedCount[from] = app.checkFailedCount[from] + 1
 			return abciTypes.ResponseCheckTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
 		}
 	}
-	if tx.GasPrice().Cmp( big.NewInt(MinGasPrice) ) < 0 {
+	if tx.GasPrice().Cmp(big.NewInt(MinGasPrice)) < 0 {
 		app.lowPriceTransactions[ft] = tx
 	}
 

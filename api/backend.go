@@ -1,4 +1,4 @@
-package ethereum
+package api
 
 import (
 	"math/big"
@@ -16,7 +16,8 @@ import (
 	tmn "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
-	emtTypes "github.com/CyberMiles/travis/modules/vm/types"
+	"github.com/CyberMiles/travis/vm/ethereum"
+	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
 
 //----------------------------------------------------------------------
@@ -34,7 +35,7 @@ type Backend struct {
 	txSub *event.TypeMuxSubscription
 
 	// EthState
-	es *EthState
+	es *ethereum.EthState
 
 	// client for forwarding txs to Tendermint over http
 	client *rpcClient.HTTP
@@ -51,7 +52,7 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 	client *rpcClient.HTTP) (*Backend, error) {
 
 	// Create working ethereum state.
-	es := NewEthState()
+	es := ethereum.NewEthState()
 
 	// eth.New takes a ServiceContext for the EventMux, the AccountManager,
 	// and some basic functions around the DataDir.

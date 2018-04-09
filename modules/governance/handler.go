@@ -5,14 +5,12 @@ import (
 	"bytes"
 	"encoding/hex"
 
-	"github.com/tendermint/tmlibs/log"
-
 	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/cosmos/cosmos-sdk/modules/auth"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // nolint
@@ -23,32 +21,12 @@ func Name() string {
 	return governanceModuleName
 }
 
-type Handler struct {
-	stack.PassInitValidate
+func InitState(module, key, value string,store state.SimpleDB) error {
+	return nil
 }
 
-var _ stack.Dispatchable = Handler{} // enforce interface at compile time
-
-// NewHandler returns a new Handler with the default Params
-func NewHandler() Handler {
-	return Handler{}
-}
-
-// Name - return stake namespace
-func (Handler) Name() string {
-	return governanceModuleName
-}
-
-func (h Handler) InitState(l log.Logger, store state.SimpleDB,
-	module, key, value string, cb sdk.InitStater) (log string, err error) {
-	return
-}
-
-// AssertDispatcher - placeholder for stack.Dispatchable
-func (Handler) AssertDispatcher() {}
-
-func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
-	tx sdk.Tx, dispatch sdk.Checker) (res sdk.CheckResult, err error) {
+func CheckTx(ctx types.Context, store state.SimpleDB,
+	tx sdk.Tx) (res sdk.CheckResult, err error) {
 
 	err = tx.ValidateBasic()
 	if err != nil {
@@ -63,7 +41,7 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxPropose:
-		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Address.Bytes()) {
+		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0,  ""), ErrMissingSignature()
 		}
 		candidate := stake.GetCandidateByAddress(txInner.Proposer)
@@ -71,7 +49,7 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 	case TxVote:
-		if !bytes.Equal(txInner.Voter.Bytes(), sender.Address.Bytes()) {
+		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0,  ""), ErrMissingSignature()
 		}
 		validator := stake.GetCandidateByAddress(txInner.Voter)
@@ -91,22 +69,21 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 }
 
 // DeliverTx executes the tx if valid
-func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
-	tx sdk.Tx, dispatch sdk.Deliver) (res sdk.DeliverResult, err error) {
+func DeliverTx(ctx types.Context, store state.SimpleDB,
+	tx sdk.Tx, hash common.Hash) (res sdk.DeliverResult, err error) {
 
-	_, err = h.CheckTx(ctx, store, tx, nil)
+	_, err = CheckTx(ctx, store, tx)
 	if err != nil {
 		return
 	}
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxPropose:
-		pid := utils.GetUUID()
 		amount := new(big.Int)
 		amount.SetString(txInner.Amount, 10)
 
 		pp := NewProposal(
-			hex.EncodeToString(pid),
+			hex.EncodeToString(hash[:]),
 			txInner.Proposer,
 			uint64(ctx.BlockHeight()),
 			txInner.From,
@@ -150,7 +127,7 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 		if c * 3 >= len(validators) * 2 {
 			proposal := GetProposalById(txInner.ProposalId)
 			utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
-				From: proposal.From.Bytes(), To: proposal.To.Bytes(), Amount: proposal.Amount})
+				From: proposal.From, To: proposal.To, Amount: proposal.Amount})
 		}
 	}
 
@@ -158,8 +135,8 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 }
 
 // get the sender from the ctx and ensure it matches the tx pubkey
-func getTxSender(ctx sdk.Context) (sender sdk.Actor, err error) {
-	senders := ctx.GetPermissions("", auth.NameSigs)
+func getTxSender(ctx types.Context) (sender common.Address, err error) {
+	senders := ctx.GetSigners()
 	if len(senders) != 1 {
 		return sender, ErrMissingSignature()
 	}

@@ -4,24 +4,23 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/tendermint/tmlibs/log"
-
+	"encoding/hex"
+	"github.com/CyberMiles/travis/commons"
+	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/errors"
-	"github.com/cosmos/cosmos-sdk/modules/auth"
-	"github.com/CyberMiles/travis/modules/coin"
-	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/tendermint/go-wire/data"
-	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"encoding/hex"
+	"github.com/ethereum/go-ethereum/eth"
+	"github.com/tendermint/go-wire/data"
+	"math/big"
 )
 
 // nolint
 const stakingModuleName = "stake"
 
-// Name is the name of the modules.
+// Name is the name of the commons.
 func Name() string {
 	return stakingModuleName
 }
@@ -33,50 +32,16 @@ type delegatedProofOfStake interface {
 	declareCandidacy(TxDeclareCandidacy) error
 	editCandidacy(TxEditCandidacy) error
 	withdraw(TxWithdraw) error
-	proposeSlot(TxProposeSlot) ([]byte, error)
+	proposeSlot(TxProposeSlot, common.Hash) ([]byte, error)
 	acceptSlot(TxAcceptSlot) error
 	withdrawSlot(TxWithdrawSlot) error
 	cancelSlot(TxCancelSlot) error
 }
 
-type coinSend interface {
-	transferFn(sender, receiver sdk.Actor, coins coin.Coins) error
-}
-
 //_______________________________________________________________________
 
-// Handler - the transaction processing handler
-type Handler struct {
-	stack.PassInitValidate
-}
-
-var _ stack.Dispatchable = Handler{} // enforce interface at compile time
-
-// NewHandler returns a new Handler with the default Params
-func NewHandler() Handler {
-	return Handler{}
-}
-
-// Name - return stake namespace
-func (Handler) Name() string {
-	return stakingModuleName
-}
-
-// AssertDispatcher - placeholder for stack.Dispatchable
-func (Handler) AssertDispatcher() {}
-
 // InitState - set genesis parameters for staking
-func (h Handler) InitState(l log.Logger, store state.SimpleDB,
-	module, key, value string, cb sdk.InitStater) (log string, err error) {
-	return "", h.initState(module, key, value, store)
-}
-
-// separated for testing
-func (Handler) initState(module, key, value string, store state.SimpleDB) error {
-	if module != stakingModuleName {
-		return errors.ErrUnknownModule(module)
-	}
-
+func InitState(key, value string, store state.SimpleDB) error {
 	params := loadParams(store)
 	switch key {
 	case "allowed_bond_denom":
@@ -85,7 +50,6 @@ func (Handler) initState(module, key, value string, store state.SimpleDB) error 
 		"gas_bond",
 		"gas_unbond":
 
-		// TODO: enforce non-negative integers in input
 		i, err := strconv.Atoi(value)
 		if err != nil {
 			return fmt.Errorf("input must be integer, Error: %v", err.Error())
@@ -112,6 +76,10 @@ func setValidator(value string) error {
 		return fmt.Errorf("error reading validators")
 	}
 
+	if val.Address == common.StringToAddress("0000000000000000000000000000000000000000") {
+		return ErrBadValidatorAddr()
+	}
+
 	// create and save the empty candidate
 	bond := GetCandidateByAddress(val.Address)
 	if bond != nil {
@@ -120,13 +88,11 @@ func setValidator(value string) error {
 
 	candidate := NewCandidate(val.PubKey, val.Address, val.Power, val.Power, "Y")
 	SaveCandidate(candidate)
-
 	return nil
 }
 
 // CheckTx checks if the tx is properly structured
-func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
-	tx sdk.Tx, dispatch sdk.Checker) (res sdk.CheckResult, err error) {
+func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckResult, err error) {
 
 	err = tx.ValidateBasic()
 	if err != nil {
@@ -143,49 +109,37 @@ func (h Handler) CheckTx(ctx sdk.Context, store state.SimpleDB,
 
 	// create the new checker object to
 	checker := check{
-		store:  store,
-		sender: sender,
-		params: params,
-		transfer: coinChecker{
-			store:    store,
-			dispatch: dispatch,
-			ctx:      ctx,
-		}.transferFn,
+		store:    store,
+		sender:   sender,
+		params:   params,
+		ethereum: ctx.Ethereum(),
 	}
 
 	// return the fee for each tx type
 	switch txInner := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
-		return sdk.NewCheck(params.GasDeclareCandidacy, ""),
-			checker.declareCandidacy(txInner)
+		return res, checker.declareCandidacy(txInner)
 	case TxEditCandidacy:
-		return sdk.NewCheck(params.GasEditCandidacy, ""),
-			checker.editCandidacy(txInner)
+		return res, checker.editCandidacy(txInner)
 	case TxWithdraw:
-		return sdk.NewCheck(params.GasWithdraw, ""),
-			checker.withdraw(txInner)
+		return res, checker.withdraw(txInner)
 	case TxProposeSlot:
-		_, err := checker.proposeSlot(txInner)
-		return sdk.NewCheck(params.GasProposeSlot, ""), err
+		_, err := checker.proposeSlot(txInner, common.BytesToHash([]byte{}))
+		return res, err
 	case TxAcceptSlot:
-		return sdk.NewCheck(params.GasAcceptSlot, ""),
-			checker.acceptSlot(txInner)
+		return res, checker.acceptSlot(txInner)
 	case TxWithdrawSlot:
-		return sdk.NewCheck(params.GasWithdrawSlot, ""),
-			checker.withdrawSlot(txInner)
+		return res, checker.withdrawSlot(txInner)
 	case TxCancelSlot:
-		return sdk.NewCheck(params.GasCancelSlot, ""),
-			checker.cancelSlot(txInner)
+		return res, checker.cancelSlot(txInner)
 	}
 
 	return res, errors.ErrUnknownTxType(tx)
 }
 
 // DeliverTx executes the tx if valid
-func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
-	tx sdk.Tx, dispatch sdk.Deliver) (res sdk.DeliverResult, err error) {
-
-	_, err = h.CheckTx(ctx, store, tx, nil)
+func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash common.Hash) (res sdk.DeliverResult, err error) {
+	_, err = CheckTx(ctx, store, tx)
 	if err != nil {
 		return
 	}
@@ -197,48 +151,29 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 
 	params := loadParams(store)
 	deliverer := deliver{
-		store:  store,
-		sender: sender,
-		params: params,
-		transfer: coinSender{
-			store:    store,
-			dispatch: dispatch,
-			ctx:      ctx,
-		}.transferFn,
+		store:    store,
+		sender:   sender,
+		params:   params,
+		ethereum: ctx.Ethereum(),
 	}
 
 	// Run the transaction
 	switch _tx := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
-		res.GasUsed = params.GasDeclareCandidacy
 		return res, deliverer.declareCandidacy(_tx)
 	case TxEditCandidacy:
-		res.GasUsed = params.GasEditCandidacy
 		return res, deliverer.editCandidacy(_tx)
 	case TxWithdraw:
-		res.GasUsed = params.GasWithdraw
 		return res, deliverer.withdraw(_tx)
 	case TxProposeSlot:
-		res.GasUsed = params.GasProposeSlot
-		id, err := deliverer.proposeSlot(_tx)
+		id, err := deliverer.proposeSlot(_tx, hash)
 		res.Data = []byte(id)
 		return res, err
 	case TxAcceptSlot:
-		res.GasUsed = params.GasAcceptSlot
 		return res, deliverer.acceptSlot(_tx)
 	case TxWithdrawSlot:
-		//context with hold account permissions
-		params := loadParams(store)
-		res.GasUsed = params.GasWithdrawSlot
-		ctx2 := ctx.WithPermissions(params.HoldAccount)
-		deliverer.transfer = coinSender{
-			store:    store,
-			dispatch: dispatch,
-			ctx:      ctx2,
-		}.transferFn
 		return res, deliverer.withdrawSlot(_tx)
 	case TxCancelSlot:
-		res.GasUsed = params.GasCancelSlot
 		return res, deliverer.cancelSlot(_tx)
 	}
 
@@ -246,8 +181,8 @@ func (h Handler) DeliverTx(ctx sdk.Context, store state.SimpleDB,
 }
 
 // get the sender from the ctx and ensure it matches the tx pubkey
-func getTxSender(ctx sdk.Context) (sender sdk.Actor, err error) {
-	senders := ctx.GetPermissions("", auth.NameSigs)
+func getTxSender(ctx types.Context) (sender common.Address, err error) {
+	senders := ctx.GetSigners()
 	if len(senders) != 1 {
 		return sender, ErrMissingSignature()
 	}
@@ -256,53 +191,18 @@ func getTxSender(ctx sdk.Context) (sender sdk.Actor, err error) {
 
 //_______________________________________________________________________
 
-type coinChecker struct {
-	store    state.SimpleDB
-	dispatch sdk.Checker
-	ctx      sdk.Context
-}
-
-var _ coinSend = coinSender{} // enforce interface at compile time
-
-func (c coinChecker) transferFn(sender, receiver sdk.Actor, coins coin.Coins) error {
-	send := coin.NewSendOneTx(sender, receiver, coins)
-
-	// If the deduction fails (too high), abort the command
-	_, err := c.dispatch.CheckTx(c.ctx, c.store, send)
-	return err
-}
-
-
-type coinSender struct {
-	store    state.SimpleDB
-	dispatch sdk.Deliver
-	ctx      sdk.Context
-}
-
-var _ coinSend = coinSender{} // enforce interface at compile time
-
-func (c coinSender) transferFn(sender, receiver sdk.Actor, coins coin.Coins) error {
-	send := coin.NewSendOneTx(sender, receiver, coins)
-
-	// If the deduction fails (too high), abort the command
-	_, err := c.dispatch.DeliverTx(c.ctx, c.store, send)
-	return err
-}
-
-//_____________________________________________________________________
-
 type check struct {
-	store  state.SimpleDB
-	sender sdk.Actor
+	store    state.SimpleDB
+	sender   common.Address
 	params   Params
-	transfer transferFn
+	ethereum *eth.Ethereum
 }
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
 func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	// check to see if the pubkey or address has been registered before
-	candidate := GetCandidateByAddress(common.BytesToAddress(c.sender.Address))
+	candidate := GetCandidateByAddress(c.sender)
 	if candidate != nil && candidate.State == "Y" {
 		return fmt.Errorf("address has been declared")
 	}
@@ -316,7 +216,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 }
 
 func (c check) editCandidacy(tx TxEditCandidacy) error {
-	candidate := GetCandidateByAddress(common.BytesToAddress(c.sender.Address))
+	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
 		return fmt.Errorf("cannot edit non-exsits candidacy")
 	}
@@ -343,8 +243,7 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// check if have enough shares to unbond
-	delegatorAddress := common.BytesToAddress(c.sender.Address)
-	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
+	slotDelegate := GetSlotDelegate(c.sender, tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()
 	}
@@ -355,7 +254,7 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 	return nil
 }
 
-func (c check) proposeSlot(tx TxProposeSlot) ([]byte, error) {
+func (c check) proposeSlot(tx TxProposeSlot, hash common.Hash) ([]byte, error) {
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
 		return nil, fmt.Errorf("cannot propose slot for non-existant validator address %v", tx.ValidatorAddress)
@@ -370,12 +269,14 @@ func (c check) acceptSlot(tx TxAcceptSlot) error {
 		return ErrBadSlot()
 	}
 
-	// Move coins from the delegator account to the pubKey lock account
-	err := c.transfer(c.sender, c.params.HoldAccount, coin.Coins{{"cmt", tx.Amount}})
+	balance, err := commons.GetBalance(c.ethereum, c.sender, big.NewInt(tx.Amount))
 	if err != nil {
 		return err
 	}
 
+	if balance.Cmp(big.NewInt(tx.Amount)) < 0 {
+		return ErrInsufficientFunds()
+	}
 	return nil
 }
 
@@ -396,32 +297,28 @@ func (c check) cancelSlot(tx TxCancelSlot) error {
 
 type deliver struct {
 	store    state.SimpleDB
-	sender   sdk.Actor
+	sender   common.Address
 	params   Params
-	transfer transferFn
+	ethereum *eth.Ethereum
 }
-
-type transferFn func(sender, receiver sdk.Actor, coins coin.Coins) error
 
 var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 
 // These functions assume everything has been authenticated,
 // now we just perform action and save
 func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
-
 	// create and save the empty candidate
-	ownerAddress := common.BytesToAddress(d.sender.Address)
-	candidate := GetCandidateByAddress(ownerAddress)
+	candidate := GetCandidateByAddress(d.sender)
 	if candidate != nil && candidate.State == "Y" {
 		return ErrCandidateExistsAddr()
 	}
 
 	if candidate == nil {
-		candidate = NewCandidate(tx.PubKey, ownerAddress, 0, 0, "Y")
+		candidate = NewCandidate(tx.PubKey, d.sender, 0, 0, "Y")
 		SaveCandidate(candidate)
 	} else {
 		candidate.State = "Y"
-		candidate.OwnerAddress = ownerAddress
+		candidate.OwnerAddress = d.sender
 		candidate.UpdatedAt = utils.GetNow()
 		updateCandidate(candidate)
 	}
@@ -432,8 +329,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 func (d deliver) editCandidacy(tx TxEditCandidacy) error {
 
 	// create and save the empty candidate
-	ownerAddress := common.BytesToAddress(d.sender.Address)
-	candidate := GetCandidateByAddress(ownerAddress)
+	candidate := GetCandidateByAddress(d.sender)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
@@ -448,7 +344,7 @@ func (d deliver) editCandidacy(tx TxEditCandidacy) error {
 func (d deliver) withdraw(tx TxWithdraw) error {
 
 	// create and save the empty candidate
-	validatorAddress := common.BytesToAddress(d.sender.Address)
+	validatorAddress := d.sender
 	candidate := GetCandidateByAddress(validatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
@@ -460,9 +356,11 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		slotId := slot.Id
 		delegates := GetSlotDelegatesBySlot(slotId)
 		for _, delegate := range delegates {
-			delegator := sdk.Actor{"", stakingModuleName, delegate.DelegatorAddress.Bytes()}
-			d.transfer(d.params.HoldAccount, delegator,
-				coin.Coins{{d.params.AllowedBondDenom, delegate.Amount}})
+			err := commons.Transfer(d.params.HoldAccount, delegate.DelegatorAddress, big.NewInt(delegate.Amount))
+			if err != nil {
+				return err
+			}
+
 			delegate.Amount = 0
 			saveSlotDelegate(*delegate)
 		}
@@ -493,16 +391,15 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := d.transfer(d.sender, d.params.HoldAccount, coin.Coins{{"cmt", tx.Amount}})
+	err := commons.Transfer(d.sender, d.params.HoldAccount, big.NewInt(tx.Amount))
 	if err != nil {
 		return err
 	}
 
 	// Get or create the delegate slot
-	delegatorAddress := common.BytesToAddress(d.sender.Address)
-	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
+	slotDelegate := GetSlotDelegate(d.sender, tx.SlotId)
 	if slotDelegate == nil {
-		slotDelegate = NewSlotDelegate(delegatorAddress, tx.SlotId, 0)
+		slotDelegate = NewSlotDelegate(d.sender, tx.SlotId, 0)
 	}
 
 	// Add shares to slot and candidate
@@ -510,7 +407,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	candidate.Shares += uint64(tx.Amount)
 	slot.AvailableAmount -= tx.Amount
 
-	delegateHistory := DelegateHistory{delegatorAddress, tx.SlotId, tx.Amount, "accept"}
+	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "accept"}
 
 	updateCandidate(candidate)
 	updateSlot(slot)
@@ -529,8 +426,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// get the slot delegate
-	delegatorAddress := common.BytesToAddress(d.sender.Address)
-	slotDelegate := GetSlotDelegate(delegatorAddress, tx.SlotId)
+	slotDelegate := GetSlotDelegate(d.sender, tx.SlotId)
 	if slotDelegate == nil {
 		return ErrBadSlotDelegate()
 	}
@@ -565,20 +461,15 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	updateSlot(slot)
 
 	// transfer coins back to account
-	returnCoins := tx.Amount
-	return d.transfer(d.params.HoldAccount, d.sender,
-		coin.Coins{{d.params.AllowedBondDenom, returnCoins}})
+	return commons.Transfer(d.params.HoldAccount, d.sender, big.NewInt(tx.Amount))
 }
 
-func (d deliver) proposeSlot(tx TxProposeSlot) ([]byte, error) {
-	//hash := merkle.SimpleHashFromBinary(tx)
-	//hexHash := hex.EncodeToString(hash)
-	uuid := utils.GetUUID()
-	hexStr := hex.EncodeToString(uuid)
-	slot := NewSlot(hexStr, tx.ValidatorAddress, tx.Amount, tx.Amount, tx.ProposedRoi, "Y")
+func (d deliver) proposeSlot(tx TxProposeSlot, hash common.Hash) ([]byte, error) {
+	h := hash[:]
+	slot := NewSlot(hex.EncodeToString(h), tx.ValidatorAddress, tx.Amount, tx.Amount, tx.ProposedRoi, "Y")
 	saveSlot(slot)
 
-	return uuid, nil
+	return h, nil
 }
 
 func (d deliver) cancelSlot(tx TxCancelSlot) error {

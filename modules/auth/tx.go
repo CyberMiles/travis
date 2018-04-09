@@ -14,16 +14,17 @@ a sdk.Tx.
 package auth
 
 import (
-	"github.com/CyberMiles/travis/modules/keys"
 	"github.com/tendermint/go-wire/data"
 
-	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
+	ttypes "github.com/CyberMiles/travis/types"
+	commons "github.com/CyberMiles/travis/commons"
 )
 
 // nolint
@@ -35,7 +36,7 @@ const (
 // nolint
 const (
 	// for signatures
-	TypeSingleTx = NameSigs + "/one"
+	TypeSingleTx = "sigs/one"
 )
 
 // Signed holds one signature of the data
@@ -54,11 +55,11 @@ func init() {
 
 // OneSig lets us wrap arbitrary data with a go-crypto signature
 type OneSig struct {
-	Tx     sdk.Tx `json:"tx"`
-	SignedTx []byte `json:"signature"`
+	Tx     sdk.Tx 		`json:"tx"`
+	SignedTx []byte 	`json:"signature"`
 }
 
-var _ keys.Signable = &OneSig{}
+var _ ttypes.Signable = &OneSig{}
 var _ sdk.TxLayer = &OneSig{}
 
 // NewSig wraps the tx with a Signable that accepts exactly one signature
@@ -120,7 +121,7 @@ func (s *OneSig) Signers() (common.Address, error) {
 }
 
 // Sign - sign the transaction with private key
-func Sign(tx keys.Signable, address string, passphrase string) error {
+func Sign(tx ttypes.Signable, address string, passphrase string) error {
 	ethTx := types.NewTransaction(
 		0,
 		common.Address([20]byte{}),
@@ -130,9 +131,9 @@ func Sign(tx keys.Signable, address string, passphrase string) error {
 		tx.SignBytes(),
 	)
 
-	am, _, _ := makeAccountManager()
+	am, _, _ := commons.MakeAccountManager()
 	addr := common.HexToAddress(address)
-	_, err := UnlockAccount(am, addr, passphrase, nil)
+	_, err := commons.UnlockAccount(am, addr, passphrase, nil)
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}

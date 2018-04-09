@@ -4,50 +4,32 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/state"
 
 	abci "github.com/tendermint/abci/types"
-	crypto "github.com/tendermint/go-crypto"
-	wire "github.com/tendermint/go-wire"
+	"github.com/tendermint/go-crypto"
+	"github.com/tendermint/go-wire"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 // Params defines the high level settings for staking
 type Params struct {
-	HoldAccount sdk.Actor `json:"hold_account"` // PubKey where all bonded coins are held
-
-	MaxVals          uint16 `json:"max_vals"`           // maximum number of validators
-	AllowedBondDenom string `json:"allowed_bond_denom"` // bondable coin denomination
+	HoldAccount 		common.Address `json:"hold_account"` 	// PubKey where all bonded coins are held
+	MaxVals          	uint16 `json:"max_vals"`           		// maximum number of validators
+	AllowedBondDenom 	string `json:"allowed_bond_denom"` 		// bondable coin denomination
 
 	// gas costs for txs
-	GasDeclareCandidacy int64  `json:"gas_declare_candidacy"`
-	GasEditCandidacy 	int64  `json:"gas_edit_candidacy"`
-	GasWithdraw         int64  `json:"gas_withdraw"`
-	GasProposeSlot      int64  `json:"gas_propose_slot"`
-	GasAcceptSlot       int64  `json:"gas_accept_slot"`
-	GasWithdrawSlot     int64  `json:"gas_withdraw_slot"`
-	GasCancelSlot       int64  `json:"gas_cancel_slot"`
 	Validators          string `json:"validators"`
 }
 
-var DefaultHoldAccount = NewActor([]byte("00000000000000000000000000000000"))
-
-func NewActor(addr []byte) sdk.Actor {
-	return sdk.NewActor(stakingModuleName, addr)
-}
+var DefaultHoldAccount = common.BytesToAddress([]byte("0000000000000000000000000000000000000000"))
 
 func defaultParams() Params {
 	return Params{
 		HoldAccount:         DefaultHoldAccount,
 		MaxVals:             100,
 		AllowedBondDenom:    "cmt",
-		GasDeclareCandidacy: 0,
-		GasEditCandidacy: 	 0,
-		GasProposeSlot:      0,
-		GasWithdrawSlot:     0,
-		GasCancelSlot:       0,
 		Validators:          "",
 	}
 }
