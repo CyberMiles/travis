@@ -3,6 +3,15 @@
 
 The first production version of the CyberMiles blockchain.
 
+You MUST have GO language version 1.9+ installed in order to build and run a Travis node. The easiest way to get GO 1.9 is through the GVM.
+
+```shell
+bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+source $HOME/.gvm/scripts/gvm
+gvm install go1.9.2 -B
+gvm use go1.9.2 --default
+```
+
 ## Installation
 
 ```shell
