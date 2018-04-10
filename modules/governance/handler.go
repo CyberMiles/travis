@@ -7,10 +7,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/CyberMiles/travis/commons"
 )
 
 // nolint
@@ -126,8 +126,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		if c * 3 >= len(validators) * 2 {
 			proposal := GetProposalById(txInner.ProposalId)
-			utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
-				From: proposal.From, To: proposal.To, Amount: proposal.Amount})
+			commons.Transfer(proposal.From, proposal.To, proposal.Amount)
 		}
 	}
 
