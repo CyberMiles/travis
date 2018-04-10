@@ -213,7 +213,7 @@ func cmdWithdrawSlot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("please enter slot ID using --slot-id")
 	}
 
-	tx := stake.NewTxAcceptSlot(amount, slotId)
+	tx := stake.NewTxWithdrawSlot(amount, slotId)
 	return txcmd.DoTx(tx)
 }
 

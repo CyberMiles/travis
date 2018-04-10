@@ -367,11 +367,12 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		slot.AvailableAmount = 0
 		updateSlot(slot)
 	}
-	candidate.Shares = 0
-	candidate.VotingPower = 0
-	candidate.UpdatedAt = utils.GetNow()
-	candidate.State = "N"
-	updateCandidate(candidate)
+	//candidate.Shares = 0
+	//candidate.VotingPower = 0
+	//candidate.UpdatedAt = utils.GetNow()
+	//candidate.State = "N"
+	//updateCandidate(candidate)
+	removeCandidate(candidate)
 
 	return nil
 }
@@ -397,17 +398,19 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	}
 
 	// Get or create the delegate slot
+	now := utils.GetNow()
 	slotDelegate := GetSlotDelegate(d.sender, tx.SlotId)
 	if slotDelegate == nil {
-		slotDelegate = NewSlotDelegate(d.sender, tx.SlotId, 0)
+		slotDelegate = &SlotDelegate{DelegatorAddress: d.sender, SlotId: tx.SlotId, Amount: 0, CreatedAt: now, UpdatedAt: now}
 	}
 
 	// Add shares to slot and candidate
 	slotDelegate.Amount += tx.Amount
 	candidate.Shares += uint64(tx.Amount)
+	candidate.VotingPower += uint64(tx.Amount)
 	slot.AvailableAmount -= tx.Amount
 
-	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "accept"}
+	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "accept", now}
 
 	updateCandidate(candidate)
 	updateSlot(slot)
@@ -452,25 +455,43 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 
 	// deduct shares from the candidate
 	candidate.Shares -= uint64(tx.Amount)
+	candidate.VotingPower -= uint64(tx.Amount)
 	if candidate.Shares == 0 {
 		candidate.State = "N"
 	}
+
+	now := utils.GetNow()
+	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
-	slot.AvailableAmount -= tx.Amount
+	slot.AvailableAmount += tx.Amount
+	slot.UpdatedAt = now
 	updateSlot(slot)
+
+	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "withdraw", now}
+	saveDelegateHistory(delegateHistory)
 
 	// transfer coins back to account
 	return commons.Transfer(d.params.HoldAccount, d.sender, big.NewInt(tx.Amount))
 }
 
 func (d deliver) proposeSlot(tx TxProposeSlot, hash []byte) error {
-	slot := NewSlot(hex.EncodeToString(hash), tx.ValidatorAddress, tx.Amount, tx.Amount, tx.ProposedRoi, "Y")
+	now := utils.GetNow()
+	slot := &Slot{
+		Id:               hex.EncodeToString(hash),
+		ValidatorAddress: tx.ValidatorAddress,
+		TotalAmount:      tx.Amount,
+		AvailableAmount:  tx.Amount,
+		ProposedRoi:      tx.ProposedRoi,
+		State:            "Y",
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}
 	saveSlot(slot)
 	return nil
 }
 
-func (d deliver) cancelSlot(tx TxCancelSlot) error {
+func (d deliver) 	cancelSlot(tx TxCancelSlot) error {
 	slot := GetSlot(tx.SlotId)
 	if slot == nil {
 		return ErrBadSlot()
