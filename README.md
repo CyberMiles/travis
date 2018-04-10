@@ -8,22 +8,25 @@ The first production version of the CyberMiles blockchain.
 ```shell
 $ go get github.com/CyberMiles/travis
 $ cd $GOPATH/src/github.com/CyberMiles/travis
+$ git checkout master
 $ make all
 ```
 
-## Initialize
+If the system cannot find `glide` at the last step, make sure that you have `$GOPATH/bin` under the `$PATH` variable.
+
+## Initialize a Travis node
 
 ```
 $ travis node init --home ~/.travis
 ```
 
-## Start Travis
+## Start a Travis node
 
 ```
 $ travis node start --home ~/.travis
 ```
 
-## Send transactions
+## Start a Travis client and send transactions
 
 ```
 $ travis attach http://localhost:8545
