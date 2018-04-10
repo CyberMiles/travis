@@ -257,28 +257,12 @@ type Slot struct {
 	UpdatedAt          	string
 }
 
-func NewSlot(id string, validatorAddress common.Address, totalAmount int64, availableAmount int64, proposedRoi int64, state string) *Slot {
-	now := utils.GetNow()
-	return &Slot{
-		Id: 				id,
-		ValidatorAddress: 	validatorAddress,
-		TotalAmount: 		totalAmount,
-		AvailableAmount: 	availableAmount,
-		ProposedRoi: 		proposedRoi,
-		State:       		state,
-		CreatedAt: 			now,
-		UpdatedAt: 			now,
-	}
-}
-
 type SlotDelegate struct {
 	DelegatorAddress 	common.Address
 	SlotId 				string
 	Amount 				int64
-}
-
-func NewSlotDelegate(delegatorAddress common.Address, slotId string, amount int64) *SlotDelegate {
-	return &SlotDelegate{DelegatorAddress: delegatorAddress, SlotId: slotId, Amount: amount}
+	CreatedAt        	string
+	UpdatedAt          	string
 }
 
 type DelegateHistory struct {
@@ -286,5 +270,6 @@ type DelegateHistory struct {
 	SlotId 				string
 	Amount 				int64
 	OpCode 				string
+	CreatedAt        	string
 }
 
