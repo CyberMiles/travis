@@ -201,9 +201,11 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	// ws.stakedTxIndex used for record coped index of every staker
 	for i := ws.stakedTxIndex; i < len(utils.StateChangeQueue); i++ {
 		scObj := utils.StateChangeQueue[i]
-		ws.state.SubBalance(scObj.From, scObj.Amount)
-		if len(scObj.To.Bytes()) != 0 {
-			ws.state.AddBalance(scObj.To, scObj.Amount)
+		if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount) >= 0 {
+			ws.state.SubBalance(scObj.From, scObj.Amount)
+			if len(scObj.To.Bytes()) != 0 {
+				ws.state.AddBalance(scObj.To, scObj.Amount)
+			}
 		}
 	}
 	ws.stakedTxIndex = len(utils.StateChangeQueue)
