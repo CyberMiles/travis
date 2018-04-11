@@ -457,7 +457,8 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	candidate.Shares -= uint64(tx.Amount)
 	candidate.VotingPower -= uint64(tx.Amount)
 	if candidate.Shares == 0 {
-		candidate.State = "N"
+		//candidate.State = "N"
+		removeCandidate(candidate)
 	}
 
 	now := utils.GetNow()
