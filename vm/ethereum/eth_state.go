@@ -186,7 +186,7 @@ type workState struct {
 // nolint: unparam
 func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
 
-	ethash.AccumulateRewards(ws.state, ws.header, []*ethTypes.Header{})
+	// ethash.AccumulateRewards(ws.state, ws.header, []*ethTypes.Header{})
 	ws.header.GasUsed = ws.totalUsedGas
 }
 

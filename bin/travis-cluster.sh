@@ -121,5 +121,9 @@ do
 		# ....
 	fi
 
-	travis node start --home . > travis.log 2>&1 &
+    if [ $INST_COUNT -eq 1 ]; then
+	    travis node start --home .
+	else
+	    travis node start --home . > travis.log 2>&1 &
+    fi
 done
