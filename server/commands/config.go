@@ -135,7 +135,7 @@ verbosity = 1
 
 
 [consensus]
-timeout_commit = 1000
+timeout_commit = 10000
 max_block_size_txs = 50000
 `
 

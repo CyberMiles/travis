@@ -128,6 +128,7 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 		gp:           new(core.GasPool).AddGas(ethHeader.GasLimit),
 	}
 	utils.BlockGasFee = big.NewInt(0)
+	utils.StateChangeQueue = make([]utils.StateChangeObject, 0)
 	return nil
 }
 
@@ -245,6 +246,17 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 // the ethereum blockchain. The application root hash is the hash of the
 // ethereum block.
 func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (common.Hash, error) {
+	// Iterate to sub balance of staker from state
+	// ws.stakedTxIndex used for record coped index of every staker
+	for i := ws.stakedTxIndex; i < len(utils.StateChangeQueue); i++ {
+		scObj := utils.StateChangeQueue[i]
+		if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount) >= 0 {
+			ws.state.SubBalance(scObj.From, scObj.Amount)
+			if len(scObj.To.Bytes()) != 0 {
+				ws.state.AddBalance(scObj.To, scObj.Amount)
+			}
+		}
+	}
 
 	// Commit ethereum state and update the header.
 	hashArray, err := ws.state.CommitTo(db.NewBatch(), false) // XXX: ugh hardforks
