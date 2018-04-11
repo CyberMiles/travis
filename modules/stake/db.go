@@ -327,6 +327,27 @@ func GetSlotsByValidator(validatorAddress common.Address) (slots []*Slot) {
 	return
 }
 
+func removeSlot(slot *Slot) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("delete from slots where id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(slot.Id)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func GetSlotDelegate(delegatorAddress common.Address, slotId string) *SlotDelegate {
 	db := getDb()
 	defer db.Close()
@@ -435,7 +456,28 @@ func GetSlotDelegatesBySlot(slotId string) (slotDelegates []*SlotDelegate) {
 	return
 }
 
-func saveSlotDelegate(slotDelegate SlotDelegate) {
+func updateSlotDelegate(slotDelegate *SlotDelegate) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("update slot_delegates set amount = ?, updated_at = ? where delegator_address = ? and slot_id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(slotDelegate.Amount, slotDelegate.UpdatedAt, slotDelegate.DelegatorAddress.String(), slotDelegate.SlotId)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func saveSlotDelegate(slotDelegate *SlotDelegate) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -456,7 +498,7 @@ func saveSlotDelegate(slotDelegate SlotDelegate) {
 	}
 }
 
-func removeSlotDelegate(slotDelegate SlotDelegate) {
+func removeSlotDelegate(slotDelegate *SlotDelegate) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()

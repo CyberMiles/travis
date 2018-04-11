@@ -23,7 +23,7 @@ type Params struct {
 	Validators          string `json:"validators"`
 }
 
-var DefaultHoldAccount = common.BytesToAddress([]byte("0000000000000000000000000000000000000000"))
+var DefaultHoldAccount = common.HexToAddress("0000000000000000000000000000000000000000")
 
 func defaultParams() Params {
 	return Params{

@@ -76,7 +76,7 @@ func setValidator(value string) error {
 		return fmt.Errorf("error reading validators")
 	}
 
-	if val.Address == common.StringToAddress("0000000000000000000000000000000000000000") {
+	if val.Address == common.HexToAddress("0000000000000000000000000000000000000000") {
 		return ErrBadValidatorAddr()
 	}
 
@@ -228,9 +228,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 	// check to see if the address has been registered before
 	candidate := GetCandidateByAddress(tx.Address)
 	if candidate == nil {
-		return fmt.Errorf("cannot withdraw pubkey which is not declared"+
-			" PubKey %v already registered with %v candidate address",
-			candidate.PubKey, candidate.OwnerAddress.String())
+		return fmt.Errorf("cannot withdraw non-exsits candidacy")
 	}
 
 	return nil
@@ -361,8 +359,9 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 				return err
 			}
 
-			delegate.Amount = 0
-			saveSlotDelegate(*delegate)
+			//delegate.Amount = 0
+			//saveSlotDelegate(delegate)
+			removeSlotDelegate(delegate)
 		}
 		slot.AvailableAmount = 0
 		updateSlot(slot)
@@ -401,20 +400,20 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	now := utils.GetNow()
 	slotDelegate := GetSlotDelegate(d.sender, tx.SlotId)
 	if slotDelegate == nil {
-		slotDelegate = &SlotDelegate{DelegatorAddress: d.sender, SlotId: tx.SlotId, Amount: 0, CreatedAt: now, UpdatedAt: now}
+		slotDelegate = &SlotDelegate{DelegatorAddress: d.sender, SlotId: tx.SlotId, Amount: tx.Amount, CreatedAt: now, UpdatedAt: now}
+		saveSlotDelegate(slotDelegate)
+	} else {
+		slotDelegate.Amount += tx.Amount
+		updateSlotDelegate(slotDelegate)
 	}
 
 	// Add shares to slot and candidate
-	slotDelegate.Amount += tx.Amount
 	candidate.Shares += uint64(tx.Amount)
 	candidate.VotingPower += uint64(tx.Amount)
 	slot.AvailableAmount -= tx.Amount
-
 	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "accept", now}
-
 	updateCandidate(candidate)
 	updateSlot(slot)
-	saveSlotDelegate(*slotDelegate)
 	saveDelegateHistory(delegateHistory)
 
 	return nil
@@ -448,9 +447,9 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 
 	if slotDelegate.Amount == 0 {
 		// remove the slot delegate
-		removeSlotDelegate(*slotDelegate)
+		removeSlotDelegate(slotDelegate)
 	} else {
-		saveSlotDelegate(*slotDelegate)
+		updateSlotDelegate(slotDelegate)
 	}
 
 	// deduct shares from the candidate
@@ -492,20 +491,22 @@ func (d deliver) proposeSlot(tx TxProposeSlot, hash []byte) error {
 	return nil
 }
 
-func (d deliver) 	cancelSlot(tx TxCancelSlot) error {
+func (d deliver) cancelSlot(tx TxCancelSlot) error {
 	slot := GetSlot(tx.SlotId)
 	if slot == nil {
 		return ErrBadSlot()
 	}
 
-	if slot.State == "N" {
-		return ErrCancelledSlot()
-	}
+	removeSlot(slot)
 
-	slot.AvailableAmount = 0
-	slot.State = "N"
-	slot.UpdatedAt = utils.GetNow()
-	updateSlot(slot)
+	//if slot.State == "N" {
+	//	return ErrCancelledSlot()
+	//}
+	//
+	//slot.AvailableAmount = 0
+	//slot.State = "N"
+	//slot.UpdatedAt = utils.GetNow()
+	//updateSlot(slot)
 
 	return nil
 }
