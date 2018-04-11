@@ -1,0 +1,17 @@
+{
+  "name": "integration",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "mocha -t 300000 *.test.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "async": "^2.6.0",
+    "chai": "^4.1.2",
+    "chai-subset": "^1.6.0",
+    "mocha": "^5.0.4",
+    "winston": "^2.4.1"
+  }
+}
