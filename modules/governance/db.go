@@ -9,6 +9,7 @@ import (
 	"path"
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+	"strings"
 )
 
 func getDb() *sql.DB {
@@ -37,7 +38,7 @@ func SaveProposal(pp *Proposal) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(pp.Id, pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount.String(), pp.Reason, pp.CreatedAt)
+	_, err = stmt.Exec(strings.ToUpper(pp.Id), pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount.String(), pp.Reason, pp.CreatedAt)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -56,7 +57,7 @@ func GetProposalById(pid string) *Proposal {
 
 	var proposer, fromAddr, toAddr, amount, reason, createdAt string
 	var blockHeight uint64
-	err = stmt.QueryRow(pid).Scan(&proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &createdAt)
+	err = stmt.QueryRow(strings.ToUpper(pid)).Scan(&proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &createdAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -141,7 +142,7 @@ func SaveVote(vote *Vote) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(vote.ProposalId, vote.Voter.String(), vote.BlockHeight, vote.Answer, vote.CreatedAt)
+	_, err = stmt.Exec(strings.ToUpper(vote.ProposalId), vote.Voter.String(), vote.BlockHeight, vote.Answer, vote.CreatedAt)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -160,7 +161,7 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 
 	var answer, createdAt string
 	var blockHeight uint64
-	err = stmt.QueryRow(pid, voter).Scan(&answer, &blockHeight, &createdAt)
+	err = stmt.QueryRow(strings.ToUpper(pid), voter).Scan(&answer, &blockHeight, &createdAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -187,7 +188,7 @@ func GetVotesByPid(pid string) (votes []*Vote) {
 	}
 	defer stmt.Close()
 
-	rows, err := stmt.Query(pid)
+	rows, err := stmt.Query(strings.ToUpper(pid))
 
 	if err != nil {
 		panic(err)
