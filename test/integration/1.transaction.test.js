@@ -139,7 +139,7 @@ describe("Transaction Test", function() {
       }
 
       Utils.waitMultiple(arrHash, (err, res) => {
-        expect(res.length).to.gt(1)
+        expect(res.length).to.gte(1)
         expect(res[0]).to.not.be.null
         expect(res[0].blockNumber).to.be.gt(0)
         if (res.length === 2) {

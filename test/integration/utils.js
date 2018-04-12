@@ -12,10 +12,15 @@ const transfer = (f, t, v, gasPrice, nonce) => {
     gasPrice: web3.toWei(gasPrice || 0, "gwei")
   }
   if (nonce) payload.nonce = nonce
-  let hash = web3.cmt.sendTransaction(payload)
-  logger.debug(`transfer ${v} gwei from ${f} to ${t}, hash: ${hash}`)
-  // check hash
-  expect(hash).to.not.empty
+  let hash = null
+  try {
+    hash = web3.cmt.sendTransaction(payload)
+    logger.debug(`transfer ${v} gwei from ${f} to ${t}, hash: ${hash}`)
+    // check hash
+    expect(hash).to.not.empty
+  } catch (err) {
+    logger.error(err)
+  }
   return hash
 }
 
@@ -68,10 +73,15 @@ const tokenTransfer = function(f, t, v, gasPrice, nonce) {
     gasPrice: web3.toWei(gasPrice || 0, "gwei")
   }
   if (nonce) option.nonce = nonce
-  let hash = tokenInstance.transfer.sendTransaction(t, v, option)
-  logger.debug("token transfer hash: ", hash)
-  // check hash
-  expect(hash).to.not.empty
+  let hash = null
+  try {
+    hash = tokenInstance.transfer.sendTransaction(t, v, option)
+    logger.debug("token transfer hash: ", hash)
+    // check hash
+    expect(hash).to.not.empty
+  } catch (err) {
+    logger.error(err)
+  }
   return hash
 }
 
@@ -118,9 +128,13 @@ const waitInterval = function(txhash, cb) {
 }
 
 const waitMultiple = function(arrTxhash, cb) {
-  let waitAll = arrTxhash.map(txhash => {
-    return waitInterval.bind(null, txhash)
-  })
+  let waitAll = arrTxhash
+    .filter(e => {
+      return e
+    })
+    .map(txhash => {
+      return waitInterval.bind(null, txhash)
+    })
 
   async.parallel(waitAll, (err, res) => {
     if (err) {
@@ -128,6 +142,17 @@ const waitMultiple = function(arrTxhash, cb) {
     }
     cb(null, res)
   })
+}
+
+const waitBlock = done => {
+  let startingBlock = web3.cmt.blockNumber
+  let interval = setInterval(() => {
+    let blocksGone = web3.cmt.blockNumber - startingBlock
+    if (blocksGone == 1) {
+      clearInterval(interval)
+      done()
+    }
+  }, Settings.IntervalMs || 100)
 }
 
 module.exports = {
@@ -138,5 +163,6 @@ module.exports = {
   tokenKill,
   getTokenBalance,
   waitInterval,
-  waitMultiple
+  waitMultiple,
+  waitBlock
 }
