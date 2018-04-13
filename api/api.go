@@ -127,6 +127,23 @@ func (s *CmtRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.Res
 	return s.broadcastTx(tx)
 }
 
+func (s *CmtRPCService) SignDeclareCandidacy(args DeclareCandidacyArgs) (hexutil.Bytes, error) {
+	tx, err := s.prepareDeclareCandidacyTx(args)
+	if err != nil {
+		return nil, err
+	}
+	return data.ToWire(tx)
+}
+
+func (s *CmtRPCService) DeclareCandidacyRaw(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
+	var tx sdk.Tx
+	err := data.FromWire(encodedTx, &tx)
+	if err != nil {
+		return nil, err
+	}
+	return s.broadcastTx(tx)
+}
+
 func (s *CmtRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (sdk.Tx, error) {
 	pubKey, err := stake.GetPubKey(args.PubKey)
 	if err != nil {
@@ -340,10 +357,9 @@ func (s *CmtRPCService) sign(data ttypes.Signable, address string) error {
 	if err != nil {
 		return err
 	}
-	signed, err := wallet.SignTx(account, ethTx, big.NewInt(15))
-	//TODO:
-	//ethChainId := int64(s.backend.ethConfig.NetworkId)
-	//signed, err := wallet.SignTx(account, ethTx, big.NewInt(ethChainId))
+
+	ethChainId := int64(s.backend.ethConfig.NetworkId)
+	signed, err := wallet.SignTx(account, ethTx, big.NewInt(ethChainId))
 	if err != nil {
 		return err
 	}

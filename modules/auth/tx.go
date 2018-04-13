@@ -14,17 +14,18 @@ a sdk.Tx.
 package auth
 
 import (
-	"github.com/tendermint/go-wire/data"
+	"fmt"
+	"math/big"
 
 	"github.com/cosmos/cosmos-sdk"
-	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
-	"fmt"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	ttypes "github.com/CyberMiles/travis/types"
+	"github.com/tendermint/go-wire/data"
+
 	commons "github.com/CyberMiles/travis/commons"
+	ttypes "github.com/CyberMiles/travis/types"
 )
 
 // nolint
@@ -55,8 +56,8 @@ func init() {
 
 // OneSig lets us wrap arbitrary data with a go-crypto signature
 type OneSig struct {
-	Tx     sdk.Tx 		`json:"tx"`
-	SignedTx []byte 	`json:"signature"`
+	Tx       sdk.Tx `json:"tx"`
+	SignedTx []byte `json:"signature"`
 }
 
 var _ ttypes.Signable = &OneSig{}
@@ -108,8 +109,7 @@ func (s *OneSig) Signers() (common.Address, error) {
 	ntx := new(types.Transaction)
 	rlp.DecodeBytes(s.SignedTx, ntx)
 
-	//var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
-	var signer types.Signer = types.NewEIP155Signer(big.NewInt(15))
+	var signer types.Signer = types.NewEIP155Signer(ntx.ChainId())
 
 	// Make sure the transaction is signed properly
 	from, err := types.Sender(signer, ntx)
