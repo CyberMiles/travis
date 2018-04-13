@@ -7,7 +7,7 @@ const logger = require("./logger")
 const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
 
-let existingValidators = []
+let existingValidator = {}
 let newPubKey =
   "1135A20BACD24ACAF7779FC24839350BC0D79EDBF130F0F4EE247703CEC04759"
 let slotId = "1ACAF2550C2B4ED0A13896DE3C4AC136"
@@ -39,7 +39,7 @@ const expectTxSuccess = r => {
     .and.to.eq(0)
 }
 
-describe.skip("Stake Test", function() {
+describe("Stake Test", function() {
   before(function() {
     accounts.forEach(acc => {
       // unlock account
@@ -47,45 +47,52 @@ describe.skip("Stake Test", function() {
       // get sequence
       sequences.push(web3.cmt.getSequence(acc) + 1)
     })
-    // get existing validators
+    // get existing validator
     let result = web3.cmt.stake.queryValidators()
-    result.data.forEach(v => {
-      existingValidators.push(v)
-    })
-    logger.debug("current validators: ", JSON.stringify(existingValidators))
-    expect(existingValidators.length).to.gt(0)
+    if (result.data.length > 0) {
+      existingValidator = result.data[0]
+    }
+    logger.debug("current validator: ", JSON.stringify(existingValidator))
+    // expect(existingValidators.length).to.gt(0)
+  })
+
+  afterEach(function(done) {
+    Utils.waitBlock(done)
   })
 
   describe("Declare Candidacy", function() {
-    it.skip("for an existing initial validator account — fail", function() {
+    it("for an existing initial validator account — fail", function() {
+      if (Object.keys(existingValidator).length == 0) return
       let payload = {
-        from: web3.cmt.accounts[0],
+        from: existingValidator.owner_address,
         pubKey: newPubKey
       }
       let r = web3.cmt.stake.declareCandidacy(payload)
       expectTxFail(r)
     })
+
     it("associate to an existing validator pubkey — fail", function() {
+      if (Object.keys(existingValidator).length == 0) return
       let payload = {
         from: accounts[0],
-        pubKey: existingValidators[0].pub_key.data
+        pubKey: existingValidator.pub_key.data
       }
       let r = web3.cmt.stake.declareCandidacy(payload)
       expectTxFail(r)
     })
+
     it("declare for one new validator pubkey and the new account A", function() {
       let payload = {
         from: accounts[0],
         pubKey: newPubKey,
         sequence: sequences[0]++
       }
-      console.log(sequences)
       let r = web3.cmt.stake.declareCandidacy(payload)
       expectTxSuccess(r)
     })
   })
 
-  describe.skip("Propose Slot", function() {
+  describe("Propose Slot", function() {
     it("Candidate node offers a slot", function() {
       let payload = {
         from: accounts[0],
