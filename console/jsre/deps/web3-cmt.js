@@ -13556,16 +13556,20 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
             return height
         }
 
-        module.exports = {
-            formatters: formatters,
-            inputDefaultHeightFormatter: inputDefaultHeightFormatter
-        }
+        formatters.inputDefaultHeightFormatter = inputDefaultHeightFormatter
+
+        module.exports = formatters
 
     },{"web3/lib/utils/utils":56,"web3/lib/web3/formatters":66}],88:[function(require,module,exports){
         var Eth = require("web3/lib/web3/methods/eth")
         var Method = require("web3/lib/web3/method")
         var utils = require("web3/lib/utils/utils")
         var formatters = require("../formatters")
+
+        /**
+         * @namespace cmt
+         * @memberOf web3
+         */
 
 // inherit and extend Eth
         var Cmt = function(web3) {
@@ -13618,6 +13622,10 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
         var Method = require("web3/lib/web3/method")
         var formatters = require("../formatters")
 
+        /**
+         * @namespace web3.stake
+         */
+
         var Stake = function(web3) {
             this._requestManager = web3._requestManager
 
@@ -13633,7 +13641,28 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
             })
         }
 
+        /**
+         * @typedef {Object} CmtTxReturn
+         * @memberof web3.stake
+         * @property {Object} result The result object
+         */
+
         var methods = function() {
+            /**
+             * Allows a potential validator to declare its candidacy
+             * @method
+             * @memberof web3.stake
+             * @instance
+             * @param declareObject {Object} The declare candidacy object to send.
+             * @param declareObject.from {String} The address for the sending account. Uses the web3.cmt.defaultAccount property, if not specified.
+             * @param declareObject.pubKey {String} The validator node public key.
+             * @return {web3.stake.CmtTxReturn} A return object
+             * @example
+             * var myAccount = "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc"
+             * var pubKey = "3CD6F72704EC4ABEA701D17F3C44893937C3FEDCC934B9EF26B26D58F611D578"
+             * var r = web3.stake.declareCandidacy({from: myAccount, pubKey: pubKey})
+             * console.log(r)
+             */
             var declareCandidacy = new Method({
                 name: "declareCandidacy",
                 call: "cmt_declareCandidacy",
@@ -13738,6 +13767,10 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
         var BigNumber = require("bignumber.js")
         var utils = require("web3/lib/utils/utils")
 
+        /**
+         * @namespace web3
+         */
+
 // override web3.fromWei/toWei, add cmt units
         var unitMap = {
             noether: "0",
@@ -13775,7 +13808,7 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
         }
 
         var getValueOfUnit = function(unit) {
-            unit = unit ? unit.toLowerCase() : "ether"
+            unit = unit ? unit.toLowerCase() : "cmt"
             var unitValue = unitMap[unit]
             if (unitValue === undefined) {
                 throw new Error(
@@ -13786,12 +13819,54 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
             return new BigNumber(unitValue, 10)
         }
 
+        /**
+         * Converts a number of wei into ethereum or cmt units.
+         *
+         * Possible units besides common ethereum units are:
+         * <ul>
+         *  <li>cmt</li>
+         *  <li>kcmt</li>
+         *  <li>mcmt</li>
+         *  <li>gcmt</li>
+         *  <li>tcmt</li>
+         * </ul>
+         * @method
+         * @memberof web3
+         * @instance
+         * @param {Number|String|BigNumber} number A number or BigNumber instance.
+         * @param {String} unit One of the above units or common ethereum units.
+         * @return {String|BigNumber} Either a number string, or a BigNumber instance, depending on the given number parameter.
+         * @example
+         * var value = web3.fromWei("21000000000000", "cmt")
+         * console.log(value) // "0.000021"
+         */
         var fromWei = function(number, unit) {
             var returnValue = utils.toBigNumber(number).dividedBy(getValueOfUnit(unit))
 
             return utils.isBigNumber(number) ? returnValue : returnValue.toString(10)
         }
 
+        /**
+         * Converts an ethereum or cmt unit into wei.
+         *
+         * Possible units besides common ethereum units are:
+         * <ul>
+         *  <li>cmt</li>
+         *  <li>kcmt</li>
+         *  <li>mcmt</li>
+         *  <li>gcmt</li>
+         *  <li>tcmt</li>
+         * </ul>
+         * @method
+         * @memberof web3
+         * @instance
+         * @param {Number|String|BigNumber} number A number or BigNumber instance.
+         * @param {String} unit One of the above units or common ethereum units.
+         * @return {String|BigNumber} Either a number string, or a BigNumber instance, depending on the given number parameter.
+         * @example
+         * var value = web3.toWei("1", "cmt")
+         * console.log(value) // "1000000000000000000"
+         */
         var toWei = function(number, unit) {
             var returnValue = utils.toBigNumber(number).times(getValueOfUnit(unit))
 

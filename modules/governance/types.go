@@ -17,6 +17,10 @@ type Proposal struct {
 	AmtStr       string
 	Reason       string
 	CreatedAt    string
+	Result       string
+	ResultMsg    string
+	ResultBlockHeight    uint64
+	ResultAt     string
 }
 
 func NewProposal(id string, proposer common.Address, blockHeight uint64, from common.Address, to common.Address, amount *big.Int, reason string) *Proposal {
@@ -31,6 +35,10 @@ func NewProposal(id string, proposer common.Address, blockHeight uint64, from co
 		amount.String(),
 		reason,
 		now,
+		"",
+		"",
+		0,
+		"",
 	}
 }
 

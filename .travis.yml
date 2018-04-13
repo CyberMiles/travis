@@ -24,7 +24,7 @@ install:
   - npm install
 
 script:
-  - make docker_image && ./scripts/smoke_test.sh
+  - make docker_image && ./test/integration/test.sh
 
 after_success:
   - if [[ "$TRAVIS_BRANCH" == "master" ]]; then

@@ -10,7 +10,9 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
+	"strings"
 	"github.com/CyberMiles/travis/commons"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // nolint
@@ -94,6 +96,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		SaveProposal(pp)
 
+		res.Data = hash
+
 	case TxVote:
 		vote := NewVote(
 			txInner.ProposalId,
@@ -117,7 +121,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		var c int
 		for _, vo := range votes {
 			for _, va := range validators {
-				if bytes.Equal(vo.Voter.Bytes(), va.OwnerAddress.Bytes()) {
+				if bytes.Equal(vo.Voter.Bytes(), va.OwnerAddress.Bytes()) &&
+					strings.Compare(vo.Answer, "Y") == 0 {
 					c++
 					continue
 				}
@@ -125,12 +130,25 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		if c * 3 >= len(validators) * 2 {
-			proposal := GetProposalById(txInner.ProposalId)
-			commons.Transfer(proposal.From, proposal.To, proposal.Amount)
+			// To avoid repeated commit, let's recheck with count of voters - 1
+			if (c - 1) * 3 < len(validators) * 2 {
+				proposal := GetProposalById(txInner.ProposalId)
+				commons.TransferWithReactor(proposal.From, proposal.To, proposal.Amount, ProposalReactor{txInner.ProposalId, uint64(ctx.BlockHeight())})
+			}
 		}
 	}
 
 	return
+}
+
+type ProposalReactor struct {
+	proposalId string
+	blockHeight uint64
+}
+
+func (pr ProposalReactor) React(result, msg string) {
+	now := utils.GetNow()
+	UpdateProposalResult(pr.proposalId, result, msg, pr.blockHeight, now)
 }
 
 // get the sender from the ctx and ensure it matches the tx pubkey

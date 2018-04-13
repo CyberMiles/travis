@@ -133,7 +133,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 		if i >= int(loadParams(store).MaxVals) {
 			c.VotingPower = 0
 		}
-		SaveCandidate(c)
+		updateCandidate(c)
 	}
 	return cs
 }

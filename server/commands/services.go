@@ -24,6 +24,7 @@ import (
 	abciApp "github.com/CyberMiles/travis/vm/app"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	"github.com/CyberMiles/travis/vm/ethereum"
+	"github.com/cosmos/cosmos-sdk"
 )
 
 type Services struct {
@@ -31,7 +32,7 @@ type Services struct {
 	tmNode  *node.Node
 }
 
-func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
+func startServices(rootDir string, storeApp *app.StoreApp, ticker sdk.Ticker) (*Services, error) {
 	// Setup the go-ethereum node and start it
 	emNode := emtUtils.MakeFullNode(context)
 	startNode(context, emNode)
@@ -57,7 +58,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 	ethApp.SetLogger(emtUtils.EthermintLogger().With("module", "vm"))
 
 	// Create Basecoin app
-	basecoinApp, err := createBaseCoinApp(rootDir, storeApp, ethApp, backend.Ethereum())
+	basecoinApp, err := createBaseCoinApp(rootDir, storeApp, ethApp, ticker, backend.Ethereum())
 	if err != nil {
 		log.Warn(err.Error())
 		os.Exit(1)

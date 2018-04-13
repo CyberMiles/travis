@@ -9,6 +9,12 @@ type StateChangeObject struct {
 	From common.Address
 	To common.Address
 	Amount *big.Int
+
+	Reactor StateChangeReactor
+}
+
+type StateChangeReactor interface {
+	React(result, msg string)
 }
 
 var(
