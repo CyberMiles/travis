@@ -11,6 +11,7 @@ import (
 	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/CyberMiles/travis/commons"
+	"strings"
 )
 
 // nolint
@@ -94,6 +95,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		SaveProposal(pp)
 
+		res.Data = hash
+
 	case TxVote:
 		vote := NewVote(
 			txInner.ProposalId,
@@ -117,7 +120,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		var c int
 		for _, vo := range votes {
 			for _, va := range validators {
-				if bytes.Equal(vo.Voter.Bytes(), va.OwnerAddress.Bytes()) {
+				if bytes.Equal(vo.Voter.Bytes(), va.OwnerAddress.Bytes()) &&
+					strings.Compare(vo.Answer, "Y") == 0 {
 					c++
 					continue
 				}

@@ -48,7 +48,7 @@ describe.skip("Stake Test", function() {
       sequences.push(web3.cmt.getSequence(acc) + 1)
     })
     // get existing validators
-    let result = web3.stake.queryValidators()
+    let result = web3.cmt.stake.queryValidators()
     result.data.forEach(v => {
       existingValidators.push(v)
     })
@@ -62,7 +62,7 @@ describe.skip("Stake Test", function() {
         from: web3.cmt.accounts[0],
         pubKey: newPubKey
       }
-      let r = web3.stake.declareCandidacy(payload)
+      let r = web3.cmt.stake.declareCandidacy(payload)
       expectTxFail(r)
     })
     it("associate to an existing validator pubkey — fail", function() {
@@ -70,7 +70,7 @@ describe.skip("Stake Test", function() {
         from: accounts[0],
         pubKey: existingValidators[0].pub_key.data
       }
-      let r = web3.stake.declareCandidacy(payload)
+      let r = web3.cmt.stake.declareCandidacy(payload)
       expectTxFail(r)
     })
     it("declare for one new validator pubkey and the new account A", function() {
@@ -80,7 +80,7 @@ describe.skip("Stake Test", function() {
         sequence: sequences[0]++
       }
       console.log(sequences)
-      let r = web3.stake.declareCandidacy(payload)
+      let r = web3.cmt.stake.declareCandidacy(payload)
       expectTxSuccess(r)
     })
   })
@@ -93,7 +93,7 @@ describe.skip("Stake Test", function() {
         proposedRoi: 1,
         sequence: sequences[0]++
       }
-      let r = web3.stake.proposeSlot(payload)
+      let r = web3.cmt.stake.proposeSlot(payload)
       expectTxSuccess(r)
       slotId = r.deliver_tx.data
       expect(slotId).to.be.not.empty
@@ -108,7 +108,7 @@ describe.skip("Stake Test", function() {
         slotId: slotId,
         sequence: sequences[1]++
       }
-      let r = web3.stake.acceptSlot(payload)
+      let r = web3.cmt.stake.acceptSlot(payload)
       expectTxSuccess(r)
     })
 
@@ -119,7 +119,7 @@ describe.skip("Stake Test", function() {
         slotId: slotId,
         sequence: sequences[1]++
       }
-      let r = web3.stake.withdrawSlot(payload)
+      let r = web3.cmt.stake.withdrawSlot(payload)
       expectTxSuccess(r)
     })
 
@@ -130,7 +130,7 @@ describe.skip("Stake Test", function() {
         slotId: slotId,
         sequence: sequences[2]++
       }
-      let r = web3.stake.acceptSlot(payload)
+      let r = web3.cmt.stake.acceptSlot(payload)
       expectTxSuccess(r)
     })
   })
@@ -142,10 +142,10 @@ describe.skip("Stake Test", function() {
         newAddress: accounts[3],
         sequence: sequences[0]++
       }
-      let r = web3.stake.editCandidacy(payload)
+      let r = web3.cmt.stake.editCandidacy(payload)
       expectTxSuccess(r)
       // check validators, include newAddress and state=Y
-      let result = web3.stake.queryValidators()
+      let result = web3.cmt.stake.queryValidators()
       expect(result.data).to.containSubset([
         { owner_address: accounts[3], state: "Y" }
       ])
@@ -158,10 +158,10 @@ describe.skip("Stake Test", function() {
         from: accounts[3],
         sequence: sequences[3]++
       }
-      let r = web3.stake.withdrawCandidacy(payload)
+      let r = web3.cmt.stake.withdrawCandidacy(payload)
       expectTxSuccess(r)
       // check validators, not include accounts[0] and state=Y
-      let result = web3.stake.queryValidators()
+      let result = web3.cmt.stake.queryValidators()
       logger.debug(result.data)
       expect(result.data).to.not.containSubset([
         { owner_address: accounts[0], state: "Y" }

@@ -563,9 +563,9 @@ uuid@^2.0.1:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-2.0.3.tgz#67e2e863797215530dff318e5bf9dcebfd47b21a"
 
-web3-cmt@latest:
-  version "0.0.2-rc.1"
-  resolved "https://registry.yarnpkg.com/web3-cmt/-/web3-cmt-0.0.2-rc.1.tgz#4311b06adf983386a444169a889426446a40407f"
+web3-cmt@^0.0.2-rc.2:
+  version "0.0.2-rc.2"
+  resolved "https://registry.yarnpkg.com/web3-cmt/-/web3-cmt-0.0.2-rc.2.tgz#1b40a0b21076fcca296bd8df56d7756046ca17e0"
   dependencies:
     web3 "^0.20.6"
 

@@ -340,7 +340,10 @@ func (s *CmtRPCService) sign(data ttypes.Signable, address string) error {
 	if err != nil {
 		return err
 	}
-	signed, err := wallet.SignTx(account, ethTx, big.NewInt(15)) //TODO: use defaultEthChainId
+	signed, err := wallet.SignTx(account, ethTx, big.NewInt(15))
+	//TODO:
+	//ethChainId := int64(s.backend.ethConfig.NetworkId)
+	//signed, err := wallet.SignTx(account, ethTx, big.NewInt(ethChainId))
 	if err != nil {
 		return err
 	}
@@ -442,9 +445,9 @@ func (s *CmtRPCService) get(path string, key []byte, height int64) (data.Bytes, 
 
 type GovernanceProposalArgs struct {
 	Sequence uint32 `json:"sequence"`
-	Proposer string `json:"proposer"`
-	From     string `json:"from"`
-	To       string `json:"to"`
+	Proposer string `json:"from"`
+	From     string `json:"transferFrom"`
+	To       string `json:"transferTo"`
 	Amount   string `json:"amount"`
 	Reason   string `json:"reason"`
 }
@@ -466,8 +469,8 @@ func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroa
 
 type GovernanceVoteArgs struct {
 	Sequence   uint32 `json:"sequence"`
-	ProposalId string `json:"proposal_id"`
-	Voter      string `json:"voter"`
+	ProposalId string `json:"proposalId"`
+	Voter      string `json:"from"`
 	Answer     string `json:"answer"`
 }
 
