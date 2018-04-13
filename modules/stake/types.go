@@ -260,7 +260,7 @@ type Slot struct {
 type SlotDelegate struct {
 	DelegatorAddress 	common.Address
 	SlotId 				string
-	Amount 				int64
+	Amount 				int64	// fixme use *big.Int instead
 	CreatedAt        	string
 	UpdatedAt          	string
 }
