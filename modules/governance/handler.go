@@ -10,8 +10,9 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/CyberMiles/travis/commons"
 	"strings"
+	"github.com/CyberMiles/travis/commons"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // nolint
@@ -129,12 +130,25 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		if c * 3 >= len(validators) * 2 {
-			proposal := GetProposalById(txInner.ProposalId)
-			commons.Transfer(proposal.From, proposal.To, proposal.Amount)
+			// To avoid repeated commit, let's recheck with count of voters - 1
+			if (c - 1) * 3 < len(validators) * 2 {
+				proposal := GetProposalById(txInner.ProposalId)
+				commons.TransferWithReactor(proposal.From, proposal.To, proposal.Amount, ProposalReactor{txInner.ProposalId, uint64(ctx.BlockHeight())})
+			}
 		}
 	}
 
 	return
+}
+
+type ProposalReactor struct {
+	proposalId string
+	blockHeight uint64
+}
+
+func (pr ProposalReactor) React(result, msg string) {
+	now := utils.GetNow()
+	UpdateProposalResult(pr.proposalId, result, msg, pr.blockHeight, now)
 }
 
 // get the sender from the ctx and ensure it matches the tx pubkey

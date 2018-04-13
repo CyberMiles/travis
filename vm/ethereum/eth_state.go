@@ -255,6 +255,13 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 			if len(scObj.To.Bytes()) != 0 {
 				ws.state.AddBalance(scObj.To, scObj.Amount)
 			}
+			if scObj.Reactor != nil {
+				scObj.Reactor.React("success", "")
+			}
+		} else {
+			if scObj.Reactor != nil {
+				scObj.Reactor.React("fail", "Insufficient balance")
+			}
 		}
 	}
 

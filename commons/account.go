@@ -66,6 +66,16 @@ func Transfer(from, to common.Address, amount *big.Int) error {
 	return nil
 }
 
+func TransferWithReactor(from, to common.Address, amount *big.Int, reactor utils.StateChangeReactor) error {
+	utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
+		from,
+		to,
+		amount,
+		reactor,
+	})
+	return nil
+}
+
 func GetBalance(ethereum *eth.Ethereum, addr common.Address, amount *big.Int) (*big.Int, error) {
 	state, err := ethereum.BlockChain().State()
 	if err != nil {
