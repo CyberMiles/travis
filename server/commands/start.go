@@ -21,11 +21,11 @@ import (
 )
 
 // GetTickStartCmd - initialize a command as the start command with tick
-func GetTickStartCmd(tick sdk.Ticker) *cobra.Command {
+func GetTickStartCmd(ticker sdk.Ticker) *cobra.Command {
 	startCmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start this full node",
-		RunE:  tickStartCmd(tick),
+		RunE:  tickStartCmd(ticker),
 	}
 	return startCmd
 }
@@ -40,7 +40,7 @@ var (
 )
 
 //returns the start command which uses the tick
-func tickStartCmd(clock sdk.Ticker) func(cmd *cobra.Command, args []string) error {
+func tickStartCmd(ticker sdk.Ticker) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		rootDir := viper.GetString(cli.HomeFlag)
 
@@ -55,12 +55,12 @@ func tickStartCmd(clock sdk.Ticker) func(cmd *cobra.Command, args []string) erro
 			return err
 		}
 
-		return start(rootDir, storeApp)
+		return start(rootDir, storeApp, ticker)
 	}
 }
 
-func start(rootDir string, storeApp *app.StoreApp) error {
-	srvs, err := startServices(rootDir, storeApp)
+func start(rootDir string, storeApp *app.StoreApp, ticker sdk.Ticker) error {
+	srvs, err := startServices(rootDir, storeApp, ticker)
 	if err != nil {
 		return errors.Errorf("Error in start services: %v\n", err)
 	}
@@ -73,8 +73,8 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 	return nil
 }
 
-func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication, ethereum *eth.Ethereum) (*app.BaseApp, error) {
-	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, nil, ethereum)
+func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication, ticker sdk.Ticker, ethereum *eth.Ethereum) (*app.BaseApp, error) {
+	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, ticker, ethereum)
 	if err != nil {
 		return nil, err
 	}
