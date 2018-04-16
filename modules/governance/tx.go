@@ -27,18 +27,18 @@ func init() {
 var _, _ sdk.TxInner = &TxPropose{}, &TxVote{}
 
 type TxPropose struct {
-	Proposer     common.Address   `json:"proposer"`
-	From         common.Address   `json:"from"`
-	To           common.Address   `json:"to"`
-	Amount       string           `json:"amount"`
-	Reason       string           `json:"reason"`
+	Proposer     *common.Address   `json:"proposer"`
+	From         *common.Address   `json:"from"`
+	To           *common.Address   `json:"to"`
+	Amount       string            `json:"amount"`
+	Reason       string            `json:"reason"`
 }
 
 func (tx TxPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxPropose(proposer common.Address, fromAddr common.Address, toAddr common.Address, amount string, reason string) sdk.Tx {
+func NewTxPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string) sdk.Tx {
 	return TxPropose{
 		proposer,
 		fromAddr,

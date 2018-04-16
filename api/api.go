@@ -461,20 +461,16 @@ func (s *CmtRPCService) get(path string, key []byte, height int64) (data.Bytes, 
 
 type GovernanceProposalArgs struct {
 	Sequence uint32 `json:"sequence"`
-	Proposer string `json:"from"`
-	From     string `json:"transferFrom"`
-	To       string `json:"transferTo"`
+	Proposer *common.Address `json:"from"`
+	From     *common.Address `json:"transferFrom"`
+	To       *common.Address `json:"transferTo"`
 	Amount   string `json:"amount"`
 	Reason   string `json:"reason"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	proposer := common.HexToAddress(args.Proposer)
-	fromAddr := common.HexToAddress(args.From)
-	toAddr := common.HexToAddress(args.To)
-
-	tx := governance.NewTxPropose(proposer, fromAddr, toAddr, args.Amount, args.Reason)
-	tx, err := s.wrapAndSignTx(tx, args.Proposer, args.Sequence)
+	tx := governance.NewTxPropose(args.Proposer, args.From, args.To, args.Amount, args.Reason)
+	tx, err := s.wrapAndSignTx(tx, args.Proposer.String(), args.Sequence)
 
 	if err != err {
 		return nil, err

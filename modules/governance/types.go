@@ -1,20 +1,17 @@
 package governance
 
 import (
-	"math/big"
-
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type Proposal struct {
 	Id           string
-	Proposer     common.Address
+	Proposer     *common.Address
 	BlockHeight  uint64
-	From         common.Address
-	To           common.Address
-	Amount       *big.Int
-	AmtStr       string
+	From         *common.Address
+	To           *common.Address
+	Amount       string
 	Reason       string
 	CreatedAt    string
 	Result       string
@@ -23,7 +20,7 @@ type Proposal struct {
 	ResultAt     string
 }
 
-func NewProposal(id string, proposer common.Address, blockHeight uint64, from common.Address, to common.Address, amount *big.Int, reason string) *Proposal {
+func NewProposal(id string, proposer *common.Address, blockHeight uint64, from *common.Address, to *common.Address, amount string, reason string) *Proposal {
 	now := utils.GetNow()
 	return &Proposal {
 		id,
@@ -32,7 +29,6 @@ func NewProposal(id string, proposer common.Address, blockHeight uint64, from co
 		from,
 		to,
 		amount,
-		amount.String(),
 		reason,
 		now,
 		"",

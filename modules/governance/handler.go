@@ -1,7 +1,6 @@
 package governance
 
 import (
-	"math/big"
 	"bytes"
 	"encoding/hex"
 
@@ -13,6 +12,7 @@ import (
 	"strings"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/utils"
+	"math/big"
 )
 
 // nolint
@@ -46,7 +46,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0,  ""), ErrMissingSignature()
 		}
-		candidate := stake.GetCandidateByAddress(txInner.Proposer)
+		candidate := stake.GetCandidateByAddress(*txInner.Proposer)
 		if candidate == nil || candidate.State != "Y" || candidate.VotingPower == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
@@ -81,16 +81,13 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxPropose:
-		amount := new(big.Int)
-		amount.SetString(txInner.Amount, 10)
-
 		pp := NewProposal(
 			hex.EncodeToString(hash),
 			txInner.Proposer,
 			uint64(ctx.BlockHeight()),
 			txInner.From,
 			txInner.To,
-			amount,
+			txInner.Amount,
 			txInner.Reason,
 		)
 
@@ -133,7 +130,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			// To avoid repeated commit, let's recheck with count of voters - 1
 			if (c - 1) * 3 < len(validators) * 2 {
 				proposal := GetProposalById(txInner.ProposalId)
-				commons.TransferWithReactor(proposal.From, proposal.To, proposal.Amount, ProposalReactor{txInner.ProposalId, uint64(ctx.BlockHeight())})
+				amount := new(big.Int)
+				amount.SetString(proposal.Amount, 10)
+				commons.TransferWithReactor(proposal.From, proposal.To, amount, ProposalReactor{txInner.ProposalId, uint64(ctx.BlockHeight())})
 			}
 		}
 	}
