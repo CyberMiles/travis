@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"github.com/CyberMiles/travis/commons"
+	"github.com/CyberMiles/travis/utils"
 )
 
 type awardCalculator struct {
@@ -15,7 +16,7 @@ type awardCalculator struct {
 }
 
 type validator struct {
-	stake uint64
+	stake *big.Int
 	ownerAddress common.Address
 	stakePercentage float64
 	delegators []delegator
@@ -61,18 +62,18 @@ func (ac awardCalculator) getTotalBlockAward() *big.Int {
 func (ac awardCalculator) AwardAll() {
 	var validators []validator
 	var delegators []delegator
-	var totalStakes uint64
+	var totalStakes *big.Int
 
 	for _, pk := range ac.validators {
 		var validator validator
 		candidate := GetCandidateByPubKey(pk.KeyString())
-		if candidate.Shares == 0 {
+		if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 			continue
 		}
 
 		validator.stake = candidate.Shares
 		validator.ownerAddress = candidate.OwnerAddress
-		totalStakes += candidate.Shares
+		totalStakes.Add(totalStakes, candidate.Shares)
 
 		slots := GetSlotsByValidator(candidate.OwnerAddress)
 		for _, slot := range slots {
@@ -81,7 +82,7 @@ func (ac awardCalculator) AwardAll() {
 				delegator := delegator{}
 				delegator.address = delegate.DelegatorAddress
 				delegator.slotId = delegate.SlotId
-				delegator.amount = big.NewInt(delegate.Amount)
+				delegator.amount = delegate.Amount
 				delegator.proposedRoi = slot.ProposedRoi
 				delegators = append(delegators, delegator)
 			}
@@ -91,7 +92,11 @@ func (ac awardCalculator) AwardAll() {
 	}
 
 	for _, val := range validators {
-		val.stakePercentage = float64(val.stake) / float64(totalStakes)
+		var x, y *big.Float
+		x.SetString(val.stake.String())
+		y.SetString(totalStakes.String())
+		z, _ := new(big.Float).Quo(x, y).Float64()
+		val.stakePercentage = z
 		remainedAward := ac.getValidatorBlockAward(val)
 
 		// award to delegators
@@ -105,13 +110,13 @@ func (ac awardCalculator) AwardAll() {
 }
 
 func (ac awardCalculator) getValidatorBlockAward(val validator) *big.Int {
-	var l, r *big.Float
-	l.SetString(ac.getTotalBlockAward().String())
-	r.SetString(ac.transactionFees.String())
+	var x, y *big.Float
+	x.SetString(ac.getTotalBlockAward().String())
+	y.SetString(ac.transactionFees.String())
 	percentage := big.NewFloat(val.stakePercentage)
 
 	tmp := new(big.Float)
-	tmp.Add(l, r)
+	tmp.Add(x, y)
 	tmp.Mul(tmp, percentage)
 
 	result := new(big.Int)
@@ -134,6 +139,9 @@ func (ac awardCalculator) awardToValidator(val validator, amount *big.Int) {
 func (ac awardCalculator) awardToDelegator(del delegator, amount *big.Int) {
 	commons.Transfer(DefaultHoldAccount, del.address, amount)
 
-	// todo add award to stake of the delegator
-
+	// add award to stake of the delegator
+	slotDelegate := GetSlotDelegate(del.address, del.slotId)
+	slotDelegate.Amount = new(big.Int).Add(slotDelegate.Amount, amount)
+	slotDelegate.UpdatedAt = utils.GetNow()
+	updateSlotDelegate(slotDelegate)
 }

@@ -6,31 +6,32 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/state"
 
+	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
-	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 )
 
 // Params defines the high level settings for staking
 type Params struct {
-	HoldAccount 		common.Address `json:"hold_account"` 	// PubKey where all bonded coins are held
-	MaxVals          	uint16 `json:"max_vals"`           		// maximum number of validators
-	AllowedBondDenom 	string `json:"allowed_bond_denom"` 		// bondable coin denomination
+	HoldAccount      common.Address `json:"hold_account"`       // PubKey where all bonded coins are held
+	MaxVals          uint16         `json:"max_vals"`           // maximum number of validators
+	AllowedBondDenom string         `json:"allowed_bond_denom"` // bondable coin denomination
 
 	// gas costs for txs
-	Validators          string `json:"validators"`
+	Validators string `json:"validators"`
 }
 
 var DefaultHoldAccount = common.HexToAddress("0000000000000000000000000000000000000000")
 
 func defaultParams() Params {
 	return Params{
-		HoldAccount:         DefaultHoldAccount,
-		MaxVals:             100,
-		AllowedBondDenom:    "cmt",
-		Validators:          "",
+		HoldAccount:      DefaultHoldAccount,
+		MaxVals:          100,
+		AllowedBondDenom: "cmt",
+		Validators:       "",
 	}
 }
 
@@ -45,26 +46,26 @@ func defaultParams() Params {
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
-	PubKey      	crypto.PubKey 	`json:"pub_key"`			// Pubkey of candidate
-	OwnerAddress    common.Address 	`json:"owner_address"`      // Sender of BondTx - UnbondTx returns here
-	Shares      	uint64        	`json:"shares"`       		// Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower 	uint64        	`json:"voting_power"` 		// Voting power if pubKey is a considered a validator
-	CreatedAt 		string		  	`json:"created_at"`
-	UpdatedAt 		string		  	`json:"updated_at"`
-	State       	string		  	`json:"state"`
+	PubKey       crypto.PubKey  `json:"pub_key"`       // Pubkey of candidate
+	OwnerAddress common.Address `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
+	Shares       *big.Int       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
+	VotingPower  *big.Int	    `json:"voting_power"`  // Voting power if pubKey is a considered a validator
+	CreatedAt    string         `json:"created_at"`
+	UpdatedAt    string         `json:"updated_at"`
+	State        string         `json:"state"`
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares uint64, votingPower uint64, state string) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares, votingPower *big.Int, state string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
-		PubKey:      	pubKey,
-		OwnerAddress:   ownerAddress,
-		Shares:      	shares,
-		VotingPower: 	votingPower,
-		State:       	state,
-		CreatedAt: 	 	now,
-		UpdatedAt: 	 	now,
+		PubKey:       pubKey,
+		OwnerAddress: ownerAddress,
+		Shares:       shares,
+		VotingPower:  votingPower,
+		State:        state,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 }
 
@@ -81,7 +82,7 @@ type Validator Candidate
 func (v Validator) ABCIValidator() *abci.Validator {
 	return &abci.Validator{
 		PubKey: wire.BinaryBytes(v.PubKey),
-		Power:  int64(v.VotingPower),
+		Power:  v.VotingPower.Int64(),
 	}
 }
 
@@ -103,7 +104,7 @@ func (cs Candidates) Less(i, j int) bool {
 
 	//note that all ChainId and App must be the same for a group of candidates
 	if vp1 != vp2 {
-		return vp1 > vp2
+		return vp1.Cmp(vp2) > 0
 	}
 	return bytes.Compare(pk1, pk2) == -1
 }
@@ -131,7 +132,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	for i, c := range cs {
 		// truncate the power
 		if i >= int(loadParams(store).MaxVals) {
-			c.VotingPower = 0
+			c.VotingPower = big.NewInt(0)
 		}
 		updateCandidate(c)
 	}
@@ -146,14 +147,14 @@ func (cs Candidates) Validators() Validators {
 
 	//test if empty
 	if len(cs) == 1 {
-		if cs[0].VotingPower == 0 {
+		if cs[0].VotingPower.Cmp(big.NewInt(0)) == 0 {
 			return nil
 		}
 	}
 
 	validators := make(Validators, len(cs))
 	for i, c := range cs {
-		if c.VotingPower == 0 { //exit as soon as the first Voting power set to zero is found
+		if c.VotingPower.Cmp(big.NewInt(0)) == 0 { //exit as soon as the first Voting power set to zero is found
 			return validators[:i]
 		}
 		validators[i] = c.validator()
@@ -247,29 +248,28 @@ func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err err
 //_________________________________________________________________________
 
 type Slot struct {
-	Id 					string
-	ValidatorAddress 	common.Address
-	TotalAmount 		int64
-	AvailableAmount 	int64
-	ProposedRoi 		int64
-	State 				string
-	CreatedAt        	string
-	UpdatedAt          	string
+	Id               string
+	ValidatorAddress common.Address
+	TotalAmount      *big.Int
+	AvailableAmount  *big.Int
+	ProposedRoi      int64
+	State            string
+	CreatedAt        string
+	UpdatedAt        string
 }
 
 type SlotDelegate struct {
-	DelegatorAddress 	common.Address
-	SlotId 				string
-	Amount 				int64	// fixme use *big.Int instead
-	CreatedAt        	string
-	UpdatedAt          	string
+	DelegatorAddress common.Address
+	SlotId           string
+	Amount           *big.Int
+	CreatedAt        string
+	UpdatedAt        string
 }
 
 type DelegateHistory struct {
-	DelegatorAddress 	common.Address
-	SlotId 				string
-	Amount 				int64
-	OpCode 				string
-	CreatedAt        	string
+	DelegatorAddress common.Address
+	SlotId           string
+	Amount           *big.Int
+	OpCode           string
+	CreatedAt        string
 }
-

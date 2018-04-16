@@ -246,7 +246,7 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 		return ErrBadSlotDelegate()
 	}
 
-	if slotDelegate.Amount < tx.Amount {
+	if slotDelegate.Amount.Cmp(tx.Amount) < 0 {
 		return ErrInsufficientFunds()
 	}
 	return nil
@@ -267,12 +267,12 @@ func (c check) acceptSlot(tx TxAcceptSlot) error {
 		return ErrBadSlot()
 	}
 
-	balance, err := commons.GetBalance(c.ethereum, c.sender, big.NewInt(tx.Amount))
+	balance, err := commons.GetBalance(c.ethereum, c.sender, tx.Amount)
 	if err != nil {
 		return err
 	}
 
-	if balance.Cmp(big.NewInt(tx.Amount)) < 0 {
+	if balance.Cmp(tx.Amount) < 0 {
 		return ErrInsufficientFunds()
 	}
 	return nil
@@ -312,7 +312,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	}
 
 	if candidate == nil {
-		candidate = NewCandidate(tx.PubKey, d.sender, 0, 0, "Y")
+		candidate = NewCandidate(tx.PubKey, d.sender, big.NewInt(0), big.NewInt(0), "Y")
 		SaveCandidate(candidate)
 	} else {
 		candidate.State = "Y"
@@ -354,7 +354,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		slotId := slot.Id
 		delegates := GetSlotDelegatesBySlot(slotId)
 		for _, delegate := range delegates {
-			err := commons.Transfer(d.params.HoldAccount, delegate.DelegatorAddress, big.NewInt(delegate.Amount))
+			err := commons.Transfer(d.params.HoldAccount, delegate.DelegatorAddress, delegate.Amount)
 			if err != nil {
 				return err
 			}
@@ -363,7 +363,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 			//saveSlotDelegate(delegate)
 			removeSlotDelegate(delegate)
 		}
-		slot.AvailableAmount = 0
+		slot.AvailableAmount = big.NewInt(0)
 		updateSlot(slot)
 	}
 	//candidate.Shares = 0
@@ -386,12 +386,12 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 		return ErrBondNotNominated()
 	}
 
-	if tx.Amount > slot.AvailableAmount {
+	if tx.Amount.Cmp(slot.AvailableAmount) > 0 {
 		return ErrFullSlot()
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := commons.Transfer(d.sender, d.params.HoldAccount, big.NewInt(tx.Amount))
+	err := commons.Transfer(d.sender, d.params.HoldAccount, tx.Amount)
 	if err != nil {
 		return err
 	}
@@ -403,14 +403,14 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 		slotDelegate = &SlotDelegate{DelegatorAddress: d.sender, SlotId: tx.SlotId, Amount: tx.Amount, CreatedAt: now, UpdatedAt: now}
 		saveSlotDelegate(slotDelegate)
 	} else {
-		slotDelegate.Amount += tx.Amount
+		slotDelegate.Amount.Add(slotDelegate.Amount, tx.Amount)
 		updateSlotDelegate(slotDelegate)
 	}
 
 	// Add shares to slot and candidate
-	candidate.Shares += uint64(tx.Amount)
-	candidate.VotingPower += uint64(tx.Amount)
-	slot.AvailableAmount -= tx.Amount
+	candidate.Shares.Add(candidate.Shares, tx.Amount)
+	candidate.VotingPower.Add(candidate.VotingPower, tx.Amount)
+	slot.AvailableAmount.Sub(slot.AvailableAmount, tx.Amount)
 	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "accept", now}
 	updateCandidate(candidate)
 	updateSlot(slot)
@@ -440,12 +440,12 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// subtract bond tokens from bond
-	if slotDelegate.Amount < tx.Amount {
+	if slotDelegate.Amount.Cmp(tx.Amount) < 0 {
 		return ErrInsufficientFunds()
 	}
-	slotDelegate.Amount -= tx.Amount
+	slotDelegate.Amount.Sub(slotDelegate.Amount, tx.Amount)
 
-	if slotDelegate.Amount == 0 {
+	if slotDelegate.Amount.Cmp(big.NewInt(0)) == 0 {
 		// remove the slot delegate
 		removeSlotDelegate(slotDelegate)
 	} else {
@@ -453,9 +453,9 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// deduct shares from the candidate
-	candidate.Shares -= uint64(tx.Amount)
-	candidate.VotingPower -= uint64(tx.Amount)
-	if candidate.Shares == 0 {
+	candidate.Shares.Sub(candidate.Shares, tx.Amount)
+	candidate.VotingPower.Sub(candidate.VotingPower, tx.Amount)
+	if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 		//candidate.State = "N"
 		removeCandidate(candidate)
 	}
@@ -464,7 +464,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
-	slot.AvailableAmount += tx.Amount
+	slot.AvailableAmount.Add(slot.AvailableAmount, tx.Amount)
 	slot.UpdatedAt = now
 	updateSlot(slot)
 
@@ -472,7 +472,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	saveDelegateHistory(delegateHistory)
 
 	// transfer coins back to account
-	return commons.Transfer(d.params.HoldAccount, d.sender, big.NewInt(tx.Amount))
+	return commons.Transfer(d.params.HoldAccount, d.sender, tx.Amount)
 }
 
 func (d deliver) proposeSlot(tx TxProposeSlot, hash []byte) error {

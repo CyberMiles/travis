@@ -47,7 +47,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0,  ""), ErrMissingSignature()
 		}
 		candidate := stake.GetCandidateByAddress(txInner.Proposer)
-		if candidate == nil || candidate.State != "Y" || candidate.VotingPower == 0 {
+		if candidate == nil || candidate.State != "Y" || candidate.VotingPower.Cmp(big.NewInt(0)) == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 	case TxVote:

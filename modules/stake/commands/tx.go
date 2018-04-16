@@ -13,6 +13,7 @@ import (
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 )
 
 /*
@@ -94,7 +95,7 @@ func init() {
 	fsPk.String(FlagPubKey, "", "PubKey of the validator-candidate")
 
 	fsAmount := flag.NewFlagSet("", flag.ContinueOnError)
-	fsAmount.Int64(FlagAmount, 0, "Amount of CMT")
+	fsAmount.String(FlagAmount, "0", "Amount of CMT")
 
 	fsProposeSlot := flag.NewFlagSet("", flag.ContinueOnError)
 	fsProposeSlot.Float64(FlagProposedRoi, 0, "corresponding ROI")
@@ -173,8 +174,9 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 
 func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 	address := common.HexToAddress(viper.GetString(FlagAddress))
-	amount := viper.GetInt64(FlagAmount)
-	if amount <= 0 {
+	amount := new(big.Int)
+	_, suc := amount.SetString(viper.GetString(FlagAmount), 10)
+	if !suc || amount.Cmp(big.NewInt(0)) <= 0 {
 		return fmt.Errorf("amount must be positive interger")
 	}
 
@@ -188,9 +190,10 @@ func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdAcceptSlot(cmd *cobra.Command, args []string) error {
-	amount := viper.GetInt64(FlagAmount)
-	if amount <= 0 {
-		return fmt.Errorf("Amount must be positive interger")
+	amount := new(big.Int)
+	_, suc := amount.SetString(viper.GetString(FlagAmount), 10)
+	if !suc || amount.Cmp(big.NewInt(0)) <= 0 {
+		return fmt.Errorf("amount must be positive interger")
 	}
 
 	slotId := viper.GetString(FlagSlotId)
@@ -203,9 +206,10 @@ func cmdAcceptSlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdWithdrawSlot(cmd *cobra.Command, args []string) error {
-	amount := viper.GetInt64(FlagAmount)
-	if amount <= 0 {
-		return fmt.Errorf("Amount must be positive interger")
+	amount := new(big.Int)
+	_, suc := amount.SetString(viper.GetString(FlagAmount), 10)
+	if !suc || amount.Cmp(big.NewInt(0)) <= 0 {
+		return fmt.Errorf("amount must be positive interger")
 	}
 
 	slotId := viper.GetString(FlagSlotId)

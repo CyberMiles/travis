@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk"
 	crypto "github.com/tendermint/go-crypto"
 	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 )
 
 // Tx
@@ -109,12 +110,12 @@ func (tx TxWithdraw) Wrap() sdk.Tx { return sdk.Tx{tx} }
 // TxProposeSlot - struct for propose slot
 type TxProposeSlot struct {
 	ValidatorAddress      	common.Address
-	Amount      			int64
+	Amount      			*big.Int
 	ProposedRoi 			int64
 }
 
 // NewTxProposeSlot - new TxProposeSlot
-func NewTxProposeSlot(validatorAddress common.Address, amount int64, proposedRoi int64) sdk.Tx {
+func NewTxProposeSlot(validatorAddress common.Address, amount *big.Int, proposedRoi int64) sdk.Tx {
 	return TxProposeSlot{
 		ValidatorAddress:      	validatorAddress,
 		Amount:      			amount,
@@ -128,7 +129,8 @@ func (tx TxProposeSlot) ValidateBasic() error {
 		return errCandidateEmpty
 	}
 
-	if tx.Amount <= 0 {
+	fmt.Printf("amount: %v\n", tx.Amount)
+	if tx.Amount.Cmp(big.NewInt(0)) <= 0 {
 		return fmt.Errorf("amount must be positive interger")
 	}
 
@@ -143,7 +145,7 @@ func (tx TxProposeSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // SlotUpdate - struct for bonding or unbonding transactions
 type SlotUpdate struct {
-	Amount int64
+	Amount *big.Int
 	SlotId string
 }
 
@@ -155,7 +157,7 @@ type TxAcceptSlot struct {
 	SlotUpdate
 }
 
-func NewTxAcceptSlot(amount int64, slotId string) sdk.Tx {
+func NewTxAcceptSlot(amount *big.Int, slotId string) sdk.Tx {
 	return TxAcceptSlot{ SlotUpdate{
 			Amount: amount,
 			SlotId: slotId,
@@ -169,7 +171,7 @@ type TxWithdrawSlot struct {
 	SlotUpdate
 }
 
-func NewTxWithdrawSlot(amount int64, slotId string) sdk.Tx {
+func NewTxWithdrawSlot(amount *big.Int, slotId string) sdk.Tx {
 	return TxWithdrawSlot{ SlotUpdate{
 		Amount: amount,
 		SlotId: slotId,

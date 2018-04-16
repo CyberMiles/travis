@@ -7,6 +7,7 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 	"path"
 	"strings"
+	"math/big"
 )
 
 func getDb() *sql.DB {
@@ -29,8 +30,7 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	}
 	defer stmt.Close()
 
-	var pubKey, state, createdAt, updatedAt string
-	var shares, votingPower uint64
+	var pubKey, state, createdAt, updatedAt, shares, votingPower string
 	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &state, &createdAt, &updatedAt)
 
 	switch {
@@ -41,12 +41,15 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	}
 
 	pk, _ := GetPubKey(pubKey)
-	//bs, _ := hex.DecodeString(address)
+	s := new(big.Int)
+	s.SetString(shares, 10)
+	v := new(big.Int)
+	v.SetString(votingPower, 10)
 	return &Candidate{
 		PubKey:       pk,
 		OwnerAddress: address,
-		Shares:       shares,
-		VotingPower:  votingPower,
+		Shares:       s,
+		VotingPower:  v,
 		State:        state,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
@@ -62,8 +65,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 	}
 	defer stmt.Close()
 
-	var address, state, createdAt, updatedAt string
-	var shares, votingPower uint64
+	var address, state, createdAt, updatedAt, shares, votingPower string
 	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &state, &createdAt, &updatedAt)
 	switch {
 	case err == sql.ErrNoRows:
@@ -73,11 +75,15 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 	}
 
 	pk, _ := GetPubKey(pubKey)
+	s := new(big.Int)
+	s.SetString(shares, 10)
+	v := new(big.Int)
+	v.SetString(votingPower, 10)
 	return &Candidate{
 		PubKey:       pk,
 		OwnerAddress: common.HexToAddress(address),
-		Shares:       shares,
-		VotingPower:  votingPower,
+		Shares:       s,
+		VotingPower:  v,
 		State:        state,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
@@ -95,21 +101,23 @@ func GetCandidates() (candidates Candidates) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var pubKey, ownerAddress, state, createdAt, updatedAt string
-		var shares, votingPower uint64
+		var pubKey, ownerAddress, state, createdAt, updatedAt, shares, votingPower string
 		err = rows.Scan(&pubKey, &ownerAddress, &shares, &votingPower, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
 
 		pk, _ := GetPubKey(pubKey)
-		//bs, _ := hex.DecodeString(ownerAddress)
+		s := new(big.Int)
+		s.SetString(shares, 10)
+		v := new(big.Int)
+		v.SetString(votingPower, 10)
 		candidate := &Candidate{
 			PubKey: pk,
 			//OwnerAddress:       NewActor(bs),
 			OwnerAddress: common.HexToAddress(ownerAddress),
-			Shares:       shares,
-			VotingPower:  votingPower,
+			Shares:       s,
+			VotingPower:  v,
 			State:        state,
 			CreatedAt:    createdAt,
 			UpdatedAt:    updatedAt,
@@ -140,7 +148,7 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.OwnerAddress.String(), candidate.Shares, candidate.VotingPower, candidate.State, candidate.CreatedAt, candidate.UpdatedAt)
+	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.OwnerAddress.String(), candidate.Shares.String(), candidate.VotingPower.String(), candidate.State, candidate.CreatedAt, candidate.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -161,7 +169,7 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.OwnerAddress.String(), candidate.Shares, candidate.VotingPower, candidate.State, candidate.UpdatedAt, candidate.PubKey.KeyString())
+	_, err = stmt.Exec(candidate.OwnerAddress.String(), candidate.Shares.String(), candidate.VotingPower.String(), candidate.State, candidate.UpdatedAt, candidate.PubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
@@ -203,7 +211,7 @@ func saveSlot(slot *Slot) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(strings.ToUpper(slot.Id), slot.ValidatorAddress.String(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.CreatedAt, slot.UpdatedAt)
+	_, err = stmt.Exec(strings.ToUpper(slot.Id), slot.ValidatorAddress.String(), slot.TotalAmount.String(), slot.AvailableAmount.String(), slot.ProposedRoi, slot.State, slot.CreatedAt, slot.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -224,7 +232,7 @@ func updateSlot(slot *Slot) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slot.ValidatorAddress.String(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.UpdatedAt, strings.ToUpper(slot.Id))
+	_, err = stmt.Exec(slot.ValidatorAddress.String(), slot.TotalAmount.String(), slot.AvailableAmount.String(), slot.ProposedRoi, slot.State, slot.UpdatedAt, strings.ToUpper(slot.Id))
 	if err != nil {
 		panic(err)
 	}
@@ -239,8 +247,8 @@ func GetSlot(slotId string) *Slot {
 	}
 	defer stmt.Close()
 
-	var validatorAddress, state, createdAt, updatedAt string
-	var totalAmount, availableAmount, proposedRoi int64
+	var validatorAddress, state, createdAt, updatedAt, totalAmount, availableAmount string
+	var proposedRoi int64
 	err = stmt.QueryRow(strings.ToUpper(slotId)).Scan(&validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
 	switch {
 	case err == sql.ErrNoRows:
@@ -249,11 +257,15 @@ func GetSlot(slotId string) *Slot {
 		panic(err)
 	}
 
+	t := new(big.Int)
+	t.SetString(totalAmount, 10)
+	a := new(big.Int)
+	a.SetString(availableAmount, 10)
 	return &Slot{
 		Id: 				slotId,
 		ValidatorAddress: 	common.HexToAddress(validatorAddress),
-		TotalAmount: 		totalAmount,
-		AvailableAmount: 	availableAmount,
+		TotalAmount: 		t,
+		AvailableAmount: 	a,
 		ProposedRoi: 		proposedRoi,
 		State:       		state,
 		CreatedAt: 			createdAt,
@@ -271,18 +283,22 @@ func GetSlots() (slots []*Slot) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var slotId, validatorAddress, state, createdAt, updatedAt string
-		var totalAmount, availableAmount, proposedRoi int64
+		var slotId, validatorAddress, state, createdAt, updatedAt, totalAmount, availableAmount string
+		var proposedRoi int64
 		err = rows.Scan(&slotId, &validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
 
+		t := new(big.Int)
+		t.SetString(totalAmount, 10)
+		a := new(big.Int)
+		a.SetString(availableAmount, 10)
 		slot := &Slot{
 			Id:               slotId,
 			ValidatorAddress: common.HexToAddress(validatorAddress),
-			TotalAmount:      totalAmount,
-			AvailableAmount:  availableAmount,
+			TotalAmount:      t,
+			AvailableAmount:  a,
 			ProposedRoi:      proposedRoi,
 			State:            state,
 			CreatedAt:        createdAt,
@@ -304,18 +320,22 @@ func GetSlotsByValidator(validatorAddress common.Address) (slots []*Slot) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var slotId, state, createdAt, updatedAt string
-		var totalAmount, availableAmount, proposedRoi int64
+		var slotId, state, createdAt, updatedAt, totalAmount, availableAmount string
+		var proposedRoi int64
 		err = rows.Scan(&slotId, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
 
+		t := new(big.Int)
+		t.SetString(totalAmount, 10)
+		a := new(big.Int)
+		a.SetString(availableAmount, 10)
 		slot := &Slot{
 			Id:               slotId,
 			ValidatorAddress: validatorAddress,
-			TotalAmount:      totalAmount,
-			AvailableAmount:  availableAmount,
+			TotalAmount:      t,
+			AvailableAmount:  a,
 			ProposedRoi:      proposedRoi,
 			State:            state,
 			CreatedAt:        createdAt,
@@ -357,8 +377,7 @@ func GetSlotDelegate(delegatorAddress common.Address, slotId string) *SlotDelega
 	}
 	defer stmt.Close()
 
-	var createdAt, updatedAt string
-	var amount int64
+	var createdAt, updatedAt, amount string
 	err = stmt.QueryRow(slotId, delegatorAddress.String()).Scan(&amount, &createdAt, &updatedAt)
 	switch {
 	case err == sql.ErrNoRows:
@@ -367,10 +386,12 @@ func GetSlotDelegate(delegatorAddress common.Address, slotId string) *SlotDelega
 		panic(err)
 	}
 
+	a := new(big.Int)
+	a.SetString(amount, 10)
 	return &SlotDelegate{
 		DelegatorAddress: delegatorAddress,
 		SlotId:           slotId,
-		Amount:           amount,
+		Amount:           a,
 		CreatedAt:        createdAt,
 		UpdatedAt:        updatedAt,
 	}
@@ -387,8 +408,7 @@ func GetSlotDelegatesByAddress(delegatorAddress common.Address) (slotDelegates [
 	defer rows.Close()
 
 	for rows.Next() {
-		var slotId, delegatorAddress, createdAt, updatedAt string
-		var amount int64
+		var slotId, delegatorAddress, createdAt, updatedAt, amount string
 		err = rows.Scan(&delegatorAddress, &slotId, &amount, &createdAt, &updatedAt)
 
 		switch {
@@ -398,11 +418,13 @@ func GetSlotDelegatesByAddress(delegatorAddress common.Address) (slotDelegates [
 			panic(err)
 		}
 
+		a := new(big.Int)
+		a.SetString(amount, 10)
 		slotDelegates = append(slotDelegates,
 			&SlotDelegate{
 				DelegatorAddress: common.HexToAddress(delegatorAddress),
 				SlotId:           slotId,
-				Amount:           amount,
+				Amount:           a,
 				CreatedAt:        createdAt,
 				UpdatedAt:        updatedAt,
 			})
@@ -427,8 +449,7 @@ func GetSlotDelegatesBySlot(slotId string) (slotDelegates []*SlotDelegate) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var slotId, delegatorAddress, createdAt, updatedAt string
-		var amount int64
+		var slotId, delegatorAddress, createdAt, updatedAt, amount string
 		err = rows.Scan(&delegatorAddress, &slotId, &amount, &createdAt, &updatedAt)
 
 		switch {
@@ -438,11 +459,13 @@ func GetSlotDelegatesBySlot(slotId string) (slotDelegates []*SlotDelegate) {
 			panic(err)
 		}
 
+		a := new(big.Int)
+		a.SetString(amount, 10)
 		slotDelegates = append(slotDelegates,
 			&SlotDelegate{
 				DelegatorAddress: common.HexToAddress(delegatorAddress),
 				SlotId:           slotId,
-				Amount:           amount,
+				Amount:           a,
 				CreatedAt:        createdAt,
 				UpdatedAt:        updatedAt,
 			})
@@ -471,7 +494,7 @@ func updateSlotDelegate(slotDelegate *SlotDelegate) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slotDelegate.Amount, slotDelegate.UpdatedAt, slotDelegate.DelegatorAddress.String(), slotDelegate.SlotId)
+	_, err = stmt.Exec(slotDelegate.Amount.String(), slotDelegate.UpdatedAt, slotDelegate.DelegatorAddress.String(), slotDelegate.SlotId)
 	if err != nil {
 		panic(err)
 	}
@@ -492,7 +515,7 @@ func saveSlotDelegate(slotDelegate *SlotDelegate) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slotDelegate.DelegatorAddress.String(), slotDelegate.SlotId, slotDelegate.Amount, slotDelegate.CreatedAt, slotDelegate.UpdatedAt)
+	_, err = stmt.Exec(slotDelegate.DelegatorAddress.String(), slotDelegate.SlotId, slotDelegate.Amount.String(), slotDelegate.CreatedAt, slotDelegate.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -534,7 +557,7 @@ func saveDelegateHistory(delegateHistory DelegateHistory) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegateHistory.DelegatorAddress.String(), delegateHistory.SlotId, delegateHistory.Amount, delegateHistory.OpCode, delegateHistory.CreatedAt)
+	_, err = stmt.Exec(delegateHistory.DelegatorAddress.String(), delegateHistory.SlotId, delegateHistory.Amount.String(), delegateHistory.OpCode, delegateHistory.CreatedAt)
 	if err != nil {
 		panic(err)
 	}
