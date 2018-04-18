@@ -61,10 +61,10 @@ var (
 		Short: "Allows a candidacy to change its address",
 		RunE:  cmdEditCandidacy,
 	}
-	CmdWithdraw = &cobra.Command{
+	CmdWithdrawCandidacy = &cobra.Command{
 		Use:   "withdraw",
 		Short: "Allows a validator to withdraw",
-		RunE:  cmdWithdraw,
+		RunE:  cmdWithdrawCandidacy,
 	}
 	CmdProposeSlot = &cobra.Command{
 		Use:   "propose-slot",
@@ -114,7 +114,7 @@ func init() {
 
 	CmdEditCandidacy.Flags().AddFlagSet(fsEditCandidacy)
 
-	CmdWithdraw.Flags().AddFlagSet(fsAddr)
+	CmdWithdrawCandidacy.Flags().AddFlagSet(fsAddr)
 
 	CmdProposeSlot.Flags().AddFlagSet(fsAmount)
 	CmdProposeSlot.Flags().AddFlagSet(fsProposeSlot)
@@ -144,9 +144,9 @@ func cmdEditCandidacy(cmd *cobra.Command, args []string) error {
 	return txcmd.DoTx(tx)
 }
 
-func cmdWithdraw(cmd *cobra.Command, args []string) error {
+func cmdWithdrawCandidacy(cmd *cobra.Command, args []string) error {
 	address := common.HexToAddress(viper.GetString(FlagAddress))
-	tx := stake.NewTxWithdraw(address)
+	tx := stake.NewTxWithdrawCandidacy(address)
 	return txcmd.DoTx(tx)
 }
 
@@ -174,9 +174,10 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 
 func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 	address := common.HexToAddress(viper.GetString(FlagAddress))
-	amount := new(big.Int)
-	_, suc := amount.SetString(viper.GetString(FlagAmount), 10)
-	if !suc || amount.Cmp(big.NewInt(0)) <= 0 {
+	amount := viper.GetString(FlagAmount)
+	v := new(big.Int)
+	_, ok := v.SetString(amount, 10)
+	if !ok || v.Cmp(big.NewInt(0)) <= 0 {
 		return fmt.Errorf("amount must be positive interger")
 	}
 
@@ -190,9 +191,10 @@ func cmdProposeSlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdAcceptSlot(cmd *cobra.Command, args []string) error {
-	amount := new(big.Int)
-	_, suc := amount.SetString(viper.GetString(FlagAmount), 10)
-	if !suc || amount.Cmp(big.NewInt(0)) <= 0 {
+	amount := viper.GetString(FlagAmount)
+	v := new(big.Int)
+	_, ok := v.SetString(amount, 10)
+	if !ok || v.Cmp(big.NewInt(0)) <= 0 {
 		return fmt.Errorf("amount must be positive interger")
 	}
 
@@ -206,9 +208,10 @@ func cmdAcceptSlot(cmd *cobra.Command, args []string) error {
 }
 
 func cmdWithdrawSlot(cmd *cobra.Command, args []string) error {
-	amount := new(big.Int)
-	_, suc := amount.SetString(viper.GetString(FlagAmount), 10)
-	if !suc || amount.Cmp(big.NewInt(0)) <= 0 {
+	amount := viper.GetString(FlagAmount)
+	v := new(big.Int)
+	_, ok := v.SetString(amount, 10)
+	if !ok || v.Cmp(big.NewInt(0)) <= 0 {
 		return fmt.Errorf("amount must be positive interger")
 	}
 

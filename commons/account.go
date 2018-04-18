@@ -76,7 +76,7 @@ func TransferWithReactor(from, to common.Address, amount *big.Int, reactor utils
 	return nil
 }
 
-func GetBalance(ethereum *eth.Ethereum, addr common.Address, amount *big.Int) (*big.Int, error) {
+func GetBalance(ethereum *eth.Ethereum, addr common.Address) (*big.Int, error) {
 	state, err := ethereum.BlockChain().State()
 	if err != nil {
 		return nil, errors.Errorf("Failed to get balance: %v", err)

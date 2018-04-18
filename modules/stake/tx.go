@@ -25,7 +25,7 @@ const (
 	ByteTxCancelSlot       = 0x61
 	TypeTxDeclareCandidacy = stakingModuleName + "/declareCandidacy"
 	TypeTxEditCandidacy    = stakingModuleName + "/editCandidacy"
-	TypeTxWithdraw         = stakingModuleName + "/withdraw"
+	TypeTxWithdraw         = stakingModuleName + "/withdrawCandidacy"
 	TypeTxProposeSlot      = stakingModuleName + "/proposeSlot"
 	TypeTxAcceptSlot       = stakingModuleName + "/acceptSlot"
 	TypeTxWithdrawSlot     = stakingModuleName + "/withdrawSlot"
@@ -35,7 +35,7 @@ const (
 func init() {
 	sdk.TxMapper.RegisterImplementation(TxDeclareCandidacy{}, TypeTxDeclareCandidacy, ByteTxDeclareCandidacy)
 	sdk.TxMapper.RegisterImplementation(TxEditCandidacy{}, TypeTxEditCandidacy, ByteTxEditCandidacy)
-	sdk.TxMapper.RegisterImplementation(TxWithdraw{}, TypeTxWithdraw, ByteTxWithdraw)
+	sdk.TxMapper.RegisterImplementation(TxWithdrawCandidacy{}, TypeTxWithdraw, ByteTxWithdraw)
 	sdk.TxMapper.RegisterImplementation(TxProposeSlot{}, TypeTxProposeSlot, ByteTxProposeSlot)
 	sdk.TxMapper.RegisterImplementation(TxAcceptSlot{}, TypeTxAcceptSlot, ByteTxAcceptSlot)
 	sdk.TxMapper.RegisterImplementation(TxWithdrawSlot{}, TypeTxWithdrawSlot, ByteTxWithdrawSlot)
@@ -43,7 +43,7 @@ func init() {
 }
 
 //Verify interface at compile time
-var _, _, _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxProposeSlot{}, &TxEditCandidacy{}, &TxWithdraw{}, &TxProposeSlot{}, &TxAcceptSlot{}, &TxCancelSlot{}, &TxWithdrawSlot{}
+var _, _, _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxProposeSlot{}, &TxEditCandidacy{}, &TxWithdrawCandidacy{}, &TxProposeSlot{}, &TxAcceptSlot{}, &TxCancelSlot{}, &TxWithdrawSlot{}
 
 type TxDeclareCandidacy struct {
 	PubKey crypto.PubKey `json:"pub_key"`
@@ -85,12 +85,12 @@ func NewTxEditCandidacy(newAddress common.Address) sdk.Tx {
 
 func (tx TxEditCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
-type TxWithdraw struct {
+type TxWithdrawCandidacy struct {
 	Address common.Address `json:"address"`
 }
 
 // ValidateBasic - Check for non-empty candidate, and valid coins
-func (tx TxWithdraw) ValidateBasic() error {
+func (tx TxWithdrawCandidacy) ValidateBasic() error {
 	if len(tx.Address) == 0 {
 		return errCandidateEmpty
 	}
@@ -98,24 +98,24 @@ func (tx TxWithdraw) ValidateBasic() error {
 	return nil
 }
 
-func NewTxWithdraw(address common.Address) sdk.Tx {
-	return TxWithdraw{
+func NewTxWithdrawCandidacy(address common.Address) sdk.Tx {
+	return TxWithdrawCandidacy{
 		Address: address,
 	}.Wrap()
 }
 
 // Wrap - Wrap a Tx as a Basecoin Tx
-func (tx TxWithdraw) Wrap() sdk.Tx { return sdk.Tx{tx} }
+func (tx TxWithdrawCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxProposeSlot - struct for propose slot
 type TxProposeSlot struct {
 	ValidatorAddress      	common.Address
-	Amount      			*big.Int
+	Amount      			string
 	ProposedRoi 			int64
 }
 
 // NewTxProposeSlot - new TxProposeSlot
-func NewTxProposeSlot(validatorAddress common.Address, amount *big.Int, proposedRoi int64) sdk.Tx {
+func NewTxProposeSlot(validatorAddress common.Address, amount string, proposedRoi int64) sdk.Tx {
 	return TxProposeSlot{
 		ValidatorAddress:      	validatorAddress,
 		Amount:      			amount,
@@ -129,8 +129,9 @@ func (tx TxProposeSlot) ValidateBasic() error {
 		return errCandidateEmpty
 	}
 
-	fmt.Printf("amount: %v\n", tx.Amount)
-	if tx.Amount.Cmp(big.NewInt(0)) <= 0 {
+	amount := new(big.Int)
+	_, ok := amount.SetString(tx.Amount, 10)
+	if !ok || amount.Cmp(big.NewInt(0)) <= 0 {
 		return fmt.Errorf("amount must be positive interger")
 	}
 
@@ -145,7 +146,7 @@ func (tx TxProposeSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // SlotUpdate - struct for bonding or unbonding transactions
 type SlotUpdate struct {
-	Amount *big.Int
+	Amount string
 	SlotId string
 }
 
@@ -157,7 +158,7 @@ type TxAcceptSlot struct {
 	SlotUpdate
 }
 
-func NewTxAcceptSlot(amount *big.Int, slotId string) sdk.Tx {
+func NewTxAcceptSlot(amount string, slotId string) sdk.Tx {
 	return TxAcceptSlot{ SlotUpdate{
 			Amount: amount,
 			SlotId: slotId,
@@ -171,7 +172,7 @@ type TxWithdrawSlot struct {
 	SlotUpdate
 }
 
-func NewTxWithdrawSlot(amount *big.Int, slotId string) sdk.Tx {
+func NewTxWithdrawSlot(amount string, slotId string) sdk.Tx {
 	return TxWithdrawSlot{ SlotUpdate{
 		Amount: amount,
 		SlotId: slotId,

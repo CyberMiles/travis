@@ -25,7 +25,6 @@ func (SigWrapper) Wrap(tx sdk.Tx) (res sdk.Tx, err error) {
 		res = auth.NewSig(tx).Wrap()
 	} else {
 		//res = auth.NewMulti(tx).Wrap()
-		// todo
 	}
 	return
 }

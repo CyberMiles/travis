@@ -42,7 +42,7 @@ func prepareClientCommands() {
 	txcmd.RootCmd.AddCommand(
 		stakecmd.CmdDeclareCandidacy,
 		stakecmd.CmdEditCandidacy,
-		stakecmd.CmdWithdraw,
+		stakecmd.CmdWithdrawCandidacy,
 		stakecmd.CmdProposeSlot,
 		stakecmd.CmdAcceptSlot,
 		stakecmd.CmdWithdrawSlot,

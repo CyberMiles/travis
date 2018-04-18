@@ -33,12 +33,6 @@ func GetTickStartCmd(ticker sdk.Ticker) *cobra.Command {
 // nolint TODO: move to config file
 const EyesCacheSize = 10000
 
-var (
-	// Handler - use a global to store the handler, so we can set it in main.
-	// TODO: figure out a cleaner way to register plugins
-	Handler sdk.Handler
-)
-
 //returns the start command which uses the tick
 func tickStartCmd(ticker sdk.Ticker) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {

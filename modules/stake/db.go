@@ -30,7 +30,8 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	}
 	defer stmt.Close()
 
-	var pubKey, state, createdAt, updatedAt, shares, votingPower string
+	var pubKey, state, createdAt, updatedAt, shares string
+	var votingPower int64
 	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &state, &createdAt, &updatedAt)
 
 	switch {
@@ -43,13 +44,11 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	pk, _ := GetPubKey(pubKey)
 	s := new(big.Int)
 	s.SetString(shares, 10)
-	v := new(big.Int)
-	v.SetString(votingPower, 10)
 	return &Candidate{
 		PubKey:       pk,
 		OwnerAddress: address,
 		Shares:       s,
-		VotingPower:  v,
+		VotingPower:  votingPower,
 		State:        state,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
@@ -65,7 +64,8 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 	}
 	defer stmt.Close()
 
-	var address, state, createdAt, updatedAt, shares, votingPower string
+	var address, state, createdAt, updatedAt, shares string
+	var votingPower int64
 	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &state, &createdAt, &updatedAt)
 	switch {
 	case err == sql.ErrNoRows:
@@ -77,13 +77,11 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 	pk, _ := GetPubKey(pubKey)
 	s := new(big.Int)
 	s.SetString(shares, 10)
-	v := new(big.Int)
-	v.SetString(votingPower, 10)
 	return &Candidate{
 		PubKey:       pk,
 		OwnerAddress: common.HexToAddress(address),
 		Shares:       s,
-		VotingPower:  v,
+		VotingPower:  votingPower,
 		State:        state,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
@@ -101,7 +99,8 @@ func GetCandidates() (candidates Candidates) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var pubKey, ownerAddress, state, createdAt, updatedAt, shares, votingPower string
+		var pubKey, ownerAddress, state, createdAt, updatedAt, shares string
+		var votingPower int64
 		err = rows.Scan(&pubKey, &ownerAddress, &shares, &votingPower, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
@@ -110,14 +109,12 @@ func GetCandidates() (candidates Candidates) {
 		pk, _ := GetPubKey(pubKey)
 		s := new(big.Int)
 		s.SetString(shares, 10)
-		v := new(big.Int)
-		v.SetString(votingPower, 10)
 		candidate := &Candidate{
 			PubKey: pk,
 			//OwnerAddress:       NewActor(bs),
 			OwnerAddress: common.HexToAddress(ownerAddress),
 			Shares:       s,
-			VotingPower:  v,
+			VotingPower:  votingPower,
 			State:        state,
 			CreatedAt:    createdAt,
 			UpdatedAt:    updatedAt,
@@ -148,7 +145,7 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.OwnerAddress.String(), candidate.Shares.String(), candidate.VotingPower.String(), candidate.State, candidate.CreatedAt, candidate.UpdatedAt)
+	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.OwnerAddress.String(), candidate.Shares.String(), candidate.VotingPower, candidate.State, candidate.CreatedAt, candidate.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -169,7 +166,7 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.OwnerAddress.String(), candidate.Shares.String(), candidate.VotingPower.String(), candidate.State, candidate.UpdatedAt, candidate.PubKey.KeyString())
+	_, err = stmt.Exec(candidate.OwnerAddress.String(), candidate.Shares.String(), candidate.VotingPower, candidate.State, candidate.UpdatedAt, candidate.PubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}

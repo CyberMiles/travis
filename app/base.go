@@ -13,24 +13,25 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	abci "github.com/tendermint/abci/types"
 
-	"github.com/CyberMiles/travis/modules/stake"
-	ethapp "github.com/CyberMiles/travis/vm/app"
-	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/common"
-	ttypes	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/modules"
+	"github.com/CyberMiles/travis/modules/stake"
+	ttypes "github.com/CyberMiles/travis/types"
+	ethapp "github.com/CyberMiles/travis/vm/app"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler                	modules.Handler
-	clock                  	sdk.Ticker
-	EthApp                 	*ethapp.EthermintApplication
-	checkedTx              	map[common.Hash]*types.Transaction
-	AbsentValidatorPubKeys 	[][]byte
-	ethereum    		    *eth.Ethereum
+	handler                modules.Handler
+	clock                  sdk.Ticker
+	EthApp                 *ethapp.EthermintApplication
+	checkedTx              map[common.Hash]*types.Transaction
+	ethereum               *eth.Ethereum
+	AbsentValidators       []int32
+	ByzantineValidators    []*abci.Evidence
 }
 
 const (
@@ -38,8 +39,8 @@ const (
 )
 
 var (
-	blockAward, _ = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
-	_ abci.Application = &BaseApp{}
+	blockAward, _                  = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
+	_             abci.Application = &BaseApp{}
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
@@ -51,7 +52,6 @@ func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.
 		clock:                  clock,
 		EthApp:                 ethApp,
 		checkedTx:              make(map[common.Hash]*types.Transaction),
-		AbsentValidatorPubKeys: [][]byte{},
 		ethereum:               ethereum,
 	}
 
@@ -60,8 +60,6 @@ func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.
 
 // DeliverTx - ABCI
 func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
-	app.logger.Debug("DeliverTx")
-
 	ok, tx := isTravisTx(txBytes)
 	if !ok {
 		ok, tx, err := isEthTx(txBytes)
@@ -98,8 +96,6 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 
 // CheckTx - ABCI
 func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
-	app.logger.Debug("CheckTx")
-
 	ok, tx := isTravisTx(txBytes)
 	if !ok {
 		ok, tx, err := isEthTx(txBytes)
@@ -128,27 +124,17 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 }
 
 // BeginBlock - ABCI
-func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	app.logger.Debug("BeginBlock")
+func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	app.EthApp.BeginBlock(req)
+	app.AbsentValidators = req.AbsentValidators
+	app.ByzantineValidators = req.ByzantineValidators
 
-	resp := app.EthApp.BeginBlock(beginBlock)
-	app.logger.Debug("ethermint BeginBlock response: %v\n", resp)
-
-	app.AbsentValidatorPubKeys = [][]byte{}
-	evidences := beginBlock.ByzantineValidators
-	for _, evidence := range evidences {
-		app.AbsentValidatorPubKeys = append(app.AbsentValidatorPubKeys, evidence.GetPubKey())
-	}
 	return abci.ResponseBeginBlock{}
 }
 
 // EndBlock - ABCI - triggers Tick actions
-func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-	app.logger.Debug("EndBlock")
-
-	//resp, _ := app.client.EndBlockSync(endBlock)
-	resp := app.EthApp.EndBlock(endBlock)
-	app.logger.Debug("ethermint EndBlock response: %v\n", resp)
+func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+	app.EthApp.EndBlock(req)
 
 	// execute tick if present
 	if app.clock != nil {
@@ -166,33 +152,25 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 	}
 
 	// block award
-	// fixme exclude absent validators
-	var validatorPubKeys [][]byte
-	ratioMap := stake.CalValidatorsStakeRatio(app.Append(), validatorPubKeys)
-	for k, v := range ratioMap {
-		awardAmount := big.NewInt(0)
-		intv := int64(1000 * v)
-		awardAmount.Mul(blockAward, big.NewInt(intv))
-		awardAmount.Div(awardAmount, big.NewInt(1000))
-		utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
-			From: stake.DefaultHoldAccount, To: common.HexToAddress(k), Amount: awardAmount})
+	validators := stake.GetCandidates().Validators()
+	for _, i := range app.AbsentValidators {
+		validators.Remove(i)
 	}
+	stake.NewAwardCalculator(app.WorkingHeight(), validators, utils.BlockGasFee).AwardAll()
 
-	// todo send StateChangeQueue to VM
+	// todo punish Byzantine validators
 
-	return app.StoreApp.EndBlock(endBlock)
+	return app.StoreApp.EndBlock(req)
 }
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
-	app.logger.Debug("Commit")
-
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	app.EthApp.Commit()
 	//var hash = resp.Data
 	//app.logger.Debug("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
 
-	resp := app.StoreApp.Commit()
-	return resp
+	res = app.StoreApp.Commit()
+	return
 }
 
 func (app *BaseApp) InitState(module, key, value string) error {

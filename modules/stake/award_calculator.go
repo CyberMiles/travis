@@ -1,48 +1,47 @@
 package stake
 
 import (
-	"github.com/tendermint/go-crypto"
-	"math"
-	"github.com/ethereum/go-ethereum/common"
-	"math/big"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/common"
+	"math"
+	"math/big"
 )
 
 type awardCalculator struct {
 	height          int64
-	validators      []crypto.PubKey
+	validators      Validators
 	transactionFees *big.Int
 }
 
 type validator struct {
-	stake *big.Int
-	ownerAddress common.Address
+	stake           *big.Int
+	ownerAddress    common.Address
 	stakePercentage float64
-	delegators []delegator
+	delegators      []delegator
 }
 
 type delegator struct {
-	address common.Address
-	slotId string
-	amount *big.Int
+	address     common.Address
+	slotId      string
+	amount      *big.Int
 	proposedRoi int64
 }
 
 const (
-	inflationRate     = 8
-	yearlyBlockNumber = 365 * 24 * 3600 / 10
-	basicMintAmount   = "1000000000000000000000000000"
+	inflationRate       = 8
+	yearlyBlockNumber   = 365 * 24 * 3600 / 10
+	basicMintableAmount = "1000000000000000000000000000"
 )
 
-func NewAwardCalculator(height int64, validators []crypto.PubKey, transacationFees *big.Int) *awardCalculator {
-	return &awardCalculator{height, validators, transacationFees}
+func NewAwardCalculator(height int64, validators Validators, transactionFees *big.Int) *awardCalculator {
+	return &awardCalculator{height, validators, transactionFees}
 }
 
 func (ac awardCalculator) getMintableAmount() *big.Int {
 	val := new(big.Float)
-	bma, _ := val.SetString(basicMintAmount)
-	year := ac.height/yearlyBlockNumber
+	bma, _ := val.SetString(basicMintableAmount)
+	year := ac.height / yearlyBlockNumber
 	pow := big.NewFloat(math.Pow(float64(1+inflationRate/100), float64(year)))
 	result := new(big.Int)
 	z := new(big.Float)
@@ -64,9 +63,9 @@ func (ac awardCalculator) AwardAll() {
 	var delegators []delegator
 	var totalStakes *big.Int
 
-	for _, pk := range ac.validators {
+	for _, val := range ac.validators {
 		var validator validator
-		candidate := GetCandidateByPubKey(pk.KeyString())
+		candidate := GetCandidateByPubKey(val.PubKey.KeyString())
 		if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 			continue
 		}

@@ -31,7 +31,7 @@ func Name() string {
 type delegatedProofOfStake interface {
 	declareCandidacy(TxDeclareCandidacy) error
 	editCandidacy(TxEditCandidacy) error
-	withdraw(TxWithdraw) error
+	withdrawCandidacy(TxWithdrawCandidacy) error
 	proposeSlot(TxProposeSlot, []byte) error
 	acceptSlot(TxAcceptSlot) error
 	withdrawSlot(TxWithdrawSlot) error
@@ -86,7 +86,9 @@ func setValidator(value string) error {
 		return ErrCandidateExistsAddr()
 	}
 
-	candidate := NewCandidate(val.PubKey, val.Address, val.Power, val.Power, "Y")
+	shares := new(big.Int)
+	shares.Mul(big.NewInt(val.Power), big.NewInt(1e18))
+	candidate := NewCandidate(val.PubKey, val.Address, shares, val.Power, "Y")
 	SaveCandidate(candidate)
 	return nil
 }
@@ -121,8 +123,8 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		return res, checker.declareCandidacy(txInner)
 	case TxEditCandidacy:
 		return res, checker.editCandidacy(txInner)
-	case TxWithdraw:
-		return res, checker.withdraw(txInner)
+	case TxWithdrawCandidacy:
+		return res, checker.withdrawCandidacy(txInner)
 	case TxProposeSlot:
 		err := checker.proposeSlot(txInner, []byte{})
 		return res, err
@@ -163,8 +165,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		return res, deliverer.declareCandidacy(_tx)
 	case TxEditCandidacy:
 		return res, deliverer.editCandidacy(_tx)
-	case TxWithdraw:
-		return res, deliverer.withdraw(_tx)
+	case TxWithdrawCandidacy:
+		return res, deliverer.withdrawCandidacy(_tx)
 	case TxProposeSlot:
 		err := deliverer.proposeSlot(_tx, hash)
 		res.Data = hash
@@ -224,11 +226,11 @@ func (c check) editCandidacy(tx TxEditCandidacy) error {
 	return nil
 }
 
-func (c check) withdraw(tx TxWithdraw) error {
+func (c check) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	// check to see if the address has been registered before
 	candidate := GetCandidateByAddress(tx.Address)
 	if candidate == nil {
-		return fmt.Errorf("cannot withdraw non-exsits candidacy")
+		return fmt.Errorf("cannot withdrawCandidacy non-exsits candidacy")
 	}
 
 	return nil
@@ -246,7 +248,13 @@ func (c check) withdrawSlot(tx TxWithdrawSlot) error {
 		return ErrBadSlotDelegate()
 	}
 
-	if slotDelegate.Amount.Cmp(tx.Amount) < 0 {
+	amount := new(big.Int)
+	_, ok := amount.SetString(tx.Amount, 10)
+	if !ok {
+		return ErrBadAmount()
+	}
+
+	if slotDelegate.Amount.Cmp(amount) < 0 {
 		return ErrInsufficientFunds()
 	}
 	return nil
@@ -267,12 +275,18 @@ func (c check) acceptSlot(tx TxAcceptSlot) error {
 		return ErrBadSlot()
 	}
 
-	balance, err := commons.GetBalance(c.ethereum, c.sender, tx.Amount)
+	balance, err := commons.GetBalance(c.ethereum, c.sender)
 	if err != nil {
 		return err
 	}
 
-	if balance.Cmp(tx.Amount) < 0 {
+	amount := new(big.Int)
+	_, ok := amount.SetString(tx.Amount, 10)
+	if !ok {
+		return ErrBadAmount()
+	}
+
+	if balance.Cmp(amount) < 0 {
 		return ErrInsufficientFunds()
 	}
 	return nil
@@ -312,7 +326,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	}
 
 	if candidate == nil {
-		candidate = NewCandidate(tx.PubKey, d.sender, big.NewInt(0), big.NewInt(0), "Y")
+		candidate = NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, "Y")
 		SaveCandidate(candidate)
 	} else {
 		candidate.State = "Y"
@@ -339,7 +353,7 @@ func (d deliver) editCandidacy(tx TxEditCandidacy) error {
 	return nil
 }
 
-func (d deliver) withdraw(tx TxWithdraw) error {
+func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 
 	// create and save the empty candidate
 	validatorAddress := d.sender
@@ -367,7 +381,6 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		updateSlot(slot)
 	}
 	//candidate.Shares = 0
-	//candidate.VotingPower = 0
 	//candidate.UpdatedAt = utils.GetNow()
 	//candidate.State = "N"
 	//updateCandidate(candidate)
@@ -386,12 +399,18 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 		return ErrBondNotNominated()
 	}
 
-	if tx.Amount.Cmp(slot.AvailableAmount) > 0 {
+	amount := new(big.Int)
+	_, ok := amount.SetString(tx.Amount, 10)
+	if !ok {
+		return ErrBadAmount()
+	}
+
+	if amount.Cmp(slot.AvailableAmount) > 0 {
 		return ErrFullSlot()
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := commons.Transfer(d.sender, d.params.HoldAccount, tx.Amount)
+	err := commons.Transfer(d.sender, d.params.HoldAccount, amount)
 	if err != nil {
 		return err
 	}
@@ -400,18 +419,17 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	now := utils.GetNow()
 	slotDelegate := GetSlotDelegate(d.sender, tx.SlotId)
 	if slotDelegate == nil {
-		slotDelegate = &SlotDelegate{DelegatorAddress: d.sender, SlotId: tx.SlotId, Amount: tx.Amount, CreatedAt: now, UpdatedAt: now}
+		slotDelegate = &SlotDelegate{DelegatorAddress: d.sender, SlotId: tx.SlotId, Amount: amount, CreatedAt: now, UpdatedAt: now}
 		saveSlotDelegate(slotDelegate)
 	} else {
-		slotDelegate.Amount.Add(slotDelegate.Amount, tx.Amount)
+		slotDelegate.Amount.Add(slotDelegate.Amount, amount)
 		updateSlotDelegate(slotDelegate)
 	}
 
 	// Add shares to slot and candidate
-	candidate.Shares.Add(candidate.Shares, tx.Amount)
-	candidate.VotingPower.Add(candidate.VotingPower, tx.Amount)
-	slot.AvailableAmount.Sub(slot.AvailableAmount, tx.Amount)
-	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "accept", now}
+	candidate.Shares.Add(candidate.Shares, amount)
+	slot.AvailableAmount.Sub(slot.AvailableAmount, amount)
+	delegateHistory := DelegateHistory{d.sender, tx.SlotId, amount, "accept", now}
 	updateCandidate(candidate)
 	updateSlot(slot)
 	saveDelegateHistory(delegateHistory)
@@ -439,11 +457,17 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 		return ErrNoCandidateForAddress()
 	}
 
+	amount := new(big.Int)
+	_, ok := amount.SetString(tx.Amount, 10)
+	if !ok {
+		return ErrBadAmount()
+	}
+
 	// subtract bond tokens from bond
-	if slotDelegate.Amount.Cmp(tx.Amount) < 0 {
+	if slotDelegate.Amount.Cmp(amount) < 0 {
 		return ErrInsufficientFunds()
 	}
-	slotDelegate.Amount.Sub(slotDelegate.Amount, tx.Amount)
+	slotDelegate.Amount.Sub(slotDelegate.Amount, amount)
 
 	if slotDelegate.Amount.Cmp(big.NewInt(0)) == 0 {
 		// remove the slot delegate
@@ -453,8 +477,7 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	}
 
 	// deduct shares from the candidate
-	candidate.Shares.Sub(candidate.Shares, tx.Amount)
-	candidate.VotingPower.Sub(candidate.VotingPower, tx.Amount)
+	candidate.Shares.Sub(candidate.Shares, amount)
 	if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 		//candidate.State = "N"
 		removeCandidate(candidate)
@@ -464,24 +487,30 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
-	slot.AvailableAmount.Add(slot.AvailableAmount, tx.Amount)
+	slot.AvailableAmount.Add(slot.AvailableAmount, amount)
 	slot.UpdatedAt = now
 	updateSlot(slot)
 
-	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "withdraw", now}
+	delegateHistory := DelegateHistory{d.sender, tx.SlotId, amount, "withdraw", now}
 	saveDelegateHistory(delegateHistory)
 
 	// transfer coins back to account
-	return commons.Transfer(d.params.HoldAccount, d.sender, tx.Amount)
+	return commons.Transfer(d.params.HoldAccount, d.sender, amount)
 }
 
 func (d deliver) proposeSlot(tx TxProposeSlot, hash []byte) error {
+	amount := new(big.Int)
+	_, ok := amount.SetString(tx.Amount, 10)
+	if !ok {
+		return ErrBadAmount()
+	}
+
 	now := utils.GetNow()
 	slot := &Slot{
 		Id:               hex.EncodeToString(hash),
 		ValidatorAddress: tx.ValidatorAddress,
-		TotalAmount:      tx.Amount,
-		AvailableAmount:  tx.Amount,
+		TotalAmount:      amount,
+		AvailableAmount:  amount,
 		ProposedRoi:      tx.ProposedRoi,
 		State:            "Y",
 		CreatedAt:        now,

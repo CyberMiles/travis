@@ -168,7 +168,7 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 
 func (s *CmtRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs) (sdk.Tx, error) {
 	address := common.HexToAddress(args.From)
-	tx := stake.NewTxWithdraw(address)
+	tx := stake.NewTxWithdrawCandidacy(address)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
@@ -196,10 +196,10 @@ func (s *CmtRPCService) prepareEditCandidacyTx(args EditCandidacyArgs) (sdk.Tx, 
 }
 
 type ProposeSlotArgs struct {
-	Sequence    uint32   `json:"sequence"`
-	From        string   `json:"from"`
-	Amount      *big.Int `json:"amount"`
-	ProposedRoi int64    `json:"proposedRoi"`
+	Sequence    uint32 `json:"sequence"`
+	From        string `json:"from"`
+	Amount      string `json:"amount"`
+	ProposedRoi int64  `json:"proposedRoi"`
 }
 
 func (s *CmtRPCService) ProposeSlot(args ProposeSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -217,10 +217,10 @@ func (s *CmtRPCService) prepareProposeSlotTx(args ProposeSlotArgs) (sdk.Tx, erro
 }
 
 type AcceptSlotArgs struct {
-	Sequence uint32   `json:"sequence"`
-	From     string   `json:"from"`
-	Amount   *big.Int `json:"amount"`
-	SlotId   string   `json:"slotId"`
+	Sequence uint32 `json:"sequence"`
+	From     string `json:"from"`
+	Amount   string `json:"amount"`
+	SlotId   string `json:"slotId"`
 }
 
 func (s *CmtRPCService) AcceptSlot(args AcceptSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -237,10 +237,10 @@ func (s *CmtRPCService) prepareAcceptSlotTx(args AcceptSlotArgs) (sdk.Tx, error)
 }
 
 type WithdrawSlotArgs struct {
-	Sequence uint32   `json:"sequence"`
-	From     string   `json:"from"`
-	Amount   *big.Int `json:"amount"`
-	SlotId   string   `json:"slotId"`
+	Sequence uint32 `json:"sequence"`
+	From     string `json:"from"`
+	Amount   string `json:"amount"`
+	SlotId   string `json:"slotId"`
 }
 
 func (s *CmtRPCService) WithdrawSlot(args WithdrawSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {

@@ -49,14 +49,14 @@ type Candidate struct {
 	PubKey       crypto.PubKey  `json:"pub_key"`       // Pubkey of candidate
 	OwnerAddress common.Address `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
 	Shares       *big.Int       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower  *big.Int	    `json:"voting_power"`  // Voting power if pubKey is a considered a validator
+	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
 	CreatedAt    string         `json:"created_at"`
 	UpdatedAt    string         `json:"updated_at"`
 	State        string         `json:"state"`
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares, votingPower *big.Int, state string) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, state string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
@@ -82,15 +82,12 @@ type Validator Candidate
 func (v Validator) ABCIValidator() *abci.Validator {
 	return &abci.Validator{
 		PubKey: wire.BinaryBytes(v.PubKey),
-		Power:  v.VotingPower.Int64(),
+		Power:  v.VotingPower,
 	}
 }
 
 //_________________________________________________________________________
 
-// TODO replace with sorted multistore functionality
-
-// Candidates - list of Candidates
 type Candidates []*Candidate
 
 var _ sort.Interface = Candidates{} //enforce the sort interface at compile time
@@ -104,7 +101,7 @@ func (cs Candidates) Less(i, j int) bool {
 
 	//note that all ChainId and App must be the same for a group of candidates
 	if vp1 != vp2 {
-		return vp1.Cmp(vp2) > 0
+		return vp1 > vp2
 	}
 	return bytes.Compare(pk1, pk2) == -1
 }
@@ -114,25 +111,22 @@ func (cs Candidates) Sort() {
 	sort.Sort(cs)
 }
 
-//func updateVotingPower(store state.SimpleDB) {
-//candidates := loadCandidates(store)
-//candidates.updateVotingPower(store)
-//}
-
 // update the voting power and save
 func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 
 	// update voting power
 	for _, c := range cs {
-		if c.VotingPower != c.Shares {
-			c.VotingPower = c.Shares
+		if big.NewInt(c.VotingPower).Cmp(c.Shares) != 0 {
+			v := new(big.Int)
+			v.Div(c.Shares, big.NewInt(1e18))
+			c.VotingPower = v.Int64()
 		}
 	}
 	cs.Sort()
 	for i, c := range cs {
 		// truncate the power
 		if i >= int(loadParams(store).MaxVals) {
-			c.VotingPower = big.NewInt(0)
+			c.VotingPower = 0
 		}
 		updateCandidate(c)
 	}
@@ -147,14 +141,14 @@ func (cs Candidates) Validators() Validators {
 
 	//test if empty
 	if len(cs) == 1 {
-		if cs[0].VotingPower.Cmp(big.NewInt(0)) == 0 {
+		if cs[0].VotingPower == 0 {
 			return nil
 		}
 	}
 
 	validators := make(Validators, len(cs))
 	for i, c := range cs {
-		if c.VotingPower.Cmp(big.NewInt(0)) == 0 { //exit as soon as the first Voting power set to zero is found
+		if c.VotingPower == 0 { //exit as soon as the first Voting power set to zero is found
 			return validators[:i]
 		}
 		validators[i] = c.validator()
@@ -229,6 +223,11 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validato
 	}
 
 	return changed[:n]
+}
+
+func (vs Validators) Remove(i int32) Validators {
+	copy(vs[i:], vs[i+1:])
+	return vs[:len(vs)-1]
 }
 
 // UpdateValidatorSet - Updates the voting power for the candidate set and
