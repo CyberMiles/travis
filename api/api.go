@@ -191,7 +191,7 @@ func (s *CmtRPCService) prepareEditCandidacyTx(args EditCandidacyArgs) (sdk.Tx, 
 		return sdk.Tx{}, fmt.Errorf("must provide new address")
 	}
 	address := common.HexToAddress(args.NewAddress)
-	tx := stake.NewTxEditCandidacy(address)
+	tx := stake.NewTxUpdateCandidacy(address)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 

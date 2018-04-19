@@ -16,22 +16,20 @@ import (
 
 // Params defines the high level settings for staking
 type Params struct {
-	HoldAccount      common.Address `json:"hold_account"`       // PubKey where all bonded coins are held
-	MaxVals          uint16         `json:"max_vals"`           // maximum number of validators
-	AllowedBondDenom string         `json:"allowed_bond_denom"` // bondable coin denomination
-
-	// gas costs for txs
-	Validators string `json:"validators"`
+	HoldAccount             common.Address `json:"hold_account"` // PubKey where all bonded coins are held
+	MaxVals                 uint16         `json:"max_vals"`     // maximum number of validators
+	Validators              string         `json:"validators"`   // initial validators definition
+	ReserveRequirementRatio float64        `json:"deposit_rate"`
 }
 
 var DefaultHoldAccount = common.HexToAddress("0000000000000000000000000000000000000000")
 
 func defaultParams() Params {
 	return Params{
-		HoldAccount:      DefaultHoldAccount,
-		MaxVals:          100,
-		AllowedBondDenom: "cmt",
-		Validators:       "",
+		HoldAccount:             DefaultHoldAccount,
+		MaxVals:                 100,
+		Validators:              "",
+		ReserveRequirementRatio: 0.1,
 	}
 }
 
@@ -53,10 +51,17 @@ type Candidate struct {
 	CreatedAt    string         `json:"created_at"`
 	UpdatedAt    string         `json:"updated_at"`
 	State        string         `json:"state"`
+	Description  Description    `json:"description"`
+}
+
+type Description struct {
+	Website  string `json:"website"`
+	Location string `json:"location"`
+	Details  string `json:"details"`
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, state string) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, state string, description Description) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
@@ -66,6 +71,7 @@ func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big
 		State:        state,
 		CreatedAt:    now,
 		UpdatedAt:    now,
+		Description:  description,
 	}
 }
 

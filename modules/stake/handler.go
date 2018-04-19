@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"encoding/hex"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
@@ -20,22 +19,16 @@ import (
 // nolint
 const stakingModuleName = "stake"
 
-// Name is the name of the commons.
-func Name() string {
-	return stakingModuleName
-}
-
 //_______________________________________________________________________
 
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
 	declareCandidacy(TxDeclareCandidacy) error
-	editCandidacy(TxEditCandidacy) error
+	updateCandidacy(TxUpdateCandidacy) error
 	withdrawCandidacy(TxWithdrawCandidacy) error
-	proposeSlot(TxProposeSlot, []byte) error
-	acceptSlot(TxAcceptSlot) error
-	withdrawSlot(TxWithdrawSlot) error
-	cancelSlot(TxCancelSlot) error
+	verifyCandidacy(TxVerifyCandidacy) error
+	delegate(TxDelegate) error
+	withdraw(TxWithdraw) error
 }
 
 //_______________________________________________________________________
@@ -44,21 +37,19 @@ type delegatedProofOfStake interface {
 func InitState(key, value string, store state.SimpleDB) error {
 	params := loadParams(store)
 	switch key {
-	case "allowed_bond_denom":
-		params.AllowedBondDenom = value
-	case "max_vals",
-		"gas_bond",
-		"gas_unbond":
-
+	case "reserve_requirement_ratio":
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("input must be float, Error: %v", err.Error())
+		}
+		params.ReserveRequirementRatio = v
+	case "max_vals":
 		i, err := strconv.Atoi(value)
 		if err != nil {
 			return fmt.Errorf("input must be integer, Error: %v", err.Error())
 		}
 
-		switch key {
-		case "max_vals":
-			params.MaxVals = uint16(i)
-		}
+		params.MaxVals = uint16(i)
 	case "validator":
 		setValidator(value)
 	default:
@@ -88,14 +79,13 @@ func setValidator(value string) error {
 
 	shares := new(big.Int)
 	shares.Mul(big.NewInt(val.Power), big.NewInt(1e18))
-	candidate := NewCandidate(val.PubKey, val.Address, shares, val.Power, "Y")
+	candidate := NewCandidate(val.PubKey, val.Address, shares, val.Power, "Y", Description{})
 	SaveCandidate(candidate)
 	return nil
 }
 
 // CheckTx checks if the tx is properly structured
 func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckResult, err error) {
-
 	err = tx.ValidateBasic()
 	if err != nil {
 		return res, err
@@ -108,8 +98,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 	}
 
 	params := loadParams(store)
-
-	// create the new checker object to
 	checker := check{
 		store:    store,
 		sender:   sender,
@@ -117,23 +105,19 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		ethereum: ctx.Ethereum(),
 	}
 
-	// return the fee for each tx type
 	switch txInner := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
 		return res, checker.declareCandidacy(txInner)
-	case TxEditCandidacy:
-		return res, checker.editCandidacy(txInner)
+	case TxUpdateCandidacy:
+		return res, checker.updateCandidacy(txInner)
 	case TxWithdrawCandidacy:
 		return res, checker.withdrawCandidacy(txInner)
-	case TxProposeSlot:
-		err := checker.proposeSlot(txInner, []byte{})
-		return res, err
-	case TxAcceptSlot:
-		return res, checker.acceptSlot(txInner)
-	case TxWithdrawSlot:
-		return res, checker.withdrawSlot(txInner)
-	case TxCancelSlot:
-		return res, checker.cancelSlot(txInner)
+	case TxVerifyCandidacy:
+		return res, checker.verifyCandidacy(txInner)
+	case TxDelegate:
+		return res, checker.delegate(txInner)
+	case TxWithdraw:
+		return res, checker.withdraw(txInner)
 	}
 
 	return res, errors.ErrUnknownTxType(tx)
@@ -163,20 +147,16 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 	switch _tx := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
 		return res, deliverer.declareCandidacy(_tx)
-	case TxEditCandidacy:
-		return res, deliverer.editCandidacy(_tx)
+	case TxUpdateCandidacy:
+		return res, deliverer.updateCandidacy(_tx)
 	case TxWithdrawCandidacy:
 		return res, deliverer.withdrawCandidacy(_tx)
-	case TxProposeSlot:
-		err := deliverer.proposeSlot(_tx, hash)
-		res.Data = hash
-		return res, err
-	case TxAcceptSlot:
-		return res, deliverer.acceptSlot(_tx)
-	case TxWithdrawSlot:
-		return res, deliverer.withdrawSlot(_tx)
-	case TxCancelSlot:
-		return res, deliverer.cancelSlot(_tx)
+	case TxVerifyCandidacy:
+		return res, deliverer.verifyCandidacy(_tx)
+	case TxDelegate:
+		return res, deliverer.delegate(_tx)
+	case TxWithdraw:
+		return res, deliverer.withdraw(_tx)
 	}
 
 	return
@@ -214,67 +194,46 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 		return fmt.Errorf("pubkey has been declared")
 	}
 
+	// todo check to see if the associated account has 10%(RRR, short for Reserve Requirement Ratio, configurable) of the max staked CMT amount
+
 	return nil
 }
 
-func (c check) editCandidacy(tx TxEditCandidacy) error {
+func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
 		return fmt.Errorf("cannot edit non-exsits candidacy")
 	}
+
+	// todo check if account address changes, if doesn't, raise error
+
+	// todo if the max amount of CMTs is updated, check if the associated account has enough CMT amount(RRR)
 
 	return nil
 }
 
 func (c check) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	// check to see if the address has been registered before
-	candidate := GetCandidateByAddress(tx.Address)
+	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
-		return fmt.Errorf("cannot withdrawCandidacy non-exsits candidacy")
+		return fmt.Errorf("cannot withdraw non-exsits candidacy")
 	}
 
 	return nil
 }
 
-func (c check) withdrawSlot(tx TxWithdrawSlot) error {
-	slot := GetSlot(tx.SlotId)
-	if slot == nil {
-		return ErrBadSlot()
-	}
-
-	// check if have enough shares to unbond
-	slotDelegate := GetSlotDelegate(c.sender, tx.SlotId)
-	if slotDelegate == nil {
-		return ErrBadSlotDelegate()
-	}
-
-	amount := new(big.Int)
-	_, ok := amount.SetString(tx.Amount, 10)
-	if !ok {
-		return ErrBadAmount()
-	}
-
-	if slotDelegate.Amount.Cmp(amount) < 0 {
-		return ErrInsufficientFunds()
-	}
-	return nil
-}
-
-func (c check) proposeSlot(tx TxProposeSlot, hash []byte) error {
-	candidate := GetCandidateByAddress(tx.ValidatorAddress)
+func (c check) verifyCandidacy(tx TxVerifyCandidacy) error {
+	// check to see if the candidate address to be verified has been registered before
+	candidate := GetCandidateByAddress(tx.CandidateAddress)
 	if candidate == nil {
-		return fmt.Errorf("cannot propose slot for non-existant validator address %v", tx.ValidatorAddress)
+		return fmt.Errorf("cannot verify non-exsits candidacy")
 	}
 
 	return nil
 }
 
-func (c check) acceptSlot(tx TxAcceptSlot) error {
-	slot := GetSlot(tx.SlotId)
-	if slot == nil {
-		return ErrBadSlot()
-	}
-
+func (c check) delegate(tx TxDelegate) error {
+	// check if the delegator has sufficient funds
 	balance, err := commons.GetBalance(c.ethereum, c.sender)
 	if err != nil {
 		return err
@@ -289,18 +248,14 @@ func (c check) acceptSlot(tx TxAcceptSlot) error {
 	if balance.Cmp(amount) < 0 {
 		return ErrInsufficientFunds()
 	}
+
+	// todo check to see if the validator has reached its declared max amount CMTs to be staked.
+
 	return nil
 }
 
-func (c check) cancelSlot(tx TxCancelSlot) error {
-	slot := GetSlot(tx.SlotId)
-	if slot == nil {
-		return ErrBadSlot()
-	}
-
-	if slot.State == "N" {
-		return ErrCancelledSlot()
-	}
+func (c check) withdraw(tx TxWithdraw) error {
+	// todo check if has delegated
 
 	return nil
 }
@@ -338,7 +293,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	return nil
 }
 
-func (d deliver) editCandidacy(tx TxEditCandidacy) error {
+func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 
 	// create and save the empty candidate
 	candidate := GetCandidateByAddress(d.sender)
@@ -389,7 +344,27 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	return nil
 }
 
-func (d deliver) acceptSlot(tx TxAcceptSlot) error {
+func (d deliver) verifyCandidacy(tx TxVerifyCandidacy) error {
+	slot := GetSlot(tx.SlotId)
+	if slot == nil {
+		return ErrBadSlot()
+	}
+
+	removeSlot(slot)
+
+	//if slot.State == "N" {
+	//	return ErrCancelledSlot()
+	//}
+	//
+	//slot.AvailableAmount = 0
+	//slot.State = "N"
+	//slot.UpdatedAt = utils.GetNow()
+	//updateSlot(slot)
+
+	return nil
+}
+
+func (d deliver) delegate(tx TxDelegate) error {
 	// Get the slot
 	slot := GetSlot(tx.SlotId)
 
@@ -437,7 +412,7 @@ func (d deliver) acceptSlot(tx TxAcceptSlot) error {
 	return nil
 }
 
-func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
+func (d deliver) withdraw(tx TxWithdraw) error {
 	// Get the slot
 	slot := GetSlot(tx.SlotId)
 
@@ -496,46 +471,4 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 
 	// transfer coins back to account
 	return commons.Transfer(d.params.HoldAccount, d.sender, amount)
-}
-
-func (d deliver) proposeSlot(tx TxProposeSlot, hash []byte) error {
-	amount := new(big.Int)
-	_, ok := amount.SetString(tx.Amount, 10)
-	if !ok {
-		return ErrBadAmount()
-	}
-
-	now := utils.GetNow()
-	slot := &Slot{
-		Id:               hex.EncodeToString(hash),
-		ValidatorAddress: tx.ValidatorAddress,
-		TotalAmount:      amount,
-		AvailableAmount:  amount,
-		ProposedRoi:      tx.ProposedRoi,
-		State:            "Y",
-		CreatedAt:        now,
-		UpdatedAt:        now,
-	}
-	saveSlot(slot)
-	return nil
-}
-
-func (d deliver) cancelSlot(tx TxCancelSlot) error {
-	slot := GetSlot(tx.SlotId)
-	if slot == nil {
-		return ErrBadSlot()
-	}
-
-	removeSlot(slot)
-
-	//if slot.State == "N" {
-	//	return ErrCancelledSlot()
-	//}
-	//
-	//slot.AvailableAmount = 0
-	//slot.State = "N"
-	//slot.UpdatedAt = utils.GetNow()
-	//updateSlot(slot)
-
-	return nil
 }
