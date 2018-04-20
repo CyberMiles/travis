@@ -205,9 +205,8 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 		return fmt.Errorf("cannot edit non-exsits candidacy")
 	}
 
-	// todo check if account address changes, if doesn't, raise error
-
-	// todo if the max amount of CMTs is updated, check if the associated account has enough CMT amount(RRR)
+	// todo If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
+	// and the different will be charged or refunded from / into the new account address.
 
 	return nil
 }
@@ -228,6 +227,8 @@ func (c check) verifyCandidacy(tx TxVerifyCandidacy) error {
 	if candidate == nil {
 		return fmt.Errorf("cannot verify non-exsits candidacy")
 	}
+
+	// todo check to see if the request was initiated by a special account
 
 	return nil
 }
@@ -281,7 +282,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	}
 
 	if candidate == nil {
-		candidate = NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, "Y")
+		candidate = NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, "Y", tx.Description)
 		SaveCandidate(candidate)
 	} else {
 		candidate.State = "Y"
@@ -289,6 +290,8 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 		candidate.UpdatedAt = utils.GetNow()
 		updateCandidate(candidate)
 	}
+
+	// todo delegate a part of the max staked CMT amount
 
 	return nil
 }
@@ -305,6 +308,8 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)
 
+	// todo if the max amount of CMTs is updated, check if the associated account has enough CMT amount(RRR)
+
 	return nil
 }
 
@@ -318,6 +323,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	}
 
 	// All staked tokens will be distributed back to delegator addresses.
+	// Self-staked CMTs will be refunded back to the validator address.
 	slots := GetSlotsByValidator(validatorAddress)
 	for _, slot := range slots {
 		slotId := slot.Id
@@ -345,21 +351,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 }
 
 func (d deliver) verifyCandidacy(tx TxVerifyCandidacy) error {
-	slot := GetSlot(tx.SlotId)
-	if slot == nil {
-		return ErrBadSlot()
-	}
-
-	removeSlot(slot)
-
-	//if slot.State == "N" {
-	//	return ErrCancelledSlot()
-	//}
-	//
-	//slot.AvailableAmount = 0
-	//slot.State = "N"
-	//slot.UpdatedAt = utils.GetNow()
-	//updateSlot(slot)
+	// todo verify candidacy
 
 	return nil
 }

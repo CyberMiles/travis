@@ -48,9 +48,10 @@ type Candidate struct {
 	OwnerAddress common.Address `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
 	Shares       *big.Int       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
+	MaxShares    *big.Int       `json:"max_shares"`
+	Cut          float64        `json:"cut"`
 	CreatedAt    string         `json:"created_at"`
 	UpdatedAt    string         `json:"updated_at"`
-	State        string         `json:"state"`
 	Description  Description    `json:"description"`
 }
 
@@ -61,14 +62,15 @@ type Description struct {
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, state string, description Description) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, maxShares *big.Int, cut float64, description Description) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
 		OwnerAddress: ownerAddress,
 		Shares:       shares,
 		VotingPower:  votingPower,
-		State:        state,
+		MaxShares:    maxShares,
+		Cut:          cut,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 		Description:  description,
@@ -252,29 +254,24 @@ func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err err
 
 //_________________________________________________________________________
 
-type Slot struct {
-	Id               string
-	ValidatorAddress common.Address
-	TotalAmount      *big.Int
-	AvailableAmount  *big.Int
-	ProposedRoi      int64
-	State            string
-	CreatedAt        string
-	UpdatedAt        string
+type Delegator struct {
+	Address   common.Address
+	CreatedAt string
 }
 
-type SlotDelegate struct {
+type Delegation struct {
 	DelegatorAddress common.Address
-	SlotId           string
-	Amount           *big.Int
+	CandidateAddress common.Address
+	Shares           *big.Int
 	CreatedAt        string
 	UpdatedAt        string
 }
 
 type DelegateHistory struct {
+	Id               int64
 	DelegatorAddress common.Address
-	SlotId           string
-	Amount           *big.Int
+	CandidateAddress common.Address
+	Shares           *big.Int
 	OpCode           string
 	CreatedAt        string
 }
