@@ -62,6 +62,8 @@ func DoTx(tx sdk.Tx) (err error) {
 		return err
 	}
 
+	txJSON, err := tx.MarshalJSON()
+	fmt.Printf("Signed Tx: %s\n",  txJSON)
 	bres, err := PrepareOrPostTx(tx)
 	if err != nil {
 		return err
