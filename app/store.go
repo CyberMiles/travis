@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/modules/governance"
+	"encoding/hex"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -175,6 +176,10 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/store", "/key": // Get by key
 		key := reqQuery.Data // Data holds the key bytes
 		resQuery.Key = key
+		value := app.state.Check().Get(key)
+		fmt.Printf("Check Value: %s\n", hex.EncodeToString(value))
+		resQuery.Value = value
+		/*
 		if reqQuery.Prove {
 			value, proof, err := tree.GetVersionedWithProof(key, height)
 			if err != nil {
@@ -186,7 +191,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		} else {
 			value := tree.Get(key)
 			resQuery.Value = value
-		}
+		}*/
 	case "/slot":
 		slotId := string(reqQuery.Data)
 		slot := stake.GetSlot(slotId)
