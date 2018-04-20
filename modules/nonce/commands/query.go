@@ -7,11 +7,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk/client"
+	_ "github.com/cosmos/cosmos-sdk/client"
 	"github.com/CyberMiles/travis/client/commands"
 	"github.com/cosmos/cosmos-sdk/client/commands/query"
 	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/ethereum/go-ethereum/common"
+	"fmt"
 )
 
 // NonceQueryCmd - command to query an nonce account
@@ -46,8 +47,12 @@ func doNonceQuery(signers []common.Address) (sequence uint32, height int64, err 
 	key := nonce.GetSeqKey(signers)
 	//fmt.Printf("doNonceQuery, after prefixed: %s\n", hex.EncodeToString(key))
 	prove := !viper.GetBool(commands.FlagTrustNode)
+	prove = false
 	height, err = query.GetParsed(key, &sequence, query.GetHeight(), prove)
-	if client.IsNoDataErr(err) {
+	//if client.IsNoDataErr(err) {
+	// TODO: not accuracy, temp
+	if err != nil {
+		fmt.Printf("ERROR in doNonceQuery: %+v\n", err)
 		// no data, return sequence 0
 		return 0, 0, nil
 	}
