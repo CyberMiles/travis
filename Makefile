@@ -1,11 +1,15 @@
 GOTOOLS = github.com/Masterminds/glide
 
-all: get_vendor_deps install
+all: 
+        @echo "--> Installing the CyberMiles Travis TestNet"
+	get_vendor_deps 
+	install
+	@echo "--> Installation has completed successfully."
 
-get_vendor_deps: tools
+get_vendor_deps: 
+        @echo "--> Installing dependencies"
+        tools
 	glide install
-	# cannot use ctx (type *"gopkg.in/urfave/cli.v1".Context) as type
-	# *"github.com/CyberMiles/travis/vendor/github.com/ethereum/go-ethereum/vendor/gopkg.in/urfave/cli.v1".Context ...
 	rm -rf vendor/github.com/ethereum/go-ethereum/vendor/gopkg.in/urfave
 
 install:
