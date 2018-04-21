@@ -6,7 +6,7 @@ all:
 	install
 	@echo "--> Installation has completed successfully."
 
-get_vendor_deps: 
+get_vendor_deps:
 	@echo "--> Installing dependencies"
 	tools
 	glide install
