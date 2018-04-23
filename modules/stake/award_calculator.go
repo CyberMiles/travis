@@ -15,17 +15,17 @@ type awardCalculator struct {
 }
 
 type validator struct {
-	stake           *big.Int
-	ownerAddress    common.Address
-	stakePercentage float64
-	delegators      []delegator
+	shares           *big.Int
+	ownerAddress     common.Address
+	sharesPercentage float64
+	delegators       []delegator
+	cut              float64
 }
 
 type delegator struct {
-	address     common.Address
-	slotId      string
-	amount      *big.Int
-	proposedRoi int64
+	address common.Address
+	slotId  string
+	shares  *big.Int
 }
 
 const (
@@ -61,7 +61,7 @@ func (ac awardCalculator) getTotalBlockAward() *big.Int {
 func (ac awardCalculator) AwardAll() {
 	var validators []validator
 	var delegators []delegator
-	var totalStakes *big.Int
+	var totalShares *big.Int
 
 	for _, val := range ac.validators {
 		var validator validator
@@ -70,21 +70,18 @@ func (ac awardCalculator) AwardAll() {
 			continue
 		}
 
-		validator.stake = candidate.Shares
+		validator.shares = candidate.Shares
 		validator.ownerAddress = candidate.OwnerAddress
-		totalStakes.Add(totalStakes, candidate.Shares)
+		validator.cut = candidate.Cut
+		totalShares.Add(totalShares, candidate.Shares)
 
-		slots := GetSlotsByValidator(candidate.OwnerAddress)
-		for _, slot := range slots {
-			delegates := GetSlotDelegatesBySlot(slot.Id)
-			for _, delegate := range delegates {
-				delegator := delegator{}
-				delegator.address = delegate.DelegatorAddress
-				delegator.slotId = delegate.SlotId
-				delegator.amount = delegate.Amount
-				delegator.proposedRoi = slot.ProposedRoi
-				delegators = append(delegators, delegator)
-			}
+		// Get all of the delegators
+		delegations := GetDelegationsByCandidate(candidate.OwnerAddress)
+		for _, delegation := range delegations {
+			delegator := delegator{}
+			delegator.address = delegation.DelegatorAddress
+			delegator.shares = delegation.Shares
+			delegators = append(delegators, delegator)
 		}
 		validator.delegators = delegators
 		validators = append(validators, validator)
@@ -92,17 +89,18 @@ func (ac awardCalculator) AwardAll() {
 
 	for _, val := range validators {
 		var x, y *big.Float
-		x.SetString(val.stake.String())
-		y.SetString(totalStakes.String())
+		x.SetString(val.shares.String())
+		y.SetString(totalShares.String())
 		z, _ := new(big.Float).Quo(x, y).Float64()
-		val.stakePercentage = z
-		remainedAward := ac.getValidatorBlockAward(val)
+		val.sharesPercentage = z
+		blockAward := ac.getValidatorBlockAward(val)
+		remainedAward := blockAward
 
 		// award to delegators
 		for _, delegator := range val.delegators {
-			delegatorAward := ac.getDelegatorAward(delegator)
+			delegatorAward := ac.getDelegatorAward(delegator, val, blockAward)
 			remainedAward.Sub(remainedAward, delegatorAward)
-			ac.awardToDelegator(delegator, delegatorAward)
+			ac.awardToDelegator(delegator, val, delegatorAward)
 		}
 		ac.awardToValidator(val, remainedAward)
 	}
@@ -112,7 +110,7 @@ func (ac awardCalculator) getValidatorBlockAward(val validator) *big.Int {
 	var x, y *big.Float
 	x.SetString(ac.getTotalBlockAward().String())
 	y.SetString(ac.transactionFees.String())
-	percentage := big.NewFloat(val.stakePercentage)
+	percentage := big.NewFloat(val.sharesPercentage)
 
 	tmp := new(big.Float)
 	tmp.Add(x, y)
@@ -123,11 +121,17 @@ func (ac awardCalculator) getValidatorBlockAward(val validator) *big.Int {
 	return result
 }
 
-func (ac awardCalculator) getDelegatorAward(del delegator) *big.Int {
+func (ac awardCalculator) getDelegatorAward(del delegator, val validator, blockAward *big.Int) *big.Int {
+	tmp := new(big.Float)
+	x, _ := new(big.Float).SetString(del.shares.String())
+	y, _ := new(big.Float).SetString(val.shares.String())
+	tmp.Quo(x, y)
+	award, _ := new(big.Float).SetString(blockAward.String())
+	tmp.Mul(tmp, award)
+	tmp.Mul(tmp, big.NewFloat(val.cut))
+
 	result := new(big.Int)
-	result.Mul(del.amount, big.NewInt(del.proposedRoi))
-	result.Div(result, big.NewInt(100))
-	result.Div(result, big.NewInt(yearlyBlockNumber))
+	tmp.Int(result)
 	return result
 }
 
@@ -135,12 +139,12 @@ func (ac awardCalculator) awardToValidator(val validator, amount *big.Int) {
 	commons.Transfer(DefaultHoldAccount, val.ownerAddress, amount)
 }
 
-func (ac awardCalculator) awardToDelegator(del delegator, amount *big.Int) {
-	commons.Transfer(DefaultHoldAccount, del.address, amount)
+func (ac awardCalculator) awardToDelegator(del delegator, val validator, award *big.Int) {
+	commons.Transfer(DefaultHoldAccount, del.address, award)
 
 	// add award to stake of the delegator
-	slotDelegate := GetSlotDelegate(del.address, del.slotId)
-	slotDelegate.Amount = new(big.Int).Add(slotDelegate.Amount, amount)
-	slotDelegate.UpdatedAt = utils.GetNow()
-	updateSlotDelegate(slotDelegate)
+	delegation := GetDelegation(del.address, val.ownerAddress)
+	delegation.Shares.Add(delegation.Shares, award)
+	delegation.UpdatedAt = utils.GetNow()
+	UpdateDelegation(delegation)
 }

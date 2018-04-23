@@ -98,7 +98,7 @@ func init() {
 	fsAmount.String(FlagAmount, "0", "Amount of CMTs")
 
 	fsCandidate := flag.NewFlagSet("", flag.ContinueOnError)
-	fsCandidate.String(FlagMaxAmount, "0", "Max amount of CMTs to be staked")
+	fsCandidate.String(FlagMaxAmount, "", "Max amount of CMTs to be staked")
 	fsCandidate.String(FlagWebsite, "", "optional website")
 	fsCandidate.String(FlagLocation, "", "optional location")
 	fsCandidate.String(FlagDetails, "", "optional detailed description")
@@ -159,17 +159,19 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		Details:  viper.GetString(FlagDetails),
 	}
 
-	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, description)
+	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, cut, description)
 	return txcmd.DoTx(tx)
 }
 
 func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
 	newAddress := common.HexToAddress(viper.GetString(FlagNewAddress))
 	maxAmount := viper.GetString(FlagMaxAmount)
-	v := new(big.Int)
-	_, ok := v.SetString(maxAmount, 10)
-	if !ok || v.Cmp(big.NewInt(0)) <= 0 {
-		return fmt.Errorf("max-amount must be positive interger")
+	if maxAmount != "" {
+		v := new(big.Int)
+		_, ok := v.SetString(maxAmount, 10)
+		if !ok || v.Cmp(big.NewInt(0)) <= 0 {
+			return fmt.Errorf("max-amount must be positive interger")
+		}
 	}
 
 	description := stake.Description{

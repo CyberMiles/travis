@@ -42,6 +42,7 @@ var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, 
 type TxDeclareCandidacy struct {
 	PubKey    crypto.PubKey `json:"pub_key"`
 	MaxAmount string        `json:"max_amount"`
+	Cut       float64       `json:"cut"`
 	Description
 }
 
@@ -53,10 +54,11 @@ func (tx TxDeclareCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount string, descrpition Description) sdk.Tx {
+func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount string, cut float64, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
 		PubKey:      pubKey,
 		MaxAmount:   maxAmount,
+		Cut:         cut,
 		Description: descrpition,
 	}.Wrap()
 }

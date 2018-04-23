@@ -187,24 +187,6 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 			value := tree.Get(key)
 			resQuery.Value = value
 		}
-	case "/slot":
-		slotId := string(reqQuery.Data)
-		slot := stake.GetSlot(slotId)
-		if slot != nil && slot.State == "Y" {
-			resQuery.Value = wire.BinaryBytes(*slot)
-		} else {
-			resQuery.Value = []byte{}
-		}
-	case "/slots":
-		slots := stake.GetSlots()
-		var filtered []*stake.Slot
-		for _, slot := range slots {
-			if slot.State == "Y" {
-				filtered = append(filtered, slot)
-			}
-		}
-		b := wire.BinaryBytes(filtered)
-		resQuery.Value = b
 	case "/validators":
 		candidates := stake.GetCandidates()
 		b := wire.BinaryBytes(candidates)
@@ -220,8 +202,8 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		}
 	case "/delegator":
 		address := common.HexToAddress(string(reqQuery.Data))
-		slotDelegates := stake.GetSlotDelegatesByAddress(address)
-		b := wire.BinaryBytes(slotDelegates)
+		delegations := stake.GetDelegationsByCandidate(address)
+		b := wire.BinaryBytes(delegations)
 		resQuery.Value = b
 	case "/governance/proposals":
 		proposals := governance.GetProposals()
@@ -341,11 +323,11 @@ func initTravisDb() error {
 		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, max_shares text not null default '0', cut real not null default '0.0', website text not null default '', location text not null default '', details text not null default '', created_at text not null, updated_at text not null default '');
 		create unique index idx_candidates_pub_key on candidates(pub_key);
 		create table delegators(address text not null primary key, created_at text not null);
-		create table delegations(delegator_address text not null, candidate_address text not null, shares text not null default '0', created_at text not null, updated_at text not null default '')
+		create table delegations(delegator_address text not null, candidate_address text not null, shares text not null default '0', created_at text not null, updated_at text not null default '');
 		create index idx_delegations_delegator_address_candiate_address(delegator_address, candidate_address);
 		create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, candidate_address text not null, shares text not null default '0', op_code text not null default '', created_at text not null);
 		create table idx_delegate_history_delegator_address(delegator_address);
-		create table idx_delegate_history_candidate_address(candidate_address);	
+		create table idx_delegate_history_candidate_address(candidate_address);
 	
 		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null, created_at text not null, unique(proposal_id, voter) ON conflict replace);

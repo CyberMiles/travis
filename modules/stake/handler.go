@@ -17,7 +17,10 @@ import (
 )
 
 // nolint
-const stakingModuleName = "stake"
+const (
+	stakingModuleName = "stake"
+	foundationAddress = "0x" // fixme move to config file
+)
 
 //_______________________________________________________________________
 
@@ -79,7 +82,10 @@ func setValidator(value string) error {
 
 	shares := new(big.Int)
 	shares.Mul(big.NewInt(val.Power), big.NewInt(1e18))
-	candidate := NewCandidate(val.PubKey, val.Address, shares, val.Power, "Y", Description{})
+	maxShares, _ := new(big.Int).SetString(val.MaxAmount, 10)
+
+	// fixme check to see if the candidate fulfills the condition to be a validator
+	candidate := NewCandidate(val.PubKey, val.Address, shares, val.Power, maxShares, val.Cut, Description{}, "N")
 	SaveCandidate(candidate)
 	return nil
 }
@@ -185,18 +191,21 @@ var _ delegatedProofOfStake = check{} // enforce interface at compile time
 func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	// check to see if the pubkey or address has been registered before
 	candidate := GetCandidateByAddress(c.sender)
-	if candidate != nil && candidate.State == "Y" {
+	if candidate != nil {
 		return fmt.Errorf("address has been declared")
 	}
 
 	candidate = GetCandidateByPubKey(tx.PubKey.KeyString())
-	if candidate != nil && candidate.State == "Y" {
+	if candidate != nil {
 		return fmt.Errorf("pubkey has been declared")
 	}
 
-	// todo check to see if the associated account has 10%(RRR, short for Reserve Requirement Ratio, configurable) of the max staked CMT amount
-
-	return nil
+	// check to see if the associated account has 10%(RRR, short for Reserve Requirement Ratio, configurable) of the max staked CMT amount
+	rr := new(big.Float)
+	maxAmount, _ := new(big.Float).SetString(tx.MaxAmount)
+	rr.Quo(maxAmount, big.NewFloat(c.params.ReserveRequirementRatio))
+	txDelegate := TxDelegate{ValidatorAddress: c.sender, Amount: rr.String()}
+	return c.delegate(txDelegate)
 }
 
 func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
@@ -205,8 +214,24 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 		return fmt.Errorf("cannot edit non-exsits candidacy")
 	}
 
-	// todo If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
+	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
 	// and the different will be charged or refunded from / into the new account address.
+	if tx.MaxAmount != "" {
+		rr := new(big.Float)
+		maxAmount, _ := new(big.Float).SetString(tx.MaxAmount)
+		rr.Quo(maxAmount, big.NewFloat(c.params.ReserveRequirementRatio))
+		balance, err := commons.GetBalance(c.ethereum, c.sender)
+		if err != nil {
+			return err
+		}
+
+		tmp, _ := new(big.Int).SetString(rr.String(), 10)
+		if balance.Cmp(tmp) < 0 {
+			return ErrInsufficientFunds()
+		}
+	}
+
+	// todo check to see if the candidate is changed, if not, raise error.
 
 	return nil
 }
@@ -228,12 +253,24 @@ func (c check) verifyCandidacy(tx TxVerifyCandidacy) error {
 		return fmt.Errorf("cannot verify non-exsits candidacy")
 	}
 
-	// todo check to see if the request was initiated by a special account
+	// check to see if the request was initiated by a special account
+	if c.sender != common.HexToAddress(foundationAddress) {
+		return ErrVerificationDisallowed()
+	}
+
+	if candidate.Verified == "Y" {
+		return ErrVerifiedAlready()
+	}
 
 	return nil
 }
 
 func (c check) delegate(tx TxDelegate) error {
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
+	if candidate == nil {
+		return ErrNoCandidateForAddress()
+	}
+
 	// check if the delegator has sufficient funds
 	balance, err := commons.GetBalance(c.ethereum, c.sender)
 	if err != nil {
@@ -250,13 +287,27 @@ func (c check) delegate(tx TxDelegate) error {
 		return ErrInsufficientFunds()
 	}
 
-	// todo check to see if the validator has reached its declared max amount CMTs to be staked.
+	// check to see if the validator has reached its declared max amount CMTs to be staked.
+	x := new(big.Int)
+	x.Add(candidate.Shares, amount)
+	if x.Cmp(candidate.MaxShares) > 0 {
+		return ErrReachMaxAmount()
+	}
 
 	return nil
 }
 
 func (c check) withdraw(tx TxWithdraw) error {
-	// todo check if has delegated
+	// check if has delegated
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
+	if candidate == nil {
+		return ErrBadValidatorAddr()
+	}
+
+	delegation := GetDelegation(c.sender, tx.ValidatorAddress)
+	if delegation == nil {
+		return ErrDelegationNotExists()
+	}
 
 	return nil
 }
@@ -276,45 +327,63 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 // now we just perform action and save
 func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	// create and save the empty candidate
-	candidate := GetCandidateByAddress(d.sender)
-	if candidate != nil && candidate.State == "Y" {
-		return ErrCandidateExistsAddr()
+	maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
+	if !ok {
+		return ErrBadAmount()
 	}
 
-	if candidate == nil {
-		candidate = NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, "Y", tx.Description)
-		SaveCandidate(candidate)
-	} else {
-		candidate.State = "Y"
-		candidate.OwnerAddress = d.sender
-		candidate.UpdatedAt = utils.GetNow()
-		updateCandidate(candidate)
-	}
+	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, maxAmount, tx.Cut, tx.Description, "N")
+	SaveCandidate(candidate)
 
-	// todo delegate a part of the max staked CMT amount
-
-	return nil
+	// delegate a part of the max staked CMT amount
+	rr := new(big.Float)
+	maf, _ := new(big.Float).SetString(tx.MaxAmount)
+	rr.Quo(maf, big.NewFloat(d.params.ReserveRequirementRatio))
+	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: rr.String()}
+	return d.delegate(txDelegate)
 }
 
 func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
-
 	// create and save the empty candidate
 	candidate := GetCandidateByAddress(d.sender)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
 
+	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
+	// and the different will be charged or refunded from / into the new account address.
+	maxAmount, _ := new(big.Int).SetString(tx.MaxAmount, 10)
+	if candidate.MaxShares.Cmp(maxAmount) != 0 {
+		tmp := new(big.Int)
+		diff := tmp.Sub(candidate.MaxShares, maxAmount)
+		x, _ := new(big.Float).SetString(diff.String())
+		y := big.NewFloat(d.params.ReserveRequirementRatio)
+		z := new(big.Float)
+		z.Mul(x, y)
+
+		amount, _ := new(big.Int).SetString(z.String(), 10)
+		if diff.Cmp(big.NewInt(0)) > 0 {
+			// charge
+			commons.Transfer(d.sender, DefaultHoldAccount, amount)
+		} else {
+			// refund
+			commons.Transfer(DefaultHoldAccount, d.sender, amount)
+		}
+
+		candidate.MaxShares = maxAmount
+		shares := new(big.Int)
+		shares.Add(candidate.Shares, amount)
+		candidate.Shares = tmp
+	}
+
 	candidate.OwnerAddress = tx.NewAddress
+	candidate.Verified = "N"
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)
-
-	// todo if the max amount of CMTs is updated, check if the associated account has enough CMT amount(RRR)
-
 	return nil
 }
 
 func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
-
 	// create and save the empty candidate
 	validatorAddress := d.sender
 	candidate := GetCandidateByAddress(validatorAddress)
@@ -324,127 +393,85 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 
 	// All staked tokens will be distributed back to delegator addresses.
 	// Self-staked CMTs will be refunded back to the validator address.
-	slots := GetSlotsByValidator(validatorAddress)
-	for _, slot := range slots {
-		slotId := slot.Id
-		delegates := GetSlotDelegatesBySlot(slotId)
-		for _, delegate := range delegates {
-			err := commons.Transfer(d.params.HoldAccount, delegate.DelegatorAddress, delegate.Amount)
-			if err != nil {
-				return err
-			}
-
-			//delegate.Amount = 0
-			//saveSlotDelegate(delegate)
-			removeSlotDelegate(delegate)
+	delegations := GetDelegationsByCandidate(d.sender)
+	for _, delegation := range delegations {
+		err := commons.Transfer(d.params.HoldAccount, delegation.DelegatorAddress, delegation.Shares)
+		if err != nil {
+			return err
 		}
-		slot.AvailableAmount = big.NewInt(0)
-		updateSlot(slot)
+		RemoveDelegation(delegation)
 	}
-	//candidate.Shares = 0
-	//candidate.UpdatedAt = utils.GetNow()
-	//candidate.State = "N"
-	//updateCandidate(candidate)
-	removeCandidate(candidate)
 
+	removeCandidate(candidate)
 	return nil
 }
 
 func (d deliver) verifyCandidacy(tx TxVerifyCandidacy) error {
-	// todo verify candidacy
-
+	// verify candidacy
+	candidate := GetCandidateByAddress(tx.CandidateAddress)
+	if tx.Verified {
+		candidate.Verified = "Y"
+	} else {
+		candidate.Verified = "N"
+	}
+	candidate.UpdatedAt = utils.GetNow()
+	updateCandidate(candidate)
 	return nil
 }
 
 func (d deliver) delegate(tx TxDelegate) error {
-	// Get the slot
-	slot := GetSlot(tx.SlotId)
-
 	// Get the pubKey bond account
-	candidate := GetCandidateByAddress(slot.ValidatorAddress)
-	if candidate == nil {
-		return ErrBondNotNominated()
-	}
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 
-	amount := new(big.Int)
-	_, ok := amount.SetString(tx.Amount, 10)
+	shares, ok := new(big.Int).SetString(tx.Amount, 10)
 	if !ok {
 		return ErrBadAmount()
 	}
 
-	if amount.Cmp(slot.AvailableAmount) > 0 {
-		return ErrFullSlot()
-	}
-
 	// Move coins from the delegator account to the pubKey lock account
-	err := commons.Transfer(d.sender, d.params.HoldAccount, amount)
+	err := commons.Transfer(d.sender, d.params.HoldAccount, shares)
 	if err != nil {
 		return err
 	}
 
-	// Get or create the delegate slot
+	// create or update delegation
 	now := utils.GetNow()
-	slotDelegate := GetSlotDelegate(d.sender, tx.SlotId)
-	if slotDelegate == nil {
-		slotDelegate = &SlotDelegate{DelegatorAddress: d.sender, SlotId: tx.SlotId, Amount: amount, CreatedAt: now, UpdatedAt: now}
-		saveSlotDelegate(slotDelegate)
+	delegation := GetDelegation(d.sender, tx.ValidatorAddress)
+	if delegation == nil {
+		delegation = &Delegation{
+			DelegatorAddress: d.sender,
+			CandidateAddress: tx.ValidatorAddress,
+			Shares:           shares,
+			CreatedAt:        now,
+			UpdatedAt:        now,
+		}
+		SaveDelegation(delegation)
 	} else {
-		slotDelegate.Amount.Add(slotDelegate.Amount, amount)
-		updateSlotDelegate(slotDelegate)
+		delegation.Shares.Add(delegation.Shares, shares)
+		delegation.UpdatedAt = now
+		UpdateDelegation(delegation)
 	}
 
-	// Add shares to slot and candidate
-	candidate.Shares.Add(candidate.Shares, amount)
-	slot.AvailableAmount.Sub(slot.AvailableAmount, amount)
-	delegateHistory := DelegateHistory{d.sender, tx.SlotId, amount, "accept", now}
+	// Add shares to candidate
+	candidate.Shares.Add(candidate.Shares, shares)
+	delegateHistory := &DelegateHistory{0, d.sender, tx.ValidatorAddress, shares, "delegate", now}
 	updateCandidate(candidate)
-	updateSlot(slot)
 	saveDelegateHistory(delegateHistory)
-
 	return nil
 }
 
 func (d deliver) withdraw(tx TxWithdraw) error {
-	// Get the slot
-	slot := GetSlot(tx.SlotId)
-
-	if slot == nil {
-		return ErrBadSlot()
-	}
-
-	// get the slot delegate
-	slotDelegate := GetSlotDelegate(d.sender, tx.SlotId)
-	if slotDelegate == nil {
-		return ErrBadSlotDelegate()
-	}
-
 	// get pubKey candidate
-	candidate := GetCandidateByAddress(slot.ValidatorAddress)
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
 
-	amount := new(big.Int)
-	_, ok := amount.SetString(tx.Amount, 10)
-	if !ok {
-		return ErrBadAmount()
-	}
-
-	// subtract bond tokens from bond
-	if slotDelegate.Amount.Cmp(amount) < 0 {
-		return ErrInsufficientFunds()
-	}
-	slotDelegate.Amount.Sub(slotDelegate.Amount, amount)
-
-	if slotDelegate.Amount.Cmp(big.NewInt(0)) == 0 {
-		// remove the slot delegate
-		removeSlotDelegate(slotDelegate)
-	} else {
-		updateSlotDelegate(slotDelegate)
-	}
+	delegation := GetDelegation(d.sender, tx.ValidatorAddress)
+	RemoveDelegation(delegation)
 
 	// deduct shares from the candidate
-	candidate.Shares.Sub(candidate.Shares, amount)
+	candidate.Shares.Sub(candidate.Shares, delegation.Shares)
 	if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 		//candidate.State = "N"
 		removeCandidate(candidate)
@@ -454,13 +481,9 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
-	slot.AvailableAmount.Add(slot.AvailableAmount, amount)
-	slot.UpdatedAt = now
-	updateSlot(slot)
-
-	delegateHistory := DelegateHistory{d.sender, tx.SlotId, amount, "withdraw", now}
+	delegateHistory := &DelegateHistory{0, d.sender, tx.ValidatorAddress, big.NewInt(0), "withdraw", now}
 	saveDelegateHistory(delegateHistory)
 
 	// transfer coins back to account
-	return commons.Transfer(d.params.HoldAccount, d.sender, amount)
+	return commons.Transfer(d.params.HoldAccount, d.sender, delegation.Shares)
 }

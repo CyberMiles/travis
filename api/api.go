@@ -114,9 +114,12 @@ func (s *CmtRPCService) GetSequence(address string) (*uint32, error) {
 }
 
 type DeclareCandidacyArgs struct {
-	Sequence uint32 `json:"sequence"`
-	From     string `json:"from"`
-	PubKey   string `json:"pubKey"`
+	Sequence    uint32            `json:"sequence"`
+	From        string            `json:"from"`
+	PubKey      string            `json:"pubKey"`
+	MaxAmount   string            `json:max_amount`
+	Cut         float64           `json:"cut"`
+	Description stake.Description `json:"description"`
 }
 
 func (s *CmtRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -149,7 +152,7 @@ func (s *CmtRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (sd
 	if err != nil {
 		return sdk.Tx{}, err
 	}
-	tx := stake.NewTxDeclareCandidacy(pubKey)
+	tx := stake.NewTxDeclareCandidacy(pubKey, args.MaxAmount, args.Cut, args.Description)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
@@ -167,112 +170,32 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 }
 
 func (s *CmtRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs) (sdk.Tx, error) {
-	address := common.HexToAddress(args.From)
-	tx := stake.NewTxWithdrawCandidacy(address)
+	tx := stake.NewTxWithdrawCandidacy()
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
-type EditCandidacyArgs struct {
-	Sequence   uint32 `json:"sequence"`
-	From       string `json:"from"`
-	NewAddress string `json:"newAddress"`
+type UpdateCandidacyArgs struct {
+	Sequence    uint32            `json:"sequence"`
+	From        string            `json:"from"`
+	NewAddress  string            `json:"newAddress"`
+	MaxAmount   string            `json:"max_amount"`
+	Description stake.Description `json:"description"`
 }
 
-func (s *CmtRPCService) EditCandidacy(args EditCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareEditCandidacyTx(args)
+func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx, err := s.prepareUpdatteCandidacyTx(args)
 	if err != nil {
 		return nil, err
 	}
 	return s.broadcastTx(tx)
 }
 
-func (s *CmtRPCService) prepareEditCandidacyTx(args EditCandidacyArgs) (sdk.Tx, error) {
+func (s *CmtRPCService) prepareUpdatteCandidacyTx(args UpdateCandidacyArgs) (sdk.Tx, error) {
 	if len(args.NewAddress) == 0 {
 		return sdk.Tx{}, fmt.Errorf("must provide new address")
 	}
 	address := common.HexToAddress(args.NewAddress)
-	tx := stake.NewTxUpdateCandidacy(address)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
-}
-
-type ProposeSlotArgs struct {
-	Sequence    uint32 `json:"sequence"`
-	From        string `json:"from"`
-	Amount      string `json:"amount"`
-	ProposedRoi int64  `json:"proposedRoi"`
-}
-
-func (s *CmtRPCService) ProposeSlot(args ProposeSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareProposeSlotTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.broadcastTx(tx)
-}
-
-func (s *CmtRPCService) prepareProposeSlotTx(args ProposeSlotArgs) (sdk.Tx, error) {
-	address := common.HexToAddress(args.From)
-	tx := stake.NewTxProposeSlot(address, args.Amount, args.ProposedRoi)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
-}
-
-type AcceptSlotArgs struct {
-	Sequence uint32 `json:"sequence"`
-	From     string `json:"from"`
-	Amount   string `json:"amount"`
-	SlotId   string `json:"slotId"`
-}
-
-func (s *CmtRPCService) AcceptSlot(args AcceptSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareAcceptSlotTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.broadcastTx(tx)
-}
-
-func (s *CmtRPCService) prepareAcceptSlotTx(args AcceptSlotArgs) (sdk.Tx, error) {
-	tx := stake.NewTxAcceptSlot(args.Amount, args.SlotId)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
-}
-
-type WithdrawSlotArgs struct {
-	Sequence uint32 `json:"sequence"`
-	From     string `json:"from"`
-	Amount   string `json:"amount"`
-	SlotId   string `json:"slotId"`
-}
-
-func (s *CmtRPCService) WithdrawSlot(args WithdrawSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareWithdrawSlotTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.broadcastTx(tx)
-}
-
-func (s *CmtRPCService) prepareWithdrawSlotTx(args WithdrawSlotArgs) (sdk.Tx, error) {
-	tx := stake.NewTxWithdrawSlot(args.Amount, args.SlotId)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
-}
-
-type CancelSlotArgs struct {
-	Sequence uint32 `json:"sequence"`
-	From     string `json:"from"`
-	SlotId   string `json:"slotId"`
-}
-
-func (s *CmtRPCService) CancelSlot(args CancelSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareCancelSlotTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.broadcastTx(tx)
-}
-
-func (s *CmtRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, error) {
-	address := common.HexToAddress(args.From)
-	tx := stake.NewTxCancelSlot(address, args.SlotId)
+	tx := stake.NewTxUpdateCandidacy(address, args.MaxAmount, args.Description)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
@@ -404,34 +327,14 @@ func (s *CmtRPCService) QueryValidator(address string, height uint64) (*StakeQue
 	return &StakeQueryResult{h, candidate}, nil
 }
 
-func (s *CmtRPCService) QuerySlots(height uint64) (*StakeQueryResult, error) {
-	var slots []*stake.Slot
-	h, err := s.getParsed("/slots", []byte{0}, &slots, height)
-	if err != nil {
-		return nil, err
-	}
-
-	return &StakeQueryResult{h, slots}, nil
-}
-
-func (s *CmtRPCService) QuerySlot(slotId string, height uint64) (*StakeQueryResult, error) {
-	var slot stake.Slot
-	h, err := s.getParsed("/slot", []byte(slotId), &slot, height)
-	if err != nil {
-		return nil, err
-	}
-
-	return &StakeQueryResult{h, slot}, nil
-}
-
 func (s *CmtRPCService) QueryDelegator(address string, height uint64) (*StakeQueryResult, error) {
-	var slotDelegates []*stake.SlotDelegate
-	h, err := s.getParsed("/delegator", []byte(address), &slotDelegates, height)
+	var delegation *stake.Delegation
+	h, err := s.getParsed("/delegator", []byte(address), &delegation, height)
 	if err != nil {
 		return nil, err
 	}
 
-	return &StakeQueryResult{h, slotDelegates}, nil
+	return &StakeQueryResult{h, delegation}, nil
 }
 
 func (s *CmtRPCService) getParsed(path string, key []byte, data interface{}, height uint64) (int64, error) {

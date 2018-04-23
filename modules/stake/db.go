@@ -23,16 +23,16 @@ func getDb() *sql.DB {
 func GetCandidateByAddress(address common.Address) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select pub_key, shares, voting_power, max_shares, cut, website, location, details, created_at, updated_at from candidates where address = ?")
+	stmt, err := db.Prepare("select pub_key, shares, voting_power, max_shares, cut, website, location, details, verified, created_at, updated_at from candidates where address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var pubKey, createdAt, updatedAt, shares, maxShares, website, location, details string
+	var pubKey, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
 	var votingPower int64
 	var cut float64
-	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &createdAt, &updatedAt)
+	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -61,22 +61,23 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 		Description:  description,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
+		Verified:     verified,
 	}
 }
 
 func GetCandidateByPubKey(pubKey string) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select address, shares, voting_power, max_shares, cut, website, location, details, created_at, updated_at from candidates where pub_key = ?")
+	stmt, err := db.Prepare("select address, shares, voting_power, max_shares, cut, website, location, details, verified, created_at, updated_at from candidates where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var address, createdAt, updatedAt, shares, maxShares, website, location, details string
+	var address, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
 	var votingPower int64
 	var cut float64
-	err = stmt.QueryRow(pubKey).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &createdAt, &updatedAt)
+	err = stmt.QueryRow(pubKey).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -103,6 +104,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 		MaxShares:    ms,
 		Cut:          cut,
 		Description:  description,
+		Verified:     verified,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
 	}
@@ -112,17 +114,17 @@ func GetCandidates() (candidates Candidates) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, cut, website, location, details, created_at, updated_at from candidates")
+	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, cut, website, location, details, verified, created_at, updated_at from candidates")
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var pubKey, address, createdAt, updatedAt, shares, maxShares, website, location, details string
+		var pubKey, address, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
 		var votingPower int64
 		var cut float64
-		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &createdAt, &updatedAt)
+		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -145,6 +147,7 @@ func GetCandidates() (candidates Candidates) {
 			MaxShares:    ms,
 			Cut:          cut,
 			Description:  description,
+			Verified:     verified,
 			CreatedAt:    createdAt,
 			UpdatedAt:    updatedAt,
 		}
@@ -168,7 +171,7 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, cut, website, location, details, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, cut, website, location, details, verified, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -184,6 +187,7 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.Description.Website,
 		candidate.Description.Location,
 		candidate.Description.Details,
+		candidate.Verified,
 		candidate.CreatedAt,
 		candidate.UpdatedAt,
 	)
@@ -201,7 +205,7 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, cut = ?, website = ?, location = ?, details = ?, updated_at = ? where address = ?")
+	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, cut = ?, website = ?, location = ?, details = ?, verified = ?, updated_at = ? where address = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -216,6 +220,7 @@ func updateCandidate(candidate *Candidate) {
 		candidate.Description.Website,
 		candidate.Description.Location,
 		candidate.Description.Details,
+		candidate.Verified,
 		candidate.UpdatedAt,
 		candidate.OwnerAddress.String(),
 	)
@@ -246,40 +251,235 @@ func removeCandidate(candidate *Candidate) {
 }
 
 func SaveDelegator(delegator *Delegator) {
-	// todo
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("insert into delegators(address, created_at) values(?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(delegator.Address.String(), delegator.CreatedAt)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func RemoveDelegator(delegator *Delegator) {
-	// todo
-}
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
 
-func UpdateDelegator(delegator *Delegator) {
-	// todo
+	stmt, err := tx.Prepare("delete from delegators where address = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(delegator.Address.String())
+	if err != nil {
+		panic(err)
+	}
 }
 
 func GetDelegator(address string) *Delegator {
-	// todo
-	return nil
+	db := getDb()
+	defer db.Close()
+	stmt, err := db.Prepare("select address, created_at from delegators where address = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var updatedAt string
+	err = stmt.QueryRow(address).Scan(&updatedAt)
+
+	switch {
+	case err == sql.ErrNoRows:
+		return nil
+	case err != nil:
+		panic(err)
+	}
+
+	return &Delegator{common.HexToAddress(address), updatedAt}
 }
 
 func SaveDelegation(delegation *Delegation) {
-	// todo
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("insert into delegations(delegator_address, candidate_address, shares, created_at, updated_at) values (?, ?, ?, ?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.CandidateAddress.String(), delegation.Shares.String(), delegation.CreatedAt, delegation.UpdatedAt)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func RemoveDelegation(delegation *Delegation) {
-	// todo
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("delete from delegations where delegator_address = ? and candidate_address = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.CandidateAddress.String())
+	if err != nil {
+		panic(err)
+	}
 }
 
 func UpdateDelegation(delegation *Delegation) {
-	// todo
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("update delegations set shares = ?, updated_at = ? where delegator_address = ? and candidate_address = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(delegation.Shares.String(), delegation.UpdatedAt)
+	if err != nil {
+		panic(err)
+	}
 }
 
-func GetDelegation(address string) *Delegation {
-	// todo
-	return nil
+func GetDelegation(delegatorAddress, candidateAddress common.Address) *Delegation {
+	db := getDb()
+	defer db.Close()
+	stmt, err := db.Prepare("select shares, created_at, updated_at from delegations where delegator_address = ? and candidate_address = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var shares, createdAt, updatedAt string
+	err = stmt.QueryRow(delegatorAddress.String(), candidateAddress.String()).Scan(&shares, &createdAt, &updatedAt)
+
+	switch {
+	case err == sql.ErrNoRows:
+		return nil
+	case err != nil:
+		panic(err)
+	}
+
+	s := new(big.Int)
+	s.SetString(shares, 10)
+	return &Delegation{
+		DelegatorAddress: delegatorAddress,
+		CandidateAddress: candidateAddress,
+		Shares:           s,
+		CreatedAt:        createdAt,
+		UpdatedAt:        updatedAt,
+	}
 }
 
-func saveDelegateHistory(delegateHistory DelegateHistory) {
+func GetDelegationsByCandidate(candidateAddress common.Address) (delegations []*Delegation) {
+	db := getDb()
+	defer db.Close()
+
+	rows, err := db.Query("select delegator_address, shares, created_at, updated_at from delegations where candidate_address = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var delegatorAddress, shares, createdAt, updatedAt string
+		err = rows.Scan(delegatorAddress, shares, createdAt, updatedAt)
+		if err != nil {
+			panic(err)
+		}
+
+		s := new(big.Int)
+		s.SetString(shares, 10)
+		delegation := &Delegation{
+			DelegatorAddress: common.HexToAddress(delegatorAddress),
+			CandidateAddress: candidateAddress,
+			Shares:           s,
+			CreatedAt:        createdAt,
+			UpdatedAt:        updatedAt,
+		}
+		delegations = append(delegations, delegation)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*Delegation) {
+	db := getDb()
+	defer db.Close()
+
+	rows, err := db.Query("select candidate_address, shares, created_at, updated_at from delegations where delegator_address = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var candidateAddress, shares, createdAt, updatedAt string
+		err = rows.Scan(delegatorAddress, shares, createdAt, updatedAt)
+		if err != nil {
+			panic(err)
+		}
+
+		s := new(big.Int)
+		s.SetString(shares, 10)
+		delegation := &Delegation{
+			DelegatorAddress: delegatorAddress,
+			CandidateAddress: common.HexToAddress(candidateAddress),
+			Shares:           s,
+			CreatedAt:        createdAt,
+			UpdatedAt:        updatedAt,
+		}
+		delegations = append(delegations, delegation)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+func saveDelegateHistory(delegateHistory *DelegateHistory) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()

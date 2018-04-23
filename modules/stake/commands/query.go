@@ -76,13 +76,13 @@ func cmdQueryValidator(cmd *cobra.Command, args []string) error {
 }
 
 func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
-	var slotDelegates []*stake.SlotDelegate
+	var delegation *stake.Delegation
 	address := viper.GetString(FlagAddress)
-	err := GetParsed("/delegator", []byte(address), &slotDelegates)
+	err := GetParsed("/delegator", []byte(address), &delegation)
 	if err != nil {
 		return err
 	}
-	return Foutput(slotDelegates)
+	return Foutput(delegation)
 }
 
 func Get(path string, params []byte) (data.Bytes, error) {

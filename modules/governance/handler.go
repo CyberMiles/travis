@@ -1,18 +1,18 @@
 package governance
 
 import (
-	"math/big"
 	"bytes"
 	"encoding/hex"
+	"math/big"
 
-	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
+	"github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk/state"
 	"github.com/ethereum/go-ethereum/common"
 	"strings"
-	"github.com/CyberMiles/travis/commons"
-	"github.com/CyberMiles/travis/utils"
 )
 
 // nolint
@@ -23,7 +23,7 @@ func Name() string {
 	return governanceModuleName
 }
 
-func InitState(module, key, value string,store state.SimpleDB) error {
+func InitState(module, key, value string, store state.SimpleDB) error {
 	return nil
 }
 
@@ -44,18 +44,18 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 	switch txInner := tx.Unwrap().(type) {
 	case TxPropose:
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0,  ""), ErrMissingSignature()
+			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		candidate := stake.GetCandidateByAddress(txInner.Proposer)
-		if candidate == nil || candidate.State != "Y" || candidate.VotingPower == 0 {
+		if candidate == nil || candidate.VotingPower == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0,  ""), ErrMissingSignature()
+			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		validator := stake.GetCandidateByAddress(txInner.Voter)
-		if validator == nil || validator.State != "Y" {
+		if validator == nil {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 
@@ -114,7 +114,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			return
 		}
 
-		if len(votes) * 3 < len(validators) * 2 {
+		if len(votes)*3 < len(validators)*2 {
 			return
 		}
 
@@ -129,9 +129,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
-		if c * 3 >= len(validators) * 2 {
+		if c*3 >= len(validators)*2 {
 			// To avoid repeated commit, let's recheck with count of voters - 1
-			if (c - 1) * 3 < len(validators) * 2 {
+			if (c-1)*3 < len(validators)*2 {
 				proposal := GetProposalById(txInner.ProposalId)
 				commons.TransferWithReactor(proposal.From, proposal.To, proposal.Amount, ProposalReactor{txInner.ProposalId, uint64(ctx.BlockHeight())})
 			}
@@ -142,7 +142,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 }
 
 type ProposalReactor struct {
-	proposalId string
+	proposalId  string
 	blockHeight uint64
 }
 
