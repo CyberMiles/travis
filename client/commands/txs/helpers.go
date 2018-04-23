@@ -62,17 +62,27 @@ func DoTx(tx sdk.Tx) (err error) {
 		return err
 	}
 
-	txJSON, err := tx.MarshalJSON()
-	fmt.Printf("Signed Tx: %s\n",  txJSON)
-	bres, err := PrepareOrPostTx(tx)
-	if err != nil {
-		return err
-	}
-	if bres == nil {
-		return nil // successful prep, nothing left to do
-	}
-	return OutputTx(bres) // print response of the post
+	commit := viper.GetString(FlagType)
+	if commit == "commit" {
+		bres, err := PrepareOrPostTx(tx)
+		if err != nil {
+			return err
+		}
+		if bres == nil {
+			return nil // successful prep, nothing left to do
+		}
+		return OutputTx(bres) // print response of the post
 
+	} else {
+		bres, err := PrepareOrPostTxSync(tx)
+		if err != nil {
+			return err
+		}
+		if bres == nil {
+			return nil // successful prep, nothing left to do
+		}
+		return OutputTxSync(bres) // print response of the post
+	}
 }
 
 func SignTx(tx sdk.Tx) error {
@@ -116,6 +126,31 @@ func PrepareOrPostTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
 	return PostTx(tx)
 }
 
+func PrepareOrPostTxSync(tx sdk.Tx) (*ctypes.ResultBroadcastTx, error) {
+	wrote, err := PrepareTx(tx)
+	// error in prep
+	if err != nil {
+		return nil, err
+	}
+	// successfully wrote the tx!
+	if wrote {
+		return nil, nil
+	}
+	// or try to post it
+	return PostTxSync(tx)
+}
+
+// PostTx does all work once we construct a proper struct
+// it validates the data, signs if needed, transforms to bytes,
+// and posts to the node.
+func PostTxSync(tx sdk.Tx) (*ctypes.ResultBroadcastTx, error) {
+	packet := wire.BinaryBytes(tx)
+	// post the bytes
+	node := commands.GetNode()
+	return node.BroadcastTxSync(packet)
+}
+
+
 // PrepareTx checks for FlagPrepare and if set, write the tx as json
 // to the specified location for later multi-sig.  Returns true if it
 // handled the tx (no futher work required), false if it did nothing
@@ -155,6 +190,15 @@ func OutputTx(res *ctypes.ResultBroadcastTxCommit) error {
 	if res.DeliverTx.IsErr() {
 		return errors.Errorf("DeliverTx: (%d): %s", res.DeliverTx.Code, res.DeliverTx.Log)
 	}
+	js, err := json.MarshalIndent(res, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(js))
+	return nil
+}
+
+func OutputTxSync(res *ctypes.ResultBroadcastTx) error {
 	js, err := json.MarshalIndent(res, "", "  ")
 	if err != nil {
 		return err

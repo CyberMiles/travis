@@ -19,6 +19,7 @@ import (
 	"github.com/tendermint/go-wire/data"
 	"os"
 	"github.com/tendermint/tmlibs/merkle"
+	"github.com/cosmos/cosmos-sdk/errors"
 )
 
 type Handler struct {
@@ -74,28 +75,21 @@ func (h Handler) DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (
 
 	hash := merkle.SimpleHashFromBinary(tx)
 
-	// make sure it is a the nonce Tx (Tx from this package)
-	nonceTx, ok := tx.Unwrap().(nonce.Tx)
-	if !ok {
-		return res, nonce.ErrNoNonce()
-	}
-
-	name, err := lookupRoute(nonceTx.Tx)
-
-	if name == "stake" {
-		res, err = stake.DeliverTx(ctx, store, nonceTx.Tx, hash)
-	} else if name == "governance" {
-		res, err = governance.DeliverTx(ctx, store, nonceTx.Tx, hash)
-	}
-
-	if err != nil {
-		return res, err
-	}
-
 	// Check nonce
 	_, tx, err = nonce.ReplayCheck(ctx, store, tx)
 	if err != nil {
 		return res, fmt.Errorf("failed to check nonce: %v", err)
+	}
+
+	name, err := lookupRoute(tx)
+	//fmt.Printf("Type of tx: %v\n", name)
+	switch name {
+	case "stake":
+		return stake.DeliverTx(ctx, store, tx, hash)
+	case "governance":
+		return governance.DeliverTx(ctx, store, tx, hash)
+	default:
+		return res, errors.ErrUnknownTxType(tx.Unwrap())
 	}
 
 	return
