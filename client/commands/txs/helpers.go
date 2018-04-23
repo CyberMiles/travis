@@ -63,7 +63,6 @@ func DoTx(tx sdk.Tx) (err error) {
 	}
 
 	commit := viper.GetString(FlagType)
-	fmt.Println("commit", commit)
 	if commit == "commit" {
 		bres, err := PrepareOrPostTx(tx)
 		if err != nil {
