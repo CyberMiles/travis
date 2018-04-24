@@ -97,7 +97,7 @@ func (b *Backend) SetTMNode(tmNode *tmn.Node) {
 	b.localClient = rpcClient.NewLocal(tmNode)
 	// uncomment this for TxPool broadcast tx to tendermint directly,
 	// the TxPool must has SetTMClient method when uncomment this
-	// b.ethereum.TxPool().SetTMClient(b.localClient)
+	b.ethereum.TxPool().SetTMClient(b.localClient)
 }
 
 //----------------------------------------------------------------------
