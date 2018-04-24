@@ -14,6 +14,7 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+	"strconv"
 )
 
 /*
@@ -104,7 +105,7 @@ func init() {
 	fsCandidate.String(FlagDetails, "", "optional detailed description")
 
 	fsCut := flag.NewFlagSet("", flag.ContinueOnError)
-	fsCut.Float64(FlagCut, 0, "The percentage of block awards to be distributed back to the delegators")
+	fsCut.String(FlagCut, "0", "The percentage of block awards to be distributed back to the delegators")
 
 	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
 	fsAddr.String(FlagAddress, "", "Account address")
@@ -148,8 +149,9 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("max-amount must be positive interger")
 	}
 
-	cut := viper.GetFloat64(FlagCut)
-	if cut <= 0 || cut >= 1 {
+	strcut := viper.GetString(FlagCut)
+	cut, err := strconv.ParseFloat(strcut, 64)
+	if err != nil || cut <= 0 || cut >= 1 {
 		return fmt.Errorf("cut must between 0 and 1")
 	}
 
@@ -159,7 +161,7 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		Details:  viper.GetString(FlagDetails),
 	}
 
-	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, cut, description)
+	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, strcut, description)
 	return txcmd.DoTx(tx)
 }
 

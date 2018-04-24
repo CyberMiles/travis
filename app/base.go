@@ -16,22 +16,22 @@ import (
 	"github.com/CyberMiles/travis/modules"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	ethapp "github.com/CyberMiles/travis/vm/app"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth"
-	"github.com/CyberMiles/travis/utils"
 )
 
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler                modules.Handler
-	clock                  sdk.Ticker
-	EthApp                 *ethapp.EthermintApplication
-	checkedTx              map[common.Hash]*types.Transaction
-	ethereum               *eth.Ethereum
-	AbsentValidators       []int32
-	ByzantineValidators    []*abci.Evidence
+	handler             modules.Handler
+	clock               sdk.Ticker
+	EthApp              *ethapp.EthermintApplication
+	checkedTx           map[common.Hash]*types.Transaction
+	ethereum            *eth.Ethereum
+	AbsentValidators    []int32
+	ByzantineValidators []*abci.Evidence
 }
 
 const (
@@ -47,12 +47,12 @@ var (
 // which it binds to the proper abci calls
 func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.Ticker, ethereum *eth.Ethereum) (*BaseApp, error) {
 	app := &BaseApp{
-		StoreApp:               store,
-		handler:                modules.Handler{},
-		clock:                  clock,
-		EthApp:                 ethApp,
-		checkedTx:              make(map[common.Hash]*types.Transaction),
-		ethereum:               ethereum,
+		StoreApp:  store,
+		handler:   modules.Handler{},
+		clock:     clock,
+		EthApp:    ethApp,
+		checkedTx: make(map[common.Hash]*types.Transaction),
+		ethereum:  ethereum,
 	}
 
 	return app, nil
@@ -166,9 +166,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	app.EthApp.Commit()
-	//var hash = resp.Data
-	//app.logger.Debug("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
-
 	res = app.StoreApp.Commit()
 	return
 }

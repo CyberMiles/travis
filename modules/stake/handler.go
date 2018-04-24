@@ -331,7 +331,12 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 		return ErrBadAmount()
 	}
 
-	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, maxAmount, tx.Cut, tx.Description, "N")
+	cut, err := strconv.ParseFloat(tx.Cut, 64)
+	if err != nil {
+		return fmt.Errorf("invalid cut value")
+	}
+
+	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, maxAmount, cut, tx.Description, "N")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
