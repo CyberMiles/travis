@@ -2,6 +2,7 @@ package stake
 
 import (
 	"database/sql"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
@@ -41,7 +42,7 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 		panic(err)
 	}
 
-	pk, _ := GetPubKey(pubKey)
+	pk, _ := utils.GetPubKey(pubKey)
 	s := new(big.Int)
 	s.SetString(shares, 10)
 	ms := new(big.Int)
@@ -86,7 +87,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 		panic(err)
 	}
 
-	pk, _ := GetPubKey(pubKey)
+	pk, _ := utils.GetPubKey(pubKey)
 	s := new(big.Int)
 	s.SetString(shares, 10)
 	ms := new(big.Int)
@@ -129,7 +130,7 @@ func GetCandidates() (candidates Candidates) {
 			panic(err)
 		}
 
-		pk, _ := GetPubKey(pubKey)
+		pk, _ := utils.GetPubKey(pubKey)
 		s := new(big.Int)
 		s.SetString(shares, 10)
 		ms := new(big.Int)
@@ -411,7 +412,7 @@ func GetDelegationsByCandidate(candidateAddress common.Address) (delegations []*
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select delegator_address, shares, created_at, updated_at from delegations where candidate_address = ?")
+	rows, err := db.Query("select delegator_address, shares, created_at, updated_at from delegations where candidate_address = ?", candidateAddress.String())
 	if err != nil {
 		panic(err)
 	}
@@ -419,7 +420,7 @@ func GetDelegationsByCandidate(candidateAddress common.Address) (delegations []*
 
 	for rows.Next() {
 		var delegatorAddress, shares, createdAt, updatedAt string
-		err = rows.Scan(delegatorAddress, shares, createdAt, updatedAt)
+		err = rows.Scan(&delegatorAddress, &shares, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -455,7 +456,7 @@ func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*
 
 	for rows.Next() {
 		var candidateAddress, shares, createdAt, updatedAt string
-		err = rows.Scan(delegatorAddress, shares, createdAt, updatedAt)
+		err = rows.Scan(&delegatorAddress, &shares, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}

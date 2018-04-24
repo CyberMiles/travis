@@ -25,6 +25,7 @@ import (
 	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // We must implement our own net service since we don't have access to `internal/ethapi`
@@ -148,7 +149,7 @@ func (s *CmtRPCService) DeclareCandidacyRaw(encodedTx hexutil.Bytes) (*ctypes.Re
 }
 
 func (s *CmtRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (sdk.Tx, error) {
-	pubKey, err := stake.GetPubKey(args.PubKey)
+	pubKey, err := utils.GetPubKey(args.PubKey)
 	if err != nil {
 		return sdk.Tx{}, err
 	}

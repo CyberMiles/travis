@@ -13,6 +13,6 @@ type genesisValidator struct {
 	PubKey    crypto.PubKey  `json:"pub_key"`
 	Power     int64          `json:"power"`
 	Name      string         `json:"name"`
-	MaxAmount string         `json:"max_amount"`
+	MaxAmount int64          `json:"max_amount"`
 	Cut       float64        `json:"cut"`
 }

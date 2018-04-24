@@ -41,11 +41,7 @@ func InitState(key, value string, store state.SimpleDB) error {
 	params := loadParams(store)
 	switch key {
 	case "reserve_requirement_ratio":
-		v, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return fmt.Errorf("input must be float, Error: %v", err.Error())
-		}
-		params.ReserveRequirementRatio = v
+		params.ReserveRequirementRatio = value
 	case "max_vals":
 		i, err := strconv.Atoi(value)
 		if err != nil {
@@ -82,7 +78,8 @@ func setValidator(value string) error {
 
 	shares := new(big.Int)
 	shares.Mul(big.NewInt(val.Power), big.NewInt(1e18))
-	maxShares, _ := new(big.Int).SetString(val.MaxAmount, 10)
+	maxShares := new(big.Int)
+	maxShares.Mul(big.NewInt(val.MaxAmount), big.NewInt(1e18))
 
 	// fixme check to see if the candidate fulfills the condition to be a validator
 	candidate := NewCandidate(val.PubKey, val.Address, shares, val.Power, maxShares, val.Cut, Description{}, "N")
@@ -201,10 +198,11 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	}
 
 	// check to see if the associated account has 10%(RRR, short for Reserve Requirement Ratio, configurable) of the max staked CMT amount
-	rr := new(big.Float)
-	maxAmount, _ := new(big.Float).SetString(tx.MaxAmount)
-	rr.Quo(maxAmount, big.NewFloat(c.params.ReserveRequirementRatio))
-	txDelegate := TxDelegate{ValidatorAddress: c.sender, Amount: rr.String()}
+	z := new(big.Float)
+	x, _ := new(big.Float).SetString(tx.MaxAmount)
+	y, _ := new(big.Float).SetString(c.params.ReserveRequirementRatio)
+	z.Mul(x, y)
+	txDelegate := TxDelegate{ValidatorAddress: c.sender, Amount: z.String()}
 	return c.delegate(txDelegate)
 }
 
@@ -218,8 +216,9 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 	// and the different will be charged or refunded from / into the new account address.
 	if tx.MaxAmount != "" {
 		rr := new(big.Float)
-		maxAmount, _ := new(big.Float).SetString(tx.MaxAmount)
-		rr.Quo(maxAmount, big.NewFloat(c.params.ReserveRequirementRatio))
+		x, _ := new(big.Float).SetString(tx.MaxAmount)
+		y, _ := new(big.Float).SetString(c.params.ReserveRequirementRatio)
+		rr.Quo(x, y)
 		balance, err := commons.GetBalance(c.ethereum, c.sender)
 		if err != nil {
 			return err
@@ -336,10 +335,11 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
-	rr := new(big.Float)
-	maf, _ := new(big.Float).SetString(tx.MaxAmount)
-	rr.Quo(maf, big.NewFloat(d.params.ReserveRequirementRatio))
-	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: rr.String()}
+	z := new(big.Float)
+	x, _ := new(big.Float).SetString(tx.MaxAmount)
+	y, _ := new(big.Float).SetString(d.params.ReserveRequirementRatio)
+	z.Mul(x, y)
+	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: z.String()}
 	return d.delegate(txDelegate)
 }
 
@@ -357,7 +357,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 		tmp := new(big.Int)
 		diff := tmp.Sub(candidate.MaxShares, maxAmount)
 		x, _ := new(big.Float).SetString(diff.String())
-		y := big.NewFloat(d.params.ReserveRequirementRatio)
+		y, _ := new(big.Float).SetString(d.params.ReserveRequirementRatio)
 		z := new(big.Float)
 		z.Mul(x, y)
 

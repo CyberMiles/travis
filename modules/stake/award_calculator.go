@@ -61,7 +61,7 @@ func (ac awardCalculator) getTotalBlockAward() *big.Int {
 func (ac awardCalculator) AwardAll() {
 	var validators []validator
 	var delegators []delegator
-	var totalShares *big.Int
+	totalShares := new(big.Int)
 
 	for _, val := range ac.validators {
 		var validator validator
@@ -88,7 +88,8 @@ func (ac awardCalculator) AwardAll() {
 	}
 
 	for _, val := range validators {
-		var x, y *big.Float
+		x := new(big.Float)
+		y := new(big.Float)
 		x.SetString(val.shares.String())
 		y.SetString(totalShares.String())
 		z, _ := new(big.Float).Quo(x, y).Float64()
@@ -107,7 +108,8 @@ func (ac awardCalculator) AwardAll() {
 }
 
 func (ac awardCalculator) getValidatorBlockAward(val validator) *big.Int {
-	var x, y *big.Float
+	x := new(big.Float)
+	y := new(big.Float)
 	x.SetString(ac.getTotalBlockAward().String())
 	y.SetString(ac.transactionFees.String())
 	percentage := big.NewFloat(val.sharesPercentage)
