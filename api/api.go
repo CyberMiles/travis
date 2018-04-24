@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -27,48 +28,18 @@ import (
 	ttypes "github.com/CyberMiles/travis/types"
 )
 
-// We must implement our own net service since we don't have access to `internal/ethapi`
-
-// NetRPCService mirrors the implementation of `internal/ethapi`
-// #unstable
-type NetRPCService struct {
-	networkVersion uint64
-}
-
-// NewNetRPCService creates a new net API instance.
-// #unstable
-func NewNetRPCService(networkVersion uint64) *NetRPCService {
-	return &NetRPCService{networkVersion}
-}
-
-// Listening returns an indication if the node is listening for network connections.
-// #unstable
-func (s *NetRPCService) Listening() bool {
-	return true // always listening
-}
-
-// PeerCount returns the number of connected peers
-// #unstable
-func (s *NetRPCService) PeerCount() hexutil.Uint {
-	return hexutil.Uint(0)
-}
-
-// Version returns the current ethereum protocol version.
-// #unstable
-func (s *NetRPCService) Version() string {
-	return fmt.Sprintf("%d", s.networkVersion)
-}
-
 // CmtRPCService offers cmt related RPC methods
 type CmtRPCService struct {
-	backend *Backend
-	am      *accounts.Manager
+	backend   *Backend
+	am        *accounts.Manager
+	nonceLock *AddrLocker
 }
 
-func NewCmtRPCService(b *Backend) *CmtRPCService {
+func NewCmtRPCService(b *Backend, nonceLock *AddrLocker) *CmtRPCService {
 	return &CmtRPCService{
-		backend: b,
-		am:      b.ethereum.AccountManager(),
+		backend:   b,
+		am:        b.ethereum.AccountManager(),
+		nonceLock: nonceLock,
 	}
 }
 
@@ -106,15 +77,38 @@ func (s *CmtRPCService) getChainID() (string, error) {
 	return s.backend.chainID, nil
 }
 
-func (s *CmtRPCService) GetSequence(address string) (*uint32, error) {
+func (s *CmtRPCService) GetSequence(address string) (*uint64, error) {
 	signers := []common.Address{getSigner(address)}
-	var sequence uint32
-	err := s.getSequence(signers, &sequence)
+	var sequence uint64
+	err := s.backend.GetSequence(signers, &sequence)
 	return &sequence, err
+}
+func (s *CmtRPCService) Test(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
+	var tx sdk.Tx
+	err := json.Unmarshal(encodedTx, &tx)
+	if err != nil {
+		return nil, err
+	}
+	//d, err := data.ToJSON(tx2)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//fmt.Printf("%s\n", d)
+	//
+	return s.broadcastTx(tx)
+}
+
+func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
+	var tx sdk.Tx
+	err := data.FromWire(encodedTx, &tx)
+	if err != nil {
+		return nil, err
+	}
+	return s.broadcastTx(tx)
 }
 
 type DeclareCandidacyArgs struct {
-	Sequence uint32 `json:"sequence"`
+	Sequence uint64 `json:"sequence"`
 	From     string `json:"from"`
 	PubKey   string `json:"pubKey"`
 }
@@ -135,15 +129,6 @@ func (s *CmtRPCService) SignDeclareCandidacy(args DeclareCandidacyArgs) (hexutil
 	return data.ToWire(tx)
 }
 
-func (s *CmtRPCService) DeclareCandidacyRaw(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
-	var tx sdk.Tx
-	err := data.FromWire(encodedTx, &tx)
-	if err != nil {
-		return nil, err
-	}
-	return s.broadcastTx(tx)
-}
-
 func (s *CmtRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (sdk.Tx, error) {
 	pubKey, err := stake.GetPubKey(args.PubKey)
 	if err != nil {
@@ -154,7 +139,7 @@ func (s *CmtRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (sd
 }
 
 type WithdrawCandidacyArgs struct {
-	Sequence uint32 `json:"sequence"`
+	Sequence uint64 `json:"sequence"`
 	From     string `json:"from"`
 }
 
@@ -173,7 +158,7 @@ func (s *CmtRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs) (
 }
 
 type EditCandidacyArgs struct {
-	Sequence   uint32 `json:"sequence"`
+	Sequence   uint64 `json:"sequence"`
 	From       string `json:"from"`
 	NewAddress string `json:"newAddress"`
 }
@@ -196,7 +181,7 @@ func (s *CmtRPCService) prepareEditCandidacyTx(args EditCandidacyArgs) (sdk.Tx, 
 }
 
 type ProposeSlotArgs struct {
-	Sequence    uint32 `json:"sequence"`
+	Sequence    uint64 `json:"sequence"`
 	From        string `json:"from"`
 	Amount      int64  `json:"amount"`
 	ProposedRoi int64  `json:"proposedRoi"`
@@ -217,7 +202,7 @@ func (s *CmtRPCService) prepareProposeSlotTx(args ProposeSlotArgs) (sdk.Tx, erro
 }
 
 type AcceptSlotArgs struct {
-	Sequence uint32 `json:"sequence"`
+	Sequence uint64 `json:"sequence"`
 	From     string `json:"from"`
 	Amount   int64  `json:"amount"`
 	SlotId   string `json:"slotId"`
@@ -237,7 +222,7 @@ func (s *CmtRPCService) prepareAcceptSlotTx(args AcceptSlotArgs) (sdk.Tx, error)
 }
 
 type WithdrawSlotArgs struct {
-	Sequence uint32 `json:"sequence"`
+	Sequence uint64 `json:"sequence"`
 	From     string `json:"from"`
 	Amount   int64  `json:"amount"`
 	SlotId   string `json:"slotId"`
@@ -257,7 +242,7 @@ func (s *CmtRPCService) prepareWithdrawSlotTx(args WithdrawSlotArgs) (sdk.Tx, er
 }
 
 type CancelSlotArgs struct {
-	Sequence uint32 `json:"sequence"`
+	Sequence uint64 `json:"sequence"`
 	From     string `json:"from"`
 	SlotId   string `json:"slotId"`
 }
@@ -276,13 +261,13 @@ func (s *CmtRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, error)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }
 
-func (s *CmtRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32) (sdk.Tx, error) {
+func (s *CmtRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint64) (sdk.Tx, error) {
 	// wrap
 	// only add the actual signer to the nonce
 	signers := []common.Address{getSigner(address)}
 	if sequence <= 0 {
 		// calculate default sequence
-		err := s.getSequence(signers, &sequence)
+		err := s.backend.GetSequence(signers, &sequence)
 		if err != nil {
 			return sdk.Tx{}, err
 		}
@@ -305,20 +290,6 @@ func (s *CmtRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint32
 		return sdk.Tx{}, err
 	}
 	return tx, err
-}
-
-func (s *CmtRPCService) getSequence(signers []common.Address, sequence *uint32) error {
-	// key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
-	key := nonce.GetSeqKey(signers)
-	result, err := s.backend.localClient.ABCIQuery("/key", key)
-	if err != nil {
-		return err
-	}
-
-	if len(result.Response.Value) == 0 {
-		return nil
-	}
-	return wire.ReadBinaryBytes(result.Response.Value, sequence)
 }
 
 // sign the transaction with private key
@@ -368,8 +339,8 @@ func (s *CmtRPCService) sign(data ttypes.Signable, address string) error {
 }
 
 func (s *CmtRPCService) broadcastTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
-	key := wire.BinaryBytes(tx)
-	return s.backend.localClient.BroadcastTxCommit(key)
+	txBytes := wire.BinaryBytes(tx)
+	return s.backend.localClient.BroadcastTxCommit(txBytes)
 }
 
 func getSigner(address string) (res common.Address) {
@@ -460,12 +431,12 @@ func (s *CmtRPCService) get(path string, key []byte, height int64) (data.Bytes, 
 }
 
 type GovernanceProposalArgs struct {
-	Sequence uint32 `json:"sequence"`
+	Sequence uint64          `json:"sequence"`
 	Proposer *common.Address `json:"from"`
 	From     *common.Address `json:"transferFrom"`
 	To       *common.Address `json:"transferTo"`
-	Amount   string `json:"amount"`
-	Reason   string `json:"reason"`
+	Amount   string          `json:"amount"`
+	Reason   string          `json:"reason"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -480,7 +451,7 @@ func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroa
 }
 
 type GovernanceVoteArgs struct {
-	Sequence   uint32 `json:"sequence"`
+	Sequence   uint64 `json:"sequence"`
 	ProposalId string `json:"proposalId"`
 	Voter      string `json:"from"`
 	Answer     string `json:"answer"`

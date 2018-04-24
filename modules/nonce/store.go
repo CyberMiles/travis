@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/state"
 )
 
-func getSeq(store state.SimpleDB, key []byte) (seq uint32, err error) {
+func getSeq(store state.SimpleDB, key []byte) (seq uint64, err error) {
 	data := store.Get(key)
 	if len(data) == 0 {
 		//if the key is not stored, its a new key with a sequence of zero!
@@ -23,7 +23,7 @@ func getSeq(store state.SimpleDB, key []byte) (seq uint32, err error) {
 	return seq, nil
 }
 
-func setSeq(store state.SimpleDB, key []byte, seq uint32) error {
+func setSeq(store state.SimpleDB, key []byte, seq uint64) error {
 	//fmt.Printf("setSeq: %s\n", hex.EncodeToString(key))
 	bin := wire.BinaryBytes(seq)
 	store.Set(key, bin)

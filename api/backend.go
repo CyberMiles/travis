@@ -13,9 +13,11 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
 	abciTypes "github.com/tendermint/abci/types"
+	"github.com/tendermint/go-wire"
 	tmn "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
+	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/vm/ethereum"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
@@ -44,6 +46,8 @@ type Backend struct {
 
 	// travis chain id
 	chainID string
+
+	pendingState *state.ManagedState
 }
 
 // NewBackend creates a new Backend
@@ -77,7 +81,20 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 		es:        es,
 		client:    client,
 	}
+	ethBackend.ResetState()
 	return ethBackend, nil
+}
+
+func (b *Backend) ResetState() {
+	currentState, err := b.Ethereum().BlockChain().State()
+	if err != nil {
+		return
+	}
+	b.pendingState = state.ManageState(currentState)
+}
+
+func (b *Backend) PendingState() *state.ManagedState {
+	return b.pendingState
 }
 
 // Ethereum returns the underlying the ethereum object.
@@ -150,13 +167,14 @@ func (b *Backend) GasLimit() big.Int {
 // APIs returns the collection of RPC services the ethereum package offers.
 // #stable - 0.4.0
 func (b *Backend) APIs() []rpc.API {
+	nonceLock := new(AddrLocker)
 	apis := b.Ethereum().APIs()
 	// append cmt and stake api
 	apis = append(apis, []rpc.API{
 		{
 			Namespace: "cmt",
 			Version:   "1.0",
-			Service:   NewCmtRPCService(b),
+			Service:   NewCmtRPCService(b, nonceLock),
 			Public:    true,
 		},
 	}...)
@@ -199,6 +217,20 @@ func (b *Backend) Stop() error {
 // #stable
 func (b *Backend) Protocols() []p2p.Protocol {
 	return nil
+}
+
+func (b *Backend) GetSequence(signers []common.Address, sequence *uint64) error {
+	// key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
+	key := nonce.GetSeqKey(signers)
+	result, err := b.localClient.ABCIQuery("/key", key)
+	if err != nil {
+		return err
+	}
+
+	if len(result.Response.Value) == 0 {
+		return nil
+	}
+	return wire.ReadBinaryBytes(result.Response.Value, sequence)
 }
 
 //----------------------------------------------------------------------

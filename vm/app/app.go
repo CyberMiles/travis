@@ -11,14 +11,13 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
-
-	"github.com/CyberMiles/travis/api"
-	emtTypes "github.com/CyberMiles/travis/vm/types"
-
-	"github.com/CyberMiles/travis/errors"
-	"github.com/CyberMiles/travis/utils"
 	abciTypes "github.com/tendermint/abci/types"
 	tmLog "github.com/tendermint/tmlibs/log"
+
+	"github.com/CyberMiles/travis/api"
+	"github.com/CyberMiles/travis/errors"
+	"github.com/CyberMiles/travis/utils"
+	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
 
 const (
@@ -214,6 +213,7 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 	}
 
 	app.checkTxState = state.Copy()
+	app.backend.ResetState()
 
 	app.lowPriceTransactions = make(map[FromTo]*ethTypes.Transaction)
 
@@ -380,6 +380,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 		currentState.AddBalance(*to, tx.Value())
 	}
 	currentState.SetNonce(from, nonce+1)
+	app.backend.PendingState().SetNonce(from, nonce+1)
 
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }
