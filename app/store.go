@@ -262,9 +262,6 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 	return abci.ResponseCommit{Data: hash}
 }
 
-// InitChain - ABCI
-func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) { return }
-
 // BeginBlock - ABCI
 func (app *StoreApp) BeginBlock(_ abci.RequestBeginBlock) (res abci.ResponseBeginBlock) { return }
 
@@ -353,7 +350,7 @@ func initTravisDb() error {
 		create index idx_slot_delegates_delegator_address on slot_delegates(delegator_address);
 		create index idx_slot_delegates_slot_id on slot_delegates(slot_id);
 
-		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
+		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, expire_block_height text not null, created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null, created_at text not null, unique(proposal_id, voter) ON conflict replace);
 		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 		create index idx_governance_vote_voter on governance_vote(voter);

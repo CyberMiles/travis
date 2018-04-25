@@ -20,7 +20,10 @@ import (
 	emtTypes "github.com/CyberMiles/travis/vm/types"
 	"github.com/CyberMiles/travis/errors"
 	"github.com/CyberMiles/travis/utils"
+	gov "github.com/CyberMiles/travis/modules/governance"
 	"github.com/ethereum/go-ethereum/core/types"
+	"bytes"
+	"github.com/CyberMiles/travis/commons"
 )
 
 //----------------------------------------------------------------------
@@ -121,7 +124,7 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 		header:       ethHeader,
 		parent:       currentBlock,
 		state:        state,
-		stakedTxIndex: 0,
+		travisTxIndex: 0,
 		txIndex:      0,
 		totalUsedGas: big.NewInt(0),
 		totalUsedGasFee: big.NewInt(0),
@@ -171,7 +174,7 @@ type workState struct {
 	header *ethTypes.Header
 	parent *ethTypes.Block
 	state  *state.StateDB
-	stakedTxIndex int //coped StateChangeObject index in the queue
+	travisTxIndex int //coped StateChangeObject index in the queue
 
 	txIndex      int
 	transactions []*ethTypes.Transaction
@@ -198,18 +201,8 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 
 	delete(utils.NonceCheckedTx, tx.Hash())
 
-	// Iterate to sub balance of staker from state
-	// ws.stakedTxIndex used for record coped index of every staker
-	for i := ws.stakedTxIndex; i < len(utils.StateChangeQueue); i++ {
-		scObj := utils.StateChangeQueue[i]
-		if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount) >= 0 {
-			ws.state.SubBalance(scObj.From, scObj.Amount)
-			if len(scObj.To.Bytes()) != 0 {
-				ws.state.AddBalance(scObj.To, scObj.Amount)
-			}
-		}
-	}
-	ws.stakedTxIndex = len(utils.StateChangeQueue)
+	ws.handleStateChangeQueue()
+	ws.travisTxIndex = len(utils.StateChangeQueue)
 
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	receipt, usedGas, err := core.ApplyTransaction(
@@ -246,24 +239,26 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 // the ethereum blockchain. The application root hash is the hash of the
 // ethereum block.
 func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (common.Hash, error) {
-	// Iterate to sub balance of staker from state
-	// ws.stakedTxIndex used for record coped index of every staker
-	for i := ws.stakedTxIndex; i < len(utils.StateChangeQueue); i++ {
-		scObj := utils.StateChangeQueue[i]
-		if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount) >= 0 {
-			ws.state.SubBalance(scObj.From, scObj.Amount)
-			if len(scObj.To.Bytes()) != 0 {
-				ws.state.AddBalance(scObj.To, scObj.Amount)
-			}
-			if scObj.Reactor != nil {
-				scObj.Reactor.React("success", "")
-			}
-		} else {
-			if scObj.Reactor != nil {
-				scObj.Reactor.React("fail", "Insufficient balance")
-			}
+	currentHeight := ws.header.Number.Uint64()
+
+	proposalIds := utils.PendingProposal.ReachMin(currentHeight)
+	for _, pid := range proposalIds {
+		proposal := gov.GetProposalById(pid)
+		amount := new(big.Int)
+		amount.SetString(proposal.Amount, 10)
+
+		switch gov.CheckProposal(pid) {
+		case "approved":
+			commons.TransferWithReactor(utils.EmptyAddress, *proposal.To, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Approved"})
+		case "rejected":
+			commons.TransferWithReactor(utils.EmptyAddress, *proposal.From, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"})
+		default:
+			commons.TransferWithReactor(utils.EmptyAddress, *proposal.From, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Expired"})
 		}
+		utils.PendingProposal.Del(pid)
 	}
+
+	ws.handleStateChangeQueue()
 
 	// Commit ethereum state and update the header.
 	hashArray, err := ws.state.CommitTo(db.NewBatch(), false) // XXX: ugh hardforks
@@ -289,6 +284,36 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 		return common.Hash{}, err
 	}
 	return blockHash, err
+}
+
+func (ws *workState) handleStateChangeQueue() {
+	// Iterate to add/sub balance from state
+	// ws.travisTxIndex used for recording handled index of queue
+	for i := ws.travisTxIndex; i < len(utils.StateChangeQueue); i++ {
+		scObj := utils.StateChangeQueue[i]
+		if bytes.Compare(scObj.From.Bytes(), utils.EmptyAddress.Bytes()) == 0 {
+			if bytes.Compare(scObj.To.Bytes(), utils.EmptyAddress.Bytes()) != 0 {
+				ws.state.AddBalance(scObj.To, scObj.Amount)
+				if scObj.Reactor != nil {
+					scObj.Reactor.React("success", "")
+				}
+			}
+		} else {
+			if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount) >= 0 {
+				ws.state.SubBalance(scObj.From, scObj.Amount)
+				if bytes.Compare(scObj.To.Bytes(), utils.EmptyAddress.Bytes()) != 0 {
+					ws.state.AddBalance(scObj.To, scObj.Amount)
+				}
+				if scObj.Reactor != nil {
+					scObj.Reactor.React("success", "")
+				}
+			} else {
+				if scObj.Reactor != nil {
+					scObj.Reactor.React("fail", "Insufficient balance")
+				}
+			}
+		}
+	}
 }
 
 func (ws *workState) updateHeaderWithTimeInfo(

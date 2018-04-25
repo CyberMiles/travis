@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+	"math"
 )
 
 type StateChangeObject struct {
@@ -17,8 +18,78 @@ type StateChangeReactor interface {
 	React(result, msg string)
 }
 
+type pendingProposal struct {
+	proposals map[string]uint64
+	minExpireBlockHeight uint64
+	minHeightMappedPid []string
+}
+
+func (p *pendingProposal) BatchAdd(proposals map[string]uint64) {
+	p.proposals = proposals
+	p.update()
+}
+
+func (p *pendingProposal) Add(pid string, expireBlockHeight uint64) {
+	p.proposals[pid] = expireBlockHeight
+	if p.minExpireBlockHeight > expireBlockHeight {
+		p.minHeightMappedPid = []string{pid}
+		p.minExpireBlockHeight = expireBlockHeight
+	} else if p.minExpireBlockHeight == expireBlockHeight {
+		p.minHeightMappedPid = append(p.minHeightMappedPid, pid)
+	}
+}
+
+func (p *pendingProposal) Del(pid string) {
+	expireBlockHeight := p.proposals[pid]
+	delete(p.proposals, pid)
+	if p.minExpireBlockHeight == expireBlockHeight {
+		if len(p.minHeightMappedPid) == 1 {
+			p.update()
+		} else {
+			for idx, id := range p.minHeightMappedPid {
+				if id == pid {
+					p.minHeightMappedPid = append(p.minHeightMappedPid[:idx], p.minHeightMappedPid[idx+1:]...)
+					break
+				}
+			}
+		}
+	}
+}
+
+func (p *pendingProposal) update() {
+	min := uint64(math.MaxUint64)
+
+	for pid, bh := range p.proposals {
+		if min > bh {
+			min = bh
+			p.minHeightMappedPid = []string{pid}
+		} else if min == bh {
+			p.minHeightMappedPid = append(p.minHeightMappedPid, pid)
+		}
+	}
+	p.minExpireBlockHeight = min
+}
+
+func (p *pendingProposal) ReachMin(blockHeight uint64) (pids []string) {
+	if p.minExpireBlockHeight == blockHeight {
+		pids = p.minHeightMappedPid
+
+		for _, pid := range pids {
+			delete(p.proposals, pid)
+		}
+		p.update()
+	}
+	return
+}
+
 var(
+	EmptyAddress = common.Address{}
 	BlockGasFee *big.Int
 	StateChangeQueue []StateChangeObject
 	NonceCheckedTx map[common.Hash]bool = make(map[common.Hash]bool)
+	PendingProposal = &pendingProposal {
+		make(map[string]uint64),
+		math.MaxUint64,
+		nil,
+	}
 )

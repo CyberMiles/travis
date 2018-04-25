@@ -15,13 +15,6 @@ RSTEP=10
 
 seeds="127.0.0.1:$TP2PPORT"
 
-uname="$(uname -s)"
-if [ $uname == "Darwin" ] ; then
-	sedopt="''"
-else
-	sedopt=""
-fi
-
 # init params
 if [ -z $INST_COUNT ]; then
 	INST_COUNT=1
@@ -65,10 +58,10 @@ modifyConf()
 
 	cd $dir
 	cp $BASE_DIR/genesis.json .
-	sed -i $sedopt "s/$TRPCPORT/$trpcport/g" ./config.toml
-	sed -i $sedopt "s/$TP2PPORT/$tp2pport/g" ./config.toml
-	sed -i $sedopt "s/$ERPCPORT/$erpcport/g" ./config.toml
-	sed -i $sedopt "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
+	sed -i '' "s/$TRPCPORT/$trpcport/g" ./config.toml
+	sed -i '' "s/$TP2PPORT/$tp2pport/g" ./config.toml
+	sed -i '' "s/$ERPCPORT/$erpcport/g" ./config.toml
+	sed -i '' "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
 }
 
 # kill running travis first
@@ -119,7 +112,7 @@ do
 		if [ $i -ne 1 ]; then
 			modifyConf $dir $seq
 		else
-			sed -i $sedopt "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
+			sed -i '' "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
 		fi
 	fi
 

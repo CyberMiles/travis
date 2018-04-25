@@ -466,10 +466,11 @@ type GovernanceProposalArgs struct {
 	To       *common.Address `json:"transferTo"`
 	Amount   string `json:"amount"`
 	Reason   string `json:"reason"`
+	expire   uint64  `json:"expire"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxPropose(args.Proposer, args.From, args.To, args.Amount, args.Reason)
+	tx := governance.NewTxPropose(args.Proposer, args.From, args.To, args.Amount, args.Reason, args.expire)
 	tx, err := s.wrapAndSignTx(tx, args.Proposer.String(), args.Sequence)
 
 	if err != err {

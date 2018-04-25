@@ -20,6 +20,7 @@ import (
 	ttypes	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/modules"
 	"github.com/ethereum/go-ethereum/eth"
+	"github.com/CyberMiles/travis/modules/governance"
 )
 
 // BaseApp - The ABCI application
@@ -45,6 +46,16 @@ var (
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
 func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.Ticker, ethereum *eth.Ethereum) (*BaseApp, error) {
+	// init pending proposals
+	pendingProposals := governance.GetPendingProposals()
+	if len(pendingProposals) > 0 {
+		proposals := make(map[string]uint64)
+		for _, pp := range pendingProposals {
+			proposals[pp.Id] = pp.ExpireBlockHeight
+		}
+		utils.PendingProposal.BatchAdd(proposals)
+	}
+
 	app := &BaseApp{
 		StoreApp:               store,
 		handler:                modules.Handler{},
@@ -56,6 +67,11 @@ func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.
 	}
 
 	return app, nil
+}
+
+// InitChain - ABCI
+func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+	return
 }
 
 // DeliverTx - ABCI
