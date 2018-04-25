@@ -39,7 +39,6 @@ exports.generateTransaction = txObject => {
 }
 
 exports.sendRawTransactions = (web3, transactions, cb) => {
-  let start = new Date()
   async.parallelLimit(
     transactions.map(tx => {
       return web3.cmt.sendRawTransaction.bind(null, tx)
@@ -50,13 +49,27 @@ exports.sendRawTransactions = (web3, transactions, cb) => {
         return cb(err)
       }
 
-      cb(null, new Date() - start)
+      cb(null, new Date())
+    }
+  )
+}
+
+exports.sendRawTransactionsSeries = (web3, transactions, cb) => {
+  async.series(
+    transactions.map(tx => {
+      return web3.cmt.sendRawTransaction.bind(null, tx)
+    }),
+    err => {
+      if (err) {
+        return cb(err)
+      }
+
+      cb(null, new Date())
     }
   )
 }
 
 exports.sendTransactions = (web3, transactions, cb) => {
-  let start = new Date()
   async.parallelLimit(
     transactions.map(tx => {
       return web3.cmt.sendTransaction.bind(null, tx)
@@ -67,13 +80,12 @@ exports.sendTransactions = (web3, transactions, cb) => {
         return cb(err)
       }
 
-      cb(null, new Date() - start)
+      cb(null, new Date())
     }
   )
 }
 
 exports.tokenTransfer = (web3, tokenInstance, transactions, cb) => {
-  let start = new Date()
   async.parallelLimit(
     transactions.map(tx => {
       return tokenInstance.transfer.sendTransaction.bind(null, tx.to, tx.value)
@@ -84,7 +96,7 @@ exports.tokenTransfer = (web3, tokenInstance, transactions, cb) => {
         return cb(err)
       }
 
-      cb(null, new Date() - start)
+      cb(null, new Date())
     }
   )
 }
@@ -94,7 +106,7 @@ exports.waitProcessedInterval = (
   startingBlock,
   fromAddr,
   initialNonce,
-  txs,
+  txCount,
   cb
 ) => {
   let interval = setInterval(() => {
@@ -110,34 +122,45 @@ exports.waitProcessedInterval = (
     console.log(
       `Blocks Passed ${blocksGone}, current balance: ${balance.toString()}, processed transactions: ${processed}`
     )
-
-    if (processed >= txs) {
+    if (processed >= txCount) {
       clearInterval(interval)
       cb(null, new Date())
     }
   }, waitInterval || 100)
 }
 
-exports.waitMultipleProcessed = (web3, startingBlock, accounts, txs, cb) => {
-  async.parallelLimit(
-    accounts.map(addr => {
-      return exports.waitProcessedInterval.bind(
-        null,
-        web3,
-        startingBlock,
-        addr,
-        0,
-        txs
-      )
-    }),
-    concurrency,
-    (err, ms) => {
-      if (err) {
-        return cb(err)
-      }
-      cb(null, new Date())
+exports.waitMultipleProcessed = (
+  web3,
+  startingBlock,
+  accounts,
+  txCount,
+  cb
+) => {
+  let interval = setInterval(() => {
+    let blocksGone = web3.cmt.blockNumber - startingBlock
+    if (blocksGone > blockTimeout) {
+      clearInterval(interval)
+      cb(new Error(`Pending full after ${blockTimeout} blocks`))
+      return
     }
-  )
+    async.parallel(
+      accounts.map(addr => {
+        return web3.cmt.getTransactionCount.bind(null, addr)
+      }),
+      (err, counts) => {
+        let processed = counts.reduce((sum, c) => {
+          return sum + c
+        })
+        console.log(
+          `Blocks Passed ${blocksGone}, processed transactions: ${processed}`
+        )
+        if (processed >= txCount) {
+          clearInterval(interval)
+          cb(null, { endDate: new Date(), processed: processed })
+        }
+      }
+    )
+  }, waitInterval || 100)
 }
 
 exports.calculateTransactionsPrice = (gasPrice, value, txcount) => {
