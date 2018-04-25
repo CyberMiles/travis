@@ -31,8 +31,7 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	defer stmt.Close()
 
 	var pubKey, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
-	var votingPower int64
-	var cut float64
+	var votingPower, cut int64
 	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
 
 	switch {
@@ -76,8 +75,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 	defer stmt.Close()
 
 	var address, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
-	var votingPower int64
-	var cut float64
+	var votingPower, cut int64
 	err = stmt.QueryRow(pubKey).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
 
 	switch {
@@ -123,8 +121,7 @@ func GetCandidates() (candidates Candidates) {
 
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
-		var votingPower int64
-		var cut float64
+		var votingPower, cut int64
 		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)

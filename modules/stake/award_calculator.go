@@ -17,9 +17,9 @@ type awardCalculator struct {
 type validator struct {
 	shares           *big.Int
 	ownerAddress     common.Address
-	sharesPercentage float64
 	delegators       []delegator
-	cut              float64
+	cut              int64
+	sharesPercentage *big.Float
 }
 
 type delegator struct {
@@ -29,33 +29,34 @@ type delegator struct {
 }
 
 const (
-	inflationRate       = 8
-	yearlyBlockNumber   = 365 * 24 * 3600 / 10
-	basicMintableAmount = "1000000000000000000000000000"
+	inflationRate      = 8
+	yearlyBlockNumber  = 365 * 24 * 3600 / 10
+	basicMinableAmount = "1000000000000000000000000000"
 )
 
 func NewAwardCalculator(height int64, validators Validators, transactionFees *big.Int) *awardCalculator {
 	return &awardCalculator{height, validators, transactionFees}
 }
 
-func (ac awardCalculator) getMintableAmount() *big.Int {
-	val := new(big.Float)
-	bma, _ := val.SetString(basicMintableAmount)
+func (ac awardCalculator) getMinableAmount() (result *big.Int) {
+	base, ok := new(big.Float).SetString(basicMinableAmount)
+	if !ok {
+		// should never run into this block
+		panic(ErrBadAmount())
+	}
+
 	year := ac.height / yearlyBlockNumber
 	pow := big.NewFloat(math.Pow(float64(1+inflationRate/100), float64(year)))
-	result := new(big.Int)
-	z := new(big.Float)
-	z.Mul(bma, pow).Int(result)
-	return result
+	new(big.Float).Mul(base, pow).Int(result)
+	return
 }
 
-func (ac awardCalculator) getTotalBlockAward() *big.Int {
-	val := big.NewInt(yearlyBlockNumber)
-	tmp := new(big.Int)
-	tmp.Mul(ac.getMintableAmount(), big.NewInt(inflationRate))
-	tmp.Div(tmp, big.NewInt(100))
-	tmp.Div(tmp, val)
-	return tmp
+func (ac awardCalculator) getTotalBlockAward() (result *big.Int) {
+	blocks := big.NewInt(yearlyBlockNumber)
+	result.Mul(ac.getMinableAmount(), big.NewInt(inflationRate))
+	result.Div(result, big.NewInt(100))
+	result.Div(result, blocks)
+	return
 }
 
 func (ac awardCalculator) AwardAll() {
@@ -88,12 +89,9 @@ func (ac awardCalculator) AwardAll() {
 	}
 
 	for _, val := range validators {
-		x := new(big.Float)
-		y := new(big.Float)
-		x.SetString(val.shares.String())
-		y.SetString(totalShares.String())
-		z, _ := new(big.Float).Quo(x, y).Float64()
-		val.sharesPercentage = z
+		x := new(big.Float).SetInt(val.shares)
+		y := new(big.Float).SetInt(totalShares)
+		val.sharesPercentage = new(big.Float).Quo(x, y)
 		blockAward := ac.getValidatorBlockAward(val)
 		remainedAward := blockAward
 
@@ -107,34 +105,28 @@ func (ac awardCalculator) AwardAll() {
 	}
 }
 
-func (ac awardCalculator) getValidatorBlockAward(val validator) *big.Int {
-	x := new(big.Float)
-	y := new(big.Float)
-	x.SetString(ac.getTotalBlockAward().String())
-	y.SetString(ac.transactionFees.String())
-	percentage := big.NewFloat(val.sharesPercentage)
-
-	tmp := new(big.Float)
-	tmp.Add(x, y)
-	tmp.Mul(tmp, percentage)
-
-	result := new(big.Int)
-	tmp.Int(result)
-	return result
+func (ac awardCalculator) getValidatorBlockAward(val validator) (result *big.Int) {
+	z := new(big.Float)
+	x := new(big.Float).SetInt(ac.getTotalBlockAward())
+	y := new(big.Float).SetInt(ac.transactionFees)
+	z.Add(x, y)
+	z.Mul(z, val.sharesPercentage)
+	z.Int(result)
+	return
 }
 
-func (ac awardCalculator) getDelegatorAward(del delegator, val validator, blockAward *big.Int) *big.Int {
-	tmp := new(big.Float)
-	x, _ := new(big.Float).SetString(del.shares.String())
-	y, _ := new(big.Float).SetString(val.shares.String())
-	tmp.Quo(x, y)
-	award, _ := new(big.Float).SetString(blockAward.String())
-	tmp.Mul(tmp, award)
-	tmp.Mul(tmp, big.NewFloat(val.cut))
-
-	result := new(big.Int)
-	tmp.Int(result)
-	return result
+func (ac awardCalculator) getDelegatorAward(del delegator, val validator, blockAward *big.Int) (result *big.Int) {
+	z := new(big.Float)
+	x := new(big.Float).SetInt(del.shares) // shares of the delegator
+	y := new(big.Float).SetInt(val.shares) // total shares of the validator
+	z.Quo(x, y)
+	award := new(big.Float).SetInt(blockAward)
+	z.Mul(z, award)
+	cut := new(big.Float).SetInt64(val.cut)
+	z.Mul(z, cut) // format: 123 -> 0.0123 -> 1.23%
+	z.Quo(z, new(big.Float).SetInt64(10000))
+	z.Int(result)
+	return
 }
 
 func (ac awardCalculator) awardToValidator(val validator, amount *big.Int) {

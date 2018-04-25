@@ -119,7 +119,7 @@ type DeclareCandidacyArgs struct {
 	From        string            `json:"from"`
 	PubKey      string            `json:"pubKey"`
 	MaxAmount   string            `json:max_amount`
-	Cut         string            `json:"cut"`
+	Cut         int64             `json:"cut"`
 	Description stake.Description `json:"description"`
 }
 

@@ -19,7 +19,7 @@ type Params struct {
 	HoldAccount             common.Address `json:"hold_account"` // PubKey where all bonded coins are held
 	MaxVals                 uint16         `json:"max_vals"`     // maximum number of validators
 	Validators              string         `json:"validators"`   // initial validators definition
-	ReserveRequirementRatio string         `json:"reserve_requirement_ratio"`
+	ReserveRequirementRatio int64          `json:"reserve_requirement_ratio"`
 }
 
 var DefaultHoldAccount = common.HexToAddress("0000000000000000000000000000000000000000")
@@ -29,7 +29,7 @@ func defaultParams() Params {
 		HoldAccount:             DefaultHoldAccount,
 		MaxVals:                 100,
 		Validators:              "",
-		ReserveRequirementRatio: "0.1",
+		ReserveRequirementRatio: 10,
 	}
 }
 
@@ -49,7 +49,7 @@ type Candidate struct {
 	Shares       *big.Int       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
 	MaxShares    *big.Int       `json:"max_shares"`
-	Cut          float64        `json:"cut"`
+	Cut          int64          `json:"cut"`
 	CreatedAt    string         `json:"created_at"`
 	UpdatedAt    string         `json:"updated_at"`
 	Description  Description    `json:"description"`
@@ -63,7 +63,7 @@ type Description struct {
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, maxShares *big.Int, cut float64, description Description, verified string) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, maxShares *big.Int, cut int64, description Description, verified string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
