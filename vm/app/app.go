@@ -37,9 +37,6 @@ type EthermintApplication struct {
 	// and wrangles other services started by an ethereum node (eg. tx pool)
 	backend *api.Backend // backend ethereum struct
 
-	// a closure to return the latest current state from the ethereum blockchain
-	getCurrentState func() (*state.StateDB, error)
-
 	checkTxState *state.StateDB
 
 	// an ethereum rpc client we can forward queries to
@@ -61,16 +58,15 @@ type EthermintApplication struct {
 func NewEthermintApplication(backend *api.Backend,
 	client *rpc.Client, strategy *emtTypes.Strategy) (*EthermintApplication, error) {
 
-	state, err := backend.Ethereum().BlockChain().State()
-	if err != nil {
-		return nil, err
+	state := backend.ManagedState()
+	if state == nil {
+		panic("Error getting latest state")
 	}
 
 	app := &EthermintApplication{
 		backend:              backend,
 		rpcClient:            client,
-		getCurrentState:      backend.Ethereum().BlockChain().State,
-		checkTxState:         state.Copy(),
+		checkTxState:         state.StateDB,
 		strategy:             strategy,
 		lowPriceTransactions: make(map[FromTo]*ethTypes.Transaction),
 		checkFailedCount:     make(map[common.Address]uint64),
@@ -203,7 +199,8 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 			Log:  err.Error(),
 		}
 	}
-	state, err := app.getCurrentState()
+
+	state, err := app.backend.ResetState()
 	if err != nil {
 		app.logger.Error("Error getting latest state", "err", err) // nolint: errcheck
 		return abciTypes.ResponseCommit{
@@ -211,9 +208,7 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 			Log:  err.Error(),
 		}
 	}
-
-	app.checkTxState = state.Copy()
-	app.backend.ResetState()
+	app.checkTxState = state.StateDB
 
 	app.lowPriceTransactions = make(map[FromTo]*ethTypes.Transaction)
 
@@ -380,7 +375,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 		currentState.AddBalance(*to, tx.Value())
 	}
 	currentState.SetNonce(from, nonce+1)
-	app.backend.PendingState().SetNonce(from, nonce+1)
 
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }

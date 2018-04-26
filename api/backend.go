@@ -47,7 +47,8 @@ type Backend struct {
 	// travis chain id
 	chainID string
 
-	pendingState *state.ManagedState
+	// moved from txpool.pendingState
+	managedState *state.ManagedState
 }
 
 // NewBackend creates a new Backend
@@ -85,16 +86,17 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 	return ethBackend, nil
 }
 
-func (b *Backend) ResetState() {
+func (b *Backend) ResetState() (*state.ManagedState, error) {
 	currentState, err := b.Ethereum().BlockChain().State()
 	if err != nil {
-		return
+		return nil, err
 	}
-	b.pendingState = state.ManageState(currentState)
+	b.managedState = state.ManageState(currentState)
+	return b.managedState, nil
 }
 
-func (b *Backend) PendingState() *state.ManagedState {
-	return b.pendingState
+func (b *Backend) ManagedState() *state.ManagedState {
+	return b.managedState
 }
 
 // Ethereum returns the underlying the ethereum object.

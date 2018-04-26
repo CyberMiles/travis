@@ -40,7 +40,7 @@ func (args *SendTxArgs) setDefaults(b *Backend) error {
 		args.Value = new(hexutil.Big)
 	}
 	if args.Nonce == nil {
-		nonce := b.PendingState().GetNonce(args.From)
+		nonce := b.ManagedState().GetNonce(args.From)
 		args.Nonce = (*hexutil.Uint64)(&nonce)
 	}
 	return nil
