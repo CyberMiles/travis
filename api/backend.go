@@ -13,11 +13,9 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
 	abciTypes "github.com/tendermint/abci/types"
-	"github.com/tendermint/go-wire"
 	tmn "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
-	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/vm/ethereum"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
@@ -219,20 +217,6 @@ func (b *Backend) Stop() error {
 // #stable
 func (b *Backend) Protocols() []p2p.Protocol {
 	return nil
-}
-
-func (b *Backend) GetSequence(signers []common.Address, sequence *uint64) error {
-	// key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
-	key := nonce.GetSeqKey(signers)
-	result, err := b.localClient.ABCIQuery("/key", key)
-	if err != nil {
-		return err
-	}
-
-	if len(result.Response.Value) == 0 {
-		return nil
-	}
-	return wire.ReadBinaryBytes(result.Response.Value, sequence)
 }
 
 //----------------------------------------------------------------------
