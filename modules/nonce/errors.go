@@ -19,7 +19,7 @@ var (
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
 
-func ErrBadNonce(got, expected uint32) errors.TMError {
+func ErrBadNonce(got, expected uint64) errors.TMError {
 	return errors.WithCode(fmt.Errorf("Bad nonce sequence, got %d, expected %d", got, expected), badNonce)
 }
 func ErrNoNonce() errors.TMError {

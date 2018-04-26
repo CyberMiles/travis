@@ -6,10 +6,10 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/CyberMiles/travis/client/commands"
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/nonce"
+	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -58,13 +58,13 @@ func readNonceKey() ([]common.Address, error) {
 }
 
 // read the sequence from the flag or query for it if flag is -1
-func readSequence(signers []common.Address) (seq uint32, err error) {
+func readSequence(signers []common.Address) (seq uint64, err error) {
 	//add the nonce tx layer to the tx
 	seqFlag := viper.GetInt(FlagSequence)
 
 	switch {
 	case seqFlag > 0:
-		seq = uint32(seqFlag)
+		seq = uint64(seqFlag)
 
 	case seqFlag == -1:
 		//auto calculation for default sequence

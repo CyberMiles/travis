@@ -7,16 +7,16 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	_ "github.com/cosmos/cosmos-sdk/client"
-	"github.com/CyberMiles/travis/client/commands"
-	"github.com/cosmos/cosmos-sdk/client/commands/query"
-	"github.com/CyberMiles/travis/modules/nonce"
-	"github.com/ethereum/go-ethereum/common"
 	"fmt"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
+	"github.com/CyberMiles/travis/client/commands"
+	"github.com/CyberMiles/travis/modules/nonce"
+	"github.com/cosmos/cosmos-sdk/client"
+	_ "github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/commands/query"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
-	"github.com/cosmos/cosmos-sdk/client"
+	rpcclient "github.com/tendermint/tendermint/rpc/client"
 )
 
 // NonceQueryCmd - command to query an nonce account
@@ -45,7 +45,7 @@ func nonceQueryCmd(cmd *cobra.Command, args []string) error {
 	return query.OutputProof(seq, height)
 }
 
-func doNonceQuery(signers []common.Address) (sequence uint32, height int64, err error) {
+func doNonceQuery(signers []common.Address) (sequence uint64, height int64, err error) {
 	//fmt.Printf("doNonceQuery, before prefixed: %s\n", hex.EncodeToString(nonce.GetSeqKey(signers)))
 	//key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
 	key := nonce.GetSeqKey(signers)
@@ -61,7 +61,6 @@ func doNonceQuery(signers []common.Address) (sequence uint32, height int64, err 
 	}
 	return
 }
-
 
 // GetParsed does most of the work of the query commands, but is quite
 // opinionated, so if you want more control about parsing, call Get
