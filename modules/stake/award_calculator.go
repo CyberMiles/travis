@@ -39,6 +39,7 @@ func NewAwardCalculator(height int64, validators Validators, transactionFees *bi
 }
 
 func (ac awardCalculator) getMinableAmount() (result *big.Int) {
+	result = new(big.Int)
 	base, ok := new(big.Float).SetString(basicMinableAmount)
 	if !ok {
 		// should never run into this block
@@ -53,6 +54,7 @@ func (ac awardCalculator) getMinableAmount() (result *big.Int) {
 
 func (ac awardCalculator) getTotalBlockAward() (result *big.Int) {
 	blocks := big.NewInt(yearlyBlockNumber)
+	result = new(big.Int)
 	result.Mul(ac.getMinableAmount(), big.NewInt(inflationRate))
 	result.Div(result, big.NewInt(100))
 	result.Div(result, blocks)
@@ -106,6 +108,7 @@ func (ac awardCalculator) AwardAll() {
 }
 
 func (ac awardCalculator) getValidatorBlockAward(val validator) (result *big.Int) {
+	result = new(big.Int)
 	z := new(big.Float)
 	x := new(big.Float).SetInt(ac.getTotalBlockAward())
 	y := new(big.Float).SetInt(ac.transactionFees)
@@ -116,6 +119,7 @@ func (ac awardCalculator) getValidatorBlockAward(val validator) (result *big.Int
 }
 
 func (ac awardCalculator) getDelegatorAward(del delegator, val validator, blockAward *big.Int) (result *big.Int) {
+	result = new(big.Int)
 	z := new(big.Float)
 	x := new(big.Float).SetInt(del.shares) // shares of the delegator
 	y := new(big.Float).SetInt(val.shares) // total shares of the validator
