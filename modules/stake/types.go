@@ -22,11 +22,9 @@ type Params struct {
 	ReserveRequirementRatio int64          `json:"reserve_requirement_ratio"`
 }
 
-var DefaultHoldAccount = common.HexToAddress("0000000000000000000000000000000000000000")
-
 func defaultParams() Params {
 	return Params{
-		HoldAccount:             DefaultHoldAccount,
+		HoldAccount:             utils.HoldAccount,
 		MaxVals:                 100,
 		Validators:              "",
 		ReserveRequirementRatio: 10,

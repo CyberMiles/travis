@@ -1,6 +1,7 @@
 package stake
 
 import (
+	"fmt"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -24,7 +25,6 @@ type validator struct {
 
 type delegator struct {
 	address common.Address
-	slotId  string
 	shares  *big.Int
 }
 
@@ -35,6 +35,7 @@ const (
 )
 
 func NewAwardCalculator(height int64, validators Validators, transactionFees *big.Int) *awardCalculator {
+	fmt.Printf("new award calculator, height: %d, transaction fees: %d\n", height, transactionFees)
 	return &awardCalculator{height, validators, transactionFees}
 }
 
@@ -49,6 +50,7 @@ func (ac awardCalculator) getMinableAmount() (result *big.Int) {
 	year := ac.height / yearlyBlockNumber
 	pow := big.NewFloat(math.Pow(float64(1+inflationRate/100), float64(year)))
 	new(big.Float).Mul(base, pow).Int(result)
+	fmt.Printf("year: %d, minable amount: %v\n", year, result)
 	return
 }
 
@@ -58,6 +60,7 @@ func (ac awardCalculator) getTotalBlockAward() (result *big.Int) {
 	result.Mul(ac.getMinableAmount(), big.NewInt(inflationRate))
 	result.Div(result, big.NewInt(100))
 	result.Div(result, blocks)
+	fmt.Printf("yearly block number: %d, total block award: %v\n", blocks, result)
 	return
 }
 
@@ -68,7 +71,7 @@ func (ac awardCalculator) AwardAll() {
 
 	for _, val := range ac.validators {
 		var validator validator
-		candidate := GetCandidateByPubKey(val.PubKey.KeyString())
+		candidate := GetCandidateByAddress(val.OwnerAddress)
 		if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 			continue
 		}
@@ -94,7 +97,8 @@ func (ac awardCalculator) AwardAll() {
 		x := new(big.Float).SetInt(val.shares)
 		y := new(big.Float).SetInt(totalShares)
 		val.sharesPercentage = new(big.Float).Quo(x, y)
-		blockAward := ac.getValidatorBlockAward(val)
+		fmt.Printf("val.shares: %f, totalShares: %f, percentage: %f\n", x, y, val.sharesPercentage)
+		blockAward := ac.getBlockAwardForValidator(val)
 		remainedAward := blockAward
 
 		// award to delegators
@@ -107,7 +111,7 @@ func (ac awardCalculator) AwardAll() {
 	}
 }
 
-func (ac awardCalculator) getValidatorBlockAward(val validator) (result *big.Int) {
+func (ac awardCalculator) getBlockAwardForValidator(val validator) (result *big.Int) {
 	result = new(big.Int)
 	z := new(big.Float)
 	x := new(big.Float).SetInt(ac.getTotalBlockAward())
@@ -115,6 +119,7 @@ func (ac awardCalculator) getValidatorBlockAward(val validator) (result *big.Int
 	z.Add(x, y)
 	z.Mul(z, val.sharesPercentage)
 	z.Int(result)
+	fmt.Printf("shares percentage: %v, block award for validator: %v\n", val.sharesPercentage, result)
 	return
 }
 
@@ -124,25 +129,39 @@ func (ac awardCalculator) getDelegatorAward(del delegator, val validator, blockA
 	x := new(big.Float).SetInt(del.shares) // shares of the delegator
 	y := new(big.Float).SetInt(val.shares) // total shares of the validator
 	z.Quo(x, y)
+	fmt.Printf("delegator shares: %f, validator shares: %f, percentage: %f\n", x, y, z)
 	award := new(big.Float).SetInt(blockAward)
 	z.Mul(z, award)
 	cut := new(big.Float).SetInt64(val.cut)
 	z.Mul(z, cut) // format: 123 -> 0.0123 -> 1.23%
 	z.Quo(z, new(big.Float).SetInt64(10000))
 	z.Int(result)
+	fmt.Printf("delegator award: %d\n", result)
 	return
 }
 
-func (ac awardCalculator) awardToValidator(val validator, amount *big.Int) {
-	commons.Transfer(DefaultHoldAccount, val.ownerAddress, amount)
+func (ac awardCalculator) awardToValidator(v validator, award *big.Int) {
+	fmt.Printf("award to validator, owner_address: %s, award: %d\n", v.ownerAddress.String(), award)
+
+	// validator is also a delegator
+	d := delegator{address: v.ownerAddress}
+	ac.awardToDelegator(d, v, award)
 }
 
-func (ac awardCalculator) awardToDelegator(del delegator, val validator, award *big.Int) {
-	commons.Transfer(DefaultHoldAccount, del.address, award)
+func (ac awardCalculator) awardToDelegator(d delegator, v validator, award *big.Int) {
+	fmt.Printf("award to delegator, address: %s, amount: %d\n", v.ownerAddress.String(), award)
+	commons.Transfer(utils.MintAccount, utils.HoldAccount, award)
+	now := utils.GetNow()
 
 	// add award to stake of the delegator
-	delegation := GetDelegation(del.address, val.ownerAddress)
+	delegation := GetDelegation(d.address, v.ownerAddress)
 	delegation.Shares.Add(delegation.Shares, award)
-	delegation.UpdatedAt = utils.GetNow()
+	delegation.UpdatedAt = now
 	UpdateDelegation(delegation)
+
+	// accumulate shares of the validator
+	val := GetCandidateByAddress(v.ownerAddress)
+	val.Shares.Add(val.Shares, award)
+	val.UpdatedAt = now
+	updateCandidate(val)
 }

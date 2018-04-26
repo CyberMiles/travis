@@ -363,6 +363,26 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	return d.delegate(txDelegate)
 }
 
+func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy) error {
+	// create and save the empty candidate
+	maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
+	if !ok {
+		return ErrBadAmount()
+	}
+
+	z := new(big.Int)
+	rrr := big.NewInt(int64(d.params.ReserveRequirementRatio))
+	z.Mul(maxAmount, rrr)
+	z.Div(z, big.NewInt(100))
+	z.Div(z, big.NewInt(1e18))
+	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), z.Int64(), maxAmount, tx.Cut, tx.Description, "N")
+	SaveCandidate(candidate)
+
+	// delegate a part of the max staked CMT amount
+	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: z.String()}
+	return d.delegate(txDelegate)
+}
+
 func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 	// create and save the empty candidate
 	candidate := GetCandidateByAddress(d.sender)
@@ -387,10 +407,10 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 		amount, _ := new(big.Int).SetString(z.String(), 10)
 		if diff.Cmp(big.NewInt(0)) > 0 {
 			// charge
-			commons.Transfer(d.sender, DefaultHoldAccount, amount)
+			commons.Transfer(d.sender, utils.HoldAccount, amount)
 		} else {
 			// refund
-			commons.Transfer(DefaultHoldAccount, d.sender, amount)
+			commons.Transfer(utils.HoldAccount, d.sender, amount)
 		}
 
 		candidate.MaxShares = maxAmount

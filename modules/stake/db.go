@@ -76,7 +76,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 
 	var address, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
 	var votingPower, cut int64
-	err = stmt.QueryRow(pubKey).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
+	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -369,7 +369,7 @@ func UpdateDelegation(delegation *Delegation) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.Shares.String(), delegation.UpdatedAt)
+	_, err = stmt.Exec(delegation.Shares.String(), delegation.UpdatedAt, delegation.DelegatorAddress.String(), delegation.CandidateAddress.String())
 	if err != nil {
 		panic(err)
 	}
