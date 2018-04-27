@@ -1,20 +1,16 @@
 package api
 
 import (
-	"encoding/hex"
-	"encoding/json"
-	"errors"
 	"fmt"
-
-	"github.com/spf13/cast"
+	"math/big"
 
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/tendermint/go-wire/data"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
@@ -36,11 +32,71 @@ func NewCmtRPCService(b *Backend, nonceLock *AddrLocker) *CmtRPCService {
 	}
 }
 
+func (s *CmtRPCService) makeTravisTxArgs(tx sdk.Tx, address common.Address, nonce *hexutil.Uint64) (*SendTxArgs, error) {
+	data, err := tx.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	zero := big.NewInt(0)
+	return &SendTxArgs{
+		address,
+		nil,
+		(*hexutil.Big)(zero),
+		(*hexutil.Big)(zero),
+		(*hexutil.Big)(zero),
+		data,
+		nonce,
+	}, nil
+}
+
+// SendTransaction creates a transaction for the given argument, sign it and broardcast it to tendermint.
+func (s *CmtRPCService) sendTransaction(args *SendTxArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+
+	// Look up the wallet containing the requested signer
+	account := accounts.Account{Address: args.From}
+
+	if args.Nonce == nil {
+		// Hold the addresse's mutex around signing to prevent concurrent assignment of
+		// the same nonce to multiple accounts.
+		s.nonceLock.LockAddr(args.From)
+		defer s.nonceLock.UnlockAddr(args.From)
+	}
+
+	// Set some sanity defaults and terminate on failure
+	if err := args.setDefaults(s.backend); err != nil {
+		return nil, err
+	}
+	// Assemble the transaction and sign with the wallet
+	tx := args.toTransaction()
+
+	wallet, err := s.am.Find(account)
+	if err != nil {
+		return nil, err
+	}
+	ethChainId := int64(s.backend.ethConfig.NetworkId)
+	signed, err := wallet.SignTx(account, tx, big.NewInt(ethChainId))
+	if err != nil {
+		return nil, err
+	}
+
+	return s.backend.BroadcastTxCommit(signed)
+}
+
+func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := new(ethTypes.Transaction)
+	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
+		return nil, err
+	}
+
+	return s.backend.BroadcastTxCommit(tx)
+}
+
+/*
 func (s *CmtRPCService) GetBlock(height uint64) (*ctypes.ResultBlock, error) {
 	h := cast.ToInt64(height)
 	return s.backend.localClient.Block(&h)
 }
-
 func (s *CmtRPCService) GetTransaction(hash string) (*ctypes.ResultTx, error) {
 	bkey, err := hex.DecodeString(cmn.StripHex(hash))
 	if err != nil {
@@ -48,7 +104,6 @@ func (s *CmtRPCService) GetTransaction(hash string) (*ctypes.ResultTx, error) {
 	}
 	return s.backend.localClient.Tx(bkey, false)
 }
-
 func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index int64) (*ctypes.ResultTx, error) {
 	h := cast.ToInt64(height)
 	block, err := s.backend.localClient.Block(&h)
@@ -61,41 +116,11 @@ func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index int64) (*ct
 	hash := block.Block.Txs[index].Hash()
 	return s.GetTransaction(hex.EncodeToString(hash))
 }
-
-func (s *CmtRPCService) GetSequence(address string) (*uint64, error) {
-	signers := []common.Address{getSigner(address)}
-	var sequence uint64
-	err := s.getSequence(signers, &sequence)
-	return &sequence, err
-}
-
-func (s *CmtRPCService) Test(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
-	var tx sdk.Tx
-	err := json.Unmarshal(encodedTx, &tx)
-	if err != nil {
-		return nil, err
-	}
-	//d, err := data.ToJSON(tx2)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//fmt.Printf("%s\n", d)
-	//
-	return s.backend.broadcastSdkTx(tx)
-}
-
-func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
-	var tx sdk.Tx
-	err := data.FromWire(encodedTx, &tx)
-	if err != nil {
-		return nil, err
-	}
-	return s.backend.broadcastSdkTx(tx)
-}
+*/
 
 type DeclareCandidacyArgs struct {
-	Sequence    uint64            `json:"sequence"`
-	From        string            `json:"from"`
+	Nonce       *hexutil.Uint64   `json:"nonce"`
+	From        common.Address    `json:"from"`
 	PubKey      string            `json:"pubKey"`
 	MaxAmount   string            `json:max_amount`
 	Cut         int64             `json:"cut"`
@@ -103,71 +128,56 @@ type DeclareCandidacyArgs struct {
 }
 
 func (s *CmtRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareDeclareCandidacyTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.backend.broadcastSdkTx(tx)
-}
-
-func (s *CmtRPCService) SignDeclareCandidacy(args DeclareCandidacyArgs) (hexutil.Bytes, error) {
-	tx, err := s.prepareDeclareCandidacyTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return data.ToWire(tx)
-}
-
-func (s *CmtRPCService) prepareDeclareCandidacyTx(args DeclareCandidacyArgs) (sdk.Tx, error) {
 	pubKey, err := utils.GetPubKey(args.PubKey)
 	if err != nil {
-		return sdk.Tx{}, err
+		return nil, err
 	}
 	tx := stake.NewTxDeclareCandidacy(pubKey, args.MaxAmount, args.Cut, args.Description)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sendTransaction(txArgs)
 }
 
 type WithdrawCandidacyArgs struct {
-	Sequence uint64 `json:"sequence"`
-	From     string `json:"from"`
+	Nonce *hexutil.Uint64 `json:"nonce"`
+	From  common.Address  `json:"from"`
 }
 
 func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareWithdrawCandidacyTx(args)
+	tx := stake.NewTxWithdraw(args.From)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
 		return nil, err
 	}
-	return s.backend.broadcastSdkTx(tx)
-}
 
-func (s *CmtRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs) (sdk.Tx, error) {
-	tx := stake.NewTxWithdrawCandidacy()
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
+	return s.sendTransaction(txArgs)
 }
 
 type UpdateCandidacyArgs struct {
-	Sequence    uint64            `json:"sequence"`
-	From        string            `json:"from"`
-	NewAddress  string            `json:"newAddress"`
+	Nonce       *hexutil.Uint64   `json:"nonce"`
+	From        common.Address    `json:"from"`
+	NewAddress  common.Address    `json:"newAddress"`
 	MaxAmount   string            `json:"max_amount"`
 	Description stake.Description `json:"description"`
 }
 
 func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareUpdateCandidacyTx(args)
+	if len(args.NewAddress) == 0 {
+		return nil, fmt.Errorf("must provide new address")
+	}
+	tx := stake.NewTxUpdateCandidacy(args.NewAddress, args.MaxAmount, args.Description)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
 		return nil, err
 	}
-	return s.backend.broadcastSdkTx(tx)
-}
 
-func (s *CmtRPCService) prepareUpdateCandidacyTx(args UpdateCandidacyArgs) (sdk.Tx, error) {
-	if len(args.NewAddress) == 0 {
-		return sdk.Tx{}, fmt.Errorf("must provide new address")
-	}
-	address := common.HexToAddress(args.NewAddress)
-	tx := stake.NewTxUpdateCandidacy(address, args.MaxAmount, args.Description)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
+	return s.sendTransaction(txArgs)
 }
 
 type StakeQueryResult struct {
@@ -197,53 +207,52 @@ func (s *CmtRPCService) QueryValidator(address string, height uint64) (*StakeQue
 }
 
 func (s *CmtRPCService) QueryDelegator(address string, height uint64) (*StakeQueryResult, error) {
-	var delegation *stake.Delegation
-	h, err := s.getParsed("/delegator", []byte(address), &delegation, height)
+	var slotDelegates []*stake.Delegation
+	h, err := s.getParsed("/delegator", []byte(address), &slotDelegates, height)
 	if err != nil {
 		return nil, err
 	}
 
-	return &StakeQueryResult{h, delegation}, nil
+	return &StakeQueryResult{h, slotDelegates}, nil
 }
 
 type GovernanceProposalArgs struct {
-	Sequence uint64          `json:"sequence"`
-	Proposer *common.Address `json:"from"`
-	From     *common.Address `json:"transferFrom"`
-	To       *common.Address `json:"transferTo"`
+	Nonce    *hexutil.Uint64 `json:"nonce"`
+	Proposer common.Address  `json:"from"`
+	From     common.Address  `json:"transferFrom"`
+	To       common.Address  `json:"transferTo"`
 	Amount   string          `json:"amount"`
 	Reason   string          `json:"reason"`
 	expire   uint64          `json:"expire"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxPropose(args.Proposer, args.From, args.To, args.Amount, args.Reason, args.expire)
-	tx, err := s.wrapAndSignTx(tx, args.Proposer.String(), args.Sequence)
+	tx := governance.NewTxPropose(&args.Proposer, &args.From, &args.To, args.Amount, args.Reason, args.expire)
 
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != err {
 		return nil, err
 	}
 
-	return s.backend.broadcastSdkTx(tx)
+	return s.sendTransaction(txArgs)
 }
 
 type GovernanceVoteArgs struct {
-	Sequence   uint64 `json:"sequence"`
-	ProposalId string `json:"proposalId"`
-	Voter      string `json:"from"`
-	Answer     string `json:"answer"`
+	Nonce      *hexutil.Uint64 `json:"nonce"`
+	Voter      common.Address  `json:"from"`
+	ProposalId string          `json:"proposalId"`
+	Answer     string          `json:"answer"`
 }
 
 func (s *CmtRPCService) Vote(args GovernanceVoteArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	voter := common.HexToAddress(args.Voter)
+	tx := governance.NewTxVote(args.ProposalId, args.Voter, args.Answer)
 
-	tx := governance.NewTxVote(args.ProposalId, voter, args.Answer)
-	tx, err := s.wrapAndSignTx(tx, args.Voter, args.Sequence)
-
+	txArgs, err := s.makeTravisTxArgs(tx, args.Voter, args.Nonce)
 	if err != err {
 		return nil, err
 	}
-	return s.backend.broadcastSdkTx(tx)
+
+	return s.sendTransaction(txArgs)
 }
 
 func (s *CmtRPCService) QueryProposals() (*StakeQueryResult, error) {

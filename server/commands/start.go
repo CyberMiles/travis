@@ -11,13 +11,12 @@ import (
 
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/ethereum/go-ethereum/eth"
 	"github.com/tendermint/tmlibs/cli"
 	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/genesis"
-	ethapp "github.com/CyberMiles/travis/vm/app"
-	"github.com/ethereum/go-ethereum/eth"
 )
 
 // GetTickStartCmd - initialize a command as the start command with tick
@@ -67,7 +66,7 @@ func start(rootDir string, storeApp *app.StoreApp, ticker sdk.Ticker) error {
 	return nil
 }
 
-func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication, ticker sdk.Ticker, ethereum *eth.Ethereum) (*app.BaseApp, error) {
+func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *app.EthermintApplication, ticker sdk.Ticker, ethereum *eth.Ethereum) (*app.BaseApp, error) {
 	travisApp, err := app.NewBaseApp(storeApp, ethApp, ticker, ethereum)
 	if err != nil {
 		return nil, err
