@@ -93,7 +93,7 @@ func setValidator(value string, store state.SimpleDB) error {
 	}
 
 	tx := TxDeclareCandidacy{val.PubKey, maxShares.String(), val.Cut, Description{}}
-	return deliverer.declareCandidacy(tx)
+	return deliverer.declareGenesisCandidacy(tx, val.Power)
 }
 
 // CheckTx checks if the tx is properly structured
@@ -363,23 +363,24 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	return d.delegate(txDelegate)
 }
 
-func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy) error {
+func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int64) error {
 	// create and save the empty candidate
 	maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
 	if !ok {
 		return ErrBadAmount()
 	}
 
-	z := new(big.Int)
-	rrr := big.NewInt(int64(d.params.ReserveRequirementRatio))
-	z.Mul(maxAmount, rrr)
-	z.Div(z, big.NewInt(100))
-	z.Div(z, big.NewInt(1e18))
-	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), z.Int64(), maxAmount, tx.Cut, tx.Description, "N")
+	//z := new(big.Int)
+	//rrr := big.NewInt(int64(d.params.ReserveRequirementRatio))
+	//z.Mul(maxAmount, rrr)
+	//z.Div(z, big.NewInt(100))
+	//z.Div(z, big.NewInt(1e18))
+	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), votingPower, maxAmount, tx.Cut, tx.Description, "N")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
-	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: z.String()}
+	amount := new(big.Int).Mul(big.NewInt(votingPower), big.NewInt(1e18))
+	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
 	return d.delegate(txDelegate)
 }
 
