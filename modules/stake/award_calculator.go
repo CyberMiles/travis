@@ -5,6 +5,7 @@ import (
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/go-crypto"
 	"math"
 	"math/big"
 )
@@ -18,6 +19,7 @@ type awardCalculator struct {
 type validator struct {
 	shares           *big.Int
 	ownerAddress     common.Address
+	pubKey           crypto.PubKey
 	delegators       []delegator
 	cut              int64
 	sharesPercentage *big.Float
@@ -78,11 +80,12 @@ func (ac awardCalculator) AwardAll() {
 
 		validator.shares = candidate.Shares
 		validator.ownerAddress = candidate.OwnerAddress
+		validator.pubKey = candidate.PubKey
 		validator.cut = candidate.Cut
 		totalShares.Add(totalShares, candidate.Shares)
 
 		// Get all of the delegators
-		delegations := GetDelegationsByCandidate(candidate.OwnerAddress)
+		delegations := GetDelegationsByPubKey(candidate.PubKey)
 		for _, delegation := range delegations {
 			delegator := delegator{}
 			delegator.address = delegation.DelegatorAddress
@@ -154,7 +157,11 @@ func (ac awardCalculator) awardToDelegator(d delegator, v validator, award *big.
 	now := utils.GetNow()
 
 	// add award to stake of the delegator
-	delegation := GetDelegation(d.address, v.ownerAddress)
+	delegation := GetDelegation(d.address, v.pubKey)
+	if delegation == nil {
+		return
+	}
+
 	delegation.Shares.Add(delegation.Shares, award)
 	delegation.UpdatedAt = now
 	UpdateDelegation(delegation)

@@ -260,17 +260,17 @@ type Delegator struct {
 }
 
 type Delegation struct {
-	DelegatorAddress common.Address
-	CandidateAddress common.Address
-	Shares           *big.Int
-	CreatedAt        string
-	UpdatedAt        string
+	DelegatorAddress common.Address `json:"delegator_address"`
+	PubKey           crypto.PubKey  `json:"pub_key"`
+	Shares           *big.Int       `json:"shares"`
+	CreatedAt        string         `json:"created_at"`
+	UpdatedAt        string         `json:"updated_at"`
 }
 
 type DelegateHistory struct {
 	Id               int64
 	DelegatorAddress common.Address
-	CandidateAddress common.Address
+	PubKey           crypto.PubKey
 	Shares           *big.Int
 	OpCode           string
 	CreatedAt        string

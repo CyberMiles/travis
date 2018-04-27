@@ -5,6 +5,7 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/viper"
+	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/tmlibs/cli"
 	"math/big"
 	"path"
@@ -203,7 +204,7 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, cut = ?, website = ?, location = ?, details = ?, verified = ?, updated_at = ? where address = ?")
+	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, cut = ?, website = ?, location = ?, details = ?, verified = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -220,7 +221,7 @@ func updateCandidate(candidate *Candidate) {
 		candidate.Description.Details,
 		candidate.Verified,
 		candidate.UpdatedAt,
-		candidate.OwnerAddress.String(),
+		candidate.PubKey.KeyString(),
 	)
 	if err != nil {
 		panic(err)
@@ -321,13 +322,13 @@ func SaveDelegation(delegation *Delegation) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into delegations(delegator_address, candidate_address, shares, created_at, updated_at) values (?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into delegations(delegator_address, pub_key, shares, created_at, updated_at) values (?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.CandidateAddress.String(), delegation.Shares.String(), delegation.CreatedAt, delegation.UpdatedAt)
+	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.PubKey.KeyString(), delegation.Shares.String(), delegation.CreatedAt, delegation.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -342,13 +343,13 @@ func RemoveDelegation(delegation *Delegation) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("delete from delegations where delegator_address = ? and candidate_address = ?")
+	stmt, err := tx.Prepare("delete from delegations where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.CandidateAddress.String())
+	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.PubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
@@ -363,29 +364,50 @@ func UpdateDelegation(delegation *Delegation) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update delegations set shares = ?, updated_at = ? where delegator_address = ? and candidate_address = ?")
+	stmt, err := tx.Prepare("update delegations set shares = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.Shares.String(), delegation.UpdatedAt, delegation.DelegatorAddress.String(), delegation.CandidateAddress.String())
+	_, err = stmt.Exec(delegation.Shares.String(), delegation.UpdatedAt, delegation.DelegatorAddress.String(), delegation.PubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
 }
 
-func GetDelegation(delegatorAddress, candidateAddress common.Address) *Delegation {
+func UpdateDelegatorAddress(delegation *Delegation, originalAddress common.Address) {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select shares, created_at, updated_at from delegations where delegator_address = ? and candidate_address = ?")
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("update delegations set delegator_address = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.UpdatedAt, originalAddress.String(), delegation.PubKey.KeyString())
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GetDelegation(delegatorAddress common.Address, pubKey crypto.PubKey) *Delegation {
+	db := getDb()
+	defer db.Close()
+	stmt, err := db.Prepare("select shares, created_at, updated_at from delegations where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	var shares, createdAt, updatedAt string
-	err = stmt.QueryRow(delegatorAddress.String(), candidateAddress.String()).Scan(&shares, &createdAt, &updatedAt)
+	err = stmt.QueryRow(delegatorAddress.String(), pubKey.KeyString()).Scan(&shares, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -398,18 +420,18 @@ func GetDelegation(delegatorAddress, candidateAddress common.Address) *Delegatio
 	s.SetString(shares, 10)
 	return &Delegation{
 		DelegatorAddress: delegatorAddress,
-		CandidateAddress: candidateAddress,
+		PubKey:           pubKey,
 		Shares:           s,
 		CreatedAt:        createdAt,
 		UpdatedAt:        updatedAt,
 	}
 }
 
-func GetDelegationsByCandidate(candidateAddress common.Address) (delegations []*Delegation) {
+func GetDelegationsByPubKey(pubKey crypto.PubKey) (delegations []*Delegation) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select delegator_address, shares, created_at, updated_at from delegations where candidate_address = ?", candidateAddress.String())
+	rows, err := db.Query("select delegator_address, shares, created_at, updated_at from delegations where pub_key = ?", pubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
@@ -426,7 +448,7 @@ func GetDelegationsByCandidate(candidateAddress common.Address) (delegations []*
 		s.SetString(shares, 10)
 		delegation := &Delegation{
 			DelegatorAddress: common.HexToAddress(delegatorAddress),
-			CandidateAddress: candidateAddress,
+			PubKey:           pubKey,
 			Shares:           s,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
@@ -445,24 +467,29 @@ func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select candidate_address, shares, created_at, updated_at from delegations where delegator_address = ?")
+	rows, err := db.Query("select pub_key, shares, created_at, updated_at from delegations where delegator_address = ?", delegatorAddress.String())
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var candidateAddress, shares, createdAt, updatedAt string
-		err = rows.Scan(&delegatorAddress, &shares, &createdAt, &updatedAt)
+		var pubKey, shares, createdAt, updatedAt string
+		err = rows.Scan(&pubKey, &shares, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
+		}
+
+		pk, err := utils.GetPubKey(pubKey)
+		if err != nil {
+			return
 		}
 
 		s := new(big.Int)
 		s.SetString(shares, 10)
 		delegation := &Delegation{
 			DelegatorAddress: delegatorAddress,
-			CandidateAddress: common.HexToAddress(candidateAddress),
+			PubKey:           pk,
 			Shares:           s,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
@@ -486,7 +513,7 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into delegate_history(delegator_address, candidate_address, shares, op_code, created_at) values(?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into delegate_history(delegator_address, pub_key, shares, op_code, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -494,7 +521,7 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 
 	_, err = stmt.Exec(
 		delegateHistory.DelegatorAddress.String(),
-		delegateHistory.CandidateAddress.String(),
+		delegateHistory.PubKey.KeyString(),
 		delegateHistory.Shares.String(),
 		delegateHistory.OpCode,
 		delegateHistory.CreatedAt,
