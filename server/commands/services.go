@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/urfave/cli.v1"
 
+	"github.com/cosmos/cosmos-sdk"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
@@ -21,10 +22,8 @@ import (
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/app"
-	abciApp "github.com/CyberMiles/travis/vm/app"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	"github.com/CyberMiles/travis/vm/ethereum"
-	"github.com/cosmos/cosmos-sdk"
 )
 
 type Services struct {
@@ -50,7 +49,7 @@ func startServices(rootDir string, storeApp *app.StoreApp, ticker sdk.Ticker) (*
 	}
 
 	// Create the ABCI app
-	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, nil)
+	ethApp, err := app.NewEthermintApplication(backend, rpcClient, nil)
 	if err != nil {
 		log.Warn(err.Error())
 		os.Exit(1)

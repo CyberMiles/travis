@@ -245,73 +245,9 @@ func (app *EthermintApplication) Query(query abciTypes.RequestQuery) abciTypes.R
 // it duplicates the logic in ethereum's tx_pool
 func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.ResponseCheckTx {
 
-	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
-	if tx.Size() > maxTransactionSize {
-		return abciTypes.ResponseCheckTx{
-			Code: errors.CodeTypeInternalErr,
-			Log:  core.ErrOversizedData.Error()}
-	}
-
-	var signer ethTypes.Signer = ethTypes.FrontierSigner{}
-	if tx.Protected() {
-		signer = ethTypes.NewEIP155Signer(tx.ChainId())
-	}
-
-	// Make sure the transaction is signed properly
-	from, err := ethTypes.Sender(signer, tx)
-	if err != nil {
-		// TODO: Add errors.CodeTypeInvalidSignature ?
-		return abciTypes.ResponseCheckTx{
-			Code: errors.CodeTypeInternalErr,
-			Log:  core.ErrInvalidSender.Error()}
-	}
-
-	// Transactions can't be negative. This may never happen using RLP decoded
-	// transactions but may occur if you create a transaction using the RPC.
-	if tx.Value().Sign() < 0 {
-		return abciTypes.ResponseCheckTx{
-			Code: errors.CodeTypeBaseInvalidInput,
-			Log:  core.ErrNegativeValue.Error()}
-	}
-
-	currentState := app.checkTxState
-
-	// Make sure the account exist - cant send from non-existing account.
-	if !currentState.Exist(from) {
-		return abciTypes.ResponseCheckTx{
-			Code: errors.CodeTypeUnknownAddress,
-			Log:  core.ErrInvalidSender.Error()}
-	}
-
-	// Check the transaction doesn't exceed the current block limit gas.
-	gasLimit := app.backend.GasLimit()
-	if gasLimit.Cmp(tx.Gas()) < 0 {
-		return abciTypes.ResponseCheckTx{
-			Code: errors.CodeTypeInternalErr,
-			Log:  core.ErrGasLimitReached.Error()}
-	}
-
-	nonce := currentState.GetNonce(from)
-	if _, ok := utils.NonceCheckedTx[tx.Hash()]; !ok {
-		// Check if nonce is not strictly increasing
-		// if not then recheck with feeding failed count
-		if nonce != tx.Nonce() {
-			if c, ok := app.checkFailedCount[from]; ok {
-				if nonce+c != tx.Nonce() {
-					return abciTypes.ResponseCheckTx{
-						Code: errors.CodeTypeBadNonce,
-						Log: fmt.Sprintf(
-							"Nonce not strictly increasing. Expected %d Got %d",
-							nonce, tx.Nonce())}
-				}
-			} else {
-				return abciTypes.ResponseCheckTx{
-					Code: errors.CodeTypeBadNonce,
-					Log: fmt.Sprintf(
-						"Nonce not strictly increasing. Expected %d Got %d",
-						nonce, tx.Nonce())}
-			}
-		}
+	currentState, from, nonce, resp := app.basicCheck(tx)
+	if resp.Code != abciTypes.CodeTypeOK {
+		return resp
 	}
 
 	// Transactor should have enough funds to cover the costs

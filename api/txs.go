@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk"
 	"github.com/ethereum/go-ethereum/core"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tendermint/go-wire"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
@@ -41,7 +39,7 @@ func (b *Backend) txBroadcastLoop() {
 
 	for obj := range b.txSub.Chan() {
 		event := obj.Data.(core.TxPreEvent)
-		result, err := b.BroadcastEthTx(event.Tx)
+		result, err := b.BroadcastTxSync(event.Tx)
 		if err != nil {
 			log.Error("Broadcast error", "err", err)
 		} else {
@@ -56,7 +54,7 @@ func (b *Backend) txBroadcastLoop() {
 
 // BroadcastTx broadcasts a transaction to tendermint core
 // #unstable
-func (b *Backend) BroadcastEthTx(tx *ethTypes.Transaction) (*ctypes.ResultBroadcastTx, error) {
+func (b *Backend) BroadcastTxSync(tx *ethTypes.Transaction) (*ctypes.ResultBroadcastTx, error) {
 	buf := new(bytes.Buffer)
 	if err := tx.EncodeRLP(buf); err != nil {
 		return nil, err
@@ -70,9 +68,17 @@ func (b *Backend) BroadcastEthTx(tx *ethTypes.Transaction) (*ctypes.ResultBroadc
 
 }
 
-func (b *Backend) broadcastSdkTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
-	txBytes := wire.BinaryBytes(tx)
-	return b.localClient.BroadcastTxCommit(txBytes)
+func (b *Backend) BroadcastTxCommit(tx *ethTypes.Transaction) (*ctypes.ResultBroadcastTxCommit, error) {
+	buf := new(bytes.Buffer)
+	if err := tx.EncodeRLP(buf); err != nil {
+		return nil, err
+	}
+
+	if local {
+		return b.localClient.BroadcastTxCommit(buf.Bytes())
+	} else {
+		return b.client.BroadcastTxCommit(buf.Bytes())
+	}
 }
 
 //----------------------------------------------------------------------

@@ -83,7 +83,7 @@ func (s *CmtRPCService) SendTransaction(args SendTxArgs) (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	result, err := s.backend.BroadcastEthTx(signed)
+	result, err := s.backend.BroadcastTxSync(signed)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -101,7 +101,7 @@ func (s *CmtRPCService) SendRawTransaction(encodedTx hexutil.Bytes) (string, err
 		return "", err
 	}
 
-	result, err := s.backend.BroadcastEthTx(tx)
+	result, err := s.backend.BroadcastTxSync(tx)
 	if err != nil {
 		return "", err
 	}

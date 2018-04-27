@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	goerr "errors"
 	"fmt"
 	"math/big"
@@ -9,28 +8,26 @@ import (
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/cosmos/cosmos-sdk/stack"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/eth"
 	abci "github.com/tendermint/abci/types"
 
-	"github.com/CyberMiles/travis/modules/stake"
-	ethapp "github.com/CyberMiles/travis/vm/app"
-	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/common"
-	ttypes	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/modules"
-	"github.com/ethereum/go-ethereum/eth"
+	"github.com/CyberMiles/travis/modules/stake"
+	ttypes "github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler                	modules.Handler
-	clock                  	sdk.Ticker
-	EthApp                 	*ethapp.EthermintApplication
-	checkedTx              	map[common.Hash]*types.Transaction
-	AbsentValidatorPubKeys 	[][]byte
-	ethereum    		    *eth.Ethereum
+	handler                modules.Handler
+	clock                  sdk.Ticker
+	EthApp                 *EthermintApplication
+	checkedTx              map[common.Hash]*types.Transaction
+	AbsentValidatorPubKeys [][]byte
+	ethereum               *eth.Ethereum
 }
 
 const (
@@ -38,13 +35,13 @@ const (
 )
 
 var (
-	blockAward, _ = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
-	_ abci.Application = &BaseApp{}
+	blockAward, _                  = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
+	_             abci.Application = &BaseApp{}
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
-func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.Ticker, ethereum *eth.Ethereum) (*BaseApp, error) {
+func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, clock sdk.Ticker, ethereum *eth.Ethereum) (*BaseApp, error) {
 	app := &BaseApp{
 		StoreApp:               store,
 		handler:                modules.Handler{},
@@ -62,14 +59,13 @@ func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.
 func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 	app.logger.Debug("DeliverTx")
 
-	ok, tx := isTravisTx(txBytes)
-	if !ok {
-		ok, tx, err := isEthTx(txBytes)
-		if !ok {
-			app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
-			return errors.DeliverResult(err)
-		}
+	tx, err := decodeTx(txBytes)
+	if err != nil {
+		app.logger.Error("DeliverTx: Received invalid transaction", "err", err)
+		return errors.DeliverResult(err)
+	}
 
+	if isEthTx(tx) {
 		if checkedTx, ok := app.checkedTx[tx.Hash()]; ok {
 			tx = checkedTx
 		} else {
@@ -81,35 +77,30 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 			}
 		}
 		resp := app.EthApp.DeliverTx(tx)
-		app.logger.Debug("ethermint DeliverTx response: %v\n", resp)
+		app.logger.Debug("EthApp DeliverTx response: %v\n", resp)
 		return resp
 	}
 
+	// travis tx
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
 
 	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
-	res, err := app.handler.DeliverTx(ctx, app.Append(), tx)
-	if err != nil {
-		return errors.DeliverResult(err)
-	}
-	app.AddValChange(res.Diff)
-	return res.ToABCI()
+	return app.deliverHandler(ctx, app.Append(), tx)
 }
 
 // CheckTx - ABCI
 func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 	app.logger.Debug("CheckTx")
 
-	ok, tx := isTravisTx(txBytes)
-	if !ok {
-		ok, tx, err := isEthTx(txBytes)
-		if !ok {
-			app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx, "err", err)
-			return errors.CheckResult(err)
-		}
+	tx, err := decodeTx(txBytes)
+	if err != nil {
+		app.logger.Error("CheckTx: Received invalid transaction", "err", err)
+		return errors.CheckResult(err)
+	}
 
+	if isEthTx(tx) {
 		resp := app.EthApp.CheckTx(tx)
-		app.logger.Debug("ethermint CheckTx response: %v\n", resp)
+		app.logger.Debug("EthApp CheckTx response: %v\n", resp)
 		if resp.IsErr() {
 			return errors.CheckResult(goerr.New(resp.Error()))
 		}
@@ -117,14 +108,11 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		return sdk.NewCheck(0, "").ToABCI()
 	}
 
-	app.logger.Info("CheckTx: Receivted valid transaction", "tx", tx)
+	// travis tx
+	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
 
 	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
-	res, err := app.handler.CheckTx(ctx, app.Check(), tx)
-	if err != nil {
-		return errors.CheckResult(err)
-	}
-	return res.ToABCI()
+	return app.checkHandler(ctx, app.Check(), tx)
 }
 
 // BeginBlock - ABCI
@@ -215,30 +203,11 @@ func (app *BaseApp) InitState(module, key, value string) error {
 	return err
 }
 
-// rlp decode an ethereum transaction
-func decodeEthTx(txBytes []byte) (*types.Transaction, error) {
-	tx := new(types.Transaction)
-	rlpStream := rlp.NewStream(bytes.NewBuffer(txBytes), 0)
-	if err := tx.DecodeRLP(rlpStream); err != nil {
-		return nil, err
-	}
-	return tx, nil
-}
-
-func isTravisTx(txBytes []byte) (bool, sdk.Tx) {
-	tx, err := sdk.LoadTx(txBytes)
-	if err != nil {
-		return false, sdk.Tx{}
-	}
-
-	return true, tx
-}
-
-func isEthTx(txBytes []byte) (bool, *types.Transaction, error) {
-	// try to decode with ethereum
-	tx, err := decodeEthTx(txBytes)
-	if err != nil {
-		return false, nil, err
-	}
-	return true, tx, nil
+func isEthTx(tx *types.Transaction) bool {
+	zero := big.NewInt(0)
+	return tx.Data() == nil ||
+		tx.GasPrice().Cmp(zero) != 0 ||
+		tx.Gas().Cmp(zero) != 0 ||
+		tx.Value().Cmp(zero) != 0 ||
+		tx.To() != nil
 }

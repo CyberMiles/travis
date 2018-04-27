@@ -17,9 +17,9 @@ import (
 
 	abciTypes "github.com/tendermint/abci/types"
 
-	emtTypes "github.com/CyberMiles/travis/vm/types"
 	"github.com/CyberMiles/travis/errors"
 	"github.com/CyberMiles/travis/utils"
+	emtTypes "github.com/CyberMiles/travis/vm/types"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -67,6 +67,11 @@ func (es *EthState) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDelive
 	chainConfig := es.ethereum.ApiBackend.ChainConfig()
 	blockHash := common.Hash{}
 	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx)
+}
+
+// called by travis tx only in deliver_tx
+func (es *EthState) AddNonce(addr common.Address) {
+	es.work.state.SetNonce(addr, es.work.state.GetNonce(addr)+1)
 }
 
 // Accumulate validator rewards.
@@ -118,14 +123,14 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 	ethHeader := newBlockHeader(receiver, currentBlock)
 
 	es.work = workState{
-		header:       ethHeader,
-		parent:       currentBlock,
-		state:        state,
-		stakedTxIndex: 0,
-		txIndex:      0,
-		totalUsedGas: big.NewInt(0),
+		header:          ethHeader,
+		parent:          currentBlock,
+		state:           state,
+		stakedTxIndex:   0,
+		txIndex:         0,
+		totalUsedGas:    big.NewInt(0),
 		totalUsedGasFee: big.NewInt(0),
-		gp:           new(core.GasPool).AddGas(ethHeader.GasLimit),
+		gp:              new(core.GasPool).AddGas(ethHeader.GasLimit),
 	}
 	utils.BlockGasFee = big.NewInt(0)
 	utils.StateChangeQueue = make([]utils.StateChangeObject, 0)
@@ -168,9 +173,9 @@ func (es *EthState) Pending() (*ethTypes.Block, *state.StateDB) {
 // The work struct handles block processing.
 // It's updated with each DeliverTx and reset on Commit.
 type workState struct {
-	header *ethTypes.Header
-	parent *ethTypes.Block
-	state  *state.StateDB
+	header        *ethTypes.Header
+	parent        *ethTypes.Block
+	state         *state.StateDB
 	stakedTxIndex int //coped StateChangeObject index in the queue
 
 	txIndex      int
@@ -178,9 +183,9 @@ type workState struct {
 	receipts     ethTypes.Receipts
 	allLogs      []*ethTypes.Log
 
-	totalUsedGas *big.Int
+	totalUsedGas    *big.Int
 	totalUsedGasFee *big.Int
-	gp           *core.GasPool
+	gp              *core.GasPool
 }
 
 // nolint: unparam
@@ -315,8 +320,8 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 		Number:     prevBlock.Number().Add(prevBlock.Number(), big.NewInt(1)),
 		ParentHash: prevBlock.Hash(),
 		//GasLimit:   core.CalcGasLimit(prevBlock),
-		GasLimit:   calcGasLimit(prevBlock),
-		Coinbase:   receiver,
+		GasLimit: calcGasLimit(prevBlock),
+		Coinbase: receiver,
 	}
 }
 

@@ -161,6 +161,11 @@ func (b *Backend) GasLimit() big.Int {
 	return b.es.GasLimit()
 }
 
+// called by travis tx only in deliver_tx
+func (b *Backend) AddNonce(addr common.Address) {
+	b.es.AddNonce(addr)
+}
+
 //----------------------------------------------------------------------
 // Implements: node.Service
 
