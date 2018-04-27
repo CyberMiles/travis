@@ -13,11 +13,9 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
 	abciTypes "github.com/tendermint/abci/types"
-	"github.com/tendermint/go-wire"
 	tmn "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
-	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/vm/ethereum"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
@@ -47,7 +45,8 @@ type Backend struct {
 	// travis chain id
 	chainID string
 
-	pendingState *state.ManagedState
+	// moved from txpool.pendingState
+	managedState *state.ManagedState
 }
 
 // NewBackend creates a new Backend
@@ -85,16 +84,17 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 	return ethBackend, nil
 }
 
-func (b *Backend) ResetState() {
+func (b *Backend) ResetState() (*state.ManagedState, error) {
 	currentState, err := b.Ethereum().BlockChain().State()
 	if err != nil {
-		return
+		return nil, err
 	}
-	b.pendingState = state.ManageState(currentState)
+	b.managedState = state.ManageState(currentState)
+	return b.managedState, nil
 }
 
-func (b *Backend) PendingState() *state.ManagedState {
-	return b.pendingState
+func (b *Backend) ManagedState() *state.ManagedState {
+	return b.managedState
 }
 
 // Ethereum returns the underlying the ethereum object.
@@ -217,20 +217,6 @@ func (b *Backend) Stop() error {
 // #stable
 func (b *Backend) Protocols() []p2p.Protocol {
 	return nil
-}
-
-func (b *Backend) GetSequence(signers []common.Address, sequence *uint64) error {
-	// key := stack.PrefixedKey(nonce.NameNonce, nonce.GetSeqKey(signers))
-	key := nonce.GetSeqKey(signers)
-	result, err := b.localClient.ABCIQuery("/key", key)
-	if err != nil {
-		return err
-	}
-
-	if len(result.Response.Value) == 0 {
-		return nil
-	}
-	return wire.ReadBinaryBytes(result.Response.Value, sequence)
 }
 
 //----------------------------------------------------------------------

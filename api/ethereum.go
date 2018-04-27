@@ -40,7 +40,7 @@ func (args *SendTxArgs) setDefaults(b *Backend) error {
 		args.Value = new(hexutil.Big)
 	}
 	if args.Nonce == nil {
-		nonce := b.PendingState().GetNonce(args.From)
+		nonce := b.ManagedState().GetNonce(args.From)
 		args.Nonce = (*hexutil.Uint64)(&nonce)
 	}
 	return nil
@@ -83,7 +83,7 @@ func (s *CmtRPCService) SendTransaction(args SendTxArgs) (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	result, err := s.backend.BroadcastTx(signed)
+	result, err := s.backend.BroadcastEthTx(signed)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -101,7 +101,7 @@ func (s *CmtRPCService) SendRawTransaction(encodedTx hexutil.Bytes) (string, err
 		return "", err
 	}
 
-	result, err := s.backend.BroadcastTx(tx)
+	result, err := s.backend.BroadcastEthTx(tx)
 	if err != nil {
 		return "", err
 	}

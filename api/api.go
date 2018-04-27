@@ -5,27 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/spf13/cast"
 
 	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	cmn "github.com/tendermint/tmlibs/common"
 
-	"github.com/CyberMiles/travis/modules/auth"
 	"github.com/CyberMiles/travis/modules/governance"
-	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/modules/stake"
-	ttypes "github.com/CyberMiles/travis/types"
 )
 
 // CmtRPCService offers cmt related RPC methods
@@ -69,20 +61,13 @@ func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index int64) (*ct
 	return s.GetTransaction(hex.EncodeToString(hash))
 }
 
-func (s *CmtRPCService) getChainID() (string, error) {
-	if s.backend.chainID == "" {
-		return "", errors.New("Empty chain id. Please wait for tendermint to finish starting up. ")
-	}
-
-	return s.backend.chainID, nil
-}
-
 func (s *CmtRPCService) GetSequence(address string) (*uint64, error) {
 	signers := []common.Address{getSigner(address)}
 	var sequence uint64
-	err := s.backend.GetSequence(signers, &sequence)
+	err := s.getSequence(signers, &sequence)
 	return &sequence, err
 }
+
 func (s *CmtRPCService) Test(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
 	var tx sdk.Tx
 	err := json.Unmarshal(encodedTx, &tx)
@@ -95,7 +80,7 @@ func (s *CmtRPCService) Test(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTx
 	//}
 	//fmt.Printf("%s\n", d)
 	//
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -104,7 +89,7 @@ func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadc
 	if err != nil {
 		return nil, err
 	}
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 type DeclareCandidacyArgs struct {
@@ -118,7 +103,7 @@ func (s *CmtRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.Res
 	if err != nil {
 		return nil, err
 	}
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 func (s *CmtRPCService) SignDeclareCandidacy(args DeclareCandidacyArgs) (hexutil.Bytes, error) {
@@ -148,7 +133,7 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 	if err != nil {
 		return nil, err
 	}
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 func (s *CmtRPCService) prepareWithdrawCandidacyTx(args WithdrawCandidacyArgs) (sdk.Tx, error) {
@@ -168,7 +153,7 @@ func (s *CmtRPCService) EditCandidacy(args EditCandidacyArgs) (*ctypes.ResultBro
 	if err != nil {
 		return nil, err
 	}
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 func (s *CmtRPCService) prepareEditCandidacyTx(args EditCandidacyArgs) (sdk.Tx, error) {
@@ -192,7 +177,7 @@ func (s *CmtRPCService) ProposeSlot(args ProposeSlotArgs) (*ctypes.ResultBroadca
 	if err != nil {
 		return nil, err
 	}
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 func (s *CmtRPCService) prepareProposeSlotTx(args ProposeSlotArgs) (sdk.Tx, error) {
@@ -213,7 +198,7 @@ func (s *CmtRPCService) AcceptSlot(args AcceptSlotArgs) (*ctypes.ResultBroadcast
 	if err != nil {
 		return nil, err
 	}
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 func (s *CmtRPCService) prepareAcceptSlotTx(args AcceptSlotArgs) (sdk.Tx, error) {
@@ -233,7 +218,7 @@ func (s *CmtRPCService) WithdrawSlot(args WithdrawSlotArgs) (*ctypes.ResultBroad
 	if err != nil {
 		return nil, err
 	}
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 func (s *CmtRPCService) prepareWithdrawSlotTx(args WithdrawSlotArgs) (sdk.Tx, error) {
@@ -252,101 +237,13 @@ func (s *CmtRPCService) CancelSlot(args CancelSlotArgs) (*ctypes.ResultBroadcast
 	if err != nil {
 		return nil, err
 	}
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 func (s *CmtRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, error) {
 	address := common.HexToAddress(args.From)
 	tx := stake.NewTxCancelSlot(address, args.SlotId)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
-}
-
-func (s *CmtRPCService) wrapAndSignTx(tx sdk.Tx, address string, sequence uint64) (sdk.Tx, error) {
-	// wrap
-	// only add the actual signer to the nonce
-	signers := []common.Address{getSigner(address)}
-	if sequence <= 0 {
-		// calculate default sequence
-		err := s.backend.GetSequence(signers, &sequence)
-		if err != nil {
-			return sdk.Tx{}, err
-		}
-		sequence = sequence + 1
-	}
-	tx = nonce.NewTx(sequence, signers, tx)
-
-	/*
-		chainID, err := s.getChainID()
-		if err != nil {
-			return sdk.Tx{}, err
-		}
-		tx = base.NewChainTx(chainID, 0, tx)
-	*/
-	tx = auth.NewSig(tx).Wrap()
-
-	// sign
-	err := s.signTx(tx, address)
-	if err != nil {
-		return sdk.Tx{}, err
-	}
-	return tx, err
-}
-
-// sign the transaction with private key
-func (s *CmtRPCService) signTx(tx sdk.Tx, address string) error {
-	// validate tx client-side
-	err := tx.ValidateBasic()
-	if err != nil {
-		return err
-	}
-
-	if sign, ok := tx.Unwrap().(ttypes.Signable); ok {
-		if address == "" {
-			return errors.New("address is required to sign tx")
-		}
-		err := s.sign(sign, address)
-		if err != nil {
-			return err
-		}
-	}
-	return err
-}
-
-func (s *CmtRPCService) sign(data ttypes.Signable, address string) error {
-	ethTx := types.NewTransaction(
-		0,
-		common.Address([20]byte{}),
-		big.NewInt(0),
-		big.NewInt(0),
-		big.NewInt(0),
-		data.SignBytes(),
-	)
-
-	addr := common.HexToAddress(address)
-	account := accounts.Account{Address: addr}
-	wallet, err := s.am.Find(account)
-	if err != nil {
-		return err
-	}
-
-	ethChainId := int64(s.backend.ethConfig.NetworkId)
-	signed, err := wallet.SignTx(account, ethTx, big.NewInt(ethChainId))
-	if err != nil {
-		return err
-	}
-
-	return data.Sign(signed)
-}
-
-func (s *CmtRPCService) broadcastTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
-	txBytes := wire.BinaryBytes(tx)
-	return s.backend.localClient.BroadcastTxCommit(txBytes)
-}
-
-func getSigner(address string) (res common.Address) {
-	// this could be much cooler with multisig...
-	res = common.HexToAddress(address)
-	return res
 }
 
 type StakeQueryResult struct {
@@ -405,31 +302,6 @@ func (s *CmtRPCService) QueryDelegator(address string, height uint64) (*StakeQue
 	return &StakeQueryResult{h, slotDelegates}, nil
 }
 
-func (s *CmtRPCService) getParsed(path string, key []byte, data interface{}, height uint64) (int64, error) {
-	bs, h, err := s.get(path, key, cast.ToInt64(height))
-	if err != nil {
-		return 0, err
-	}
-	if len(bs) == 0 {
-		return h, client.ErrNoData()
-	}
-	err = wire.ReadBinaryBytes(bs, data)
-	if err != nil {
-		return 0, err
-	}
-	return h, nil
-}
-
-func (s *CmtRPCService) get(path string, key []byte, height int64) (data.Bytes, int64, error) {
-	node := s.backend.localClient
-	resp, err := node.ABCIQueryWithOptions(path, key,
-		rpcclient.ABCIQueryOptions{Trusted: true, Height: int64(height)})
-	if resp == nil {
-		return nil, height, err
-	}
-	return data.Bytes(resp.Response.Value), resp.Response.Height, err
-}
-
 type GovernanceProposalArgs struct {
 	Sequence uint64          `json:"sequence"`
 	Proposer *common.Address `json:"from"`
@@ -448,7 +320,7 @@ func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroa
 		return nil, err
 	}
 
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 type GovernanceVoteArgs struct {
@@ -467,7 +339,7 @@ func (s *CmtRPCService) Vote(args GovernanceVoteArgs) (*ctypes.ResultBroadcastTx
 	if err != err {
 		return nil, err
 	}
-	return s.broadcastTx(tx)
+	return s.backend.broadcastSdkTx(tx)
 }
 
 func (s *CmtRPCService) QueryProposals() (*StakeQueryResult, error) {
