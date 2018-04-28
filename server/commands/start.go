@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/tendermint/tmlibs/cli"
 	cmn "github.com/tendermint/tmlibs/common"
@@ -32,12 +32,6 @@ func GetTickStartCmd(ticker sdk.Ticker) *cobra.Command {
 
 // nolint TODO: move to config file
 const EyesCacheSize = 10000
-
-var (
-	// Handler - use a global to store the handler, so we can set it in main.
-	// TODO: figure out a cleaner way to register plugins
-	Handler sdk.Handler
-)
 
 //returns the start command which uses the tick
 func tickStartCmd(ticker sdk.Ticker) func(cmd *cobra.Command, args []string) error {
@@ -74,17 +68,17 @@ func start(rootDir string, storeApp *app.StoreApp, ticker sdk.Ticker) error {
 }
 
 func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication, ticker sdk.Ticker, ethereum *eth.Ethereum) (*app.BaseApp, error) {
-	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, ticker, ethereum)
+	travisApp, err := app.NewBaseApp(storeApp, ethApp, ticker, ethereum)
 	if err != nil {
 		return nil, err
 	}
 	// if chain_id has not been set yet, load the genesis.
 	// else, assume it's been loaded
-	if basecoinApp.GetChainID() == "" {
+	if travisApp.GetChainID() == "" {
 		// If genesis file exists, set key-value options
 		genesisFile := path.Join(rootDir, "genesis.json")
 		if _, err := os.Stat(genesisFile); err == nil {
-			err = genesis.Load(basecoinApp, genesisFile)
+			err = genesis.Load(travisApp, genesisFile)
 			if err != nil {
 				return nil, errors.Errorf("Error in LoadGenesis: %v\n", err)
 			}
@@ -93,8 +87,8 @@ func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.Et
 		}
 	}
 
-	chainID := basecoinApp.GetChainID()
+	chainID := travisApp.GetChainID()
 	logger.Info("Starting Travis", "chain_id", chainID)
 
-	return basecoinApp, nil
+	return travisApp, nil
 }

@@ -1,11 +1,9 @@
 package stake
 
 import (
-	"fmt"
-
-	sdk "github.com/cosmos/cosmos-sdk"
-	crypto "github.com/tendermint/go-crypto"
+	"github.com/cosmos/cosmos-sdk"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/go-crypto"
 )
 
 // Tx
@@ -15,37 +13,37 @@ import (
 // make sure to use the name of the handler as the prefix in the tx type,
 // so it gets routed properly
 const (
-	ByteTxDeclareCandidacy = 0x55
-	ByteTxEditCandidacy    = 0x56
-	ByteTxWithdraw         = 0x57
-	ByteTxProposeSlot      = 0x58
-	ByteTxAcceptSlot       = 0x59
-	ByteTxWithdrawSlot     = 0x60
-	ByteTxCancelSlot       = 0x61
-	TypeTxDeclareCandidacy = stakingModuleName + "/declareCandidacy"
-	TypeTxEditCandidacy    = stakingModuleName + "/editCandidacy"
-	TypeTxWithdraw         = stakingModuleName + "/withdraw"
-	TypeTxProposeSlot      = stakingModuleName + "/proposeSlot"
-	TypeTxAcceptSlot       = stakingModuleName + "/acceptSlot"
-	TypeTxWithdrawSlot     = stakingModuleName + "/withdrawSlot"
-	TypeTxCancelSlot       = stakingModuleName + "/cancelSlot"
+	ByteTxDeclareCandidacy  = 0x55
+	ByteTxUpdateCandidacy   = 0x56
+	ByteTxWithdrawCandidacy = 0x57
+	ByteTxVerifyCandidacy   = 0x58
+	ByteTxDelegate          = 0x59
+	ByteTxWithdraw          = 0x60
+	TypeTxDeclareCandidacy  = stakingModuleName + "/declareCandidacy"
+	TypeTxUpdateCandidacy   = stakingModuleName + "/updateCandidacy"
+	TypeTxVerifyCandidacy   = stakingModuleName + "/verifyCandidacy"
+	TypeTxWithdrawCandidacy = stakingModuleName + "/withdrawCandidacy"
+	TypeTxDelegate          = stakingModuleName + "/delegate"
+	TypeTxWithdraw          = stakingModuleName + "/withdraw"
 )
 
 func init() {
 	sdk.TxMapper.RegisterImplementation(TxDeclareCandidacy{}, TypeTxDeclareCandidacy, ByteTxDeclareCandidacy)
-	sdk.TxMapper.RegisterImplementation(TxEditCandidacy{}, TypeTxEditCandidacy, ByteTxEditCandidacy)
+	sdk.TxMapper.RegisterImplementation(TxUpdateCandidacy{}, TypeTxUpdateCandidacy, ByteTxUpdateCandidacy)
+	sdk.TxMapper.RegisterImplementation(TxWithdrawCandidacy{}, TypeTxWithdrawCandidacy, ByteTxWithdrawCandidacy)
+	sdk.TxMapper.RegisterImplementation(TxVerifyCandidacy{}, TypeTxVerifyCandidacy, ByteTxVerifyCandidacy)
+	sdk.TxMapper.RegisterImplementation(TxDelegate{}, TypeTxDelegate, ByteTxDelegate)
 	sdk.TxMapper.RegisterImplementation(TxWithdraw{}, TypeTxWithdraw, ByteTxWithdraw)
-	sdk.TxMapper.RegisterImplementation(TxProposeSlot{}, TypeTxProposeSlot, ByteTxProposeSlot)
-	sdk.TxMapper.RegisterImplementation(TxAcceptSlot{}, TypeTxAcceptSlot, ByteTxAcceptSlot)
-	sdk.TxMapper.RegisterImplementation(TxWithdrawSlot{}, TypeTxWithdrawSlot, ByteTxWithdrawSlot)
-	sdk.TxMapper.RegisterImplementation(TxCancelSlot{}, TypeTxCancelSlot, ByteTxCancelSlot)
 }
 
 //Verify interface at compile time
-var _, _, _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxProposeSlot{}, &TxEditCandidacy{}, &TxWithdraw{}, &TxProposeSlot{}, &TxAcceptSlot{}, &TxCancelSlot{}, &TxWithdrawSlot{}
+var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, &TxWithdrawCandidacy{}, TxVerifyCandidacy{}, &TxDelegate{}, &TxWithdraw{}
 
 type TxDeclareCandidacy struct {
-	PubKey crypto.PubKey `json:"pub_key"`
+	PubKey    crypto.PubKey `json:"pub_key"`
+	MaxAmount string        `json:"max_amount"`
+	Cut       int64         `json:"cut"`
+	Description
 }
 
 func (tx TxDeclareCandidacy) ValidateBasic() error {
@@ -56,19 +54,24 @@ func (tx TxDeclareCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func NewTxDeclareCandidacy(pubKey crypto.PubKey) sdk.Tx {
+func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount string, cut int64, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
-		PubKey: pubKey,
+		PubKey:      pubKey,
+		MaxAmount:   maxAmount,
+		Cut:         cut,
+		Description: descrpition,
 	}.Wrap()
 }
 
 func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
-type TxEditCandidacy struct {
+type TxUpdateCandidacy struct {
 	NewAddress common.Address `json:"new_address"`
+	MaxAmount  string         `json:"max_amount"`
+	Description
 }
 
-func (tx TxEditCandidacy) ValidateBasic() error {
+func (tx TxUpdateCandidacy) ValidateBasic() error {
 	if len(tx.NewAddress) == 0 {
 		return errCandidateEmpty
 	}
@@ -76,135 +79,83 @@ func (tx TxEditCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func NewTxEditCandidacy(newAddress common.Address) sdk.Tx {
-	return TxEditCandidacy{
-		NewAddress: newAddress,
+func NewTxUpdateCandidacy(newAddress common.Address, maxAmount string, description Description) sdk.Tx {
+	return TxUpdateCandidacy{
+		NewAddress:  newAddress,
+		MaxAmount:   maxAmount,
+		Description: description,
 	}.Wrap()
 }
 
-func (tx TxEditCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
+func (tx TxUpdateCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
-type TxWithdraw struct {
-	Address common.Address `json:"address"`
+type TxVerifyCandidacy struct {
+	CandidateAddress common.Address `json:"candidate_address"`
+	Verified         bool           `json:"verified"`
 }
 
 // ValidateBasic - Check for non-empty candidate, and valid coins
-func (tx TxWithdraw) ValidateBasic() error {
-	if len(tx.Address) == 0 {
-		return errCandidateEmpty
-	}
-
+func (tx TxVerifyCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func NewTxWithdraw(address common.Address) sdk.Tx {
-	return TxWithdraw{
-		Address: address,
+func NewTxVerifyCandidacy(candidateAddress common.Address, verified bool) sdk.Tx {
+	return TxVerifyCandidacy{
+		CandidateAddress: candidateAddress,
+		Verified:         verified,
 	}.Wrap()
 }
 
 // Wrap - Wrap a Tx as a Basecoin Tx
-func (tx TxWithdraw) Wrap() sdk.Tx { return sdk.Tx{tx} }
+func (tx TxVerifyCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
-// TxProposeSlot - struct for propose slot
-type TxProposeSlot struct {
-	ValidatorAddress      	common.Address
-	Amount      			int64
-	ProposedRoi 			int64
-}
+type TxWithdrawCandidacy struct{}
 
-// NewTxProposeSlot - new TxProposeSlot
-func NewTxProposeSlot(validatorAddress common.Address, amount int64, proposedRoi int64) sdk.Tx {
-	return TxProposeSlot{
-		ValidatorAddress:      	validatorAddress,
-		Amount:      			amount,
-		ProposedRoi: 			proposedRoi,
-	}.Wrap()
-}
-
-// ValidateBasic - Check for non-empty candidate, positive shares
-func (tx TxProposeSlot) ValidateBasic() error {
-	if len(tx.ValidatorAddress) == 0 {
-		return errCandidateEmpty
-	}
-
-	if tx.Amount <= 0 {
-		return fmt.Errorf("amount must be positive interger")
-	}
-
-	if tx.ProposedRoi <= 0 {
-		return fmt.Errorf("proposed ROI must be positive interger")
-	}
+// ValidateBasic - Check for non-empty candidate, and valid coins
+func (tx TxWithdrawCandidacy) ValidateBasic() error {
 	return nil
 }
 
-// Wrap - Wrap a Tx as a Travis Tx
-func (tx TxProposeSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
-
-// SlotUpdate - struct for bonding or unbonding transactions
-type SlotUpdate struct {
-	Amount int64
-	SlotId string
+func NewTxWithdrawCandidacy() sdk.Tx {
+	return TxWithdrawCandidacy{}.Wrap()
 }
 
-func (tx SlotUpdate) ValidateBasic() error {
+// Wrap - Wrap a Tx as a Basecoin Tx
+func (tx TxWithdrawCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
+// TxDelegate - struct for bonding or unbonding transactions
+type TxDelegate struct {
+	ValidatorAddress common.Address `json:"validator_address"`
+	Amount           string         `json:"amount"`
+}
+
+func (tx TxDelegate) ValidateBasic() error {
 	return nil
 }
 
-type TxAcceptSlot struct {
-	SlotUpdate
-}
-
-func NewTxAcceptSlot(amount int64, slotId string) sdk.Tx {
-	return TxAcceptSlot{ SlotUpdate{
-			Amount: amount,
-			SlotId: slotId,
-		}}.Wrap()
-}
-
-// Wrap - Wrap a Tx as a Travis Tx
-func (tx TxAcceptSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
-
-type TxWithdrawSlot struct {
-	SlotUpdate
-}
-
-func NewTxWithdrawSlot(amount int64, slotId string) sdk.Tx {
-	return TxWithdrawSlot{ SlotUpdate{
-		Amount: amount,
-		SlotId: slotId,
-	}}.Wrap()
-}
-
-// Wrap - Wrap a Tx as a Travis Tx
-func (tx TxWithdrawSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
-
-// TxProposeSlot - struct for propose slot
-type TxCancelSlot struct {
-	ValidatorAddress	common.Address
-	SlotId				string
-}
-
-// NewTxProposeSlot - new TxProposeSlot
-func NewTxCancelSlot(validatorAddress common.Address, slotId string) sdk.Tx {
-	return TxCancelSlot{
+func NewTxDelegate(validatorAddress common.Address, amount string) sdk.Tx {
+	return TxDelegate{
 		ValidatorAddress: validatorAddress,
-		SlotId:	slotId,
+		Amount:           amount,
 	}.Wrap()
 }
 
-// ValidateBasic - Check for non-empty candidate, positive shares
-func (tx TxCancelSlot) ValidateBasic() error {
-	if len(tx.ValidatorAddress) == 0 {
-		return errCandidateEmpty
-	}
+// Wrap - Wrap a Tx as a Travis Tx
+func (tx TxDelegate) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
-	if tx.SlotId == "" {
-		return fmt.Errorf("slot must be provided")
-	}
+type TxWithdraw struct {
+	ValidatorAddress common.Address `json:"validator_address"`
+}
 
+func (tx TxWithdraw) ValidateBasic() error {
 	return nil
 }
 
+func NewTxWithdraw(validatorAddress common.Address) sdk.Tx {
+	return TxWithdraw{
+		ValidatorAddress: validatorAddress,
+	}.Wrap()
+}
+
 // Wrap - Wrap a Tx as a Travis Tx
-func (tx TxCancelSlot) Wrap() sdk.Tx { return sdk.Tx{tx} }
+func (tx TxWithdraw) Wrap() sdk.Tx { return sdk.Tx{tx} }

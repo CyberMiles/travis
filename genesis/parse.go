@@ -3,7 +3,7 @@ package genesis
 import (
 	"encoding/json"
 
-	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk"
 	"github.com/pkg/errors"
 
 	cmn "github.com/tendermint/tmlibs/common"
@@ -76,14 +76,14 @@ type keyValue struct {
 
 // FullDoc - includes tendermint (in the json, we ignore here)
 type FullDoc struct {
-	ChainID    string `json:"chain_id"`
-	AppOptions *Doc   `json:"app_options"`
-	Validators []json.RawMessage	`json:"validators"`
+	ChainID    string            `json:"chain_id"`
+	AppOptions *Doc              `json:"app_options"`
+	Validators []json.RawMessage `json:"validators"`
 }
 
 // Doc - All genesis values
 type Doc struct {
-	Accounts      []json.RawMessage `json:"accounts"`
+	Accounts []json.RawMessage `json:"accounts"`
 }
 
 func load(filePath string) (*FullDoc, error) {

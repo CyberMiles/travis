@@ -7,8 +7,8 @@ import (
 )
 
 type StateChangeObject struct {
-	From common.Address
-	To common.Address
+	From   common.Address
+	To     common.Address
 	Amount *big.Int
 
 	Reactor StateChangeReactor
@@ -96,4 +96,6 @@ var(
 		math.MaxUint64,
 		nil,
 	}
+	MintAccount                           = common.HexToAddress("0000000000000000000000000000000000000000")
+	HoldAccount                           = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 )

@@ -2,17 +2,17 @@ package governance
 
 import (
 	"bytes"
+	"strings"
 	"encoding/hex"
+	"math/big"
 
-	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/utils"
-	"math/big"
-	"strings"
+	"github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // default proposal expiration = block count of 7 days
@@ -26,7 +26,7 @@ func Name() string {
 	return governanceModuleName
 }
 
-func InitState(module, key, value string,store state.SimpleDB) error {
+func InitState(module, key, value string, store state.SimpleDB) error {
 	return nil
 }
 
@@ -47,15 +47,15 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 	switch txInner := tx.Unwrap().(type) {
 	case TxPropose:
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0,  ""), ErrMissingSignature()
+			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		candidate := stake.GetCandidateByAddress(*txInner.Proposer)
-		if candidate == nil || candidate.State != "Y" || candidate.VotingPower == 0 {
+		if candidate == nil || candidate.VotingPower == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 
 		ethereum := ctx.Ethereum()
-		balance, err := commons.GetBalance(ethereum, *txInner.From, nil)
+		balance, err := commons.GetBalance(ethereum, *txInner.From)
 		if err != nil {
 			return sdk.NewCheck(0, ""), ErrInvalidParamerter()
 		}
@@ -68,10 +68,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0,  ""), ErrMissingSignature()
+			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		validator := stake.GetCandidateByAddress(txInner.Voter)
-		if validator == nil || validator.State != "Y" {
+		if validator == nil {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 

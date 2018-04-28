@@ -1,47 +1,16 @@
 package stake
 
 import (
-	crypto "github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
 
-	sdk "github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/state"
-	//"github.com/CyberMiles/travis/modules/stake/commands"
-	"fmt"
-	"encoding/hex"
 )
 
 // nolint
 var (
 	// Keys for store prefixes
-	CandidatesPubKeysKey = []byte{0x01} // key for all candidates' pubkeys
-	ParamKey             = []byte{0x02} // key for global parameters relating to staking
-
-	// Key prefixes
-	CandidateKeyPrefix      = []byte{0x03} // prefix for each key to a candidate
-	DelegatorBondKeyPrefix  = []byte{0x04} // prefix for each key to a delegator's bond
-	DelegatorBondsKeyPrefix = []byte{0x05} // prefix for each key to a delegator's bond
+	ParamKey = []byte{0x01} // key for global parameters relating to staking
 )
-
-// GetCandidateKey - get the key for the candidate with pubKey
-func GetCandidateKey(pubKey crypto.PubKey) []byte {
-	return append(CandidateKeyPrefix, pubKey.Bytes()...)
-}
-
-// GetDelegatorBondKey - get the key for delegator bond with candidate
-func GetDelegatorBondKey(delegator sdk.Actor, candidate crypto.PubKey) []byte {
-	return append(GetDelegatorBondKeyPrefix(delegator), candidate.Bytes()...)
-}
-
-// GetDelegatorBondKeyPrefix - get the prefix for a delegator for all candidates
-func GetDelegatorBondKeyPrefix(delegator sdk.Actor) []byte {
-	return append(DelegatorBondKeyPrefix, wire.BinaryBytes(&delegator)...)
-}
-
-// GetDelegatorBondsKey - get the key for list of all the delegator's bonds
-func GetDelegatorBondsKey(delegator sdk.Actor) []byte {
-	return append(DelegatorBondsKeyPrefix, wire.BinaryBytes(&delegator)...)
-}
 
 //---------------------------------------------------------------------
 
@@ -54,7 +23,7 @@ func loadParams(store state.SimpleDB) (params Params) {
 
 	err := wire.ReadBinaryBytes(b, &params)
 	if err != nil {
-		panic(err) // This error should never occure big problem if does
+		panic(err) // This error should never occur big problem if does
 	}
 
 	return
@@ -62,41 +31,4 @@ func loadParams(store state.SimpleDB) (params Params) {
 func saveParams(store state.SimpleDB, params Params) {
 	b := wire.BinaryBytes(params)
 	store.Set(ParamKey, b)
-}
-
-func CalValidatorsStakeRatio(store state.SimpleDB, pubKeys [][]byte) (ratioMap map[string]float64) {
-	//candidates := loadCandidates(store)
-	//var totalVotingPower float64
-	//for _, candidate := range candidates {
-	//	totalVotingPower += float64(candidate.VotingPower)
-	//}
-	//
-	//for _, pubKey := range pubKeys {
-	//	pk, _ := GetPubKey(string(pubKey))
-	//	candidate := loadCandidate(store, pk)
-	//	ratioMap[candidate.Owner.String()] = float64(candidate.VotingPower) / totalVotingPower
-	//}
-
-	return ratioMap
-}
-
-func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
-
-	if len(pubKeyStr) == 0 {
-		err = fmt.Errorf("must use --pubkey flag")
-		return
-	}
-	if len(pubKeyStr) != 64 { //if len(pkBytes) != 32 {
-		err = fmt.Errorf("pubkey must be Ed25519 hex encoded string which is 64 characters long")
-		return
-	}
-	var pkBytes []byte
-	pkBytes, err = hex.DecodeString(pubKeyStr)
-	if err != nil {
-		return
-	}
-	var pkEd crypto.PubKeyEd25519
-	copy(pkEd[:], pkBytes[:])
-	pk = pkEd.Wrap()
-	return
 }
