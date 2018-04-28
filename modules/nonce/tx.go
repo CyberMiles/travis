@@ -10,9 +10,9 @@ package nonce
 import (
 	"sort"
 
+	"github.com/CyberMiles/travis/types"
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -28,15 +28,15 @@ func init() {
 
 // Tx - Nonce transaction structure, contains list of signers and current sequence number
 type Tx struct {
-	Sequence uint32      		`json:"sequence"`
-	Signers  []common.Address 	`json:"signers"`
-	Tx       sdk.Tx      		`json:"tx"`
+	Sequence uint64           `json:"sequence"`
+	Signers  []common.Address `json:"signers"`
+	Tx       sdk.Tx           `json:"tx"`
 }
 
 var _ sdk.TxInner = &Tx{}
 
 // NewTx wraps the tx with a signable nonce
-func NewTx(sequence uint32, signers []common.Address, tx sdk.Tx) sdk.Tx {
+func NewTx(sequence uint64, signers []common.Address, tx sdk.Tx) sdk.Tx {
 	return (Tx{
 		Sequence: sequence,
 		Signers:  signers,

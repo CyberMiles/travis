@@ -24,6 +24,10 @@ import (
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/tmlibs/cli"
 	"os"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/modules/governance"
+	"encoding/hex"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -175,6 +179,10 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/store", "/key": // Get by key
 		key := reqQuery.Data // Data holds the key bytes
 		resQuery.Key = key
+		value := app.state.Check().Get(key)
+		fmt.Printf("Check Value: %s\n", hex.EncodeToString(value))
+		resQuery.Value = value
+		/*
 		if reqQuery.Prove {
 			value, proof, err := tree.GetVersionedWithProof(key, height)
 			if err != nil {
@@ -328,7 +336,7 @@ func initTravisDb() error {
 		create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, shares text not null default '0', op_code text not null default '', created_at text not null);
 		create index idx_delegate_history_delegator_address on delegate_history(delegator_address);
 		create index idx_delegate_history_pub_key on delegate_history(pub_key);
-	
+
 		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null, created_at text not null, unique(proposal_id, voter) ON conflict replace);
 		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);

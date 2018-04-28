@@ -44,6 +44,9 @@ type Backend struct {
 
 	// travis chain id
 	chainID string
+
+	// moved from txpool.pendingState
+	managedState *state.ManagedState
 }
 
 // NewBackend creates a new Backend
@@ -77,7 +80,21 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 		es:        es,
 		client:    client,
 	}
+	ethBackend.ResetState()
 	return ethBackend, nil
+}
+
+func (b *Backend) ResetState() (*state.ManagedState, error) {
+	currentState, err := b.Ethereum().BlockChain().State()
+	if err != nil {
+		return nil, err
+	}
+	b.managedState = state.ManageState(currentState)
+	return b.managedState, nil
+}
+
+func (b *Backend) ManagedState() *state.ManagedState {
+	return b.managedState
 }
 
 // Ethereum returns the underlying the ethereum object.
@@ -97,7 +114,7 @@ func (b *Backend) SetTMNode(tmNode *tmn.Node) {
 	b.localClient = rpcClient.NewLocal(tmNode)
 	// uncomment this for TxPool broadcast tx to tendermint directly,
 	// the TxPool must has SetTMClient method when uncomment this
-	// b.ethereum.TxPool().SetTMClient(b.localClient)
+	b.ethereum.TxPool().SetTMClient(b.localClient)
 }
 
 //----------------------------------------------------------------------
@@ -150,13 +167,14 @@ func (b *Backend) GasLimit() big.Int {
 // APIs returns the collection of RPC services the ethereum package offers.
 // #stable - 0.4.0
 func (b *Backend) APIs() []rpc.API {
+	nonceLock := new(AddrLocker)
 	apis := b.Ethereum().APIs()
 	// append cmt and stake api
 	apis = append(apis, []rpc.API{
 		{
 			Namespace: "cmt",
 			Version:   "1.0",
-			Service:   NewCmtRPCService(b),
+			Service:   NewCmtRPCService(b, nonceLock),
 			Public:    true,
 		},
 	}...)

@@ -81,16 +81,13 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxPropose:
-		amount := new(big.Int)
-		amount.SetString(txInner.Amount, 10)
-
 		pp := NewProposal(
 			hex.EncodeToString(hash),
 			txInner.Proposer,
 			uint64(ctx.BlockHeight()),
 			txInner.From,
 			txInner.To,
-			amount,
+			txInner.Amount,
 			txInner.Reason,
 		)
 
@@ -133,7 +130,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			// To avoid repeated commit, let's recheck with count of voters - 1
 			if (c-1)*3 < len(validators)*2 {
 				proposal := GetProposalById(txInner.ProposalId)
-				commons.TransferWithReactor(proposal.From, proposal.To, proposal.Amount, ProposalReactor{txInner.ProposalId, uint64(ctx.BlockHeight())})
+				amount := new(big.Int)
+				amount.SetString(proposal.Amount, 10)
+				commons.TransferWithReactor(proposal.From, proposal.To, amount, ProposalReactor{txInner.ProposalId, uint64(ctx.BlockHeight())})
 			}
 		}
 	}

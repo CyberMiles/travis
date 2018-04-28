@@ -5,7 +5,7 @@ const { Settings } = require("./constants")
 const Utils = require("./utils")
 
 const initialFund = 1000 // 1000 ether or 1000 token
-const estimateCost = 100 // at most. not so much in fact
+const estimateCost = 500 // at most. not so much in fact
 const gasPrice = 5 //gwei
 
 before("web3 setup", function() {
@@ -80,37 +80,6 @@ before("Transfer 1000 CMT to A, B, C, D from defaultAccount", function(done) {
     )
   } else {
     logger.debug("fund skipped. ")
-    done()
-  }
-})
-
-before("Transfer 1000 ETH to A, B, C, D from defaultAccount", function(done) {
-  logger.info(this.test.fullTitle())
-
-  let balances = Utils.getTokenBalance()
-  let arrFund = []
-  for (i = 0; i < 4; ++i) {
-    if (balances[i] > estimateCost) continue
-
-    let hash = Utils.tokenTransfer(
-      web3.cmt.defaultAccount,
-      accounts[i],
-      initialFund,
-      gasPrice
-    )
-    arrFund.push(hash)
-  }
-  if (arrFund.length > 0) {
-    Utils.waitMultiple(
-      arrFund,
-      () => {
-        Utils.getTokenBalance()
-        done()
-      },
-      Settings.BlockTicker
-    )
-  } else {
-    logger.debug("token fund skipped. ")
     done()
   }
 })

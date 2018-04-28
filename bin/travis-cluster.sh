@@ -15,6 +15,13 @@ RSTEP=10
 
 seeds="127.0.0.1:$TP2PPORT"
 
+uname="$(uname -s)"
+if [ $uname == "Darwin" ] ; then
+	sedopt="''"
+else
+	sedopt=""
+fi
+
 # init params
 if [ -z $INST_COUNT ]; then
 	INST_COUNT=1
@@ -58,14 +65,18 @@ modifyConf()
 
 	cd $dir
 	cp $BASE_DIR/genesis.json .
-	sed -i '' "s/$TRPCPORT/$trpcport/g" ./config.toml
-	sed -i '' "s/$TP2PPORT/$tp2pport/g" ./config.toml
-	sed -i '' "s/$ERPCPORT/$erpcport/g" ./config.toml
-	sed -i '' "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
+	sed -i $sedopt "s/$TRPCPORT/$trpcport/g" ./config.toml
+	sed -i $sedopt "s/$TP2PPORT/$tp2pport/g" ./config.toml
+	sed -i $sedopt "s/$ERPCPORT/$erpcport/g" ./config.toml
+	sed -i $sedopt "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
 }
 
 # kill running travis first
-ps aux | grep "[t]ravis node start" | awk '{print $2}' | xargs kill
+rc=`ps aux | grep "[t]ravis node start" | wc -l`
+if [ $rc -ne 0 ] ; then
+	ps aux | grep "[t]ravis node start" | awk '{print $2}' | xargs kill
+fi
+
 while true
 do
 	c=`ps aux | grep "[t]ravis node start" | awk '{print $2}' | wc -l`
@@ -108,7 +119,7 @@ do
 		if [ $i -ne 1 ]; then
 			modifyConf $dir $seq
 		else
-			sed -i '' "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
+			sed -i $sedopt "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
 		fi
 	fi
 
@@ -121,9 +132,9 @@ do
 		# ....
 	fi
 
-    if [ $INST_COUNT -eq 1 ]; then
-	    travis node start --home .
+	if [ $INST_COUNT -eq 1 ]; then
+		travis node start --home .
 	else
-	    travis node start --home . > travis.log 2>&1 &
-    fi
+		travis node start --home . > travis.log 2>&1 &
+	fi
 done

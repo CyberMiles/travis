@@ -8,7 +8,6 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 	"path"
 	"github.com/ethereum/go-ethereum/common"
-	"math/big"
 	"strings"
 )
 
@@ -38,7 +37,7 @@ func SaveProposal(pp *Proposal) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(strings.ToUpper(pp.Id), pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount.String(), pp.Reason, pp.CreatedAt)
+	_, err = stmt.Exec(strings.ToUpper(pp.Id), pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount, pp.Reason, pp.CreatedAt)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -65,16 +64,16 @@ func GetProposalById(pid string) *Proposal {
 		panic(err)
 	}
 
-	amt := new(big.Int)
-	amt.SetString(amount, 10)
+	prp := common.HexToAddress(proposer)
+	fr := common.HexToAddress(fromAddr)
+	to := common.HexToAddress(toAddr)
 
 	return &Proposal{
 		pid,
-		common.HexToAddress(proposer),
+		&prp,
 		blockHeight,
-		common.HexToAddress(fromAddr),
-		common.HexToAddress(toAddr),
-		amt,
+		&fr,
+		&to,
 		amount,
 		reason,
 		createdAt,
@@ -126,16 +125,16 @@ func GetProposals() (proposals []*Proposal) {
 			panic(err)
 		}
 
-		amt := new(big.Int)
-		amt.SetString(amount, 10)
+		prp := common.HexToAddress(proposer)
+		fr := common.HexToAddress(fromAddr)
+		to := common.HexToAddress(toAddr)
 
 		pp := &Proposal{
 			id,
-			common.HexToAddress(proposer),
+			&prp,
 			blockHeight,
-			common.HexToAddress(fromAddr),
-			common.HexToAddress(toAddr),
-			amt,
+			&fr,
+			&to,
 			amount,
 			reason,
 			createdAt,

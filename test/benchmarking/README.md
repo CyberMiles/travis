@@ -30,7 +30,7 @@ Configuration file: config/default.json.
 * `to` The address that all transactions are directed to.
 * `contractAddress` The contract address for testing token transfer.
 * `value` The value transferred for the transaction in Wei, or token number if it's a token transfer testing.
-* `txs` Number of transactions to send for each account.
+* `concurrency` The maximum number of parallel requests at a time. For sendRawTx, it stands for the count of from accounts, each account will be in a separate thread, and send requests in series.
+* `txs` Total number of transactions to send.
 * `blockTimeout` Max blocks to wait before stop testing.
-* `concurrency` The maximum number of parallel requests at a time.
 * `waitInterval` The intervals (in milliseconds) to check if all transactions are finished processing.

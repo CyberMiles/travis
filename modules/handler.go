@@ -13,13 +13,13 @@ import (
 	"github.com/CyberMiles/travis/modules/nonce"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
-	"github.com/cosmos/cosmos-sdk/errors"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto/sha3"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/tendermint/go-wire/data"
 	"os"
 	"github.com/tendermint/tmlibs/merkle"
+	"github.com/cosmos/cosmos-sdk/errors"
 )
 
 type Handler struct {
@@ -32,22 +32,32 @@ func (h Handler) CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (re
 		return res, fmt.Errorf("failed to verify signature: %v", err)
 	}
 
+
+	// make sure it is a the nonce Tx (Tx from this package)
+	nonceTx, ok := tx.Unwrap().(nonce.Tx)
+	if !ok {
+		return res, nonce.ErrNoNonce()
+	}
+
+	name, err := lookupRoute(nonceTx.Tx)
+
+	if name == "stake" {
+		res, err = stake.CheckTx(ctx, store, nonceTx.Tx)
+	} else if name == "governance" {
+		res, err = governance.CheckTx(ctx, store, nonceTx.Tx)
+	}
+
+	if err != nil {
+		return res, err
+	}
+
 	// Check nonce
 	res, tx, err = nonce.ReplayCheck(ctx, store, tx)
 	if err != nil {
 		return res, fmt.Errorf("failed to check nonce: %v", err)
 	}
 
-	name, err := lookupRoute(tx)
-	//fmt.Printf("Type of tx: %v\n", name)
-	switch name {
-	case "stake":
-		return stake.CheckTx(ctx, store, tx)
-	case "governance":
-		return governance.CheckTx(ctx, store, tx)
-	default:
-		return res, errors.ErrUnknownTxType(tx.Unwrap())
-	}
+
 	return
 }
 
@@ -84,6 +94,7 @@ func (h Handler) DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (
 
 	return
 }
+
 
 func lookupRoute(tx sdk.Tx) (string, error) {
 	kind, err := tx.GetKind()

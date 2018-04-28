@@ -8,18 +8,18 @@ const transfer = (f, t, v, gasPrice, nonce) => {
   let payload = {
     from: f,
     to: t,
-    value: web3.toWei(v, "gwei"),
+    value: v,
     gasPrice: web3.toWei(gasPrice || 0, "gwei")
   }
   if (nonce) payload.nonce = nonce
   let hash = null
   try {
     hash = web3.cmt.sendTransaction(payload)
-    logger.debug(`transfer ${v} gwei from ${f} to ${t}, hash: ${hash}`)
+    logger.debug(`transfer ${v} wei from ${f} to ${t}, hash: ${hash}`)
     // check hash
     expect(hash).to.not.empty
   } catch (err) {
-    logger.error(err)
+    logger.error(err.message)
   }
   return hash
 }
@@ -27,12 +27,9 @@ const transfer = (f, t, v, gasPrice, nonce) => {
 const getBalance = () => {
   let balance = new Array(4)
   for (i = 0; i < 4; i++) {
-    balance[i] = web3.fromWei(
-      web3.cmt.getBalance(accounts[i], "latest"),
-      "gwei"
-    )
+    balance[i] = web3.cmt.getBalance(accounts[i], "latest")
   }
-  logger.debug(`balance in gwei: --> ${balance}`)
+  logger.debug(`balance in wei: --> ${balance}`)
   return balance
 }
 
@@ -80,7 +77,7 @@ const tokenTransfer = function(f, t, v, gasPrice, nonce) {
     // check hash
     expect(hash).to.not.empty
   } catch (err) {
-    logger.error(err)
+    logger.error(err.message)
   }
   return hash
 }
@@ -144,15 +141,41 @@ const waitMultiple = function(arrTxhash, cb) {
   })
 }
 
-const waitBlock = done => {
+const waitBlocks = (done, blocks = 1) => {
   let startingBlock = web3.cmt.blockNumber
   let interval = setInterval(() => {
     let blocksGone = web3.cmt.blockNumber - startingBlock
-    if (blocksGone == 1) {
+    if (blocksGone == blocks) {
       clearInterval(interval)
       done()
     }
   }, Settings.IntervalMs || 100)
+}
+
+const expectTxFail = r => {
+  logger.debug(r)
+  expect(r)
+    .to.have.property("check_tx")
+    .to.have.property("code")
+  expect(r)
+    .to.have.property("deliver_tx")
+    .to.have.property("code")
+  expect(r.check_tx.code > 0 || r.deliver_tx.code > 0).to.be.true
+}
+
+const expectTxSuccess = r => {
+  logger.debug(r)
+  expect(r)
+    .to.have.property("height")
+    .and.to.gt(0)
+  expect(r)
+    .to.have.property("check_tx")
+    .to.have.property("code")
+    .and.to.eq(0)
+  expect(r)
+    .to.have.property("deliver_tx")
+    .to.have.property("code")
+    .and.to.eq(0)
 }
 
 module.exports = {
@@ -164,5 +187,7 @@ module.exports = {
   getTokenBalance,
   waitInterval,
   waitMultiple,
-  waitBlock
+  waitBlocks,
+  expectTxFail,
+  expectTxSuccess
 }

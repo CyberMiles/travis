@@ -4,7 +4,7 @@ module.exports = Object.freeze({
       node1: "http://localhost:8545"
     },
     Passphrase: "1234",
-    BlockTimeout: 10,
-    IntervalMs: 5000
+    BlockTimeout: 5,
+    IntervalMs: 2000
   }
 })
