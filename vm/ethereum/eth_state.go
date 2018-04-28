@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"bytes"
 	"math/big"
 	"sync"
 
@@ -12,18 +13,16 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth"
 	//"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
-
 	abciTypes "github.com/tendermint/abci/types"
 
-	"bytes"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/errors"
 	gov "github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/utils"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
 //----------------------------------------------------------------------
@@ -267,7 +266,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	ws.handleStateChangeQueue()
 
 	// Commit ethereum state and update the header.
-	hashArray, err := ws.state.CommitTo(db.NewBatch(), false) // XXX: ugh hardforks
+	hashArray, err := ws.state.CommitTo(db, false) // XXX: ugh hardforks
 	if err != nil {
 		return common.Hash{}, err
 	}

@@ -122,7 +122,7 @@ type DeclareCandidacyArgs struct {
 	Nonce       *hexutil.Uint64   `json:"nonce"`
 	From        common.Address    `json:"from"`
 	PubKey      string            `json:"pubKey"`
-	MaxAmount   string            `json:max_amount`
+	MaxAmount   string            `json:"maxAmount"`
 	Cut         int64             `json:"cut"`
 	Description stake.Description `json:"description"`
 }
@@ -162,7 +162,7 @@ type UpdateCandidacyArgs struct {
 	Nonce       *hexutil.Uint64   `json:"nonce"`
 	From        common.Address    `json:"from"`
 	NewAddress  common.Address    `json:"newAddress"`
-	MaxAmount   string            `json:"max_amount"`
+	MaxAmount   string            `json:"maxAmount"`
 	Description stake.Description `json:"description"`
 }
 
