@@ -3,13 +3,8 @@ package utils
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/satori/go.uuid"
 	"github.com/tendermint/go-crypto"
 )
-
-func GetUUID() []byte {
-	return uuid.Must(uuid.NewV4()).Bytes()
-}
 
 func RemoveFromSlice(slice []interface{}, i int) []interface{} {
 	copy(slice[i:], slice[i+1:])
