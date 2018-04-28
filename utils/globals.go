@@ -2,8 +2,8 @@ package utils
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"math/big"
 	"math"
+	"math/big"
 )
 
 type StateChangeObject struct {
@@ -19,9 +19,9 @@ type StateChangeReactor interface {
 }
 
 type pendingProposal struct {
-	proposals map[string]uint64
+	proposals            map[string]uint64
 	minExpireBlockHeight uint64
-	minHeightMappedPid []string
+	minHeightMappedPid   []string
 }
 
 func (p *pendingProposal) BatchAdd(proposals map[string]uint64) {
@@ -82,20 +82,20 @@ func (p *pendingProposal) ReachMin(blockHeight uint64) (pids []string) {
 	return
 }
 
-var(
-	EmptyAddress = common.Address{}
-	BlockGasFee *big.Int
+var (
+	EmptyAddress     = common.Address{}
+	BlockGasFee      *big.Int
 	StateChangeQueue []StateChangeObject
 	// Recording addresses associated with travis tx (stake/governance) in one block
 	// Transfer transaction is not allowed if the sender of which was found in this recording
 	// TODO to be removed
-	TravisTxAddrs []*common.Address
-	NonceCheckedTx map[common.Hash]bool = make(map[common.Hash]bool)
-	PendingProposal = &pendingProposal {
+	TravisTxAddrs   []*common.Address
+	NonceCheckedTx  map[common.Hash]bool = make(map[common.Hash]bool)
+	PendingProposal                      = &pendingProposal{
 		make(map[string]uint64),
 		math.MaxUint64,
 		nil,
 	}
-	MintAccount                           = common.HexToAddress("0000000000000000000000000000000000000000")
-	HoldAccount                           = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	MintAccount = common.HexToAddress("0000000000000000000000000000000000000000")
+	HoldAccount = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 )

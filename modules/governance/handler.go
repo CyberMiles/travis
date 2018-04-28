@@ -2,9 +2,9 @@ package governance
 
 import (
 	"bytes"
-	"strings"
 	"encoding/hex"
 	"math/big"
+	"strings"
 
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/modules/stake"
@@ -118,7 +118,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			txInner.To,
 			txInner.Amount,
 			txInner.Reason,
-			uint64(ctx.BlockHeight()) + expire,
+			uint64(ctx.BlockHeight())+expire,
 		)
 
 		SaveProposal(pp)
@@ -170,7 +170,7 @@ func CheckProposal(pid string) string {
 		return "no validator"
 	}
 
-	if len(votes) * 3 < len(validators) * 2 {
+	if len(votes)*3 < len(validators)*2 {
 		return "not enough vote"
 	}
 
@@ -190,14 +190,14 @@ func CheckProposal(pid string) string {
 		}
 	}
 
-	if approvedCount * 3 >= len(validators) * 2 {
+	if approvedCount*3 >= len(validators)*2 {
 		// To avoid repeated commit, let's recheck with count of voters - 1
-		if (approvedCount - 1) * 3 < len(validators) * 2 {
+		if (approvedCount-1)*3 < len(validators)*2 {
 			return "approved"
 		}
-	} else if rejectedCount * 3 >= len(validators) * 2 {
+	} else if rejectedCount*3 >= len(validators)*2 {
 		// To avoid repeated commit, let's recheck with count of voters - 1
-		if (rejectedCount - 1) * 3 < len(validators) * 2 {
+		if (rejectedCount-1)*3 < len(validators)*2 {
 			return "rejected"
 		}
 	}
@@ -205,9 +205,9 @@ func CheckProposal(pid string) string {
 }
 
 type ProposalReactor struct {
-	ProposalId string
+	ProposalId  string
 	BlockHeight uint64
-	Result string
+	Result      string
 }
 
 func (pr ProposalReactor) React(result, msg string) {

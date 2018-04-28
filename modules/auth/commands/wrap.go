@@ -4,9 +4,9 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	sdk "github.com/cosmos/cosmos-sdk"
-	txcmd "github.com/cosmos/cosmos-sdk/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/auth"
+	"github.com/cosmos/cosmos-sdk"
+	txcmd "github.com/cosmos/cosmos-sdk/client/commands/txs"
 )
 
 //nolint

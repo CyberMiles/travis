@@ -1,18 +1,18 @@
 package commons
 
 import (
-	"math/big"
+	"fmt"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/eth"
+	"github.com/pkg/errors"
+	"math"
+	"math/big"
 	"os"
 	"path/filepath"
 	"time"
-	"fmt"
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"math"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/pkg/errors"
 )
 
 const (

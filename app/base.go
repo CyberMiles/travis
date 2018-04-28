@@ -14,13 +14,13 @@ import (
 	abci "github.com/tendermint/abci/types"
 
 	"github.com/CyberMiles/travis/modules"
+	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	ethapp "github.com/CyberMiles/travis/vm/app"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth"
-	"github.com/CyberMiles/travis/modules/governance"
 )
 
 // BaseApp - The ABCI application
