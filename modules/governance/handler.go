@@ -65,6 +65,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if balance.Cmp(amount) < 0 {
 			return sdk.NewCheck(0, ""), ErrInsufficientBalance()
 		}
+		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0,  ""), ErrMissingSignature()
@@ -88,6 +89,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if vote := GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
 			return sdk.NewCheck(0, ""), ErrRepeatedVote()
 		}
+		utils.TravisTxAddrs = append(utils.TravisTxAddrs, proposal.To)
 	}
 
 	return
@@ -122,7 +124,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		SaveProposal(pp)
 		amount := big.NewInt(0)
 		amount.SetString(pp.Amount, 10)
-		commons.Transfer(*pp.From, utils.EmptyAddress, amount)
+		commons.TransferWithReactor(*pp.From, utils.EmptyAddress, amount, ProposalReactor{pp.Id, uint64(ctx.BlockHeight()), ""})
 
 		utils.PendingProposal.Add(pp.Id, pp.ExpireBlockHeight)
 
@@ -211,6 +213,10 @@ type ProposalReactor struct {
 func (pr ProposalReactor) React(result, msg string) {
 	now := utils.GetNow()
 	if result == "success" {
+		// If the default result is not set, then do nothing
+		if pr.Result == "" {
+			return
+		}
 		result = pr.Result
 	}
 	UpdateProposalResult(pr.ProposalId, result, msg, pr.BlockHeight, now)

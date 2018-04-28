@@ -132,6 +132,7 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 	}
 	utils.BlockGasFee = big.NewInt(0)
 	utils.StateChangeQueue = make([]utils.StateChangeObject, 0)
+	utils.TravisTxAddrs = make([]*common.Address, 0)
 	return nil
 }
 

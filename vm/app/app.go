@@ -314,15 +314,18 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 		}
 	}
 
-	// Transactor should have enough funds to cover the costs
-	currentBalance := currentState.GetBalance(from)
-
-	// Iterate StateChangeQueue to pre sub the balance
-	for _, scObj := range utils.StateChangeQueue {
-		if bytes.Equal(from[:], scObj.From.Bytes()) {
-			currentBalance.Sub(currentBalance, scObj.Amount)
+	// Iterate TravisTxAddrs to prevent transfer transaction
+	for _, tAddr := range utils.TravisTxAddrs {
+		if bytes.Equal(from[:], tAddr.Bytes()) {
+			return abciTypes.ResponseCheckTx{
+				Code: errors.CodeTypeInternalErr,
+				Log: fmt.Sprintf(
+					"Failed as there has been a stake/governance operation in current block")}
 		}
 	}
+
+	// Transactor should have enough funds to cover the costs
+	currentBalance := currentState.GetBalance(from)
 
 	// cost == V + GP * GL
 	if currentBalance.Cmp(tx.Cost()) < 0 {

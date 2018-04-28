@@ -86,6 +86,10 @@ var(
 	EmptyAddress = common.Address{}
 	BlockGasFee *big.Int
 	StateChangeQueue []StateChangeObject
+	// Recording addresses associated with travis tx (stake/governance) in one block
+	// Transfer transaction is not allowed if the sender of which was found in this recording
+	// TODO to be removed
+	TravisTxAddrs []*common.Address
 	NonceCheckedTx map[common.Hash]bool = make(map[common.Hash]bool)
 	PendingProposal = &pendingProposal {
 		make(map[string]uint64),
