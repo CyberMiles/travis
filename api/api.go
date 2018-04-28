@@ -18,7 +18,6 @@ import (
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
-	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 )
 
@@ -95,9 +94,9 @@ func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadc
 }
 
 type DeclareCandidacyArgs struct {
-	Sequence uint64 `json:"sequence"`
-	From     string `json:"from"`
-	PubKey   string `json:"pubKey"`
+	Sequence    uint64            `json:"sequence"`
+	From        string            `json:"from"`
+	PubKey      string            `json:"pubKey"`
 	MaxAmount   string            `json:max_amount`
 	Cut         int64             `json:"cut"`
 	Description stake.Description `json:"description"`
@@ -155,7 +154,7 @@ type UpdateCandidacyArgs struct {
 }
 
 func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareUpdatteCandidacyTx(args)
+	tx, err := s.prepareUpdateCandidacyTx(args)
 	if err != nil {
 		return nil, err
 	}
@@ -167,88 +166,6 @@ func (s *CmtRPCService) prepareUpdateCandidacyTx(args UpdateCandidacyArgs) (sdk.
 		return sdk.Tx{}, fmt.Errorf("must provide new address")
 	}
 	address := common.HexToAddress(args.NewAddress)
-	tx := stake.NewTxEditCandidacy(address, args.MaxAmount, args.Description)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
-}
-
-type ProposeSlotArgs struct {
-	Sequence    uint64 `json:"sequence"`
-	From        string `json:"from"`
-	Amount      int64  `json:"amount"`
-	ProposedRoi int64  `json:"proposedRoi"`
-}
-
-func (s *CmtRPCService) ProposeSlot(args ProposeSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareProposeSlotTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.backend.broadcastSdkTx(tx)
-}
-
-func (s *CmtRPCService) prepareProposeSlotTx(args ProposeSlotArgs) (sdk.Tx, error) {
-	address := common.HexToAddress(args.From)
-	tx := stake.NewTxProposeSlot(address, args.Amount, args.ProposedRoi)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
-}
-
-type AcceptSlotArgs struct {
-	Sequence uint64 `json:"sequence"`
-	From     string `json:"from"`
-	Amount   int64  `json:"amount"`
-	SlotId   string `json:"slotId"`
-}
-
-func (s *CmtRPCService) AcceptSlot(args AcceptSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareAcceptSlotTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.backend.broadcastSdkTx(tx)
-}
-
-func (s *CmtRPCService) prepareAcceptSlotTx(args AcceptSlotArgs) (sdk.Tx, error) {
-	tx := stake.NewTxAcceptSlot(args.Amount, args.SlotId)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
-}
-
-type WithdrawSlotArgs struct {
-	Sequence uint64 `json:"sequence"`
-	From     string `json:"from"`
-	Amount   int64  `json:"amount"`
-	SlotId   string `json:"slotId"`
-}
-
-func (s *CmtRPCService) WithdrawSlot(args WithdrawSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareWithdrawSlotTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.backend.broadcastSdkTx(tx)
-}
-
-func (s *CmtRPCService) prepareWithdrawSlotTx(args WithdrawSlotArgs) (sdk.Tx, error) {
-	tx := stake.NewTxWithdrawSlot(args.Amount, args.SlotId)
-	return s.wrapAndSignTx(tx, args.From, args.Sequence)
-}
-
-type CancelSlotArgs struct {
-	Sequence uint64 `json:"sequence"`
-	From     string `json:"from"`
-	SlotId   string `json:"slotId"`
-}
-
-func (s *CmtRPCService) CancelSlot(args CancelSlotArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx, err := s.prepareCancelSlotTx(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.backend.broadcastSdkTx(tx)
-}
-
-func (s *CmtRPCService) prepareCancelSlotTx(args CancelSlotArgs) (sdk.Tx, error) {
-	address := common.HexToAddress(args.From)
-	tx := stake.NewTxCancelSlot(address, args.SlotId)
 	tx := stake.NewTxUpdateCandidacy(address, args.MaxAmount, args.Description)
 	return s.wrapAndSignTx(tx, args.From, args.Sequence)
 }

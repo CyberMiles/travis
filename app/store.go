@@ -16,6 +16,7 @@ import (
 	"github.com/tendermint/tmlibs/log"
 
 	"database/sql"
+	"encoding/hex"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/ethereum/go-ethereum/common"
@@ -24,10 +25,6 @@ import (
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/tmlibs/cli"
 	"os"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/CyberMiles/travis/modules/governance"
-	"encoding/hex"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -182,7 +179,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		value := app.state.Check().Get(key)
 		fmt.Printf("Check Value: %s\n", hex.EncodeToString(value))
 		resQuery.Value = value
-		/*
+
 		if reqQuery.Prove {
 			value, proof, err := tree.GetVersionedWithProof(key, height)
 			if err != nil {
