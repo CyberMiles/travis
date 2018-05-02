@@ -7,7 +7,6 @@ import (
 
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/cosmos/cosmos-sdk"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
@@ -31,7 +30,7 @@ type Services struct {
 	tmNode  *node.Node
 }
 
-func startServices(rootDir string, storeApp *app.StoreApp, ticker sdk.Ticker) (*Services, error) {
+func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 	// Setup the go-ethereum node and start it
 	emNode := emtUtils.MakeFullNode(context)
 	startNode(context, emNode)
@@ -57,7 +56,7 @@ func startServices(rootDir string, storeApp *app.StoreApp, ticker sdk.Ticker) (*
 	ethApp.SetLogger(emtUtils.EthermintLogger().With("module", "vm"))
 
 	// Create Basecoin app
-	basecoinApp, err := createBaseCoinApp(rootDir, storeApp, ethApp, ticker, backend.Ethereum())
+	basecoinApp, err := createBaseCoinApp(rootDir, storeApp, ethApp, backend.Ethereum())
 	if err != nil {
 		log.Warn(err.Error())
 		os.Exit(1)

@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/tendermint/tmlibs/cli"
@@ -20,11 +19,11 @@ import (
 )
 
 // GetTickStartCmd - initialize a command as the start command with tick
-func GetTickStartCmd(ticker sdk.Ticker) *cobra.Command {
+func GetTickStartCmd() *cobra.Command {
 	startCmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start this full node",
-		RunE:  tickStartCmd(ticker),
+		RunE:  startCmd(),
 	}
 	return startCmd
 }
@@ -33,7 +32,7 @@ func GetTickStartCmd(ticker sdk.Ticker) *cobra.Command {
 const EyesCacheSize = 10000
 
 //returns the start command which uses the tick
-func tickStartCmd(ticker sdk.Ticker) func(cmd *cobra.Command, args []string) error {
+func startCmd() func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		rootDir := viper.GetString(cli.HomeFlag)
 
@@ -48,12 +47,12 @@ func tickStartCmd(ticker sdk.Ticker) func(cmd *cobra.Command, args []string) err
 			return err
 		}
 
-		return start(rootDir, storeApp, ticker)
+		return start(rootDir, storeApp)
 	}
 }
 
-func start(rootDir string, storeApp *app.StoreApp, ticker sdk.Ticker) error {
-	srvs, err := startServices(rootDir, storeApp, ticker)
+func start(rootDir string, storeApp *app.StoreApp) error {
+	srvs, err := startServices(rootDir, storeApp)
 	if err != nil {
 		return errors.Errorf("Error in start services: %v\n", err)
 	}
@@ -66,8 +65,8 @@ func start(rootDir string, storeApp *app.StoreApp, ticker sdk.Ticker) error {
 	return nil
 }
 
-func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *app.EthermintApplication, ticker sdk.Ticker, ethereum *eth.Ethereum) (*app.BaseApp, error) {
-	travisApp, err := app.NewBaseApp(storeApp, ethApp, ticker, ethereum)
+func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *app.EthermintApplication, ethereum *eth.Ethereum) (*app.BaseApp, error) {
+	travisApp, err := app.NewBaseApp(storeApp, ethApp, ethereum)
 	if err != nil {
 		return nil, err
 	}

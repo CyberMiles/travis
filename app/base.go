@@ -18,13 +18,13 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/cosmos/cosmos-sdk/state"
 )
 
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
 	handler             modules.Handler
-	clock               sdk.Ticker
 	EthApp              *EthermintApplication
 	checkedTx           map[common.Hash]*types.Transaction
 	ethereum            *eth.Ethereum
@@ -43,7 +43,7 @@ var (
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
-func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, clock sdk.Ticker, ethereum *eth.Ethereum) (*BaseApp, error) {
+func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Ethereum) (*BaseApp, error) {
 	// init pending proposals
 	pendingProposals := governance.GetPendingProposals()
 	if len(pendingProposals) > 0 {
@@ -57,7 +57,6 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, clock sdk.Ticker,
 	app := &BaseApp{
 		StoreApp:  store,
 		handler:   modules.Handler{},
-		clock:     clock,
 		EthApp:    ethApp,
 		checkedTx: make(map[common.Hash]*types.Transaction),
 		ethereum:  ethereum,
@@ -139,19 +138,11 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	app.EthApp.EndBlock(req)
 
 	// execute tick if present
-	if app.clock != nil {
-		ctx := stack.NewContext(
-			app.GetChainID(),
-			app.WorkingHeight(),
-			app.Logger().With("call", "tick"),
-		)
-
-		diff, err := app.clock.Tick(ctx, app.Append())
-		if err != nil {
-			panic(err)
-		}
-		app.AddValChange(diff)
+	diff, err := tick(app.Append())
+	if err != nil {
+		panic(err)
 	}
+	app.AddValChange(diff)
 
 	// block award
 	validators := stake.GetCandidates().Validators()
@@ -199,4 +190,15 @@ func isEthTx(tx *types.Transaction) bool {
 		tx.Gas().Cmp(zero) != 0 ||
 		tx.Value().Cmp(zero) != 0 ||
 		tx.To() != nil
+}
+
+// Tick - Called every block even if no transaction, process all queues,
+// validator rewards, and calculate the validator set difference
+func tick(store state.SimpleDB) (change []*abci.Validator, err error) {
+	// first need to prefix the store, at this point it's a global store
+	store = stack.PrefixedStore("stake", store)
+
+	// execute Tick
+	change, err = stake.UpdateValidatorSet(store)
+	return
 }
