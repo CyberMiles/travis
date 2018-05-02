@@ -171,6 +171,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		return res, deliverer.withdraw(_tx)
 	}
 
+	utils.TravisTxAddrs = append(utils.TravisTxAddrs, &sender)
+
 	return
 }
 
