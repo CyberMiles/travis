@@ -52,6 +52,7 @@ type Candidate struct {
 	UpdatedAt    string         `json:"updated_at"`
 	Description  Description    `json:"description"`
 	Verified     string         `json:"verified"`
+	Active       string         `json:"active"`
 }
 
 type Description struct {
@@ -61,7 +62,7 @@ type Description struct {
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, maxShares *big.Int, cut int64, description Description, verified string) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, maxShares *big.Int, cut int64, description Description, verified string, active string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
@@ -74,6 +75,7 @@ func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big
 		UpdatedAt:    now,
 		Description:  description,
 		Verified:     verified,
+		Active:       active,
 	}
 }
 

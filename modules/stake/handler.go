@@ -30,6 +30,7 @@ type delegatedProofOfStake interface {
 	updateCandidacy(TxUpdateCandidacy) error
 	withdrawCandidacy(TxWithdrawCandidacy) error
 	verifyCandidacy(TxVerifyCandidacy) error
+	activateCandidacy(TxActivateCandidacy) error
 	delegate(TxDelegate) error
 	withdraw(TxWithdraw) error
 }
@@ -126,6 +127,8 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		return res, checker.withdrawCandidacy(txInner)
 	case TxVerifyCandidacy:
 		return res, checker.verifyCandidacy(txInner)
+	case TxActivateCandidacy:
+		return res, checker.activateCandidacy(txInner)
 	case TxDelegate:
 		return res, checker.delegate(txInner)
 	case TxWithdraw:
@@ -166,6 +169,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		return res, deliverer.withdrawCandidacy(_tx)
 	case TxVerifyCandidacy:
 		return res, deliverer.verifyCandidacy(_tx)
+	case TxActivateCandidacy:
+		return res, deliverer.activateCandidacy(_tx)
 	case TxDelegate:
 		return res, deliverer.delegate(_tx)
 	case TxWithdraw:
@@ -290,6 +295,20 @@ func (c check) verifyCandidacy(tx TxVerifyCandidacy) error {
 	return nil
 }
 
+func (c check) activateCandidacy(tx TxActivateCandidacy) error {
+	// check to see if the address has been registered before
+	candidate := GetCandidateByAddress(c.sender)
+	if candidate == nil {
+		return fmt.Errorf("cannot activate non-exsits candidacy")
+	}
+
+	if candidate.Active == "Y" {
+		return fmt.Errorf("already activated")
+	}
+
+	return nil
+}
+
 func (c check) delegate(tx TxDelegate) error {
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
@@ -366,7 +385,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 		return ErrBadAmount()
 	}
 
-	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, maxAmount, tx.Cut, tx.Description, "N")
+	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, maxAmount, tx.Cut, tx.Description, "N", "Y")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
@@ -390,7 +409,7 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int6
 	//z.Mul(maxAmount, rrr)
 	//z.Div(z, big.NewInt(100))
 	//z.Div(z, big.NewInt(1e18))
-	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), votingPower, maxAmount, tx.Cut, tx.Description, "N")
+	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), votingPower, maxAmount, tx.Cut, tx.Description, "N", "Y")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
@@ -493,6 +512,19 @@ func (d deliver) verifyCandidacy(tx TxVerifyCandidacy) error {
 	} else {
 		candidate.Verified = "N"
 	}
+	candidate.UpdatedAt = utils.GetNow()
+	updateCandidate(candidate)
+	return nil
+}
+
+func (d deliver) activateCandidacy(tx TxActivateCandidacy) error {
+	// check to see if the address has been registered before
+	candidate := GetCandidateByAddress(d.sender)
+	if candidate == nil {
+		return fmt.Errorf("cannot activate non-exsits candidacy")
+	}
+
+	candidate.Active = "Y"
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)
 	return nil

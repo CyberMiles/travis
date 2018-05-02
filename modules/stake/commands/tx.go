@@ -76,6 +76,11 @@ var (
 		Short: "Allows the foundation to verify a validator/candidate's information",
 		RunE:  cmdVerifyCandidacy,
 	}
+	CmdActivateCandidacy = &cobra.Command{
+		Use:   "activate-candidacy",
+		Short: "Allows a validator activate itself",
+		RunE:  cmdActivateCandidacy,
+	}
 	CmdDelegate = &cobra.Command{
 		Use:   "delegate",
 		Short: "Delegate coins to an existing validator/candidate",
@@ -197,6 +202,11 @@ func cmdVerifyCandidacy(cmd *cobra.Command, args []string) error {
 
 	verified := viper.GetBool(FlagVerified)
 	tx := stake.NewTxVerifyCandidacy(candidateAddress, verified)
+	return txcmd.DoTx(tx)
+}
+
+func cmdActivateCandidacy(cmd *cobra.Command, args []string) error {
+	tx := stake.NewTxActivateCandidacy()
 	return txcmd.DoTx(tx)
 }
 

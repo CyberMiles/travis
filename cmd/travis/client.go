@@ -42,6 +42,7 @@ func prepareClientCommands() {
 		stakecmd.CmdUpdateCandidacy,
 		stakecmd.CmdWithdrawCandidacy,
 		stakecmd.CmdVerifyCandidacy,
+		stakecmd.CmdActivateCandidacy,
 		stakecmd.CmdDelegate,
 		stakecmd.CmdWithdraw,
 	)
