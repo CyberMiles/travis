@@ -32,19 +32,21 @@ type TxPropose struct {
 	To           *common.Address   `json:"to"`
 	Amount       string            `json:"amount"`
 	Reason       string            `json:"reason"`
+	Expire       uint64	           `json:"expire"`
 }
 
 func (tx TxPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string) sdk.Tx {
+func NewTxPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string, expire uint64) sdk.Tx {
 	return TxPropose{
 		proposer,
 		fromAddr,
 		toAddr,
 		amount,
 		reason,
+		expire,
 	}.Wrap()
 }
 

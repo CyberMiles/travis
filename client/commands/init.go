@@ -207,7 +207,6 @@ func checkGenesis(cmd *cobra.Command) error {
 // isEmpty returns false if we can read files in this dir.
 // if it doesn't exist, read issues, etc... return true
 //
-// TODO: should we handle errors otherwise?
 func isEmpty(dir string) (bool, error) {
 	// check if we can read the directory, missing is fine, other error is not
 	d, err := os.Open(dir)

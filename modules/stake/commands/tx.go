@@ -8,11 +8,12 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	crypto "github.com/tendermint/go-crypto"
+	"github.com/tendermint/go-crypto"
 
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 )
 
 /*
@@ -36,16 +37,21 @@ The stake/slot/cancel tx is to cancel all remianing amounts from an unaccepted s
 
 * Slot ID
 * Validator address
- */
+*/
 
 // nolint
 const (
-	FlagPubKey = "pubkey"
-	FlagAmount = "amount"
-	FlagProposedRoi = "proposed-roi"
-	FlagSlotId = "slot-id"
-	FlagAddress = "address"
-	FlagNewAddress = "new-address"
+	FlagPubKey           = "pubkey"
+	FlagAmount           = "amount"
+	FlagMaxAmount        = "max-amount"
+	FlagCut              = "cut"
+	FlagAddress          = "address"
+	FlagNewAddress       = "new-address"
+	FlagValidatorAddress = "validator-address"
+	FlagWebsite          = "website"
+	FlagLocation         = "location"
+	FlagDetails          = "details"
+	FlagVerified         = "verified"
 )
 
 // nolint
@@ -55,35 +61,30 @@ var (
 		Short: "Allows a potential validator to declare its candidacy",
 		RunE:  cmdDeclareCandidacy,
 	}
-	CmdEditCandidacy = &cobra.Command{
-		Use:   "edit-candidacy",
-		Short: "Allows a candidacy to change its address",
-		RunE:  cmdEditCandidacy,
+	CmdUpdateCandidacy = &cobra.Command{
+		Use:   "update-candidacy",
+		Short: "Allows a validator candidate to change its candidacy",
+		RunE:  cmdUpdateCandidacy,
+	}
+	CmdWithdrawCandidacy = &cobra.Command{
+		Use:   "withdraw-candidacy",
+		Short: "Allows a validator/candidate to withdraw",
+		RunE:  cmdWithdrawCandidacy,
+	}
+	CmdVerifyCandidacy = &cobra.Command{
+		Use:   "verify-candidacy",
+		Short: "Allows the foundation to verify a validator/candidate's information",
+		RunE:  cmdVerifyCandidacy,
+	}
+	CmdDelegate = &cobra.Command{
+		Use:   "delegate",
+		Short: "Delegate coins to an existing validator/candidate",
+		RunE:  cmdDelegate,
 	}
 	CmdWithdraw = &cobra.Command{
 		Use:   "withdraw",
-		Short: "Allows a validator to withdraw",
+		Short: "Withdraw coins from a validator/candidate",
 		RunE:  cmdWithdraw,
-	}
-	CmdProposeSlot = &cobra.Command{
-		Use:   "propose-slot",
-		Short: "Allows a potential validator to offer a slot of CMTs and corresponding ROI",
-		RunE:  cmdProposeSlot,
-	}
-	CmdAcceptSlot = &cobra.Command{
-		Use:   "accept-slot",
-		Short: "Accept and stake CMTs for an Slot ID",
-		RunE:  cmdAcceptSlot,
-	}
-	CmdWithdrawSlot = &cobra.Command{
-		Use:   "withdraw-slot",
-		Short: "Withdraw staked CMTs from a validator",
-		RunE:  cmdWithdrawSlot,
-	}
-	CmdCancelSlot = &cobra.Command{
-		Use:   "cancel-slot",
-		Short: "Cancel all remaining amounts from an unaccepted slot by its creator using the Slot ID",
-		RunE:  cmdCancelSlot,
 	}
 )
 
@@ -94,37 +95,44 @@ func init() {
 	fsPk.String(FlagPubKey, "", "PubKey of the validator-candidate")
 
 	fsAmount := flag.NewFlagSet("", flag.ContinueOnError)
-	fsAmount.Int64(FlagAmount, 0, "Amount of CMT")
+	fsAmount.String(FlagAmount, "0", "Amount of CMTs")
 
-	fsProposeSlot := flag.NewFlagSet("", flag.ContinueOnError)
-	fsProposeSlot.Float64(FlagProposedRoi, 0, "corresponding ROI")
+	fsCandidate := flag.NewFlagSet("", flag.ContinueOnError)
+	fsCandidate.String(FlagMaxAmount, "", "Max amount of CMTs to be staked")
+	fsCandidate.String(FlagWebsite, "", "optional website")
+	fsCandidate.String(FlagLocation, "", "optional location")
+	fsCandidate.String(FlagDetails, "", "optional detailed description")
 
-	fsSlot := flag.NewFlagSet("", flag.ContinueOnError)
-	fsSlot.String(FlagSlotId, "", "Slot ID")
+	fsCut := flag.NewFlagSet("", flag.ContinueOnError)
+	fsCut.Int64(FlagCut, 0, "The percentage of block awards to be distributed back to the delegators")
 
 	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
-	fsAddr.String(FlagAddress, "", "Hex Address")
+	fsAddr.String(FlagAddress, "", "Account address")
 
-	fsEditCandidacy := flag.NewFlagSet("", flag.ContinueOnError)
-	fsEditCandidacy.String(FlagNewAddress, "", "New hex Address")
+	fsNewAddress := flag.NewFlagSet("", flag.ContinueOnError)
+	fsNewAddress.String(FlagNewAddress, "", "New account address")
+
+	fsVerified := flag.NewFlagSet("", flag.ContinueOnError)
+	fsVerified.Bool(FlagVerified, false, "true or false")
+
+	fsValidatorAddress := flag.NewFlagSet("", flag.ContinueOnError)
+	fsValidatorAddress.String(FlagValidatorAddress, "", "validator address")
 
 	// add the flags
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
+	CmdDeclareCandidacy.Flags().AddFlagSet(fsCandidate)
+	CmdDeclareCandidacy.Flags().AddFlagSet(fsCut)
 
-	CmdEditCandidacy.Flags().AddFlagSet(fsEditCandidacy)
+	CmdUpdateCandidacy.Flags().AddFlagSet(fsNewAddress)
+	CmdUpdateCandidacy.Flags().AddFlagSet(fsCandidate)
 
-	CmdWithdraw.Flags().AddFlagSet(fsAddr)
+	CmdVerifyCandidacy.Flags().AddFlagSet(fsValidatorAddress)
+	CmdVerifyCandidacy.Flags().AddFlagSet(fsVerified)
 
-	CmdProposeSlot.Flags().AddFlagSet(fsAmount)
-	CmdProposeSlot.Flags().AddFlagSet(fsProposeSlot)
+	CmdDelegate.Flags().AddFlagSet(fsValidatorAddress)
+	CmdDelegate.Flags().AddFlagSet(fsAmount)
 
-	CmdAcceptSlot.Flags().AddFlagSet(fsSlot)
-	CmdAcceptSlot.Flags().AddFlagSet(fsAmount)
-
-	CmdWithdrawSlot.Flags().AddFlagSet(fsSlot)
-	CmdWithdrawSlot.Flags().AddFlagSet(fsAmount)
-
-	CmdCancelSlot.Flags().AddFlagSet(fsSlot)
+	CmdWithdraw.Flags().AddFlagSet(fsValidatorAddress)
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
@@ -133,25 +141,94 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	tx := stake.NewTxDeclareCandidacy(pk)
+	maxAmount := viper.GetString(FlagMaxAmount)
+	v := new(big.Int)
+	_, ok := v.SetString(maxAmount, 10)
+	if !ok || v.Cmp(big.NewInt(0)) <= 0 {
+		return fmt.Errorf("max-amount must be positive interger")
+	}
+
+	cut := viper.GetInt64(FlagCut)
+	if cut <= 0 || cut >= 10000 {
+		return fmt.Errorf("cut must between 0 and 1")
+	}
+
+	description := stake.Description{
+		Website:  viper.GetString(FlagWebsite),
+		Location: viper.GetString(FlagLocation),
+		Details:  viper.GetString(FlagDetails),
+	}
+
+	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, cut, description)
 	return txcmd.DoTx(tx)
 }
 
-func cmdEditCandidacy(cmd *cobra.Command, args []string) error {
+func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
 	newAddress := common.HexToAddress(viper.GetString(FlagNewAddress))
-	tx := stake.NewTxEditCandidacy(newAddress)
+	maxAmount := viper.GetString(FlagMaxAmount)
+	if maxAmount != "" {
+		v := new(big.Int)
+		_, ok := v.SetString(maxAmount, 10)
+		if !ok || v.Cmp(big.NewInt(0)) <= 0 {
+			return fmt.Errorf("max-amount must be positive interger")
+		}
+	}
+
+	description := stake.Description{
+		Website:  viper.GetString(FlagWebsite),
+		Location: viper.GetString(FlagLocation),
+		Details:  viper.GetString(FlagDetails),
+	}
+
+	tx := stake.NewTxUpdateCandidacy(newAddress, maxAmount, description)
+	return txcmd.DoTx(tx)
+}
+
+func cmdWithdrawCandidacy(cmd *cobra.Command, args []string) error {
+	tx := stake.NewTxWithdrawCandidacy()
+	return txcmd.DoTx(tx)
+}
+
+func cmdVerifyCandidacy(cmd *cobra.Command, args []string) error {
+	candidateAddress := common.HexToAddress(viper.GetString(FlagValidatorAddress))
+	if candidateAddress.String() == "" {
+		return fmt.Errorf("please enter candidate address using --validator-address")
+	}
+
+	verified := viper.GetBool(FlagVerified)
+	tx := stake.NewTxVerifyCandidacy(candidateAddress, verified)
+	return txcmd.DoTx(tx)
+}
+
+func cmdDelegate(cmd *cobra.Command, args []string) error {
+	amount := viper.GetString(FlagAmount)
+	v := new(big.Int)
+	_, ok := v.SetString(amount, 10)
+	if !ok || v.Cmp(big.NewInt(0)) <= 0 {
+		return fmt.Errorf("amount must be positive interger")
+	}
+
+	validatorAddress := common.HexToAddress(viper.GetString(FlagValidatorAddress))
+	if validatorAddress.String() == "" {
+		return fmt.Errorf("please enter validator address using --validator-address")
+	}
+
+	tx := stake.NewTxDelegate(validatorAddress, amount)
 	return txcmd.DoTx(tx)
 }
 
 func cmdWithdraw(cmd *cobra.Command, args []string) error {
-	address := common.HexToAddress(viper.GetString(FlagAddress))
-	tx := stake.NewTxWithdraw(address)
+	validatorAddress := common.HexToAddress(viper.GetString(FlagValidatorAddress))
+	if validatorAddress.String() == "" {
+		return fmt.Errorf("please enter validator address using --validator-address")
+	}
+
+	tx := stake.NewTxWithdraw(validatorAddress)
 	return txcmd.DoTx(tx)
 }
 
 // GetPubKey - create the pubkey from a pubkey string
 func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
-
 	if len(pubKeyStr) == 0 {
 		err = fmt.Errorf("must use --pubkey flag")
 		return
@@ -169,61 +246,4 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 	copy(pkEd[:], pkBytes[:])
 	pk = pkEd.Wrap()
 	return
-}
-
-func cmdProposeSlot(cmd *cobra.Command, args []string) error {
-	address := common.HexToAddress(viper.GetString(FlagAddress))
-	amount := viper.GetInt64(FlagAmount)
-	if amount <= 0 {
-		return fmt.Errorf("amount must be positive interger")
-	}
-
-	proposedRoi := viper.GetInt64(FlagProposedRoi)
-	if proposedRoi <= 0 {
-		return fmt.Errorf("proposed ROI must be positive interger")
-	}
-
-	tx := stake.NewTxProposeSlot(address, amount, proposedRoi)
-	return txcmd.DoTx(tx)
-}
-
-func cmdAcceptSlot(cmd *cobra.Command, args []string) error {
-	amount := viper.GetInt64(FlagAmount)
-	if amount <= 0 {
-		return fmt.Errorf("Amount must be positive interger")
-	}
-
-	slotId := viper.GetString(FlagSlotId)
-	if slotId == "" {
-		return fmt.Errorf("please enter slot ID using --slot-id")
-	}
-
-	tx := stake.NewTxAcceptSlot(amount, slotId)
-	return txcmd.DoTx(tx)
-}
-
-func cmdWithdrawSlot(cmd *cobra.Command, args []string) error {
-	amount := viper.GetInt64(FlagAmount)
-	if amount <= 0 {
-		return fmt.Errorf("Amount must be positive interger")
-	}
-
-	slotId := viper.GetString(FlagSlotId)
-	if slotId == "" {
-		return fmt.Errorf("please enter slot ID using --slot-id")
-	}
-
-	tx := stake.NewTxWithdrawSlot(amount, slotId)
-	return txcmd.DoTx(tx)
-}
-
-func cmdCancelSlot(cmd *cobra.Command, args []string) error {
-	address := common.HexToAddress(viper.GetString(FlagAddress))
-	slotId := viper.GetString(FlagSlotId)
-	if slotId == "" {
-		return fmt.Errorf("please enter slot ID using --slot-id")
-	}
-
-	tx := stake.NewTxCancelSlot(address, slotId)
-	return txcmd.DoTx(tx)
 }

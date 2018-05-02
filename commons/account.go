@@ -1,18 +1,18 @@
 package commons
 
 import (
-	"math/big"
+	"fmt"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/eth"
+	"github.com/pkg/errors"
+	"math"
+	"math/big"
 	"os"
 	"path/filepath"
 	"time"
-	"fmt"
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"math"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -66,17 +66,17 @@ func Transfer(from, to common.Address, amount *big.Int) error {
 	return nil
 }
 
-func TransferWithReactor(from, to *common.Address, amount *big.Int, reactor utils.StateChangeReactor) error {
+func TransferWithReactor(from, to common.Address, amount *big.Int, reactor utils.StateChangeReactor) error {
 	utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
-		*from,
-		*to,
+		from,
+		to,
 		amount,
 		reactor,
 	})
 	return nil
 }
 
-func GetBalance(ethereum *eth.Ethereum, addr common.Address, amount *big.Int) (*big.Int, error) {
+func GetBalance(ethereum *eth.Ethereum, addr common.Address) (*big.Int, error) {
 	state, err := ethereum.BlockChain().State()
 	if err != nil {
 		return nil, errors.Errorf("Failed to get balance: %v", err)

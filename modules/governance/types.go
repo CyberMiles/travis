@@ -13,6 +13,7 @@ type Proposal struct {
 	To           *common.Address
 	Amount       string
 	Reason       string
+	ExpireBlockHeight uint64
 	CreatedAt    string
 	Result       string
 	ResultMsg    string
@@ -20,7 +21,7 @@ type Proposal struct {
 	ResultAt     string
 }
 
-func NewProposal(id string, proposer *common.Address, blockHeight uint64, from *common.Address, to *common.Address, amount string, reason string) *Proposal {
+func NewProposal(id string, proposer *common.Address, blockHeight uint64, from *common.Address, to *common.Address, amount string, reason string, expireBlockHeight uint64) *Proposal {
 	now := utils.GetNow()
 	return &Proposal {
 		id,
@@ -30,6 +31,7 @@ func NewProposal(id string, proposer *common.Address, blockHeight uint64, from *
 		to,
 		amount,
 		reason,
+		expireBlockHeight,
 		now,
 		"",
 		"",

@@ -18,7 +18,7 @@ import (
 
 // nolint
 const (
-	ByteNonce = 0x69 //TODO overhaul byte assign system don't make no sense!
+	ByteNonce = 0x69
 	TypeNonce = "nonce"
 )
 

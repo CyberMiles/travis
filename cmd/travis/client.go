@@ -3,12 +3,12 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/cosmos/cosmos-sdk/client/commands"
-	"github.com/cosmos/cosmos-sdk/client/commands/query"
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
-	stakecmd "github.com/CyberMiles/travis/modules/stake/commands"
 	authcmd "github.com/CyberMiles/travis/modules/auth/commands"
 	noncecmd "github.com/CyberMiles/travis/modules/nonce/commands"
+	stakecmd "github.com/CyberMiles/travis/modules/stake/commands"
+	"github.com/cosmos/cosmos-sdk/client/commands"
+	"github.com/cosmos/cosmos-sdk/client/commands/query"
 )
 
 // clientCmd is the entry point for this binary
@@ -28,8 +28,6 @@ func prepareClientCommands() {
 		stakecmd.CmdQueryValidator,
 		stakecmd.CmdQueryValidators,
 		stakecmd.CmdQueryDelegator,
-		stakecmd.CmdQuerySlot,
-		stakecmd.CmdQuerySlots,
 	)
 
 	// set up the middleware
@@ -41,12 +39,11 @@ func prepareClientCommands() {
 
 	txcmd.RootCmd.AddCommand(
 		stakecmd.CmdDeclareCandidacy,
-		stakecmd.CmdEditCandidacy,
+		stakecmd.CmdUpdateCandidacy,
+		stakecmd.CmdWithdrawCandidacy,
+		stakecmd.CmdVerifyCandidacy,
+		stakecmd.CmdDelegate,
 		stakecmd.CmdWithdraw,
-		stakecmd.CmdProposeSlot,
-		stakecmd.CmdAcceptSlot,
-		stakecmd.CmdWithdrawSlot,
-		stakecmd.CmdCancelSlot,
 	)
 
 	clientCmd.AddCommand(

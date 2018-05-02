@@ -12,6 +12,9 @@ var (
 	errInvalidParameter      = fmt.Errorf("Invalid parameter")
 	errRepeatedVote          = fmt.Errorf("Repeated vote")
 	errInvalidValidator      = fmt.Errorf("Invalid validator")
+	errInsufficientBalance   = fmt.Errorf("Insufficient balance")
+	errApprovedProposal         = fmt.Errorf("The proposal has been approved")
+	errRejectedProposal         = fmt.Errorf("The proposal has been rejected")
 )
 
 func ErrMissingSignature() error {
@@ -28,4 +31,16 @@ func ErrRepeatedVote() error {
 
 func ErrInvalidValidator() error {
 	return errors.WithCode(errInvalidValidator, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrInsufficientBalance() error {
+	return errors.WithCode(errInsufficientBalance, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrApprovedProposal() error {
+	return errors.WithCode(errApprovedProposal, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrRejectedProposal() error {
+	return errors.WithCode(errRejectedProposal, errors.CodeTypeBaseInvalidInput)
 }

@@ -17,7 +17,8 @@ const (
 	FlagIn      = "in"
 	FlagPrepare = "prepare"
 	FlagAddress = "address"
-	FlagType	= "type"
+	FlagType    = "type"
+	FlagNonce   = "nonce"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -34,6 +35,7 @@ func init() {
 	RootCmd.PersistentFlags().String(FlagPrepare, "", "file to store prepared tx")
 	RootCmd.Flags().String(FlagIn, "", "file with tx in json format")
 	RootCmd.PersistentFlags().String(FlagType, "commit", "type(sync|commit) of broadcast tx to tendermint")
+	RootCmd.PersistentFlags().Int(FlagNonce, -1, "Sequence number for this transaction")
 }
 
 func doRawTx(cmd *cobra.Command, args []string) error {

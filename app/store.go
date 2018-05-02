@@ -15,16 +15,16 @@ import (
 	dbm "github.com/tendermint/tmlibs/db"
 	"github.com/tendermint/tmlibs/log"
 
-	"github.com/spf13/viper"
-	"github.com/tendermint/tmlibs/cli"
 	"database/sql"
-	"os"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/tendermint/go-wire"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/CyberMiles/travis/modules/governance"
 	"encoding/hex"
+	"github.com/CyberMiles/travis/modules/governance"
+	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/ethereum/go-ethereum/common"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/spf13/viper"
+	"github.com/tendermint/go-wire"
+	"github.com/tendermint/tmlibs/cli"
+	"os"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -179,7 +179,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		value := app.state.Check().Get(key)
 		fmt.Printf("Check Value: %s\n", hex.EncodeToString(value))
 		resQuery.Value = value
-		/*
+
 		if reqQuery.Prove {
 			value, proof, err := tree.GetVersionedWithProof(key, height)
 			if err != nil {
@@ -191,25 +191,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		} else {
 			value := tree.Get(key)
 			resQuery.Value = value
-		}*/
-	case "/slot":
-		slotId := string(reqQuery.Data)
-		slot := stake.GetSlot(slotId)
-		if slot != nil && slot.State == "Y" {
-			resQuery.Value = wire.BinaryBytes(*slot)
-		} else {
-			resQuery.Value = []byte{}
 		}
-	case "/slots":
-		slots := stake.GetSlots()
-		var filtered []*stake.Slot
-		for _, slot := range slots {
-			if slot.State == "Y" {
-				filtered = append(filtered, slot)
-			}
-		}
-		b := wire.BinaryBytes(filtered)
-		resQuery.Value = b
 	case "/validators":
 		candidates := stake.GetCandidates()
 		b := wire.BinaryBytes(candidates)
@@ -225,8 +207,8 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		}
 	case "/delegator":
 		address := common.HexToAddress(string(reqQuery.Data))
-		slotDelegates := stake.GetSlotDelegatesByAddress(address)
-		b := wire.BinaryBytes(slotDelegates)
+		delegations := stake.GetDelegationsByDelegator(address)
+		b := wire.BinaryBytes(delegations)
 		resQuery.Value = b
 	case "/governance/proposals":
 		proposals := governance.GetProposals()
@@ -261,9 +243,6 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 
 	return abci.ResponseCommit{Data: hash}
 }
-
-// InitChain - ABCI
-func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) { return }
 
 // BeginBlock - ABCI
 func (app *StoreApp) BeginBlock(_ abci.RequestBeginBlock) (res abci.ResponseBeginBlock) { return }
@@ -343,27 +322,26 @@ func initTravisDb() error {
 		defer db.Close()
 
 		sqlStmt := `
-		create table candidates(address text not null primary key, pub_key text not null, shares integer default 0, voting_power integer default 0, state text not null default 'Y', created_at text not null, updated_at text not null default '');
+		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, max_shares text not null default '0', cut real not null default '0.0', website text not null default '', location text not null default '', details text not null default '', verified text not null default 'N', created_at text not null, updated_at text not null default '');
+		create unique index idx_candidates_pub_key on candidates(pub_key);
 		create table delegators(address text not null primary key, created_at text not null);
-		create table slots(id text not null primary key, validator_address text not null, total_amount integer not null default 0, available_amount integer not null default 0, proposed_roi integer not null default 0, state text not null default 'Y', created_at text not null, updated_at text not null default '');
-		create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, slot_id text not null, amount integer not null default 0, op_code text not null default '', created_at text not null);
-		create table slot_delegates (delegator_address text not null, slot_id text not null, amount integer not null default 0, created_at text not null, updated_at text not null default '');
-		create index idx_slots_validator_address on slots(validator_address);
-		create index idx_candidates_pub_key on candidates(pub_key);
-		create index idx_slot_delegates_delegator_address on slot_delegates(delegator_address);
-		create index idx_slot_delegates_slot_id on slot_delegates(slot_id);
+		create table delegations(delegator_address text not null, pub_key text not null, shares text not null default '0', created_at text not null, updated_at text not null default '');
+		create index idx_delegations_delegator_address_pub_key on delegations(delegator_address, pub_key);
+		create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, shares text not null default '0', op_code text not null default '', created_at text not null);
+		create index idx_delegate_history_delegator_address on delegate_history(delegator_address);
+		create index idx_delegate_history_pub_key on delegate_history(pub_key);
 
-		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
+		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, expire_block_height text not null, created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null, created_at text not null, unique(proposal_id, voter) ON conflict replace);
 		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 		create index idx_governance_vote_voter on governance_vote(voter);
-		
+
 		create table suicided_contracts(contract_address tx primary key, created_at text, updated_at text not null default '');
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {
 			//os.Remove(stakeDbPath)
-			return errors.ErrInternal("Initializing stake database: " + err.Error())
+			return errors.ErrInternal("Initializing database: " + err.Error())
 		}
 	}
 

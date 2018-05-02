@@ -2,11 +2,13 @@ package stake
 
 import (
 	"database/sql"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/viper"
+	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/tmlibs/cli"
+	"math/big"
 	"path"
-	"strings"
 )
 
 func getDb() *sql.DB {
@@ -23,15 +25,15 @@ func getDb() *sql.DB {
 func GetCandidateByAddress(address common.Address) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select pub_key, shares, voting_power, state, created_at, updated_at from candidates where address = ?")
+	stmt, err := db.Prepare("select pub_key, shares, voting_power, max_shares, cut, website, location, details, verified, created_at, updated_at from candidates where address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var pubKey, state, createdAt, updatedAt string
-	var shares, votingPower uint64
-	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &state, &createdAt, &updatedAt)
+	var pubKey, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
+	var votingPower, cut int64
+	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -40,31 +42,43 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 		panic(err)
 	}
 
-	pk, _ := GetPubKey(pubKey)
-	//bs, _ := hex.DecodeString(address)
+	pk, _ := utils.GetPubKey(pubKey)
+	s := new(big.Int)
+	s.SetString(shares, 10)
+	ms := new(big.Int)
+	ms.SetString(maxShares, 10)
+	description := Description{
+		Website:  website,
+		Location: location,
+		Details:  details,
+	}
 	return &Candidate{
 		PubKey:       pk,
 		OwnerAddress: address,
-		Shares:       shares,
+		Shares:       s,
 		VotingPower:  votingPower,
-		State:        state,
+		MaxShares:    ms,
+		Cut:          cut,
+		Description:  description,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
+		Verified:     verified,
 	}
 }
 
 func GetCandidateByPubKey(pubKey string) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select address, shares, voting_power, state, created_at, updated_at from candidates where pub_key = ?")
+	stmt, err := db.Prepare("select address, shares, voting_power, max_shares, cut, website, location, details, verified, created_at, updated_at from candidates where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var address, state, createdAt, updatedAt string
-	var shares, votingPower uint64
-	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &state, &createdAt, &updatedAt)
+	var address, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
+	var votingPower, cut int64
+	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
+
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -72,13 +86,25 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 		panic(err)
 	}
 
-	pk, _ := GetPubKey(pubKey)
+	pk, _ := utils.GetPubKey(pubKey)
+	s := new(big.Int)
+	s.SetString(shares, 10)
+	ms := new(big.Int)
+	ms.SetString(maxShares, 10)
+	description := Description{
+		Website:  website,
+		Location: location,
+		Details:  details,
+	}
 	return &Candidate{
 		PubKey:       pk,
 		OwnerAddress: common.HexToAddress(address),
-		Shares:       shares,
+		Shares:       s,
 		VotingPower:  votingPower,
-		State:        state,
+		MaxShares:    ms,
+		Cut:          cut,
+		Description:  description,
+		Verified:     verified,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
 	}
@@ -88,29 +114,39 @@ func GetCandidates() (candidates Candidates) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, address, shares, voting_power, state, created_at, updated_at from candidates")
+	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, cut, website, location, details, verified, created_at, updated_at from candidates")
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var pubKey, ownerAddress, state, createdAt, updatedAt string
-		var shares, votingPower uint64
-		err = rows.Scan(&pubKey, &ownerAddress, &shares, &votingPower, &state, &createdAt, &updatedAt)
+		var pubKey, address, createdAt, updatedAt, shares, maxShares, website, location, details, verified string
+		var votingPower, cut int64
+		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
 
-		pk, _ := GetPubKey(pubKey)
-		//bs, _ := hex.DecodeString(ownerAddress)
+		pk, _ := utils.GetPubKey(pubKey)
+		s := new(big.Int)
+		s.SetString(shares, 10)
+		ms := new(big.Int)
+		ms.SetString(maxShares, 10)
+		description := Description{
+			Website:  website,
+			Location: location,
+			Details:  details,
+		}
 		candidate := &Candidate{
-			PubKey: pk,
-			//OwnerAddress:       NewActor(bs),
-			OwnerAddress: common.HexToAddress(ownerAddress),
-			Shares:       shares,
+			PubKey:       pk,
+			OwnerAddress: common.HexToAddress(address),
+			Shares:       s,
 			VotingPower:  votingPower,
-			State:        state,
+			MaxShares:    ms,
+			Cut:          cut,
+			Description:  description,
+			Verified:     verified,
 			CreatedAt:    createdAt,
 			UpdatedAt:    updatedAt,
 		}
@@ -134,13 +170,26 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, cut, website, location, details, verified, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.PubKey.KeyString(), candidate.OwnerAddress.String(), candidate.Shares, candidate.VotingPower, candidate.State, candidate.CreatedAt, candidate.UpdatedAt)
+	_, err = stmt.Exec(
+		candidate.PubKey.KeyString(),
+		candidate.OwnerAddress.String(),
+		candidate.Shares.String(),
+		candidate.VotingPower,
+		candidate.MaxShares.String(),
+		candidate.Cut,
+		candidate.Description.Website,
+		candidate.Description.Location,
+		candidate.Description.Details,
+		candidate.Verified,
+		candidate.CreatedAt,
+		candidate.UpdatedAt,
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -155,13 +204,25 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, state = ?, updated_at = ? where pub_key = ?")
+	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, cut = ?, website = ?, location = ?, details = ?, verified = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.OwnerAddress.String(), candidate.Shares, candidate.VotingPower, candidate.State, candidate.UpdatedAt, candidate.PubKey.KeyString())
+	_, err = stmt.Exec(
+		candidate.OwnerAddress.String(),
+		candidate.Shares.String(),
+		candidate.VotingPower,
+		candidate.MaxShares.String(),
+		candidate.Cut,
+		candidate.Description.Website,
+		candidate.Description.Location,
+		candidate.Description.Details,
+		candidate.Verified,
+		candidate.UpdatedAt,
+		candidate.PubKey.KeyString(),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -188,7 +249,7 @@ func removeCandidate(candidate *Candidate) {
 	}
 }
 
-func saveSlot(slot *Slot) {
+func SaveDelegator(delegator *Delegator) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -197,19 +258,19 @@ func saveSlot(slot *Slot) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into slots(id, validator_address, total_amount, available_amount, proposed_roi, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into delegators(address, created_at) values(?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(strings.ToUpper(slot.Id), slot.ValidatorAddress.String(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.CreatedAt, slot.UpdatedAt)
+	_, err = stmt.Exec(delegator.Address.String(), delegator.CreatedAt)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func updateSlot(slot *Slot) {
+func RemoveDelegator(delegator *Delegator) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -218,30 +279,30 @@ func updateSlot(slot *Slot) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update slots set validator_address = ?, total_amount = ?, available_amount = ?, proposed_roi = ?, state = ?, updated_at = ? where id = ?")
+	stmt, err := tx.Prepare("delete from delegators where address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slot.ValidatorAddress.String(), slot.TotalAmount, slot.AvailableAmount, slot.ProposedRoi, slot.State, slot.UpdatedAt, strings.ToUpper(slot.Id))
+	_, err = stmt.Exec(delegator.Address.String())
 	if err != nil {
 		panic(err)
 	}
 }
 
-func GetSlot(slotId string) *Slot {
+func GetDelegator(address string) *Delegator {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select validator_address, total_amount, available_amount, proposed_roi, state, created_at, updated_at from slots where id = ?")
+	stmt, err := db.Prepare("select address, created_at from delegators where address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var validatorAddress, state, createdAt, updatedAt string
-	var totalAmount, availableAmount, proposedRoi int64
-	err = stmt.QueryRow(strings.ToUpper(slotId)).Scan(&validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
+	var updatedAt string
+	err = stmt.QueryRow(address).Scan(&updatedAt)
+
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -249,85 +310,10 @@ func GetSlot(slotId string) *Slot {
 		panic(err)
 	}
 
-	return &Slot{
-		Id: 				slotId,
-		ValidatorAddress: 	common.HexToAddress(validatorAddress),
-		TotalAmount: 		totalAmount,
-		AvailableAmount: 	availableAmount,
-		ProposedRoi: 		proposedRoi,
-		State:       		state,
-		CreatedAt: 			createdAt,
-		UpdatedAt: 			updatedAt,
-	}
+	return &Delegator{common.HexToAddress(address), updatedAt}
 }
 
-func GetSlots() (slots []*Slot) {
-	db := getDb()
-	defer db.Close()
-	rows, err := db.Query("select id, validator_address, total_amount, available_amount, proposed_roi, state, created_at, updated_at from slots")
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var slotId, validatorAddress, state, createdAt, updatedAt string
-		var totalAmount, availableAmount, proposedRoi int64
-		err = rows.Scan(&slotId, &validatorAddress, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
-		if err != nil {
-			panic(err)
-		}
-
-		slot := &Slot{
-			Id:               slotId,
-			ValidatorAddress: common.HexToAddress(validatorAddress),
-			TotalAmount:      totalAmount,
-			AvailableAmount:  availableAmount,
-			ProposedRoi:      proposedRoi,
-			State:            state,
-			CreatedAt:        createdAt,
-			UpdatedAt:        updatedAt,
-		}
-		slots = append(slots, slot)
-	}
-
-	return
-}
-
-func GetSlotsByValidator(validatorAddress common.Address) (slots []*Slot) {
-	db := getDb()
-	defer db.Close()
-	rows, err := db.Query("select id, total_amount, available_amount, proposed_roi, state, created_at, updated_at from slots where validator_address = ?", validatorAddress.String())
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var slotId, state, createdAt, updatedAt string
-		var totalAmount, availableAmount, proposedRoi int64
-		err = rows.Scan(&slotId, &totalAmount, &availableAmount, &proposedRoi, &state, &createdAt, &updatedAt)
-		if err != nil {
-			panic(err)
-		}
-
-		slot := &Slot{
-			Id:               slotId,
-			ValidatorAddress: validatorAddress,
-			TotalAmount:      totalAmount,
-			AvailableAmount:  availableAmount,
-			ProposedRoi:      proposedRoi,
-			State:            state,
-			CreatedAt:        createdAt,
-			UpdatedAt:        updatedAt,
-		}
-		slots = append(slots, slot)
-	}
-
-	return
-}
-
-func removeSlot(slot *Slot) {
+func SaveDelegation(delegation *Delegation) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -336,30 +322,93 @@ func removeSlot(slot *Slot) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("delete from slots where id = ?")
+	stmt, err := tx.Prepare("insert into delegations(delegator_address, pub_key, shares, created_at, updated_at) values (?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slot.Id)
+	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.PubKey.KeyString(), delegation.Shares.String(), delegation.CreatedAt, delegation.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func GetSlotDelegate(delegatorAddress common.Address, slotId string) *SlotDelegate {
+func RemoveDelegation(delegation *Delegation) {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select amount, created_at, updated_at from slot_delegates where slot_id = ? and delegator_address = ?")
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("delete from delegations where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var createdAt, updatedAt string
-	var amount int64
-	err = stmt.QueryRow(slotId, delegatorAddress.String()).Scan(&amount, &createdAt, &updatedAt)
+	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.PubKey.KeyString())
+	if err != nil {
+		panic(err)
+	}
+}
+
+func UpdateDelegation(delegation *Delegation) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("update delegations set shares = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(delegation.Shares.String(), delegation.UpdatedAt, delegation.DelegatorAddress.String(), delegation.PubKey.KeyString())
+	if err != nil {
+		panic(err)
+	}
+}
+
+func UpdateDelegatorAddress(delegation *Delegation, originalAddress common.Address) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("update delegations set delegator_address = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.UpdatedAt, originalAddress.String(), delegation.PubKey.KeyString())
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GetDelegation(delegatorAddress common.Address, pubKey crypto.PubKey) *Delegation {
+	db := getDb()
+	defer db.Close()
+	stmt, err := db.Prepare("select shares, created_at, updated_at from delegations where delegator_address = ? and pub_key = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var shares, createdAt, updatedAt string
+	err = stmt.QueryRow(delegatorAddress.String(), pubKey.KeyString()).Scan(&shares, &createdAt, &updatedAt)
+
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -367,96 +416,95 @@ func GetSlotDelegate(delegatorAddress common.Address, slotId string) *SlotDelega
 		panic(err)
 	}
 
-	return &SlotDelegate{
+	s := new(big.Int)
+	s.SetString(shares, 10)
+	return &Delegation{
 		DelegatorAddress: delegatorAddress,
-		SlotId:           slotId,
-		Amount:           amount,
+		PubKey:           pubKey,
+		Shares:           s,
 		CreatedAt:        createdAt,
 		UpdatedAt:        updatedAt,
 	}
 }
 
-func GetSlotDelegatesByAddress(delegatorAddress common.Address) (slotDelegates []*SlotDelegate) {
+func GetDelegationsByPubKey(pubKey crypto.PubKey) (delegations []*Delegation) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select delegator_address, slot_id, amount, created_at, updated_at from slot_delegates where delegator_address = ?", delegatorAddress.String())
+	rows, err := db.Query("select delegator_address, shares, created_at, updated_at from delegations where pub_key = ?", pubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var slotId, delegatorAddress, createdAt, updatedAt string
-		var amount int64
-		err = rows.Scan(&delegatorAddress, &slotId, &amount, &createdAt, &updatedAt)
-
-		switch {
-		case err == sql.ErrNoRows:
-			return
-		case err != nil:
+		var delegatorAddress, shares, createdAt, updatedAt string
+		err = rows.Scan(&delegatorAddress, &shares, &createdAt, &updatedAt)
+		if err != nil {
 			panic(err)
 		}
 
-		slotDelegates = append(slotDelegates,
-			&SlotDelegate{
-				DelegatorAddress: common.HexToAddress(delegatorAddress),
-				SlotId:           slotId,
-				Amount:           amount,
-				CreatedAt:        createdAt,
-				UpdatedAt:        updatedAt,
-			})
+		s := new(big.Int)
+		s.SetString(shares, 10)
+		delegation := &Delegation{
+			DelegatorAddress: common.HexToAddress(delegatorAddress),
+			PubKey:           pubKey,
+			Shares:           s,
+			CreatedAt:        createdAt,
+			UpdatedAt:        updatedAt,
+		}
+		delegations = append(delegations, delegation)
 	}
 
 	err = rows.Err()
 	if err != nil {
 		panic(err)
 	}
-
 	return
 }
 
-func GetSlotDelegatesBySlot(slotId string) (slotDelegates []*SlotDelegate) {
+func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*Delegation) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select delegator_address, slot_id, amount, created_at, updated_at from slot_delegates where slot_id = ?", slotId)
+	rows, err := db.Query("select pub_key, shares, created_at, updated_at from delegations where delegator_address = ?", delegatorAddress.String())
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var slotId, delegatorAddress, createdAt, updatedAt string
-		var amount int64
-		err = rows.Scan(&delegatorAddress, &slotId, &amount, &createdAt, &updatedAt)
-
-		switch {
-		case err == sql.ErrNoRows:
-			return
-		case err != nil:
+		var pubKey, shares, createdAt, updatedAt string
+		err = rows.Scan(&pubKey, &shares, &createdAt, &updatedAt)
+		if err != nil {
 			panic(err)
 		}
 
-		slotDelegates = append(slotDelegates,
-			&SlotDelegate{
-				DelegatorAddress: common.HexToAddress(delegatorAddress),
-				SlotId:           slotId,
-				Amount:           amount,
-				CreatedAt:        createdAt,
-				UpdatedAt:        updatedAt,
-			})
+		pk, err := utils.GetPubKey(pubKey)
+		if err != nil {
+			return
+		}
+
+		s := new(big.Int)
+		s.SetString(shares, 10)
+		delegation := &Delegation{
+			DelegatorAddress: delegatorAddress,
+			PubKey:           pk,
+			Shares:           s,
+			CreatedAt:        createdAt,
+			UpdatedAt:        updatedAt,
+		}
+		delegations = append(delegations, delegation)
 	}
 
 	err = rows.Err()
 	if err != nil {
 		panic(err)
 	}
-
 	return
 }
 
-func updateSlotDelegate(slotDelegate *SlotDelegate) {
+func saveDelegateHistory(delegateHistory *DelegateHistory) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -465,76 +513,19 @@ func updateSlotDelegate(slotDelegate *SlotDelegate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update slot_delegates set amount = ?, updated_at = ? where delegator_address = ? and slot_id = ?")
+	stmt, err := tx.Prepare("insert into delegate_history(delegator_address, pub_key, shares, op_code, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(slotDelegate.Amount, slotDelegate.UpdatedAt, slotDelegate.DelegatorAddress.String(), slotDelegate.SlotId)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func saveSlotDelegate(slotDelegate *SlotDelegate) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
-
-	stmt, err := tx.Prepare("insert into slot_delegates(delegator_address, slot_id, amount, created_at, updated_at) values(?, ?, ?, ?, ?)")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(slotDelegate.DelegatorAddress.String(), slotDelegate.SlotId, slotDelegate.Amount, slotDelegate.CreatedAt, slotDelegate.UpdatedAt)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func removeSlotDelegate(slotDelegate *SlotDelegate) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
-
-	stmt, err := tx.Prepare("delete from slot_delegates where delegator_address = ? and slot_id =?")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(slotDelegate.DelegatorAddress.String(), slotDelegate.SlotId)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func saveDelegateHistory(delegateHistory DelegateHistory) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
-
-	stmt, err := tx.Prepare("insert into delegate_history(delegator_address, slot_id, amount, op_code, created_at) values(?, ?, ?, ?, ?)")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(delegateHistory.DelegatorAddress.String(), delegateHistory.SlotId, delegateHistory.Amount, delegateHistory.OpCode, delegateHistory.CreatedAt)
+	_, err = stmt.Exec(
+		delegateHistory.DelegatorAddress.String(),
+		delegateHistory.PubKey.KeyString(),
+		delegateHistory.Shares.String(),
+		delegateHistory.OpCode,
+		delegateHistory.CreatedAt,
+	)
 	if err != nil {
 		panic(err)
 	}

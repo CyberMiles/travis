@@ -2,27 +2,36 @@ package txs
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/bgentry/speakeasy"
-	isatty "github.com/mattn/go-isatty"
+	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	wire "github.com/tendermint/go-wire"
+	"github.com/cosmos/cosmos-sdk"
+	"github.com/cosmos/cosmos-sdk/client/commands"
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
-
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
-	sdk "github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/client/commands"
+	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/modules/auth"
-	"github.com/ethereum/go-ethereum/common"
 	ttypes "github.com/CyberMiles/travis/types"
 )
 
@@ -52,19 +61,22 @@ func GetSigner() common.Address {
 // eg. if you already set the middleware layers in your code, or want to
 // output in another format.
 func DoTx(tx sdk.Tx) (err error) {
-	tx, err = Middleware.Wrap(tx)
+	address := viper.GetString(FlagAddress)
+	from := common.HexToAddress(address)
+
+	prompt := fmt.Sprintf("Please enter passphrase for %s: ", address)
+	passphrase, err := getPassword(prompt)
 	if err != nil {
 		return err
 	}
 
-	err = SignTx(tx)
+	txBytes, err := wrapAndSign(tx, from, passphrase)
 	if err != nil {
 		return err
 	}
-
 	commit := viper.GetString(FlagType)
 	if commit == "commit" {
-		bres, err := PrepareOrPostTx(tx)
+		bres, err := broadcastTxCommit(txBytes)
 		if err != nil {
 			return err
 		}
@@ -74,7 +86,7 @@ func DoTx(tx sdk.Tx) (err error) {
 		return OutputTx(bres) // print response of the post
 
 	} else {
-		bres, err := PrepareOrPostTxSync(tx)
+		bres, err := broadcastTxSync(txBytes)
 		if err != nil {
 			return err
 		}
@@ -83,6 +95,83 @@ func DoTx(tx sdk.Tx) (err error) {
 		}
 		return OutputTxSync(bres) // print response of the post
 	}
+}
+
+func wrapAndSign(tx sdk.Tx, from common.Address, passphrase string) (hexutil.Bytes, error) {
+	data, err := json.Marshal(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	ethTx := types.NewContractCreation(
+		getNonce(from),
+		big.NewInt(0),
+		big.NewInt(0),
+		big.NewInt(0),
+		data,
+	)
+
+	am, _, _ := commons.MakeAccountManager()
+	_, err = commons.UnlockAccount(am, from, passphrase, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	account := accounts.Account{Address: from}
+	wallet, err := am.Find(account)
+	signed, err := wallet.SignTx(account, ethTx, big.NewInt(111))
+	if err != nil {
+		return nil, err
+	}
+
+	encodedTx, err := rlp.EncodeToBytes(signed)
+	if err != nil {
+		return nil, err
+	}
+
+	return encodedTx, nil
+}
+
+func getNonce(addr common.Address) uint64 {
+	//add the nonce tx layer to the tx
+	input := viper.GetInt(FlagNonce)
+
+	if input >= 0 {
+		return uint64(input)
+	}
+
+	var nonce uint64
+	//get nonce
+	client, err := ethclient.Dial(getEthUrl())
+	if err != nil {
+		fmt.Errorf(err.Error())
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		nonce, err = client.NonceAt(ctx, addr, nil)
+		if err != nil {
+			fmt.Errorf(err.Error())
+		}
+	}
+	return nonce
+}
+
+func getEthUrl() string {
+	node := viper.GetString(commands.NodeFlag)
+	u, _ := url.Parse(node)
+	return fmt.Sprintf("http://%s:%d", u.Hostname(), 8545)
+}
+
+func broadcastTxSync(packet []byte) (*ctypes.ResultBroadcastTx, error) {
+	// post the bytes
+	node := commands.GetNode()
+	return node.BroadcastTxSync(packet)
+}
+
+func broadcastTxCommit(packet []byte) (*ctypes.ResultBroadcastTxCommit, error) {
+	// post the bytes
+	node := commands.GetNode()
+	return node.BroadcastTxCommit(packet)
 }
 
 func SignTx(tx sdk.Tx) error {
@@ -149,7 +238,6 @@ func PostTxSync(tx sdk.Tx) (*ctypes.ResultBroadcastTx, error) {
 	node := commands.GetNode()
 	return node.BroadcastTxSync(packet)
 }
-
 
 // PrepareTx checks for FlagPrepare and if set, write the tx as json
 // to the specified location for later multi-sig.  Returns true if it

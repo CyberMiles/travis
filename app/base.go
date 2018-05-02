@@ -14,6 +14,7 @@ import (
 	abci "github.com/tendermint/abci/types"
 
 	"github.com/CyberMiles/travis/modules"
+	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
@@ -22,12 +23,13 @@ import (
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler                modules.Handler
-	clock                  sdk.Ticker
-	EthApp                 *EthermintApplication
-	checkedTx              map[common.Hash]*types.Transaction
-	AbsentValidatorPubKeys [][]byte
-	ethereum               *eth.Ethereum
+	handler             modules.Handler
+	clock               sdk.Ticker
+	EthApp              *EthermintApplication
+	checkedTx           map[common.Hash]*types.Transaction
+	ethereum            *eth.Ethereum
+	AbsentValidators    []int32
+	ByzantineValidators []*abci.Evidence
 }
 
 const (
@@ -42,23 +44,35 @@ var (
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
 func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, clock sdk.Ticker, ethereum *eth.Ethereum) (*BaseApp, error) {
+	// init pending proposals
+	pendingProposals := governance.GetPendingProposals()
+	if len(pendingProposals) > 0 {
+		proposals := make(map[string]uint64)
+		for _, pp := range pendingProposals {
+			proposals[pp.Id] = pp.ExpireBlockHeight
+		}
+		utils.PendingProposal.BatchAdd(proposals)
+	}
+
 	app := &BaseApp{
-		StoreApp:               store,
-		handler:                modules.Handler{},
-		clock:                  clock,
-		EthApp:                 ethApp,
-		checkedTx:              make(map[common.Hash]*types.Transaction),
-		AbsentValidatorPubKeys: [][]byte{},
-		ethereum:               ethereum,
+		StoreApp:  store,
+		handler:   modules.Handler{},
+		clock:     clock,
+		EthApp:    ethApp,
+		checkedTx: make(map[common.Hash]*types.Transaction),
+		ethereum:  ethereum,
 	}
 
 	return app, nil
 }
 
+// InitChain - ABCI
+func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+	return
+}
+
 // DeliverTx - ABCI
 func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
-	app.logger.Debug("DeliverTx")
-
 	tx, err := decodeTx(txBytes)
 	if err != nil {
 		app.logger.Error("DeliverTx: Received invalid transaction", "err", err)
@@ -81,7 +95,6 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 		return resp
 	}
 
-	// travis tx
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
 
 	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
@@ -90,8 +103,6 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 
 // CheckTx - ABCI
 func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
-	app.logger.Debug("CheckTx")
-
 	tx, err := decodeTx(txBytes)
 	if err != nil {
 		app.logger.Error("CheckTx: Received invalid transaction", "err", err)
@@ -108,7 +119,6 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		return sdk.NewCheck(0, "").ToABCI()
 	}
 
-	// travis tx
 	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
 
 	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
@@ -116,27 +126,17 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 }
 
 // BeginBlock - ABCI
-func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	app.logger.Debug("BeginBlock")
+func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	app.EthApp.BeginBlock(req)
+	app.AbsentValidators = req.AbsentValidators
+	app.ByzantineValidators = req.ByzantineValidators
 
-	resp := app.EthApp.BeginBlock(beginBlock)
-	app.logger.Debug("ethermint BeginBlock response: %v\n", resp)
-
-	app.AbsentValidatorPubKeys = [][]byte{}
-	evidences := beginBlock.ByzantineValidators
-	for _, evidence := range evidences {
-		app.AbsentValidatorPubKeys = append(app.AbsentValidatorPubKeys, evidence.GetPubKey())
-	}
 	return abci.ResponseBeginBlock{}
 }
 
 // EndBlock - ABCI - triggers Tick actions
-func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-	app.logger.Debug("EndBlock")
-
-	//resp, _ := app.client.EndBlockSync(endBlock)
-	resp := app.EthApp.EndBlock(endBlock)
-	app.logger.Debug("ethermint EndBlock response: %v\n", resp)
+func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+	app.EthApp.EndBlock(req)
 
 	// execute tick if present
 	if app.clock != nil {
@@ -154,33 +154,22 @@ func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEn
 	}
 
 	// block award
-	// fixme exclude absent validators
-	var validatorPubKeys [][]byte
-	ratioMap := stake.CalValidatorsStakeRatio(app.Append(), validatorPubKeys)
-	for k, v := range ratioMap {
-		awardAmount := big.NewInt(0)
-		intv := int64(1000 * v)
-		awardAmount.Mul(blockAward, big.NewInt(intv))
-		awardAmount.Div(awardAmount, big.NewInt(1000))
-		utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
-			From: stake.DefaultHoldAccount, To: common.HexToAddress(k), Amount: awardAmount})
+	validators := stake.GetCandidates().Validators()
+	for _, i := range app.AbsentValidators {
+		validators.Remove(i)
 	}
+	stake.NewAwardCalculator(app.WorkingHeight(), validators, utils.BlockGasFee).AwardAll()
 
-	// todo send StateChangeQueue to VM
+	// todo punish Byzantine validators
 
-	return app.StoreApp.EndBlock(endBlock)
+	return app.StoreApp.EndBlock(req)
 }
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
-	app.logger.Debug("Commit")
-
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	app.EthApp.Commit()
-	//var hash = resp.Data
-	//app.logger.Debug("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
-
-	resp := app.StoreApp.Commit()
-	return resp
+	res = app.StoreApp.Commit()
+	return
 }
 
 func (app *BaseApp) InitState(module, key, value string) error {

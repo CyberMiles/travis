@@ -6,31 +6,28 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/state"
 
+	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
-	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 )
 
 // Params defines the high level settings for staking
 type Params struct {
-	HoldAccount 		common.Address `json:"hold_account"` 	// PubKey where all bonded coins are held
-	MaxVals          	uint16 `json:"max_vals"`           		// maximum number of validators
-	AllowedBondDenom 	string `json:"allowed_bond_denom"` 		// bondable coin denomination
-
-	// gas costs for txs
-	Validators          string `json:"validators"`
+	HoldAccount             common.Address `json:"hold_account"` // PubKey where all bonded coins are held
+	MaxVals                 uint16         `json:"max_vals"`     // maximum number of validators
+	Validators              string         `json:"validators"`   // initial validators definition
+	ReserveRequirementRatio int64          `json:"reserve_requirement_ratio"`
 }
-
-var DefaultHoldAccount = common.HexToAddress("0000000000000000000000000000000000000000")
 
 func defaultParams() Params {
 	return Params{
-		HoldAccount:         DefaultHoldAccount,
-		MaxVals:             100,
-		AllowedBondDenom:    "cmt",
-		Validators:          "",
+		HoldAccount:             utils.HoldAccount,
+		MaxVals:                 100,
+		Validators:              "",
+		ReserveRequirementRatio: 10,
 	}
 }
 
@@ -45,26 +42,38 @@ func defaultParams() Params {
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
-	PubKey      	crypto.PubKey 	`json:"pub_key"`			// Pubkey of candidate
-	OwnerAddress    common.Address 	`json:"owner_address"`      // Sender of BondTx - UnbondTx returns here
-	Shares      	uint64        	`json:"shares"`       		// Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower 	uint64        	`json:"voting_power"` 		// Voting power if pubKey is a considered a validator
-	CreatedAt 		string		  	`json:"created_at"`
-	UpdatedAt 		string		  	`json:"updated_at"`
-	State       	string		  	`json:"state"`
+	PubKey       crypto.PubKey  `json:"pub_key"`       // Pubkey of candidate
+	OwnerAddress common.Address `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
+	Shares       *big.Int       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
+	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
+	MaxShares    *big.Int       `json:"max_shares"`
+	Cut          int64          `json:"cut"`
+	CreatedAt    string         `json:"created_at"`
+	UpdatedAt    string         `json:"updated_at"`
+	Description  Description    `json:"description"`
+	Verified     string         `json:"verified"`
+}
+
+type Description struct {
+	Website  string `json:"website"`
+	Location string `json:"location"`
+	Details  string `json:"details"`
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares uint64, votingPower uint64, state string) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, maxShares *big.Int, cut int64, description Description, verified string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
-		PubKey:      	pubKey,
-		OwnerAddress:   ownerAddress,
-		Shares:      	shares,
-		VotingPower: 	votingPower,
-		State:       	state,
-		CreatedAt: 	 	now,
-		UpdatedAt: 	 	now,
+		PubKey:       pubKey,
+		OwnerAddress: ownerAddress,
+		Shares:       shares,
+		VotingPower:  votingPower,
+		MaxShares:    maxShares,
+		Cut:          cut,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		Description:  description,
+		Verified:     verified,
 	}
 }
 
@@ -81,15 +90,12 @@ type Validator Candidate
 func (v Validator) ABCIValidator() *abci.Validator {
 	return &abci.Validator{
 		PubKey: wire.BinaryBytes(v.PubKey),
-		Power:  int64(v.VotingPower),
+		Power:  v.VotingPower,
 	}
 }
 
 //_________________________________________________________________________
 
-// TODO replace with sorted multistore functionality
-
-// Candidates - list of Candidates
 type Candidates []*Candidate
 
 var _ sort.Interface = Candidates{} //enforce the sort interface at compile time
@@ -113,18 +119,15 @@ func (cs Candidates) Sort() {
 	sort.Sort(cs)
 }
 
-//func updateVotingPower(store state.SimpleDB) {
-//candidates := loadCandidates(store)
-//candidates.updateVotingPower(store)
-//}
-
 // update the voting power and save
 func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 
 	// update voting power
 	for _, c := range cs {
-		if c.VotingPower != c.Shares {
-			c.VotingPower = c.Shares
+		if big.NewInt(c.VotingPower).Cmp(c.Shares) != 0 {
+			v := new(big.Int)
+			v.Div(c.Shares, big.NewInt(1e18))
+			c.VotingPower = v.Int64()
 		}
 	}
 	cs.Sort()
@@ -230,6 +233,11 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validato
 	return changed[:n]
 }
 
+func (vs Validators) Remove(i int32) Validators {
+	copy(vs[i:], vs[i+1:])
+	return vs[:len(vs)-1]
+}
+
 // UpdateValidatorSet - Updates the voting power for the candidate set and
 // returns the subset of validators which have changed for Tendermint
 func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err error) {
@@ -246,30 +254,24 @@ func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err err
 
 //_________________________________________________________________________
 
-type Slot struct {
-	Id 					string
-	ValidatorAddress 	common.Address
-	TotalAmount 		int64
-	AvailableAmount 	int64
-	ProposedRoi 		int64
-	State 				string
-	CreatedAt        	string
-	UpdatedAt          	string
+type Delegator struct {
+	Address   common.Address
+	CreatedAt string
 }
 
-type SlotDelegate struct {
-	DelegatorAddress 	common.Address
-	SlotId 				string
-	Amount 				int64
-	CreatedAt        	string
-	UpdatedAt          	string
+type Delegation struct {
+	DelegatorAddress common.Address `json:"delegator_address"`
+	PubKey           crypto.PubKey  `json:"pub_key"`
+	Shares           *big.Int       `json:"shares"`
+	CreatedAt        string         `json:"created_at"`
+	UpdatedAt        string         `json:"updated_at"`
 }
 
 type DelegateHistory struct {
-	DelegatorAddress 	common.Address
-	SlotId 				string
-	Amount 				int64
-	OpCode 				string
-	CreatedAt        	string
+	Id               int64
+	DelegatorAddress common.Address
+	PubKey           crypto.PubKey
+	Shares           *big.Int
+	OpCode           string
+	CreatedAt        string
 }
-

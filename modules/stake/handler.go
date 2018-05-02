@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"encoding/hex"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
@@ -18,24 +17,21 @@ import (
 )
 
 // nolint
-const stakingModuleName = "stake"
-
-// Name is the name of the commons.
-func Name() string {
-	return stakingModuleName
-}
+const (
+	stakingModuleName = "stake"
+	foundationAddress = "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc" // fixme move to config file
+)
 
 //_______________________________________________________________________
 
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
 	declareCandidacy(TxDeclareCandidacy) error
-	editCandidacy(TxEditCandidacy) error
+	updateCandidacy(TxUpdateCandidacy) error
+	withdrawCandidacy(TxWithdrawCandidacy) error
+	verifyCandidacy(TxVerifyCandidacy) error
+	delegate(TxDelegate) error
 	withdraw(TxWithdraw) error
-	proposeSlot(TxProposeSlot, []byte) error
-	acceptSlot(TxAcceptSlot) error
-	withdrawSlot(TxWithdrawSlot) error
-	cancelSlot(TxCancelSlot) error
 }
 
 //_______________________________________________________________________
@@ -44,23 +40,21 @@ type delegatedProofOfStake interface {
 func InitState(key, value string, store state.SimpleDB) error {
 	params := loadParams(store)
 	switch key {
-	case "allowed_bond_denom":
-		params.AllowedBondDenom = value
-	case "max_vals",
-		"gas_bond",
-		"gas_unbond":
-
+	case "reserve_requirement_ratio":
+		i, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("input must be integer, Error: %v", err.Error())
+		}
+		params.ReserveRequirementRatio = int64(i)
+	case "max_vals":
 		i, err := strconv.Atoi(value)
 		if err != nil {
 			return fmt.Errorf("input must be integer, Error: %v", err.Error())
 		}
 
-		switch key {
-		case "max_vals":
-			params.MaxVals = uint16(i)
-		}
+		params.MaxVals = uint16(i)
 	case "validator":
-		setValidator(value)
+		setValidator(value, store)
 	default:
 		return errors.ErrUnknownKey(key)
 	}
@@ -69,7 +63,7 @@ func InitState(key, value string, store state.SimpleDB) error {
 	return nil
 }
 
-func setValidator(value string) error {
+func setValidator(value string, store state.SimpleDB) error {
 	var val genesisValidator
 	err := data.FromJSON([]byte(value), &val)
 	if err != nil {
@@ -86,14 +80,24 @@ func setValidator(value string) error {
 		return ErrCandidateExistsAddr()
 	}
 
-	candidate := NewCandidate(val.PubKey, val.Address, val.Power, val.Power, "Y")
-	SaveCandidate(candidate)
-	return nil
+	shares := new(big.Int)
+	shares.Mul(big.NewInt(val.Power), big.NewInt(1e18))
+	maxShares := new(big.Int)
+	maxShares.Mul(big.NewInt(val.MaxAmount), big.NewInt(1e18))
+
+	params := loadParams(store)
+	deliverer := deliver{
+		store:  store,
+		sender: val.Address,
+		params: params,
+	}
+
+	tx := TxDeclareCandidacy{val.PubKey, maxShares.String(), val.Cut, Description{}}
+	return deliverer.declareGenesisCandidacy(tx, val.Power)
 }
 
 // CheckTx checks if the tx is properly structured
 func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckResult, err error) {
-
 	err = tx.ValidateBasic()
 	if err != nil {
 		return res, err
@@ -106,8 +110,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 	}
 
 	params := loadParams(store)
-
-	// create the new checker object to
 	checker := check{
 		store:    store,
 		sender:   sender,
@@ -115,23 +117,19 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		ethereum: ctx.Ethereum(),
 	}
 
-	// return the fee for each tx type
 	switch txInner := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
 		return res, checker.declareCandidacy(txInner)
-	case TxEditCandidacy:
-		return res, checker.editCandidacy(txInner)
+	case TxUpdateCandidacy:
+		return res, checker.updateCandidacy(txInner)
+	case TxWithdrawCandidacy:
+		return res, checker.withdrawCandidacy(txInner)
+	case TxVerifyCandidacy:
+		return res, checker.verifyCandidacy(txInner)
+	case TxDelegate:
+		return res, checker.delegate(txInner)
 	case TxWithdraw:
 		return res, checker.withdraw(txInner)
-	case TxProposeSlot:
-		err := checker.proposeSlot(txInner, []byte{})
-		return res, err
-	case TxAcceptSlot:
-		return res, checker.acceptSlot(txInner)
-	case TxWithdrawSlot:
-		return res, checker.withdrawSlot(txInner)
-	case TxCancelSlot:
-		return res, checker.cancelSlot(txInner)
 	}
 
 	return res, errors.ErrUnknownTxType(tx)
@@ -161,20 +159,16 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 	switch _tx := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
 		return res, deliverer.declareCandidacy(_tx)
-	case TxEditCandidacy:
-		return res, deliverer.editCandidacy(_tx)
+	case TxUpdateCandidacy:
+		return res, deliverer.updateCandidacy(_tx)
+	case TxWithdrawCandidacy:
+		return res, deliverer.withdrawCandidacy(_tx)
+	case TxVerifyCandidacy:
+		return res, deliverer.verifyCandidacy(_tx)
+	case TxDelegate:
+		return res, deliverer.delegate(_tx)
 	case TxWithdraw:
 		return res, deliverer.withdraw(_tx)
-	case TxProposeSlot:
-		err := deliverer.proposeSlot(_tx, hash)
-		res.Data = hash
-		return res, err
-	case TxAcceptSlot:
-		return res, deliverer.acceptSlot(_tx)
-	case TxWithdrawSlot:
-		return res, deliverer.withdrawSlot(_tx)
-	case TxCancelSlot:
-		return res, deliverer.cancelSlot(_tx)
 	}
 
 	return
@@ -203,30 +197,72 @@ var _ delegatedProofOfStake = check{} // enforce interface at compile time
 func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	// check to see if the pubkey or address has been registered before
 	candidate := GetCandidateByAddress(c.sender)
-	if candidate != nil && candidate.State == "Y" {
+	if candidate != nil {
 		return fmt.Errorf("address has been declared")
 	}
 
 	candidate = GetCandidateByPubKey(tx.PubKey.KeyString())
-	if candidate != nil && candidate.State == "Y" {
+	if candidate != nil {
 		return fmt.Errorf("pubkey has been declared")
+	}
+
+	// check to see if the associated account has 10%(RRR, short for Reserve Requirement Ratio, configurable) of the max staked CMT amount
+	rr := new(big.Int)
+	x, ok := new(big.Int).SetString(tx.MaxAmount, 10)
+	if !ok {
+		return ErrBadAmount()
+	}
+
+	y := big.NewInt(c.params.ReserveRequirementRatio)
+	rr.Mul(x, y)
+	rr.Div(rr, big.NewInt(100))
+
+	// check if the delegator has sufficient funds
+	err := checkBalance(c.ethereum, c.sender, rr)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (c check) editCandidacy(tx TxEditCandidacy) error {
+func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
 		return fmt.Errorf("cannot edit non-exsits candidacy")
 	}
 
+	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
+	// and the different will be charged or refunded from / into the new account address.
+	if tx.MaxAmount != "" {
+		rr := new(big.Int)
+		x, ok := new(big.Int).SetString(tx.MaxAmount, 10)
+		if !ok {
+			return ErrBadAmount()
+		}
+
+		y := big.NewInt(c.params.ReserveRequirementRatio)
+		rr.Mul(x, y)
+		rr.Div(rr, big.NewInt(100))
+
+		balance, err := commons.GetBalance(c.ethereum, c.sender)
+		if err != nil {
+			return err
+		}
+
+		if balance.Cmp(rr) < 0 {
+			return ErrInsufficientFunds()
+		}
+	}
+
+	// todo check to see if the candidate is changed, if not, raise error.
+
 	return nil
 }
 
-func (c check) withdraw(tx TxWithdraw) error {
+func (c check) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	// check to see if the address has been registered before
-	candidate := GetCandidateByAddress(tx.Address)
+	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
 		return fmt.Errorf("cannot withdraw non-exsits candidacy")
 	}
@@ -234,58 +270,76 @@ func (c check) withdraw(tx TxWithdraw) error {
 	return nil
 }
 
-func (c check) withdrawSlot(tx TxWithdrawSlot) error {
-	slot := GetSlot(tx.SlotId)
-	if slot == nil {
-		return ErrBadSlot()
+func (c check) verifyCandidacy(tx TxVerifyCandidacy) error {
+	// check to see if the candidate address to be verified has been registered before
+	candidate := GetCandidateByAddress(tx.CandidateAddress)
+	if candidate == nil {
+		return fmt.Errorf("cannot verify non-exsits candidacy")
 	}
 
-	// check if have enough shares to unbond
-	slotDelegate := GetSlotDelegate(c.sender, tx.SlotId)
-	if slotDelegate == nil {
-		return ErrBadSlotDelegate()
+	// check to see if the request was initiated by a special account
+	if c.sender != common.HexToAddress(foundationAddress) {
+		return ErrVerificationDisallowed()
 	}
 
-	if slotDelegate.Amount < tx.Amount {
-		return ErrInsufficientFunds()
+	if candidate.Verified == "Y" {
+		return ErrVerifiedAlready()
 	}
+
 	return nil
 }
 
-func (c check) proposeSlot(tx TxProposeSlot, hash []byte) error {
+func (c check) delegate(tx TxDelegate) error {
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
-		return fmt.Errorf("cannot propose slot for non-existant validator address %v", tx.ValidatorAddress)
+		return ErrNoCandidateForAddress()
 	}
 
-	return nil
-}
-
-func (c check) acceptSlot(tx TxAcceptSlot) error {
-	slot := GetSlot(tx.SlotId)
-	if slot == nil {
-		return ErrBadSlot()
+	// check if the delegator has sufficient funds
+	amount := new(big.Int)
+	_, ok := amount.SetString(tx.Amount, 10)
+	if !ok {
+		return ErrBadAmount()
 	}
 
-	balance, err := commons.GetBalance(c.ethereum, c.sender, big.NewInt(tx.Amount))
+	err := checkBalance(c.ethereum, c.sender, amount)
 	if err != nil {
 		return err
 	}
 
-	if balance.Cmp(big.NewInt(tx.Amount)) < 0 {
-		return ErrInsufficientFunds()
+	// check to see if the validator has reached its declared max amount CMTs to be staked.
+	x := new(big.Int)
+	x.Add(candidate.Shares, amount)
+	if x.Cmp(candidate.MaxShares) > 0 {
+		return ErrReachMaxAmount()
 	}
+
 	return nil
 }
 
-func (c check) cancelSlot(tx TxCancelSlot) error {
-	slot := GetSlot(tx.SlotId)
-	if slot == nil {
-		return ErrBadSlot()
+func checkBalance(ethereum *eth.Ethereum, addr common.Address, amount *big.Int) error {
+	balance, err := commons.GetBalance(ethereum, addr)
+	if err != nil {
+		return err
 	}
 
-	if slot.State == "N" {
-		return ErrCancelledSlot()
+	if balance.Cmp(amount) < 0 {
+		return ErrInsufficientFunds()
+	}
+
+	return nil
+}
+
+func (c check) withdraw(tx TxWithdraw) error {
+	// check if has delegated
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
+	if candidate == nil {
+		return ErrBadValidatorAddr()
+	}
+
+	delegation := GetDelegation(c.sender, candidate.PubKey)
+	if delegation == nil {
+		return ErrDelegationNotExists()
 	}
 
 	return nil
@@ -306,41 +360,108 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 // now we just perform action and save
 func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	// create and save the empty candidate
-	candidate := GetCandidateByAddress(d.sender)
-	if candidate != nil && candidate.State == "Y" {
-		return ErrCandidateExistsAddr()
+	maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
+	if !ok {
+		return ErrBadAmount()
 	}
 
-	if candidate == nil {
-		candidate = NewCandidate(tx.PubKey, d.sender, 0, 0, "Y")
-		SaveCandidate(candidate)
-	} else {
-		candidate.State = "Y"
-		candidate.OwnerAddress = d.sender
-		candidate.UpdatedAt = utils.GetNow()
-		updateCandidate(candidate)
-	}
+	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, maxAmount, tx.Cut, tx.Description, "N")
+	SaveCandidate(candidate)
 
-	return nil
+	// delegate a part of the max staked CMT amount
+	z := new(big.Int)
+	rrr := big.NewInt(int64(d.params.ReserveRequirementRatio))
+	z.Mul(maxAmount, rrr)
+	z.Div(z, big.NewInt(100))
+	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: z.String()}
+	return d.delegate(txDelegate)
 }
 
-func (d deliver) editCandidacy(tx TxEditCandidacy) error {
+func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int64) error {
+	// create and save the empty candidate
+	maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
+	if !ok {
+		return ErrBadAmount()
+	}
 
+	//z := new(big.Int)
+	//rrr := big.NewInt(int64(d.params.ReserveRequirementRatio))
+	//z.Mul(maxAmount, rrr)
+	//z.Div(z, big.NewInt(100))
+	//z.Div(z, big.NewInt(1e18))
+	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), votingPower, maxAmount, tx.Cut, tx.Description, "N")
+	SaveCandidate(candidate)
+
+	// delegate a part of the max staked CMT amount
+	amount := new(big.Int).Mul(big.NewInt(votingPower), big.NewInt(1e18))
+	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
+	return d.delegate(txDelegate)
+}
+
+func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 	// create and save the empty candidate
 	candidate := GetCandidateByAddress(d.sender)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
 
-	candidate.OwnerAddress = tx.NewAddress
+	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
+	// and the different will be charged or refunded from / into the new account address.
+	if tx.MaxAmount != "" {
+		maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
+		if !ok {
+			return ErrBadAmount()
+		}
+
+		if candidate.MaxShares.Cmp(maxAmount) != 0 {
+			z := new(big.Int)
+			diff := new(big.Int).Sub(candidate.MaxShares, maxAmount)
+			y := big.NewInt(d.params.ReserveRequirementRatio)
+			z.Mul(diff, y)
+			z.Div(z, big.NewInt(100))
+
+			amount, _ := new(big.Int).SetString(z.String(), 10)
+			if diff.Cmp(big.NewInt(0)) > 0 {
+				// charge
+				commons.Transfer(d.sender, utils.HoldAccount, amount)
+			} else {
+				// refund
+				commons.Transfer(utils.HoldAccount, d.sender, amount)
+			}
+
+			candidate.MaxShares = maxAmount
+			shares := new(big.Int)
+			shares.Add(candidate.Shares, amount)
+			candidate.Shares = z
+		}
+	}
+
+	nilAddress := common.Address{}
+	addressChanged := false
+	origAddress := candidate.OwnerAddress
+	if tx.NewAddress != nilAddress {
+		candidate.OwnerAddress = tx.NewAddress
+		addressChanged = true
+	}
+
+	candidate.Verified = "N"
+	candidate.Description = tx.Description
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)
+
+	if addressChanged {
+		// If owner address has been changed, update self-staking delegation
+		delegations := GetDelegationsByDelegator(origAddress)
+		for _, d := range delegations {
+			d.DelegatorAddress = tx.NewAddress
+			UpdateDelegatorAddress(d, origAddress)
+		}
+	}
 
 	return nil
 }
 
-func (d deliver) withdraw(tx TxWithdraw) error {
-
+func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	// create and save the empty candidate
 	validatorAddress := d.sender
 	candidate := GetCandidateByAddress(validatorAddress)
@@ -349,113 +470,87 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	}
 
 	// All staked tokens will be distributed back to delegator addresses.
-	slots := GetSlotsByValidator(validatorAddress)
-	for _, slot := range slots {
-		slotId := slot.Id
-		delegates := GetSlotDelegatesBySlot(slotId)
-		for _, delegate := range delegates {
-			err := commons.Transfer(d.params.HoldAccount, delegate.DelegatorAddress, big.NewInt(delegate.Amount))
-			if err != nil {
-				return err
-			}
-
-			//delegate.Amount = 0
-			//saveSlotDelegate(delegate)
-			removeSlotDelegate(delegate)
+	// Self-staked CMTs will be refunded back to the validator address.
+	delegations := GetDelegationsByPubKey(candidate.PubKey)
+	for _, delegation := range delegations {
+		err := commons.Transfer(d.params.HoldAccount, delegation.DelegatorAddress, delegation.Shares)
+		if err != nil {
+			return err
 		}
-		slot.AvailableAmount = 0
-		updateSlot(slot)
+		RemoveDelegation(delegation)
 	}
-	//candidate.Shares = 0
-	//candidate.VotingPower = 0
-	//candidate.UpdatedAt = utils.GetNow()
-	//candidate.State = "N"
-	//updateCandidate(candidate)
-	removeCandidate(candidate)
 
+	removeCandidate(candidate)
 	return nil
 }
 
-func (d deliver) acceptSlot(tx TxAcceptSlot) error {
-	// Get the slot
-	slot := GetSlot(tx.SlotId)
-
-	// Get the pubKey bond account
-	candidate := GetCandidateByAddress(slot.ValidatorAddress)
-	if candidate == nil {
-		return ErrBondNotNominated()
+func (d deliver) verifyCandidacy(tx TxVerifyCandidacy) error {
+	// verify candidacy
+	candidate := GetCandidateByAddress(tx.CandidateAddress)
+	if tx.Verified {
+		candidate.Verified = "Y"
+	} else {
+		candidate.Verified = "N"
 	}
+	candidate.UpdatedAt = utils.GetNow()
+	updateCandidate(candidate)
+	return nil
+}
 
-	if tx.Amount > slot.AvailableAmount {
-		return ErrFullSlot()
+func (d deliver) delegate(tx TxDelegate) error {
+	// Get the pubKey bond account
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
+
+	shares, ok := new(big.Int).SetString(tx.Amount, 0)
+	if !ok {
+		return ErrBadAmount()
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := commons.Transfer(d.sender, d.params.HoldAccount, big.NewInt(tx.Amount))
+	err := commons.Transfer(d.sender, d.params.HoldAccount, shares)
 	if err != nil {
 		return err
 	}
 
-	// Get or create the delegate slot
+	// create or update delegation
 	now := utils.GetNow()
-	slotDelegate := GetSlotDelegate(d.sender, tx.SlotId)
-	if slotDelegate == nil {
-		slotDelegate = &SlotDelegate{DelegatorAddress: d.sender, SlotId: tx.SlotId, Amount: tx.Amount, CreatedAt: now, UpdatedAt: now}
-		saveSlotDelegate(slotDelegate)
+	delegation := GetDelegation(d.sender, candidate.PubKey)
+	if delegation == nil {
+		delegation = &Delegation{
+			DelegatorAddress: d.sender,
+			PubKey:           candidate.PubKey,
+			Shares:           shares,
+			CreatedAt:        now,
+			UpdatedAt:        now,
+		}
+		SaveDelegation(delegation)
 	} else {
-		slotDelegate.Amount += tx.Amount
-		updateSlotDelegate(slotDelegate)
+		delegation.Shares.Add(delegation.Shares, shares)
+		delegation.UpdatedAt = now
+		UpdateDelegation(delegation)
 	}
 
-	// Add shares to slot and candidate
-	candidate.Shares += uint64(tx.Amount)
-	candidate.VotingPower += uint64(tx.Amount)
-	slot.AvailableAmount -= tx.Amount
-	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "accept", now}
+	// Add shares to candidate
+	candidate.Shares.Add(candidate.Shares, shares)
+	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, shares, "delegate", now}
 	updateCandidate(candidate)
-	updateSlot(slot)
 	saveDelegateHistory(delegateHistory)
-
 	return nil
 }
 
-func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
-	// Get the slot
-	slot := GetSlot(tx.SlotId)
-
-	if slot == nil {
-		return ErrBadSlot()
-	}
-
-	// get the slot delegate
-	slotDelegate := GetSlotDelegate(d.sender, tx.SlotId)
-	if slotDelegate == nil {
-		return ErrBadSlotDelegate()
-	}
-
+func (d deliver) withdraw(tx TxWithdraw) error {
 	// get pubKey candidate
-	candidate := GetCandidateByAddress(slot.ValidatorAddress)
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
 		return ErrNoCandidateForAddress()
 	}
 
-	// subtract bond tokens from bond
-	if slotDelegate.Amount < tx.Amount {
-		return ErrInsufficientFunds()
-	}
-	slotDelegate.Amount -= tx.Amount
-
-	if slotDelegate.Amount == 0 {
-		// remove the slot delegate
-		removeSlotDelegate(slotDelegate)
-	} else {
-		updateSlotDelegate(slotDelegate)
-	}
+	delegation := GetDelegation(d.sender, candidate.PubKey)
+	RemoveDelegation(delegation)
 
 	// deduct shares from the candidate
-	candidate.Shares -= uint64(tx.Amount)
-	candidate.VotingPower -= uint64(tx.Amount)
-	if candidate.Shares == 0 {
+	candidate.Shares.Sub(candidate.Shares, delegation.Shares)
+	if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 		//candidate.State = "N"
 		removeCandidate(candidate)
 	}
@@ -464,49 +559,9 @@ func (d deliver) withdrawSlot(tx TxWithdrawSlot) error {
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
-	slot.AvailableAmount += tx.Amount
-	slot.UpdatedAt = now
-	updateSlot(slot)
-
-	delegateHistory := DelegateHistory{d.sender, tx.SlotId, tx.Amount, "withdraw", now}
+	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, big.NewInt(0), "withdraw", now}
 	saveDelegateHistory(delegateHistory)
 
 	// transfer coins back to account
-	return commons.Transfer(d.params.HoldAccount, d.sender, big.NewInt(tx.Amount))
-}
-
-func (d deliver) proposeSlot(tx TxProposeSlot, hash []byte) error {
-	now := utils.GetNow()
-	slot := &Slot{
-		Id:               hex.EncodeToString(hash),
-		ValidatorAddress: tx.ValidatorAddress,
-		TotalAmount:      tx.Amount,
-		AvailableAmount:  tx.Amount,
-		ProposedRoi:      tx.ProposedRoi,
-		State:            "Y",
-		CreatedAt:        now,
-		UpdatedAt:        now,
-	}
-	saveSlot(slot)
-	return nil
-}
-
-func (d deliver) cancelSlot(tx TxCancelSlot) error {
-	slot := GetSlot(tx.SlotId)
-	if slot == nil {
-		return ErrBadSlot()
-	}
-
-	removeSlot(slot)
-
-	//if slot.State == "N" {
-	//	return ErrCancelledSlot()
-	//}
-	//
-	//slot.AvailableAmount = 0
-	//slot.State = "N"
-	//slot.UpdatedAt = utils.GetNow()
-	//updateSlot(slot)
-
-	return nil
+	return commons.Transfer(d.params.HoldAccount, d.sender, delegation.Shares)
 }

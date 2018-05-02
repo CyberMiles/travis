@@ -31,13 +31,13 @@ func SaveProposal(pp *Proposal) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into governance_proposal(id, proposer, block_height, from_address, to_address, amount, reason, created_at) values(?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into governance_proposal(id, proposer, block_height, from_address, to_address, amount, reason, expire_block_height, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(strings.ToUpper(pp.Id), pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount, pp.Reason, pp.CreatedAt)
+	_, err = stmt.Exec(strings.ToUpper(pp.Id), pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount, pp.Reason, pp.ExpireBlockHeight, pp.CreatedAt)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -48,15 +48,15 @@ func GetProposalById(pid string) *Proposal {
 	db := getDb()
 	defer db.Close()
 
-	stmt, err := db.Prepare("select proposer, block_height, from_address, to_address, amount, reason, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
+	stmt, err := db.Prepare("select proposer, block_height, from_address, to_address, amount, reason, expire_block_height, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	var proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt string
-	var blockHeight, resultBlockHeight uint64
-	err = stmt.QueryRow(strings.ToUpper(pid)).Scan(&proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
+	var blockHeight, expireBlockHeight, resultBlockHeight uint64
+	err = stmt.QueryRow(strings.ToUpper(pid)).Scan(&proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -76,6 +76,7 @@ func GetProposalById(pid string) *Proposal {
 		&to,
 		amount,
 		reason,
+		expireBlockHeight,
 		createdAt,
 		result,
 		resultMsg,
@@ -110,7 +111,7 @@ func GetProposals() (proposals []*Proposal) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select id, proposer, block_height, from_address, to_address, amount, reason, created_at, result, result_msg, result_block_height, result_at from governance_proposal")
+	rows, err := db.Query("select id, proposer, block_height, from_address, to_address, amount, reason, expire_block_height, created_at, result, result_msg, result_block_height, result_at from governance_proposal")
 	if err != nil {
 		panic(err)
 	}
@@ -118,9 +119,9 @@ func GetProposals() (proposals []*Proposal) {
 
 	for rows.Next() {
 		var id, proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt string
-		var blockHeight, resultBlockHeight uint64
+		var blockHeight, expireBlockHeight, resultBlockHeight uint64
 
-		err = rows.Scan(&id, &proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
+		err = rows.Scan(&id, &proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
 		if err != nil {
 			panic(err)
 		}
@@ -137,11 +138,47 @@ func GetProposals() (proposals []*Proposal) {
 			&to,
 			amount,
 			reason,
+			expireBlockHeight,
 			createdAt,
 			result,
 			resultMsg,
 			resultBlockHeight,
 			resultAt,
+		}
+
+		proposals = append(proposals, pp)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return
+}
+
+func GetPendingProposals() (proposals []*Proposal) {
+	db := getDb()
+	defer db.Close()
+
+	rows, err := db.Query("select id, expire_block_height from governance_proposal where result = ''")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id string
+		var expireBlockHeight uint64
+
+		err = rows.Scan(&id, &expireBlockHeight)
+		if err != nil {
+			panic(err)
+		}
+
+		pp := &Proposal{
+			Id: id,
+			ExpireBlockHeight: expireBlockHeight,
 		}
 
 		proposals = append(proposals, pp)

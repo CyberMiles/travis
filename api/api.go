@@ -14,6 +14,7 @@ import (
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // CmtRPCService offers cmt related RPC methods
@@ -96,7 +97,6 @@ func (s *CmtRPCService) GetBlock(height uint64) (*ctypes.ResultBlock, error) {
 	h := cast.ToInt64(height)
 	return s.backend.localClient.Block(&h)
 }
-
 func (s *CmtRPCService) GetTransaction(hash string) (*ctypes.ResultTx, error) {
 	bkey, err := hex.DecodeString(cmn.StripHex(hash))
 	if err != nil {
@@ -104,7 +104,6 @@ func (s *CmtRPCService) GetTransaction(hash string) (*ctypes.ResultTx, error) {
 	}
 	return s.backend.localClient.Tx(bkey, false)
 }
-
 func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index int64) (*ctypes.ResultTx, error) {
 	h := cast.ToInt64(height)
 	block, err := s.backend.localClient.Block(&h)
@@ -120,17 +119,20 @@ func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index int64) (*ct
 */
 
 type DeclareCandidacyArgs struct {
-	Nonce  *hexutil.Uint64 `json:"nonce"`
-	From   common.Address  `json:"from"`
-	PubKey string          `json:"pubKey"`
+	Nonce       *hexutil.Uint64   `json:"nonce"`
+	From        common.Address    `json:"from"`
+	PubKey      string            `json:"pubKey"`
+	MaxAmount   string            `json:"maxAmount"`
+	Cut         int64             `json:"cut"`
+	Description stake.Description `json:"description"`
 }
 
 func (s *CmtRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	pubKey, err := stake.GetPubKey(args.PubKey)
+	pubKey, err := utils.GetPubKey(args.PubKey)
 	if err != nil {
 		return nil, err
 	}
-	tx := stake.NewTxDeclareCandidacy(pubKey)
+	tx := stake.NewTxDeclareCandidacy(pubKey, args.MaxAmount, args.Cut, args.Description)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -156,17 +158,19 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 	return s.sendTransaction(txArgs)
 }
 
-type EditCandidacyArgs struct {
-	Nonce      *hexutil.Uint64 `json:"nonce"`
-	From       common.Address  `json:"from"`
-	NewAddress common.Address  `json:"newAddress"`
+type UpdateCandidacyArgs struct {
+	Nonce       *hexutil.Uint64   `json:"nonce"`
+	From        common.Address    `json:"from"`
+	NewAddress  common.Address    `json:"newAddress"`
+	MaxAmount   string            `json:"maxAmount"`
+	Description stake.Description `json:"description"`
 }
 
-func (s *CmtRPCService) EditCandidacy(args EditCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	if len(args.NewAddress) == 0 {
 		return nil, fmt.Errorf("must provide new address")
 	}
-	tx := stake.NewTxEditCandidacy(args.NewAddress)
+	tx := stake.NewTxUpdateCandidacy(args.NewAddress, args.MaxAmount, args.Description)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -203,7 +207,7 @@ func (s *CmtRPCService) QueryValidator(address string, height uint64) (*StakeQue
 }
 
 func (s *CmtRPCService) QueryDelegator(address string, height uint64) (*StakeQueryResult, error) {
-	var slotDelegates []*stake.SlotDelegate
+	var slotDelegates []*stake.Delegation
 	h, err := s.getParsed("/delegator", []byte(address), &slotDelegates, height)
 	if err != nil {
 		return nil, err
@@ -219,10 +223,11 @@ type GovernanceProposalArgs struct {
 	To       common.Address  `json:"transferTo"`
 	Amount   string          `json:"amount"`
 	Reason   string          `json:"reason"`
+	expire   uint64          `json:"expire"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxPropose(&args.Proposer, &args.From, &args.To, args.Amount, args.Reason)
+	tx := governance.NewTxPropose(&args.Proposer, &args.From, &args.To, args.Amount, args.Reason, args.expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != err {
