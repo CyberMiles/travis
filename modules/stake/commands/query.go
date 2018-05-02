@@ -76,7 +76,7 @@ func cmdQueryValidator(cmd *cobra.Command, args []string) error {
 }
 
 func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
-	var delegation *stake.Delegation
+	var delegation []*stake.Delegation
 	address := viper.GetString(FlagAddress)
 	err := GetParsed("/delegator", []byte(address), &delegation)
 	if err != nil {
@@ -100,6 +100,7 @@ func GetParsed(path string, params []byte, data interface{}) error {
 		return err
 	}
 
+	//err = json.Unmarshal(bs, data)
 	err = wire.ReadBinaryBytes(bs, data)
 	if err != nil {
 		return err
