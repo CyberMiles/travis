@@ -132,6 +132,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		return res, checker.withdraw(txInner)
 	}
 
+	utils.TravisTxAddrs = append(utils.TravisTxAddrs, &sender)
 	return res, errors.ErrUnknownTxType(tx)
 }
 
@@ -170,8 +171,6 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 	case TxWithdraw:
 		return res, deliverer.withdraw(_tx)
 	}
-
-	utils.TravisTxAddrs = append(utils.TravisTxAddrs, &sender)
 
 	return
 }
