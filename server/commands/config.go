@@ -130,6 +130,8 @@ rpc = true
 rpcapi = "cmt,eth,net,web3,personal,admin"
 rpcaddr = "0.0.0.0"
 rpcport = 8545
+rpccorsdomain = "*"
+
 ws = false
 verbosity = 1
 
