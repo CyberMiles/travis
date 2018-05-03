@@ -152,7 +152,7 @@ func (ac awardCalculator) awardToValidator(v validator, award *big.Int) {
 }
 
 func (ac awardCalculator) awardToDelegator(d delegator, v validator, award *big.Int) {
-	fmt.Printf("award to delegator, address: %s, amount: %d\n", v.ownerAddress.String(), award)
+	fmt.Printf("award to delegator, address: %s, amount: %d\n", d.address.String(), award)
 	commons.Transfer(utils.MintAccount, utils.HoldAccount, award)
 	now := utils.GetNow()
 

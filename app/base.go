@@ -151,7 +151,20 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 	stake.NewAwardCalculator(app.WorkingHeight(), validators, utils.BlockGasFee).AwardAll()
 
-	// todo punish Byzantine validators
+	// punish Byzantine validators
+	if len(app.ByzantineValidators) > 0 {
+		for _, bv := range app.ByzantineValidators {
+			pk, err := utils.GetPubKey(string(bv.PubKey))
+			if err != nil {
+				continue
+			}
+
+			stake.PunishByzantineValidator(pk)
+			app.ByzantineValidators = app.ByzantineValidators[:0]
+		}
+	}
+
+	// todo punish those validators who has been absent for up to 3 hours
 
 	return app.StoreApp.EndBlock(req)
 }
