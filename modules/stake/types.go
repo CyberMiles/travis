@@ -19,7 +19,7 @@ type Params struct {
 	HoldAccount             common.Address `json:"hold_account"` // PubKey where all bonded coins are held
 	MaxVals                 uint16         `json:"max_vals"`     // maximum number of validators
 	Validators              string         `json:"validators"`   // initial validators definition
-	ReserveRequirementRatio int64          `json:"reserve_requirement_ratio"`
+	ReserveRequirementRatio uint16         `json:"reserve_requirement_ratio"`
 }
 
 func defaultParams() Params {

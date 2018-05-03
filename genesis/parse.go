@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	cmn "github.com/tendermint/tmlibs/common"
+	"strconv"
 )
 
 // KeyDelimiter is used to separate module and key in
@@ -57,9 +58,11 @@ func GetOptions(path string) ([]Option, error) {
 
 	//opts := genDoc.AppOptions
 	validators := genDoc.Validators
-	cnt := 1 + len(validators)
+	cnt := 3 + len(validators)
 	res := make([]Option, 0, cnt)
 	res = append(res, Option{sdk.ModuleNameBase, sdk.ChainKey, genDoc.ChainID})
+	res = append(res, Option{"stake", "max_vals", strconv.Itoa(int(genDoc.MaxVals))})
+	res = append(res, Option{"stake", "reserve_requirement_ratio", strconv.Itoa(int(genDoc.ReserveRequirementRatio))})
 
 	// set validators
 	for _, val := range validators {
@@ -76,9 +79,11 @@ type keyValue struct {
 
 // FullDoc - includes tendermint (in the json, we ignore here)
 type FullDoc struct {
-	ChainID    string            `json:"chain_id"`
-	AppOptions *Doc              `json:"app_options"`
-	Validators []json.RawMessage `json:"validators"`
+	ChainID                 string            `json:"chain_id"`
+	AppOptions              *Doc              `json:"app_options"`
+	Validators              []json.RawMessage `json:"validators"`
+	MaxVals                 uint16            `json:"max_vals"`
+	ReserveRequirementRatio uint16            `json:"reserve_requirement_ratio"`
 }
 
 // Doc - All genesis values

@@ -46,7 +46,7 @@ func InitState(key, value string, store state.SimpleDB) error {
 		if err != nil {
 			return fmt.Errorf("input must be integer, Error: %v", err.Error())
 		}
-		params.ReserveRequirementRatio = int64(i)
+		params.ReserveRequirementRatio = uint16(i)
 	case "max_vals":
 		i, err := strconv.Atoi(value)
 		if err != nil {
@@ -219,7 +219,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 		return ErrBadAmount()
 	}
 
-	y := big.NewInt(c.params.ReserveRequirementRatio)
+	y := big.NewInt(int64(c.params.ReserveRequirementRatio))
 	rr.Mul(x, y)
 	rr.Div(rr, big.NewInt(100))
 
@@ -247,7 +247,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 			return ErrBadAmount()
 		}
 
-		y := big.NewInt(c.params.ReserveRequirementRatio)
+		y := big.NewInt(int64(c.params.ReserveRequirementRatio))
 		rr.Mul(x, y)
 		rr.Div(rr, big.NewInt(100))
 
@@ -432,7 +432,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 		if candidate.MaxShares.Cmp(maxAmount) != 0 {
 			z := new(big.Int)
 			diff := new(big.Int).Sub(candidate.MaxShares, maxAmount)
-			y := big.NewInt(d.params.ReserveRequirementRatio)
+			y := big.NewInt(int64(d.params.ReserveRequirementRatio))
 			z.Mul(diff, y)
 			z.Div(z, big.NewInt(100))
 
