@@ -288,10 +288,6 @@ func (c check) verifyCandidacy(tx TxVerifyCandidacy) error {
 		return ErrVerificationDisallowed()
 	}
 
-	if candidate.Verified == "Y" {
-		return ErrVerifiedAlready()
-	}
-
 	return nil
 }
 
