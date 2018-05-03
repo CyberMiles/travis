@@ -180,6 +180,69 @@ func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.Resul
 	return s.sendTransaction(txArgs)
 }
 
+type VerifyCandidacyArgs struct {
+	Nonce            *hexutil.Uint64 `json:"nonce"`
+	From             common.Address  `json:"from"`
+	CandidateAddress common.Address  `json:"candidateAddress"`
+	Verified         bool            `json:"verified"`
+}
+
+func (s *CmtRPCService) VerifyCandidacy(args VerifyCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	if len(args.CandidateAddress) == 0 {
+		return nil, fmt.Errorf("must provide new address")
+	}
+	tx := stake.NewTxVerifyCandidacy(args.CandidateAddress, args.Verified)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sendTransaction(txArgs)
+}
+
+type DelegateArgs struct {
+	Nonce            *hexutil.Uint64 `json:"nonce"`
+	From             common.Address  `json:"from"`
+	ValidatorAddress common.Address  `json:"validatorAddress"`
+	Amount           string          `json:"amount"`
+}
+
+func (s *CmtRPCService) Delegate(args DelegateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	if len(args.ValidatorAddress) == 0 {
+		return nil, fmt.Errorf("must provide validator address")
+	}
+	tx := stake.NewTxDelegate(args.ValidatorAddress, args.Amount)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sendTransaction(txArgs)
+}
+
+type WithdrawArgs struct {
+	Nonce            *hexutil.Uint64 `json:"nonce"`
+	From             common.Address  `json:"from"`
+	ValidatorAddress common.Address  `json:"validatorAddress"`
+	Amount           string          `json:"amount"`
+}
+
+func (s *CmtRPCService) Withdraw(args WithdrawArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	if len(args.ValidatorAddress) == 0 {
+		return nil, fmt.Errorf("must provide validator address")
+	}
+	tx := stake.NewTxWithdraw(args.ValidatorAddress)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sendTransaction(txArgs)
+}
+
 type StakeQueryResult struct {
 	Height int64       `json:"height"`
 	Data   interface{} `json:"data"`
@@ -196,9 +259,9 @@ func (s *CmtRPCService) QueryValidators(height uint64) (*StakeQueryResult, error
 	return &StakeQueryResult{h, candidates}, nil
 }
 
-func (s *CmtRPCService) QueryValidator(address string, height uint64) (*StakeQueryResult, error) {
+func (s *CmtRPCService) QueryValidator(address common.Address, height uint64) (*StakeQueryResult, error) {
 	var candidate stake.Candidate
-	h, err := s.getParsed("/validator", []byte(address), &candidate, height)
+	h, err := s.getParsed("/validator", []byte(address.Hex()), &candidate, height)
 	if err != nil {
 		return nil, err
 	}
@@ -206,9 +269,9 @@ func (s *CmtRPCService) QueryValidator(address string, height uint64) (*StakeQue
 	return &StakeQueryResult{h, candidate}, nil
 }
 
-func (s *CmtRPCService) QueryDelegator(address string, height uint64) (*StakeQueryResult, error) {
+func (s *CmtRPCService) QueryDelegator(address common.Address, height uint64) (*StakeQueryResult, error) {
 	var slotDelegates []*stake.Delegation
-	h, err := s.getParsed("/delegator", []byte(address), &slotDelegates, height)
+	h, err := s.getParsed("/delegator", []byte(address.Hex()), &slotDelegates, height)
 	if err != nil {
 		return nil, err
 	}
@@ -217,13 +280,13 @@ func (s *CmtRPCService) QueryDelegator(address string, height uint64) (*StakeQue
 }
 
 type GovernanceProposalArgs struct {
-	Nonce    *hexutil.Uint64 `json:"nonce"`
-	From common.Address  `json:"from"`
-	TransferFrom     common.Address  `json:"transferFrom"`
-	TransferTo       common.Address  `json:"transferTo"`
-	Amount   string          `json:"amount"`
-	Reason   string          `json:"reason"`
-	expire   uint64          `json:"expire"`
+	Nonce        *hexutil.Uint64 `json:"nonce"`
+	From         common.Address  `json:"from"`
+	TransferFrom common.Address  `json:"transferFrom"`
+	TransferTo   common.Address  `json:"transferTo"`
+	Amount       string          `json:"amount"`
+	Reason       string          `json:"reason"`
+	expire       uint64          `json:"expire"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
