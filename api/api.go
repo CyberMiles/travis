@@ -218,16 +218,16 @@ func (s *CmtRPCService) QueryDelegator(address string, height uint64) (*StakeQue
 
 type GovernanceProposalArgs struct {
 	Nonce    *hexutil.Uint64 `json:"nonce"`
-	Proposer common.Address  `json:"from"`
-	From     common.Address  `json:"transferFrom"`
-	To       common.Address  `json:"transferTo"`
+	From common.Address  `json:"from"`
+	TransferFrom     common.Address  `json:"transferFrom"`
+	TransferTo       common.Address  `json:"transferTo"`
 	Amount   string          `json:"amount"`
 	Reason   string          `json:"reason"`
 	expire   uint64          `json:"expire"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxPropose(&args.Proposer, &args.From, &args.To, args.Amount, args.Reason, args.expire)
+	tx := governance.NewTxPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount, args.Reason, args.expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != err {
