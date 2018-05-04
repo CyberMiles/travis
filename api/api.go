@@ -286,11 +286,11 @@ type GovernanceProposalArgs struct {
 	TransferTo   common.Address  `json:"transferTo"`
 	Amount       string          `json:"amount"`
 	Reason       string          `json:"reason"`
-	expire       uint64          `json:"expire"`
+	Expire       uint64          `json:"expire"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount, args.Reason, args.expire)
+	tx := governance.NewTxPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount, args.Reason, args.Expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != err {
