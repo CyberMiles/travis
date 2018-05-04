@@ -460,9 +460,12 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 		addressChanged = true
 	}
 
-	// fixme If other information was updated, set the verified status to false
+	// If other information was updated, set the verified status to false
+	if candidate.Description != tx.Description {
+		candidate.Verified = "N"
+		candidate.Description = tx.Description
+	}
 
-	candidate.Description = tx.Description
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)
 
