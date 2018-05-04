@@ -57,12 +57,17 @@ func initTendermint() {
 	if cmn.FileExists(genFile) {
 		logger.Info("Found genesis file", "path", genFile)
 	} else {
-		genDoc := types.GenesisDoc{
-			ChainID: viper.GetString(FlagChainID),
+		genDoc := GenesisDoc{
+			ChainID:                 viper.GetString(FlagChainID),
+			MaxVals:                 4,
+			ReserveRequirementRatio: 10,
 		}
-		genDoc.Validators = []types.GenesisValidator{{
-			PubKey: privValidator.GetPubKey(),
-			Power:  10,
+		genDoc.Validators = []GenesisValidator{{
+			PubKey:    privValidator.GetPubKey(),
+			Power:     1000,
+			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
+			Cut:       500,
+			MaxAmount: 10000,
 		}}
 
 		if err := genDoc.SaveAs(genFile); err != nil {
