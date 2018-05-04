@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/go-wire/data"
-	"github.com/tendermint/tmlibs/merkle"
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
@@ -58,7 +57,7 @@ func (app BaseApp) checkHandler(ctx types.Context, store state.SimpleDB, tx *eth
 }
 
 func (app BaseApp) deliverHandler(ctx types.Context, store state.SimpleDB, tx *ethTypes.Transaction) abci.ResponseDeliverTx {
-	hash := merkle.SimpleHashFromBinary(tx)
+	hash := tx.Hash().Bytes()
 
 	var travisTx sdk.Tx
 	if err := json.Unmarshal(tx.Data(), &travisTx); err != nil {
