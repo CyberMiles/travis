@@ -252,7 +252,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 		amount := new(big.Int)
 		amount.SetString(proposal.Amount, 10)
 
-		switch gov.CheckProposal(pid) {
+		switch gov.CheckProposal(pid, nil) {
 		case "approved":
 			commons.TransferWithReactor(utils.EmptyAddress, *proposal.To, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Approved"})
 		case "rejected":

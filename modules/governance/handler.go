@@ -49,9 +49,17 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
-		candidate := stake.GetCandidateByAddress(*txInner.Proposer)
-		if candidate == nil || candidate.VotingPower == 0 {
+		validators := stake.GetCandidates().Validators()
+		if validators == nil || validators.Len() == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
+		}
+		for i, v := range validators {
+			if bytes.Equal(v.OwnerAddress.Bytes(), txInner.Proposer.Bytes()) {
+				break
+			}
+			if i + 1 == len(validators) {
+				return sdk.NewCheck(0, ""), ErrInvalidValidator()
+			}
 		}
 
 		ethereum := ctx.Ethereum()
@@ -70,9 +78,18 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
-		validator := stake.GetCandidateByAddress(txInner.Voter)
-		if validator == nil {
+
+		validators := stake.GetCandidates().Validators()
+		if validators == nil || validators.Len() == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
+		}
+		for i, v := range validators {
+			if bytes.Equal(v.OwnerAddress.Bytes(), txInner.Voter.Bytes()) {
+				break
+			}
+			if i + 1 == len(validators) {
+				return sdk.NewCheck(0, ""), ErrInvalidValidator()
+			}
 		}
 
 		proposal := GetProposalById(txInner.ProposalId)
@@ -143,7 +160,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		amount := new(big.Int)
 		amount.SetString(proposal.Amount, 10)
 
-		switch CheckProposal(txInner.ProposalId) {
+		switch CheckProposal(txInner.ProposalId, &txInner.Voter) {
 		case "approved":
 			// as succeeded proposal only need to add balance to receiver,
 			// so the transfer should always be successful
@@ -162,7 +179,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 	return
 }
 
-func CheckProposal(pid string) string {
+func CheckProposal(pid string, voter *common.Address) string {
 	votes := GetVotesByPid(pid)
 	validators := stake.GetCandidates().Validators()
 
@@ -170,34 +187,42 @@ func CheckProposal(pid string) string {
 		return "no validator"
 	}
 
-	if len(votes)*3 < len(validators)*2 {
-		return "not enough vote"
-	}
-
-	var approvedCount, rejectedCount int
-	for _, vo := range votes {
-		for _, va := range validators {
+	approvedPower := big.NewInt(0)
+	rejectedPower := big.NewInt(0)
+	allPower := big.NewInt(0)
+	voterPower := big.NewInt(0)
+	for _, va := range validators {
+		for _, vo := range votes {
 			// should check voter is still valid validator first
 			if bytes.Equal(vo.Voter.Bytes(), va.OwnerAddress.Bytes()) {
 				if strings.Compare(vo.Answer, "Y") == 0 {
-					approvedCount++
+					approvedPower.Add(approvedPower, big.NewInt(va.VotingPower))
 				}
 				if strings.Compare(vo.Answer, "N") == 0 {
-					rejectedCount++
+					rejectedPower.Add(rejectedPower, big.NewInt(va.VotingPower))
 				}
-				continue
 			}
 		}
+		if voter != nil && bytes.Equal(voter.Bytes(), va.OwnerAddress.Bytes()) {
+			voterPower = big.NewInt(va.VotingPower)
+		}
+		allPower.Add(allPower, big.NewInt(va.VotingPower))
 	}
 
-	if approvedCount*3 >= len(validators)*2 {
-		// To avoid repeated commit, let's recheck with count of voters - 1
-		if (approvedCount-1)*3 < len(validators)*2 {
+	allPower.Mul(allPower, big.NewInt(2))
+	three := big.NewInt(3)
+	voterPower.Mul(voterPower, three)
+	approvedPower.Mul(approvedPower, three)
+	rejectedPower.Mul(rejectedPower, three)
+
+	if approvedPower.Cmp(allPower) >= 0 {
+		// To avoid repeated commit, let's recheck with count of voters - voter
+		if approvedPower.Sub(approvedPower, voterPower).Cmp(allPower) < 0 {
 			return "approved"
 		}
-	} else if rejectedCount*3 >= len(validators)*2 {
-		// To avoid repeated commit, let's recheck with count of voters - 1
-		if (rejectedCount-1)*3 < len(validators)*2 {
+	} else if rejectedPower.Cmp(allPower) >= 0 {
+		// To avoid repeated commit, let's recheck with count of voters - voter
+		if rejectedPower.Sub(rejectedPower, voterPower).Cmp(allPower) < 0 {
 			return "rejected"
 		}
 	}
