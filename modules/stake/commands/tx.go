@@ -118,7 +118,7 @@ func init() {
 	fsNewAddress.String(FlagNewAddress, "", "New account address")
 
 	fsVerified := flag.NewFlagSet("", flag.ContinueOnError)
-	fsVerified.Bool(FlagVerified, false, "true or false")
+	fsVerified.String(FlagVerified, "false", "true or false")
 
 	fsValidatorAddress := flag.NewFlagSet("", flag.ContinueOnError)
 	fsValidatorAddress.String(FlagValidatorAddress, "", "validator address")
