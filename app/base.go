@@ -146,9 +146,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	// block award
 	validators := stake.GetCandidates().Validators()
-	for _, i := range app.AbsentValidators {
-		validators.Remove(i)
-	}
+	//for _, i := range app.AbsentValidators {
+	//	validators.Remove(i)
+	//}
 	stake.NewAwardCalculator(app.WorkingHeight(), validators, utils.BlockGasFee).AwardAll()
 
 	// punish Byzantine validators

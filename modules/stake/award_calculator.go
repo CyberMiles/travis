@@ -68,11 +68,11 @@ func (ac awardCalculator) getTotalBlockAward() (result *big.Int) {
 
 func (ac awardCalculator) AwardAll() {
 	var validators []validator
-	var delegators []delegator
 	totalShares := new(big.Int)
 
 	for _, val := range ac.validators {
 		var validator validator
+		var delegators []delegator
 		candidate := GetCandidateByAddress(val.OwnerAddress)
 		if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 			continue
