@@ -277,3 +277,11 @@ type DelegateHistory struct {
 	OpCode           string
 	CreatedAt        string
 }
+
+type PunishHistory struct {
+	PubKey         crypto.PubKey
+	DeductionRatio int64
+	Deduction      *big.Int
+	Reason         string
+	CreatedAt      string
+}

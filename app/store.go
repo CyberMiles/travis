@@ -330,6 +330,8 @@ func initTravisDb() error {
 		create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, shares text not null default '0', op_code text not null default '', created_at text not null);
 		create index idx_delegate_history_delegator_address on delegate_history(delegator_address);
 		create index idx_delegate_history_pub_key on delegate_history(pub_key);
+		create table punish_history(pub_key text not null, deduction_ratio integer default 0, deduction text not null, reason text not null default '', created_at text not null);
+		create index idx_punish_history_pub_key on punish_history(pub_key);
 
 		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, expire_block_height text not null, created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null, created_at text not null, unique(proposal_id, voter) ON conflict replace);

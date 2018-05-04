@@ -535,3 +535,30 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 		panic(err)
 	}
 }
+
+func savePunishHistory(punishHistory *PunishHistory) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("insert into punish_history(pub_key, deduction_ratio, deduction, reason, created_at) values(?, ?, ?, ?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(
+		punishHistory.PubKey.KeyString(),
+		punishHistory.DeductionRatio,
+		punishHistory.Deduction.String(),
+		punishHistory.Reason,
+		punishHistory.CreatedAt,
+	)
+	if err != nil {
+		panic(err)
+	}
+}
