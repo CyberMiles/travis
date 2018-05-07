@@ -247,17 +247,19 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 			return ErrBadAmount()
 		}
 
-		y := big.NewInt(int64(c.params.ReserveRequirementRatio))
-		rr.Mul(x, y)
-		rr.Div(rr, big.NewInt(100))
+		if candidate.MaxShares.Cmp(x) != 0 {
+			y := big.NewInt(int64(c.params.ReserveRequirementRatio))
+			rr.Mul(x, y)
+			rr.Div(rr, big.NewInt(100))
 
-		balance, err := commons.GetBalance(c.ethereum, c.sender)
-		if err != nil {
-			return err
-		}
+			balance, err := commons.GetBalance(c.ethereum, c.sender)
+			if err != nil {
+				return err
+			}
 
-		if balance.Cmp(rr) < 0 {
-			return ErrInsufficientFunds()
+			if balance.Cmp(rr) < 0 {
+				return ErrInsufficientFunds()
+			}
 		}
 	}
 
