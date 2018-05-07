@@ -23,6 +23,14 @@ $ make all
 
 If the system cannot find `glide` at the last step, make sure that you have `$GOPATH/bin` under the `$PATH` variable.
 
+For example:
+
+```
+export GOPATH=~/.gvm/pkgsets/go1.9.2/global
+export GOBIN=$GOPATH/go/bin
+export PATH=$GOBIN:$PATH
+```
+
 ## Initialize a Travis node
 
 ```
