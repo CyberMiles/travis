@@ -318,7 +318,7 @@ func GetDelegator(address string) *Delegator {
 	return &Delegator{common.HexToAddress(address), updatedAt}
 }
 
-func SaveDelegation(delegation *Delegation) {
+func SaveDelegation(d *Delegation) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -327,13 +327,13 @@ func SaveDelegation(delegation *Delegation) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into delegations(delegator_address, pub_key, shares, created_at, updated_at) values (?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.PubKey.KeyString(), delegation.Shares.String(), delegation.CreatedAt, delegation.UpdatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), d.PubKey.KeyString(), d.DelegateAmount.String(), d.AwardAmount.String(), d.WithdrawAmount.String(), d.SlashAmount.String(), d.CreatedAt, d.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -360,7 +360,7 @@ func RemoveDelegation(delegation *Delegation) {
 	}
 }
 
-func UpdateDelegation(delegation *Delegation) {
+func UpdateDelegation(d *Delegation) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -369,19 +369,19 @@ func UpdateDelegation(delegation *Delegation) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update delegations set shares = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
+	stmt, err := tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.Shares.String(), delegation.UpdatedAt, delegation.DelegatorAddress.String(), delegation.PubKey.KeyString())
+	_, err = stmt.Exec(d.DelegateAmount.String(), d.AwardAmount.String(), d.WithdrawAmount.String(), d.SlashAmount.String(), d.UpdatedAt, d.DelegatorAddress.String(), d.PubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
 }
 
-func UpdateDelegatorAddress(delegation *Delegation, originalAddress common.Address) {
+func UpdateDelegatorAddress(d *Delegation, originalAddress common.Address) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -396,7 +396,7 @@ func UpdateDelegatorAddress(delegation *Delegation, originalAddress common.Addre
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.UpdatedAt, originalAddress.String(), delegation.PubKey.KeyString())
+	_, err = stmt.Exec(d.DelegatorAddress.String(), d.UpdatedAt, originalAddress.String(), d.PubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
@@ -405,14 +405,14 @@ func UpdateDelegatorAddress(delegation *Delegation, originalAddress common.Addre
 func GetDelegation(delegatorAddress common.Address, pubKey crypto.PubKey) *Delegation {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select shares, created_at, updated_at from delegations where delegator_address = ? and pub_key = ?")
+	stmt, err := db.Prepare("select delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var shares, createdAt, updatedAt string
-	err = stmt.QueryRow(delegatorAddress.String(), pubKey.KeyString()).Scan(&shares, &createdAt, &updatedAt)
+	var delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
+	err = stmt.QueryRow(delegatorAddress.String(), pubKey.KeyString()).Scan(&delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -421,12 +421,17 @@ func GetDelegation(delegatorAddress common.Address, pubKey crypto.PubKey) *Deleg
 		panic(err)
 	}
 
-	s := new(big.Int)
-	s.SetString(shares, 10)
+	d, _ := new(big.Int).SetString(delegateAmount, 10)
+	a, _ := new(big.Int).SetString(awardAmount, 10)
+	w, _ := new(big.Int).SetString(withdrawAmount, 10)
+	s, _ := new(big.Int).SetString(slashAmount, 10)
 	return &Delegation{
 		DelegatorAddress: delegatorAddress,
 		PubKey:           pubKey,
-		Shares:           s,
+		DelegateAmount:   d,
+		AwardAmount:      a,
+		WithdrawAmount:   w,
+		SlashAmount:      s,
 		CreatedAt:        createdAt,
 		UpdatedAt:        updatedAt,
 	}
@@ -436,25 +441,30 @@ func GetDelegationsByPubKey(pubKey crypto.PubKey) (delegations []*Delegation) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select delegator_address, shares, created_at, updated_at from delegations where pub_key = ?", pubKey.KeyString())
+	rows, err := db.Query("select delegator_address, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations where pub_key = ?", pubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var delegatorAddress, shares, createdAt, updatedAt string
-		err = rows.Scan(&delegatorAddress, &shares, &createdAt, &updatedAt)
+		var delegatorAddress, delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
+		err = rows.Scan(&delegatorAddress, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
 
-		s := new(big.Int)
-		s.SetString(shares, 10)
+		d, _ := new(big.Int).SetString(delegateAmount, 10)
+		a, _ := new(big.Int).SetString(awardAmount, 10)
+		w, _ := new(big.Int).SetString(withdrawAmount, 10)
+		s, _ := new(big.Int).SetString(slashAmount, 10)
 		delegation := &Delegation{
 			DelegatorAddress: common.HexToAddress(delegatorAddress),
 			PubKey:           pubKey,
-			Shares:           s,
+			DelegateAmount:   d,
+			AwardAmount:      a,
+			WithdrawAmount:   w,
+			SlashAmount:      s,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		}
@@ -472,15 +482,15 @@ func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, shares, created_at, updated_at from delegations where delegator_address = ?", delegatorAddress.String())
+	rows, err := db.Query("select pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations where delegator_address = ?", delegatorAddress.String())
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var pubKey, shares, createdAt, updatedAt string
-		err = rows.Scan(&pubKey, &shares, &createdAt, &updatedAt)
+		var pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
+		err = rows.Scan(&pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -490,12 +500,17 @@ func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*
 			return
 		}
 
-		s := new(big.Int)
-		s.SetString(shares, 10)
+		d, _ := new(big.Int).SetString(delegateAmount, 10)
+		a, _ := new(big.Int).SetString(awardAmount, 10)
+		w, _ := new(big.Int).SetString(withdrawAmount, 10)
+		s, _ := new(big.Int).SetString(slashAmount, 10)
 		delegation := &Delegation{
 			DelegatorAddress: delegatorAddress,
 			PubKey:           pk,
-			Shares:           s,
+			DelegateAmount:   d,
+			AwardAmount:      a,
+			WithdrawAmount:   w,
+			SlashAmount:      s,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		}
@@ -518,7 +533,7 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into delegate_history(delegator_address, pub_key, shares, op_code, created_at) values(?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into delegate_history(delegator_address, pub_key, amount, op_code, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -527,7 +542,7 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 	_, err = stmt.Exec(
 		delegateHistory.DelegatorAddress.String(),
 		delegateHistory.PubKey.KeyString(),
-		delegateHistory.Shares.String(),
+		delegateHistory.Amount.String(),
 		delegateHistory.OpCode,
 		delegateHistory.CreatedAt,
 	)

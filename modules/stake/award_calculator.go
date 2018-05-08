@@ -31,9 +31,9 @@ type delegator struct {
 }
 
 const (
-	inflationRate      = 8
-	yearlyBlockNumber  = 365 * 24 * 3600 / 10
-	basicMinableAmount = "1000000000000000000000000000"
+	inflationRate       = 8
+	yearlyBlockNumber   = 365 * 24 * 3600 / 10
+	basicMintableAmount = "1000000000000000000000000000"
 )
 
 func NewAwardCalculator(height int64, validators Validators, transactionFees *big.Int) *awardCalculator {
@@ -41,12 +41,11 @@ func NewAwardCalculator(height int64, validators Validators, transactionFees *bi
 	return &awardCalculator{height, validators, transactionFees}
 }
 
-func (ac awardCalculator) getMinableAmount() (result *big.Int) {
+func (ac awardCalculator) getMintableAmount() (result *big.Int) {
 	result = new(big.Int)
-	base, ok := new(big.Float).SetString(basicMinableAmount)
+	base, ok := new(big.Float).SetString(basicMintableAmount)
 	if !ok {
-		// should never run into this block
-		panic(ErrBadAmount())
+		return
 	}
 
 	year := ac.height / yearlyBlockNumber
@@ -59,7 +58,7 @@ func (ac awardCalculator) getMinableAmount() (result *big.Int) {
 func (ac awardCalculator) getTotalBlockAward() (result *big.Int) {
 	blocks := big.NewInt(yearlyBlockNumber)
 	result = new(big.Int)
-	result.Mul(ac.getMinableAmount(), big.NewInt(inflationRate))
+	result.Mul(ac.getMintableAmount(), big.NewInt(inflationRate))
 	result.Div(result, big.NewInt(100))
 	result.Div(result, blocks)
 	fmt.Printf("yearly block number: %d, total block award: %v\n", blocks, result)
@@ -89,7 +88,7 @@ func (ac awardCalculator) AwardAll() {
 		for _, delegation := range delegations {
 			delegator := delegator{}
 			delegator.address = delegation.DelegatorAddress
-			delegator.shares = delegation.Shares
+			delegator.shares = delegation.Shares()
 			delegators = append(delegators, delegator)
 		}
 		validator.delegators = delegators
@@ -162,7 +161,7 @@ func (ac awardCalculator) awardToDelegator(d delegator, v validator, award *big.
 		return
 	}
 
-	delegation.Shares.Add(delegation.Shares, award)
+	delegation.AwardAmount.Add(delegation.AwardAmount, award)
 	delegation.UpdatedAt = now
 	UpdateDelegation(delegation)
 

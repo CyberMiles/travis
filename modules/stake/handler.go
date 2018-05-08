@@ -83,8 +83,8 @@ func setValidator(value string, store state.SimpleDB) error {
 
 	shares := new(big.Int)
 	shares.Mul(big.NewInt(val.Power), big.NewInt(1e18))
-	maxShares := new(big.Int)
-	maxShares.Mul(big.NewInt(val.MaxAmount), big.NewInt(1e18))
+	maxAmount := new(big.Int)
+	maxAmount.Mul(big.NewInt(val.MaxAmount), big.NewInt(1e18))
 
 	params := loadParams(store)
 	deliverer := deliver{
@@ -93,7 +93,7 @@ func setValidator(value string, store state.SimpleDB) error {
 		params: params,
 	}
 
-	tx := TxDeclareCandidacy{val.PubKey, maxShares.String(), val.Cut, Description{}}
+	tx := TxDeclareCandidacy{val.PubKey, maxAmount.String(), val.Cut, Description{}}
 	return deliverer.declareGenesisCandidacy(tx, val.Power)
 }
 
@@ -360,12 +360,12 @@ func (c check) withdraw(tx TxWithdraw) error {
 		return ErrBadAmount()
 	}
 
-	delegation := GetDelegation(c.sender, candidate.PubKey)
-	if delegation == nil {
+	d := GetDelegation(c.sender, candidate.PubKey)
+	if d == nil {
 		return ErrDelegationNotExists()
 	}
 
-	if amount.Cmp(delegation.Shares) > 0 {
+	if amount.Cmp(d.Shares()) > 0 {
 		return ErrInvalidWithdrawalAmount()
 	}
 
@@ -411,11 +411,6 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int6
 		return ErrBadAmount()
 	}
 
-	//z := new(big.Int)
-	//rrr := big.NewInt(int64(d.params.ReserveRequirementRatio))
-	//z.Mul(maxAmount, rrr)
-	//z.Div(z, big.NewInt(100))
-	//z.Div(z, big.NewInt(1e18))
 	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), votingPower, maxAmount, tx.Cut, tx.Description, "N", "Y")
 	SaveCandidate(candidate)
 
@@ -448,7 +443,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 			z.Div(z, big.NewInt(100))
 
 			amount, _ := new(big.Int).SetString(z.String(), 10)
-			if diff.Cmp(big.NewInt(0)) > 0 {
+			if diff.Cmp(big.NewInt(0)) < 0 {
 				// charge
 				commons.Transfer(d.sender, utils.HoldAccount, amount)
 			} else {
@@ -504,7 +499,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	// Self-staked CMTs will be refunded back to the validator address.
 	delegations := GetDelegationsByPubKey(candidate.PubKey)
 	for _, delegation := range delegations {
-		err := commons.Transfer(d.params.HoldAccount, delegation.DelegatorAddress, delegation.Shares)
+		err := commons.Transfer(d.params.HoldAccount, delegation.DelegatorAddress, delegation.Shares())
 		if err != nil {
 			return err
 		}
@@ -545,13 +540,13 @@ func (d deliver) delegate(tx TxDelegate) error {
 	// Get the pubKey bond account
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 
-	shares, ok := new(big.Int).SetString(tx.Amount, 0)
+	delegateAmount, ok := new(big.Int).SetString(tx.Amount, 0)
 	if !ok {
 		return ErrBadAmount()
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := commons.Transfer(d.sender, d.params.HoldAccount, shares)
+	err := commons.Transfer(d.sender, d.params.HoldAccount, delegateAmount)
 	if err != nil {
 		return err
 	}
@@ -563,20 +558,23 @@ func (d deliver) delegate(tx TxDelegate) error {
 		delegation = &Delegation{
 			DelegatorAddress: d.sender,
 			PubKey:           candidate.PubKey,
-			Shares:           shares,
+			DelegateAmount:   delegateAmount,
+			AwardAmount:      big.NewInt(0),
+			WithdrawAmount:   big.NewInt(0),
+			SlashAmount:      big.NewInt(0),
 			CreatedAt:        now,
 			UpdatedAt:        now,
 		}
 		SaveDelegation(delegation)
 	} else {
-		delegation.Shares.Add(delegation.Shares, shares)
+		delegation.DelegateAmount.Add(delegation.DelegateAmount, delegateAmount)
 		delegation.UpdatedAt = now
 		UpdateDelegation(delegation)
 	}
 
-	// Add shares to candidate
-	candidate.Shares.Add(candidate.Shares, shares)
-	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, shares, "delegate", now}
+	// Add delegateAmount to candidate
+	candidate.Shares.Add(candidate.Shares, delegateAmount)
+	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, delegateAmount, "delegate", now}
 	updateCandidate(candidate)
 	saveDelegateHistory(delegateHistory)
 	return nil
@@ -595,8 +593,9 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	}
 
 	delegation := GetDelegation(d.sender, candidate.PubKey)
-	delegation.Shares.Sub(delegation.Shares, amount)
-	if delegation.Shares.Cmp(big.NewInt(0)) == 0 {
+	delegation.WithdrawAmount.Add(delegation.WithdrawAmount, amount)
+	if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
+		// todo remove or not?
 		RemoveDelegation(delegation)
 	} else {
 		UpdateDelegation(delegation)
