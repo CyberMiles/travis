@@ -355,9 +355,18 @@ func (c check) withdraw(tx TxWithdraw) error {
 		return ErrBadValidatorAddr()
 	}
 
+	amount, ok := new(big.Int).SetString(tx.Amount, 10)
+	if !ok {
+		return ErrBadAmount()
+	}
+
 	delegation := GetDelegation(c.sender, candidate.PubKey)
 	if delegation == nil {
 		return ErrDelegationNotExists()
+	}
+
+	if amount.Cmp(delegation.Shares) > 0 {
+		return ErrInvalidWithdrawalAmount()
 	}
 
 	return nil
@@ -580,11 +589,21 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		return ErrNoCandidateForAddress()
 	}
 
+	amount, ok := new(big.Int).SetString(tx.Amount, 10)
+	if !ok {
+		return ErrInvalidWithdrawalAmount()
+	}
+
 	delegation := GetDelegation(d.sender, candidate.PubKey)
-	RemoveDelegation(delegation)
+	delegation.Shares.Sub(delegation.Shares, amount)
+	if delegation.Shares.Cmp(big.NewInt(0)) == 0 {
+		RemoveDelegation(delegation)
+	} else {
+		UpdateDelegation(delegation)
+	}
 
 	// deduct shares from the candidate
-	candidate.Shares.Sub(candidate.Shares, delegation.Shares)
+	candidate.Shares.Sub(candidate.Shares, amount)
 	if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 		//candidate.State = "N"
 		removeCandidate(candidate)
@@ -594,9 +613,9 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
-	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, big.NewInt(0), "withdraw", now}
+	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, amount, "withdraw", now}
 	saveDelegateHistory(delegateHistory)
 
 	// transfer coins back to account
-	return commons.Transfer(d.params.HoldAccount, d.sender, delegation.Shares)
+	return commons.Transfer(d.params.HoldAccount, d.sender, amount)
 }

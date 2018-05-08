@@ -148,7 +148,7 @@ type WithdrawCandidacyArgs struct {
 }
 
 func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := stake.NewTxWithdraw(args.From)
+	tx := stake.NewTxWithdrawCandidacy()
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
