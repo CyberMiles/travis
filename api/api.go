@@ -233,7 +233,7 @@ func (s *CmtRPCService) Withdraw(args WithdrawArgs) (*ctypes.ResultBroadcastTxCo
 	if len(args.ValidatorAddress) == 0 {
 		return nil, fmt.Errorf("must provide validator address")
 	}
-	tx := stake.NewTxWithdraw(args.ValidatorAddress)
+	tx := stake.NewTxWithdraw(args.ValidatorAddress, args.Amount)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
