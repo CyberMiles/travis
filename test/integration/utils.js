@@ -24,10 +24,12 @@ const transfer = (f, t, v, gasPrice, nonce) => {
   return hash
 }
 
-const getBalance = () => {
+const getBalance = (index = null) => {
   let balance = new Array(4)
   for (i = 0; i < 4; i++) {
-    balance[i] = web3.cmt.getBalance(accounts[i], "latest")
+    if (index === null || i == index) {
+      balance[i] = web3.cmt.getBalance(accounts[i], "latest")
+    }
   }
   logger.debug(`balance in wei: --> ${balance}`)
   return balance
@@ -143,16 +145,18 @@ const waitMultiple = function(arrTxhash, cb) {
 
 const waitBlocks = (done, blocks = 1) => {
   let startingBlock = web3.cmt.blockNumber
+  logger.debug("waiting start: ", startingBlock)
   let interval = setInterval(() => {
     let blocksGone = web3.cmt.blockNumber - startingBlock
     if (blocksGone == blocks) {
+      logger.debug("waiting end. ")
       clearInterval(interval)
       done()
     }
   }, Settings.IntervalMs || 100)
 }
 
-const expectTxFail = r => {
+const expectTxFail = (r, check_err, deliver_err) => {
   logger.debug(r)
   expect(r)
     .to.have.property("check_tx")
@@ -160,7 +164,13 @@ const expectTxFail = r => {
   expect(r)
     .to.have.property("deliver_tx")
     .to.have.property("code")
-  expect(r.check_tx.code > 0 || r.deliver_tx.code > 0).to.be.true
+  if (check_err) {
+    expect(r.check_tx.code).to.eq(check_err)
+  } else if (deliver_err) {
+    expect(r.deliver_tx.code).to.eq(deliver_err)
+  } else {
+    expect(r.check_tx.code > 0 || r.deliver_tx.code > 0).to.be.true
+  }
 }
 
 const expectTxSuccess = r => {

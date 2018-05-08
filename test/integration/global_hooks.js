@@ -4,8 +4,8 @@ const logger = require("./logger")
 const { Settings } = require("./constants")
 const Utils = require("./utils")
 
-const initialFund = 1000 // 1000 ether or 1000 token
-const estimateCost = 500 // at most. not so much in fact
+const initialFund = 5000 // 5000 cmt or 5000 token
+const estimateCost = 2000 // at most. not so much in fact
 const gasPrice = 5 //gwei
 
 before("web3 setup", function() {
@@ -53,7 +53,7 @@ before("Setup a ERC20 Smart contract called ETH", function(done) {
   }
 })
 
-before("Transfer 1000 CMT to A, B, C, D from defaultAccount", function(done) {
+before("Transfer 2000 CMT to A, B, C, D from defaultAccount", function(done) {
   logger.info(this.test.fullTitle())
 
   let balances = Utils.getBalance()
