@@ -264,16 +264,27 @@ type Delegator struct {
 type Delegation struct {
 	DelegatorAddress common.Address `json:"delegator_address"`
 	PubKey           crypto.PubKey  `json:"pub_key"`
-	Shares           *big.Int       `json:"shares"`
+	DelegateAmount   *big.Int       `json:"delegate_amount"`
+	AwardAmount      *big.Int       `json:"award_amount"`
+	WithdrawAmount   *big.Int       `json:"withdraw_amount"`
+	SlashAmount      *big.Int       `json:"slash_amount"`
 	CreatedAt        string         `json:"created_at"`
 	UpdatedAt        string         `json:"updated_at"`
+}
+
+func (d Delegation) Shares() (shares *big.Int) {
+	shares = new(big.Int)
+	shares.Add(d.DelegateAmount, d.AwardAmount)
+	shares.Sub(shares, d.WithdrawAmount)
+	shares.Sub(shares, d.SlashAmount)
+	return
 }
 
 type DelegateHistory struct {
 	Id               int64
 	DelegatorAddress common.Address
 	PubKey           crypto.PubKey
-	Shares           *big.Int
+	Amount           *big.Int
 	OpCode           string
 	CreatedAt        string
 }
