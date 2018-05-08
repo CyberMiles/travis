@@ -138,6 +138,7 @@ func init() {
 	CmdDelegate.Flags().AddFlagSet(fsAmount)
 
 	CmdWithdraw.Flags().AddFlagSet(fsValidatorAddress)
+	CmdWithdraw.Flags().AddFlagSet(fsAmount)
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
@@ -233,7 +234,14 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("please enter validator address using --validator-address")
 	}
 
-	tx := stake.NewTxWithdraw(validatorAddress)
+	amount := viper.GetString(FlagAmount)
+	v := new(big.Int)
+	_, ok := v.SetString(amount, 10)
+	if !ok || v.Cmp(big.NewInt(0)) <= 0 {
+		return fmt.Errorf("amount must be positive interger")
+	}
+
+	tx := stake.NewTxWithdraw(validatorAddress, amount)
 	return txcmd.DoTx(tx)
 }
 

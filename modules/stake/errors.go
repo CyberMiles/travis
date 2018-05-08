@@ -26,6 +26,7 @@ var (
 	errCandidateVerifiedAlready        = fmt.Errorf("candidate has been verified already")
 	errReachMaxAmount                  = fmt.Errorf("validator has reached its declared max amount CMTs to be staked")
 	errDelegationNotExists             = fmt.Errorf("no corresponding delegation exists")
+	errInvalidWithdrawalAmount         = fmt.Errorf("invalid withdrawal amount")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
@@ -68,4 +69,8 @@ func ErrVerifiedAlready() error {
 
 func ErrDelegationNotExists() error {
 	return errors.WithCode(errDelegationNotExists, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrInvalidWithdrawalAmount() error {
+	return errors.WithCode(errInvalidWithdrawalAmount, errors.CodeTypeBaseInvalidOutput)
 }
