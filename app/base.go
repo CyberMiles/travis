@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	abci "github.com/tendermint/abci/types"
 
-	"github.com/CyberMiles/travis/modules"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
@@ -24,7 +23,6 @@ import (
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler             modules.Handler
 	EthApp              *EthermintApplication
 	checkedTx           map[common.Hash]*types.Transaction
 	ethereum            *eth.Ethereum
@@ -56,7 +54,6 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 
 	app := &BaseApp{
 		StoreApp:  store,
-		handler:   modules.Handler{},
 		EthApp:    ethApp,
 		checkedTx: make(map[common.Hash]*types.Transaction),
 		ethereum:  ethereum,

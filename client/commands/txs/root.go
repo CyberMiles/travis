@@ -51,12 +51,6 @@ func doRawTx(cmd *cobra.Command, args []string) error {
 		return errors.WithStack(err)
 	}
 
-	// sign it
-	err = SignTx(tx)
-	if err != nil {
-		return err
-	}
-
 	commit := viper.GetString(FlagType)
 	if commit == "commit" {
 		// otherwise, post it and display response

@@ -31,8 +31,6 @@ import (
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/CyberMiles/travis/commons"
-	"github.com/CyberMiles/travis/modules/auth"
-	ttypes "github.com/CyberMiles/travis/types"
 )
 
 // Validatable represents anything that can be Validated
@@ -174,29 +172,6 @@ func broadcastTxCommit(packet []byte) (*ctypes.ResultBroadcastTxCommit, error) {
 	return node.BroadcastTxCommit(packet)
 }
 
-func SignTx(tx sdk.Tx) error {
-	// validate tx client-side
-	err := tx.ValidateBasic()
-	if err != nil {
-		return err
-	}
-
-	// abort early if we don't want to sign
-	if viper.GetBool(FlagNoSign) {
-		return nil
-	}
-
-	address := viper.GetString(FlagAddress)
-
-	if sign, ok := tx.Unwrap().(ttypes.Signable); ok {
-		if address == "" {
-			return errors.New("--address is required to sign tx")
-		}
-		err = signTx(sign, address)
-	}
-	return err
-}
-
 // PrepareOrPostTx checks the flags to decide to prepare the tx for future
 // multisig, or to post it to the node. Returns error on any failure.
 // If no error and the result is nil, it means it already wrote to file,
@@ -293,15 +268,6 @@ func OutputTxSync(res *ctypes.ResultBroadcastTx) error {
 	}
 	fmt.Println(string(js))
 	return nil
-}
-
-func signTx(tx ttypes.Signable, address string) error {
-	prompt := fmt.Sprintf("Please enter passphrase for %s: ", address)
-	pass, err := getPassword(prompt)
-	if err != nil {
-		return err
-	}
-	return auth.Sign(tx, address, pass)
 }
 
 // if we read from non-tty, we just need to init the buffer reader once,

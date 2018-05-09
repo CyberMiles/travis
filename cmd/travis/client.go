@@ -4,8 +4,6 @@ import (
 	"github.com/spf13/cobra"
 
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
-	authcmd "github.com/CyberMiles/travis/modules/auth/commands"
-	noncecmd "github.com/CyberMiles/travis/modules/nonce/commands"
 	stakecmd "github.com/CyberMiles/travis/modules/stake/commands"
 	"github.com/cosmos/cosmos-sdk/client/commands"
 	"github.com/cosmos/cosmos-sdk/client/commands/query"
@@ -24,7 +22,6 @@ func prepareClientCommands() {
 	commands.AddBasicFlags(clientCmd)
 
 	query.RootCmd.AddCommand(
-		noncecmd.NonceQueryCmd,
 		stakecmd.CmdQueryValidator,
 		stakecmd.CmdQueryValidators,
 		stakecmd.CmdQueryDelegator,
@@ -32,8 +29,6 @@ func prepareClientCommands() {
 
 	// set up the middleware
 	txcmd.Middleware = txcmd.Wrappers{
-		noncecmd.NonceWrapper{},
-		authcmd.SigWrapper{},
 	}
 	txcmd.Middleware.Register(txcmd.RootCmd.PersistentFlags())
 
