@@ -30,4 +30,7 @@ after_success:
   - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
       docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
       make push_image ;
+    elif [[ "$TRAVIS_BRANCH" == "develop" ]]; then
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      make push_dev_image  ;
     fi

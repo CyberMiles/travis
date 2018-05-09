@@ -21,13 +21,22 @@ tools:
 build: get_vendor_deps
 	go build -o build/travis ./cmd/travis
 
-IMAGE := ywonline/travis
+NAME := ywonline/travis
+TAG := $(shell git rev-parse --short=8 HEAD)
+IMAGE := ${NAME}:${TAG}
+LATEST := ${NAME}:latest
 
 docker_image:
-	docker build -t $(IMAGE) .
+	@docker build -t $(IMAGE) .
+	@docker tag ${IMAGE} ${LATEST}
+
+DEV := ${NAME}:develop
+push_dev_image:
+	@docker tag $(IMAGE) ${DEV}
+	@docker push $(DEV)
 
 push_image:
-	docker push $(IMAGE)
+	@docker push $(LATEST)
 
 print_cybermiles_logo:
 	@echo "\n\n"
