@@ -27,6 +27,7 @@ var (
 	errReachMaxAmount                  = fmt.Errorf("validator has reached its declared max amount CMTs to be staked")
 	errDelegationNotExists             = fmt.Errorf("no corresponding delegation exists")
 	errInvalidWithdrawalAmount         = fmt.Errorf("invalid withdrawal amount")
+	errCandidateWithdrawalDisallowed   = fmt.Errorf("candidate can't withdraw the reserved reservation fund")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
@@ -73,4 +74,8 @@ func ErrDelegationNotExists() error {
 
 func ErrInvalidWithdrawalAmount() error {
 	return errors.WithCode(errInvalidWithdrawalAmount, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrCandidateWithdrawalDisallowed() error {
+	return errors.WithCode(errCandidateWithdrawalDisallowed, errors.CodeTypeBaseInvalidOutput)
 }
