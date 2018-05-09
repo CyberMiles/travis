@@ -6,7 +6,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/state"
 
-	"fmt"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/abci/types"
@@ -136,7 +135,6 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	cs.Sort()
 	for i, c := range cs {
 		// truncate the power
-		fmt.Printf("MaxVal: %d\n", int(loadParams(store).MaxVals))
 		if i >= int(loadParams(store).MaxVals) {
 			c.VotingPower = 0
 		}
