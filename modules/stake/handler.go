@@ -437,13 +437,13 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 
 		if candidate.MaxShares.Cmp(maxAmount) != 0 {
 			z := new(big.Int)
-			diff := new(big.Int).Sub(candidate.MaxShares, maxAmount)
+			diff := new(big.Int).Sub(maxAmount, candidate.MaxShares)
 			y := big.NewInt(int64(d.params.ReserveRequirementRatio))
 			z.Mul(diff, y)
 			z.Div(z, big.NewInt(100))
 
 			amount, _ := new(big.Int).SetString(z.String(), 10)
-			if diff.Cmp(big.NewInt(0)) < 0 {
+			if diff.Cmp(big.NewInt(0)) > 0 {
 				// charge
 				commons.Transfer(d.sender, utils.HoldAccount, amount)
 			} else {
@@ -454,7 +454,13 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 			candidate.MaxShares = maxAmount
 			shares := new(big.Int)
 			shares.Add(candidate.Shares, amount)
-			candidate.Shares = z
+			candidate.Shares = shares
+
+			// update delegation
+			delegation := GetDelegation(d.sender, candidate.PubKey)
+			delegation.DelegateAmount.Add(delegation.DelegateAmount, amount)
+			delegation.UpdatedAt = utils.GetNow()
+			UpdateDelegation(delegation)
 		}
 	}
 
