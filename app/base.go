@@ -7,7 +7,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/cosmos/cosmos-sdk/errors"
-	"github.com/cosmos/cosmos-sdk/stack"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
@@ -142,7 +141,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	app.AddValChange(diff)
 
 	// block award
-	validators := stake.GetCandidates().Validators()
+	cs := stake.GetCandidates()
+	cs.Sort()
+	validators := cs.Validators()
 	//for _, i := range app.AbsentValidators {
 	//	validators.Remove(i)
 	//}
@@ -205,10 +206,6 @@ func isEthTx(tx *types.Transaction) bool {
 // Tick - Called every block even if no transaction, process all queues,
 // validator rewards, and calculate the validator set difference
 func tick(store state.SimpleDB) (change []*abci.Validator, err error) {
-	// first need to prefix the store, at this point it's a global store
-	store = stack.PrefixedStore("stake", store)
-
-	// execute Tick
 	change, err = stake.UpdateValidatorSet(store)
 	return
 }

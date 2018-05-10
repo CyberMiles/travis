@@ -254,11 +254,11 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 
 		switch gov.CheckProposal(pid, nil) {
 		case "approved":
-			commons.TransferWithReactor(utils.EmptyAddress, *proposal.To, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Approved"})
+			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.To, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Approved"})
 		case "rejected":
-			commons.TransferWithReactor(utils.EmptyAddress, *proposal.From, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"})
+			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.From, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"})
 		default:
-			commons.TransferWithReactor(utils.EmptyAddress, *proposal.From, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Expired"})
+			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.From, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Expired"})
 		}
 		utils.PendingProposal.Del(pid)
 	}
@@ -296,8 +296,8 @@ func (ws *workState) handleStateChangeQueue() {
 	// ws.travisTxIndex used for recording handled index of queue
 	for i := ws.travisTxIndex; i < len(utils.StateChangeQueue); i++ {
 		scObj := utils.StateChangeQueue[i]
-		if bytes.Compare(scObj.From.Bytes(), utils.EmptyAddress.Bytes()) == 0 {
-			if bytes.Compare(scObj.To.Bytes(), utils.EmptyAddress.Bytes()) != 0 {
+		if bytes.Compare(scObj.From.Bytes(), utils.MintAccount.Bytes()) == 0 {
+			if bytes.Compare(scObj.To.Bytes(), utils.MintAccount.Bytes()) != 0 {
 				ws.state.AddBalance(scObj.To, scObj.Amount)
 				if scObj.Reactor != nil {
 					scObj.Reactor.React("success", "")
@@ -306,7 +306,7 @@ func (ws *workState) handleStateChangeQueue() {
 		} else {
 			if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount) >= 0 {
 				ws.state.SubBalance(scObj.From, scObj.Amount)
-				if bytes.Compare(scObj.To.Bytes(), utils.EmptyAddress.Bytes()) != 0 {
+				if bytes.Compare(scObj.To.Bytes(), utils.MintAccount.Bytes()) != 0 {
 					ws.state.AddBalance(scObj.To, scObj.Amount)
 				}
 				if scObj.Reactor != nil {

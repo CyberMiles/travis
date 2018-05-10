@@ -83,7 +83,6 @@ func (p *pendingProposal) ReachMin(blockHeight uint64) (pids []string) {
 }
 
 var (
-	EmptyAddress     = common.Address{}
 	BlockGasFee      *big.Int
 	StateChangeQueue []StateChangeObject
 	// Recording addresses associated with travis tx (stake/governance) in one block
@@ -98,4 +97,5 @@ var (
 	}
 	MintAccount = common.HexToAddress("0000000000000000000000000000000000000000")
 	HoldAccount = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	GovHoldAccount = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 )
