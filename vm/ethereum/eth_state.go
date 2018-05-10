@@ -73,6 +73,9 @@ func (es *EthState) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDelive
 
 // called by travis tx only in deliver_tx
 func (es *EthState) AddNonce(addr common.Address) {
+	es.mtx.Lock()
+	defer es.mtx.Unlock()
+
 	es.work.state.SetNonce(addr, es.work.state.GetNonce(addr)+1)
 }
 
