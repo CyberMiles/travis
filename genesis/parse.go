@@ -3,7 +3,7 @@ package genesis
 import (
 	"encoding/json"
 
-	"github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/pkg/errors"
 
 	cmn "github.com/tendermint/tmlibs/common"

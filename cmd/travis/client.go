@@ -5,8 +5,8 @@ import (
 
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	stakecmd "github.com/CyberMiles/travis/modules/stake/commands"
-	"github.com/cosmos/cosmos-sdk/client/commands"
-	"github.com/cosmos/cosmos-sdk/client/commands/query"
+	"github.com/CyberMiles/travis/sdk/client/commands"
+	"github.com/CyberMiles/travis/sdk/client/commands/query"
 )
 
 // clientCmd is the entry point for this binary

@@ -3,7 +3,7 @@ package api
 import (
 	"github.com/spf13/cast"
 
-	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/CyberMiles/travis/sdk/client"
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"

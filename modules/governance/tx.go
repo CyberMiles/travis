@@ -1,7 +1,7 @@
 package governance
 
 import (
-	"github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/common"
 )
 

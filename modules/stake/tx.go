@@ -1,7 +1,7 @@
 package stake
 
 import (
-	"github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/go-crypto"
 )

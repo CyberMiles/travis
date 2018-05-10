@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/errors"
-	sm "github.com/cosmos/cosmos-sdk/state"
+	"github.com/CyberMiles/travis/sdk/errors"
+	sm "github.com/CyberMiles/travis/sdk/state"
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/iavl"
 	cmn "github.com/tendermint/tmlibs/common"

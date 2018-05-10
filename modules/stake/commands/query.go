@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/cosmos/cosmos-sdk/client/commands"
+	"github.com/CyberMiles/travis/sdk/client/commands"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"

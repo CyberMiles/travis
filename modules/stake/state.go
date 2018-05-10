@@ -3,7 +3,7 @@ package stake
 import (
 	"github.com/tendermint/go-wire"
 
-	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/CyberMiles/travis/sdk/state"
 )
 
 // nolint

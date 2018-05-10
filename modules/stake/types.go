@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/CyberMiles/travis/sdk/state"
 
 	"fmt"
 	"github.com/CyberMiles/travis/utils"

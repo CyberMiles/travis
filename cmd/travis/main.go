@@ -8,7 +8,7 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 
 	basecmd "github.com/CyberMiles/travis/server/commands"
-	"github.com/cosmos/cosmos-sdk/client/commands/auto"
+	"github.com/CyberMiles/travis/sdk/client/commands/auto"
 )
 
 // TravisCmd is the entry point for this binary

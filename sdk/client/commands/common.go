@@ -4,22 +4,15 @@ Package commands contains any general setup/helpers valid for all subcommands
 package commands
 
 import (
-	"encoding/hex"
-	"fmt"
-	"strings"
-
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/lite"
 	"github.com/tendermint/tmlibs/cli"
-	cmn "github.com/tendermint/tmlibs/common"
 
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/CyberMiles/travis/sdk/client"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 var (
@@ -79,57 +72,4 @@ func GetCertifier() (*lite.Inquiring, error) {
 	source := GetSourceProvider()
 	chainID := GetChainID()
 	return client.GetCertifier(chainID, trust, source)
-}
-
-// ParseActor parses an address of form:
-// [<chain>:][<app>:]<hex address>
-// into a sdk.Actor.
-// If app is not specified or "", then assume auth.NameSigs
-func ParseActor(input string) (res common.Address, err error) {
-	input = strings.TrimSpace(input)
-	addr, err := hex.DecodeString(cmn.StripHex(input))
-	if err != nil {
-		return res, errors.Errorf("Address is invalid hex: %v\n", err)
-	}
-	res = common.BytesToAddress(addr)
-	return
-}
-
-// ParseActors takes a comma-separated list of actors and parses them into
-// a slice
-func ParseActors(key string) (signers []common.Address, err error) {
-	var act common.Address
-	for _, k := range strings.Split(key, ",") {
-		act, err = ParseActor(k)
-		if err != nil {
-			return
-		}
-		signers = append(signers, act)
-	}
-	return
-}
-
-// GetOneArg makes sure there is exactly one positional argument
-func GetOneArg(args []string, argname string) (string, error) {
-	if len(args) == 0 {
-		return "", errors.Errorf("Missing required argument [%s]", argname)
-	}
-	if len(args) > 1 {
-		return "", errors.Errorf("Only accepts one argument [%s]", argname)
-	}
-	return args[0], nil
-}
-
-// ParseHexFlag takes a flag name and parses the viper contents as hex
-func ParseHexFlag(flag string) ([]byte, error) {
-	arg := viper.GetString(flag)
-	if arg == "" {
-		return nil, errors.Errorf("No such flag: %s", flag)
-	}
-	value, err := hex.DecodeString(cmn.StripHex(arg))
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Cannot parse %s", flag))
-	}
-	return value, nil
-
 }
