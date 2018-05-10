@@ -607,12 +607,21 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		return ErrInvalidWithdrawalAmount()
 	}
 
+	delegation := GetDelegation(d.sender, candidate.PubKey)
+
 	// candidates can't withdraw the reserved reservation fund
 	if d.sender == candidate.OwnerAddress {
-		return ErrCandidateWithdrawalDisallowed()
+		rr := new(big.Int)
+		rrr := big.NewInt(int64(d.params.ReserveRequirementRatio))
+		rr.Mul(candidate.MaxShares, rrr)
+		rr.Div(rr, big.NewInt(100))
+		remained := new(big.Int)
+		remained.Sub(delegation.Shares(), amount)
+		if remained.Cmp(rr) < 0 {
+			return ErrCandidateWithdrawalDisallowed()
+		}
 	}
 
-	delegation := GetDelegation(d.sender, candidate.PubKey)
 	delegation.WithdrawAmount.Add(delegation.WithdrawAmount, amount)
 	if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
 		// todo remove or not?
