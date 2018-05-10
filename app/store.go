@@ -74,11 +74,6 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 	return app, nil
 }
 
-// MockStoreApp returns a Store app with no persistence
-func MockStoreApp(appName string, logger log.Logger) (*StoreApp, error) {
-	return NewStoreApp(appName, "", 0, logger)
-}
-
 // GetChainID returns the currently stored chain
 func (app *StoreApp) GetChainID() string {
 	return app.info.GetChainID(app.state.Committed())
