@@ -180,7 +180,7 @@ func SaveCandidate(candidate *Candidate) {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
-		candidate.PubKey.KeyString(),
+		utils.PubKeyString(candidate.PubKey),
 		candidate.OwnerAddress.String(),
 		candidate.Shares.String(),
 		candidate.VotingPower,
@@ -226,7 +226,7 @@ func updateCandidate(candidate *Candidate) {
 		candidate.Verified,
 		candidate.Active,
 		candidate.UpdatedAt,
-		candidate.PubKey.KeyString(),
+		utils.PubKeyString(candidate.PubKey),
 	)
 	if err != nil {
 		panic(err)
@@ -333,7 +333,7 @@ func SaveDelegation(d *Delegation) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), d.PubKey.KeyString(), d.DelegateAmount.String(), d.AwardAmount.String(), d.WithdrawAmount.String(), d.SlashAmount.String(), d.CreatedAt, d.UpdatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), utils.PubKeyString(d.PubKey), d.DelegateAmount.String(), d.AwardAmount.String(), d.WithdrawAmount.String(), d.SlashAmount.String(), d.CreatedAt, d.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -354,7 +354,7 @@ func RemoveDelegation(delegation *Delegation) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.DelegatorAddress.String(), delegation.PubKey.KeyString())
+	_, err = stmt.Exec(delegation.DelegatorAddress.String(), utils.PubKeyString(delegation.PubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -375,7 +375,7 @@ func UpdateDelegation(d *Delegation) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegateAmount.String(), d.AwardAmount.String(), d.WithdrawAmount.String(), d.SlashAmount.String(), d.UpdatedAt, d.DelegatorAddress.String(), d.PubKey.KeyString())
+	_, err = stmt.Exec(d.DelegateAmount.String(), d.AwardAmount.String(), d.WithdrawAmount.String(), d.SlashAmount.String(), d.UpdatedAt, d.DelegatorAddress.String(), utils.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -396,7 +396,7 @@ func UpdateDelegatorAddress(d *Delegation, originalAddress common.Address) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), d.UpdatedAt, originalAddress.String(), d.PubKey.KeyString())
+	_, err = stmt.Exec(d.DelegatorAddress.String(), d.UpdatedAt, originalAddress.String(), utils.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -412,7 +412,7 @@ func GetDelegation(delegatorAddress common.Address, pubKey crypto.PubKey) *Deleg
 	defer stmt.Close()
 
 	var delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
-	err = stmt.QueryRow(delegatorAddress.String(), pubKey.KeyString()).Scan(&delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
+	err = stmt.QueryRow(delegatorAddress.String(), utils.PubKeyString(pubKey)).Scan(&delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -441,7 +441,7 @@ func GetDelegationsByPubKey(pubKey crypto.PubKey) (delegations []*Delegation) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select delegator_address, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations where pub_key = ?", pubKey.KeyString())
+	rows, err := db.Query("select delegator_address, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations where pub_key = ?", utils.PubKeyString(pubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -541,7 +541,7 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 
 	_, err = stmt.Exec(
 		delegateHistory.DelegatorAddress.String(),
-		delegateHistory.PubKey.KeyString(),
+		utils.PubKeyString(delegateHistory.PubKey),
 		delegateHistory.Amount.String(),
 		delegateHistory.OpCode,
 		delegateHistory.CreatedAt,
@@ -567,7 +567,7 @@ func savePunishHistory(punishHistory *PunishHistory) {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
-		punishHistory.PubKey.KeyString(),
+		utils.PubKeyString(punishHistory.PubKey),
 		punishHistory.DeductionRatio,
 		punishHistory.Deduction.String(),
 		punishHistory.Reason,

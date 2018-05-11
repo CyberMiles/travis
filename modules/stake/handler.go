@@ -207,7 +207,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 		return fmt.Errorf("address has been declared")
 	}
 
-	candidate = GetCandidateByPubKey(tx.PubKey.KeyString())
+	candidate = GetCandidateByPubKey(utils.PubKeyString(tx.PubKey))
 	if candidate != nil {
 		return fmt.Errorf("pubkey has been declared")
 	}
