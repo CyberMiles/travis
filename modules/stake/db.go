@@ -254,6 +254,27 @@ func removeCandidate(candidate *Candidate) {
 	}
 }
 
+func cleanCandidates() {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("delete from candidates where shares = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec("0")
+	if err != nil {
+		panic(err)
+	}
+}
+
 func SaveDelegator(delegator *Delegator) {
 	db := getDb()
 	defer db.Close()
