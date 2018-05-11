@@ -48,9 +48,10 @@ let newPubKey = [
   "1135A20BACD24ACAF7779FC24839350BC0D79EDBF130F0F4EE247703CEC04753",
   "1135A20BACD24ACAF7779FC24839350BC0D79EDBF130F0F4EE247703CEC04754"
 ]
-let maxAmount = "210000000000000000000" // 210 cmt
-let deleAmount1 = "20000000000000000000" // 20 cmt
-let deleAmount2 = "160000000000000000000" // 160 cmt
+
+let maxAmount = 200 // 2000 cmt
+let deleAmount1 = maxAmount * 0.1
+let deleAmount2 = maxAmount - maxAmount * 0.1 * 2
 let cut = 8000
 
 describe("Stake Test", function() {
@@ -61,8 +62,8 @@ describe("Stake Test", function() {
     expect(vCount).be.above(0)
     if (vCount == 0) process.exit(1)
 
+    logger.debug("current validators: ", JSON.stringify(result.data))
     existingValidator = result.data[0]
-    logger.debug("current validator: ", JSON.stringify(existingValidator))
     expect(existingValidator).be.an("object")
 
     // unlock accounts
@@ -71,17 +72,20 @@ describe("Stake Test", function() {
     })
 
     if (vCount == 1) {
+      logger.debug("one node test, add some fake validators")
       accounts.forEach((acc, idx) => {
-        // declare B, C, D
-        if (idx == 0) return
+        // declare A, B, C
+        if (idx >= 3) return
+        let initAmount = 1000
         let payload = {
           from: acc,
           pubKey: newPubKey[idx],
-          maxAmount: web3.toWei("1000", "cmt"),
+          maxAmount: web3.toWei(initAmount, "cmt"),
           cut: cut
         }
         let r = web3.cmt.stake.declareCandidacy(payload)
         Utils.expectTxSuccess(r)
+        logger.debug("validator added, max_amount: ", initAmount)
       })
     }
   })
@@ -91,7 +95,7 @@ describe("Stake Test", function() {
       if (Object.keys(existingValidator).length == 0) return
       let payload = {
         from: existingValidator.owner_address,
-        pubKey: newPubKey[0]
+        pubKey: newPubKey[3]
       }
       let r = web3.cmt.stake.declareCandidacy(payload)
       Utils.expectTxFail(r)
@@ -100,22 +104,23 @@ describe("Stake Test", function() {
     it("associate to an existing validator pubkey — fail", function() {
       if (Object.keys(existingValidator).length == 0) return
       let payload = {
-        from: accounts[0],
+        from: accounts[3],
         pubKey: existingValidator.pub_key.data
       }
       let r = web3.cmt.stake.declareCandidacy(payload)
       Utils.expectTxFail(r)
     })
 
-    describe("Declare to be a validator with 2000 CMT max and 80% cut", function() {
-      describe("Account A does not have 200 CMTs.", function() {
+    describe(`Declare to be a validator with ${maxAmount} CMT max and ${cut /
+      100}% cut`, function() {
+      describe(`Account D does not have ${maxAmount * 0.1} CMTs.`, function() {
         before(function(done) {
           let balance = web3
-            .fromWei(web3.cmt.getBalance(accounts[0]), "cmt")
+            .fromWei(web3.cmt.getBalance(accounts[3]), "cmt")
             .toNumber()
-          if (balance > 200) {
+          if (balance > maxAmount * 0.1) {
             web3.cmt.sendTransaction({
-              from: accounts[0],
+              from: accounts[3],
               to: web3.cmt.defaultAccount,
               value: web3.toWei(balance - 1, "cmt")
             })
@@ -127,9 +132,9 @@ describe("Stake Test", function() {
 
         it("Fails", function() {
           let payload = {
-            from: accounts[0],
-            pubKey: newPubKey[0],
-            maxAmount: maxAmount,
+            from: accounts[3],
+            pubKey: newPubKey[3],
+            maxAmount: web3.toWei(maxAmount, "cmt"),
             cut: cut
           }
           let r = web3.cmt.stake.declareCandidacy(payload)
@@ -137,16 +142,16 @@ describe("Stake Test", function() {
         })
       })
 
-      describe("Account A has over 200 CMTs.", function() {
+      describe(`Account D has over ${maxAmount * 0.1} CMTs.`, function() {
         before(function(done) {
           let balance = web3
-            .fromWei(web3.cmt.getBalance(accounts[0]), "cmt")
+            .fromWei(web3.cmt.getBalance(accounts[3]), "cmt")
             .toNumber()
-          if (balance < 200) {
+          if (balance < maxAmount * 0.1) {
             web3.cmt.sendTransaction({
               from: web3.cmt.defaultAccount,
-              to: accounts[0],
-              value: web3.toWei(200, "cmt")
+              to: accounts[3],
+              value: web3.toWei(maxAmount * 0.1, "cmt")
             })
             Utils.waitBlocks(done)
           } else {
@@ -155,33 +160,35 @@ describe("Stake Test", function() {
         })
         before(function() {
           // balance before
-          balance_old = Utils.getBalance(0)
+          balance_old = Utils.getBalance(3)
         })
 
-        it("Succeeds, the 200 CMTs becomes A's stake after the successful declaration", function() {
+        it(`Succeeds, the ${maxAmount *
+          0.1} CMTs becomes D's stake after the successful declaration`, function() {
+          let wei = web3.toWei(maxAmount, "cmt")
           let payload = {
-            from: accounts[0],
-            pubKey: newPubKey[0],
-            maxAmount: maxAmount,
+            from: accounts[3],
+            pubKey: newPubKey[3],
+            maxAmount: wei,
             cut: cut
           }
           let r = web3.cmt.stake.declareCandidacy(payload)
           Utils.expectTxSuccess(r)
           // balance after
-          balance_new = Utils.getBalance(0)
-          expect(balance_new[0].minus(balance_old[0]).toNumber()).to.equal(
-            Number(-maxAmount * 0.1)
+          balance_new = Utils.getBalance(3)
+          expect(balance_new[3].minus(balance_old[3]).toNumber()).to.equal(
+            Number(-wei * 0.1)
           )
         })
       })
     })
   })
 
-  describe("The foundation account verifies account A. ", function() {
+  describe("The foundation account verifies account D. ", function() {
     it("Update the verified status to Y", function() {
       let payload = {
         from: web3.cmt.defaultAccount,
-        candidateAddress: accounts[0],
+        candidateAddress: accounts[3],
         verified: true
       }
       let r = web3.cmt.stake.verifyCandidacy(payload)
@@ -189,20 +196,20 @@ describe("Stake Test", function() {
       // check validator's status
       let result = web3.cmt.stake.queryValidators()
       expect(result.data).to.containSubset([
-        { owner_address: accounts[0], verified: "Y" }
+        { owner_address: accounts[3], verified: "Y" }
       ])
     })
   })
 
-  describe("Query validator A. ", function() {
+  describe("Query validator D. ", function() {
     it("make sure all the information are accurate.", function() {
-      let result = web3.cmt.stake.queryValidator(accounts[0], 0)
+      let result = web3.cmt.stake.queryValidator(accounts[3], 0)
       // check validator's information
       logger.debug(result.data)
-      expect(result.data.owner_address).to.eq(accounts[0])
+      expect(result.data.owner_address).to.eq(accounts[3])
       expect(result.data.verified).to.eq("Y")
       expect(result.data.cut).to.eq(cut)
-      expect(result.data.pub_key.data).to.eq(newPubKey[0])
+      expect(result.data.pub_key.data).to.eq(newPubKey[3])
       // todo
       // expect(result.data.max_shares).to.eq(maxAmount)
       // expect(result.data.shares).to.eq(maxAmount * 0.1)
@@ -210,74 +217,84 @@ describe("Stake Test", function() {
   })
 
   describe("Stake Delegate", function() {
-    describe("Account B stakes 200 CMTs for A.", function() {
+    describe(`Account B stakes ${deleAmount1} CMTs for D.`, function() {
+      let wei
       before(function() {
         // balance before
         balance_old = Utils.getBalance(1)
+        wei = web3.toWei(deleAmount1, "cmt")
       })
 
       it("CMTs are moved from account B", function() {
         let payload = {
           from: accounts[1],
-          validatorAddress: accounts[0],
-          amount: deleAmount1
+          validatorAddress: accounts[3],
+          amount: wei
         }
         let r = web3.cmt.stake.delegate(payload)
         Utils.expectTxSuccess(r)
         // balance after
         balance_new = Utils.getBalance(1)
         expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
-          Number(-deleAmount1)
+          Number(-wei)
         )
       })
       it("CMTs show up as staked balance for B", function() {
         let result = web3.cmt.stake.queryDelegator(accounts[1], 0)
-        let delegation = result.data.filter(d => d.pub_key.data == newPubKey[0])
+        let delegation = result.data.filter(d => d.pub_key.data == newPubKey[3])
         expect(delegation.length).to.eq(1)
         // todo
-        // expect(delegation[0].shares).to.eq(deleAmount1)
+        // expect(delegation[0].shares).to.eq(wei)
       })
-      it("A is still not a validator", function() {
-        // todo
+      it("D is still not a validator", function() {
+        let result = web3.cmt.stake.queryValidator(accounts[3], 0)
+        let power = result.data.voting_power
+        expect(power).to.eq(0)
       })
     })
-    describe("Account C stakes 1600 CMTs for A.", function() {
+    describe(`Account C stakes ${deleAmount2} CMTs for D.`, function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(2)
+        wei = web3.toWei(deleAmount2, "cmt")
       })
       it("CMTs are moved from account C", function() {
         let payload = {
           from: accounts[2],
-          validatorAddress: accounts[0],
-          amount: deleAmount2
+          validatorAddress: accounts[3],
+          amount: wei
         }
         let r = web3.cmt.stake.delegate(payload)
         Utils.expectTxSuccess(r)
         // balance after
         balance_new = Utils.getBalance(2)
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(
-          Number(-deleAmount2)
+          Number(-wei)
         )
       })
       it("CMTs show up as staked balance for C", function() {
         let result = web3.cmt.stake.queryDelegator(accounts[2], 0)
-        let delegation = result.data.filter(d => d.pub_key.data == newPubKey[0])
+        let delegation = result.data.filter(d => d.pub_key.data == newPubKey[3])
         expect(delegation.length).to.eq(1)
         // todo
-        // expect(delegation[0].shares).to.eq(deleAmount2)
+        // expect(delegation[0].shares).to.eq(wei)
       })
-      it("A is now a validator", function() {
-        // todo
+      it("D is now a validator", function() {
+        let result = web3.cmt.stake.queryValidator(accounts[3], 0)
+        let power = result.data.voting_power
+        expect(power).to.be.above(0)
       })
       it("One of the genesis validators now drops off", function() {
-        // todo
+        let result = web3.cmt.stake.queryValidators()
+        let drops = result.data.filter(d => d.voting_power == 0)
+        expect(drops.length).to.eq(1)
+        expect(drops[0].owner_address).to.not.equal(accounts[3])
       })
     })
   })
 
   //todo
-  describe("Block awards", function() {
+  describe.skip("Block awards", function() {
     let blocks = 2,
       powers_old = [],
       powers_new = [],
@@ -292,29 +309,29 @@ describe("Stake Test", function() {
       // wait a few blocks
       Utils.waitBlocks(done, blocks)
     })
-    it("check Validator A's current power", function() {
-      let result = web3.cmt.stake.queryValidator(accounts[0], 0)
+    it("check Validator D's current power", function() {
+      let result = web3.cmt.stake.queryValidator(accounts[3], 0)
       let power = result.data.voting_power
       console.log(result.data)
       // expect(current).to.eq(powers_new[4])
     })
     it("B: total awards * 80% * 0.1", function() {
       let result = web3.cmt.stake.queryDelegator(accounts[1], 0)
-      let delegation = result.data.filter(d => d.pub_key.data == newPubKey[0])
+      let delegation = result.data.filter(d => d.pub_key.data == newPubKey[3])
       console.log(delegation)
       expect(delegation.length).to.eq(1)
       // expect((delegation[0].awards = total_awards * 0.8 * 0.1))
     })
     it("C: total awards * 80% * 0.8", function() {
       let result = web3.cmt.stake.queryDelegator(accounts[2], 0)
-      let delegation = result.data.filter(d => d.pub_key.data == newPubKey[0])
+      let delegation = result.data.filter(d => d.pub_key.data == newPubKey[3])
       console.log(delegation)
       expect(delegation.length).to.eq(1)
       // expect((delegation[0].awards = total_awards * 0.8 * 0.8))
     })
-    it("A: total awards - B - C", function() {
-      let result = web3.cmt.stake.queryDelegator(accounts[0], 0)
-      let delegation = result.data.filter(d => d.pub_key.data == newPubKey[0])
+    it("D: total awards - B - C", function() {
+      let result = web3.cmt.stake.queryDelegator(accounts[3], 0)
+      let delegation = result.data.filter(d => d.pub_key.data == newPubKey[3])
       console.log(delegation)
       expect(delegation.length).to.eq(1)
       // expect((delegation[0].awards = total_awards - total_awards * 0.8 * 0.9))
@@ -322,34 +339,35 @@ describe("Stake Test", function() {
   })
 
   describe("Stake Withdraw", function() {
-    describe("Account B withdraw 200 CMTs for A.", function() {
+    describe(`Account B withdraw ${deleAmount1} CMTs for D.`, function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(1)
       })
       it("CMTs are moved back to account B", function() {
+        let wei = web3.toWei(deleAmount1, "cmt")
         let payload = {
           from: accounts[1],
-          validatorAddress: accounts[0],
-          amount: deleAmount1
+          validatorAddress: accounts[3],
+          amount: wei
         }
         let r = web3.cmt.stake.withdraw(payload)
         Utils.expectTxSuccess(r)
         // balance after
         balance_new = Utils.getBalance(1)
         expect(balance_new[1].minus(balance_old[1]).toNumber()).to.eq(
-          Number(deleAmount1)
+          Number(wei)
         )
       })
     })
   })
 
   describe("Update Candidacy", function() {
-    it("Account A modify address to account A", function() {
-      let newAddress = accounts[0]
+    it("Account D modify address to account D", function() {
+      let newAddress = accounts[3]
       let payload = {
-        from: accounts[0],
-        maxAmount: maxAmount,
+        from: accounts[3],
+        maxAmount: web3.toWei(maxAmount, "cmt"),
         newAddress: newAddress
       }
       let r = web3.cmt.stake.updateCandidacy(payload)
@@ -359,10 +377,10 @@ describe("Stake Test", function() {
       expect(result.data.owner_address).to.be.eq(newAddress)
       expect(result.data.verified).to.be.eq("Y")
     })
-    it("Account A modify other information", function() {
+    it("Account D modify other information", function() {
       let website = "http://aaa.com"
       let payload = {
-        from: accounts[0],
+        from: accounts[3],
         description: {
           website: website
         }
@@ -370,7 +388,7 @@ describe("Stake Test", function() {
       let r = web3.cmt.stake.updateCandidacy(payload)
       Utils.expectTxSuccess(r)
       // check validator
-      let result = web3.cmt.stake.queryValidator(accounts[0], 0)
+      let result = web3.cmt.stake.queryValidator(accounts[3], 0)
       expect(result.data.description.website).to.be.eq(website)
       expect(result.data.verified).to.be.eq("N")
     })
@@ -382,27 +400,30 @@ describe("Stake Test", function() {
       balance_old = Utils.getBalance()
     })
 
-    it("Account A no longer a validator", function() {
+    it("Account D no longer a validator", function() {
       let payload = {
-        from: accounts[0]
+        from: accounts[3]
       }
       let r = web3.cmt.stake.withdrawCandidacy(payload)
       Utils.expectTxSuccess(r)
-      // check validators, not include accounts[0]
+      // check validators, not include accounts[3]
       let result = web3.cmt.stake.queryValidators()
       logger.debug(result.data)
-      expect(result.data).to.not.containSubset([{ owner_address: accounts[0] }])
+      expect(result.data).to.not.containSubset([{ owner_address: accounts[3] }])
     })
     it("All staked tokens will be distributed back to delegator addresses", function() {
       // balance after
       balance_new = Utils.getBalance()
+      // account[1] has withdrawed, refund some interests
+      expect(balance_new[1].minus(balance_old[1]).toNumber()).to.be.above(0)
+      // account[2] refund delegate amount and interests
       expect(balance_new[2].minus(balance_old[2]).toNumber()).to.be.above(
-        Number(deleAmount2)
+        Number(web3.toWei(deleAmount2, "cmt"))
       )
     })
     it("Self-staked CMTs will be refunded back to the validator address", function() {
-      expect(balance_new[0].minus(balance_old[0]).toNumber()).to.be.above(
-        Number(maxAmount * 0.1)
+      expect(balance_new[3].minus(balance_old[3]).toNumber()).to.be.above(
+        Number(web3.toWei(maxAmount * 0.1, "cmt"))
       )
     })
   })

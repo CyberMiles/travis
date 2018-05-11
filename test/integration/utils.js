@@ -35,7 +35,7 @@ const getBalance = (index = null) => {
   return balance
 }
 
-const tokenFile = "./TestToken.json"
+const tokenFile = "./ETHToken.json"
 const tokenJSON = JSON.parse(fs.readFileSync(tokenFile).toString())
 const abi = tokenJSON["abi"]
 const bytecode = tokenJSON["bytecode"]

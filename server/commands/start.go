@@ -18,8 +18,8 @@ import (
 	"github.com/CyberMiles/travis/genesis"
 )
 
-// GetTickStartCmd - initialize a command as the start command with tick
-func GetTickStartCmd() *cobra.Command {
+// GetStartCmd - initialize a command as the start command with tick
+func GetStartCmd() *cobra.Command {
 	startCmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start this full node",
