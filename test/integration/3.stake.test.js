@@ -54,7 +54,7 @@ let deleAmount1 = maxAmount * 0.1
 let deleAmount2 = maxAmount - maxAmount * 0.1 * 2
 let cut = 8000
 
-describe("Stake Test", function() {
+describe.skip("Stake Test", function() {
   before(function() {
     // get existing validator
     let result = web3.cmt.stake.queryValidators()
