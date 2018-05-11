@@ -95,22 +95,51 @@ func (ac awardCalculator) AwardAll() {
 		validators = append(validators, validator)
 	}
 
+	totalAward := ac.getTotalBlockAward()
+	actualTotalAward := big.NewInt(0)
 	for _, val := range validators {
-		x := new(big.Float).SetInt(val.shares)
-		y := new(big.Float).SetInt(totalShares)
-		val.sharesPercentage = new(big.Float).Quo(x, y)
-		fmt.Printf("val.shares: %f, totalShares: %f, percentage: %f\n", x, y, val.sharesPercentage)
-		blockAward := ac.getBlockAwardForValidator(val)
-		remainedAward := blockAward
-
-		// award to delegators
-		for _, delegator := range val.delegators {
-			delegatorAward := ac.getDelegatorAward(delegator, val, blockAward)
-			remainedAward.Sub(remainedAward, delegatorAward)
-			ac.awardToDelegator(delegator, val, delegatorAward)
-		}
-		ac.awardToValidator(val, remainedAward)
+		actualAward := award(val, totalShares, ac, big.NewInt(0))
+		actualTotalAward.Add(actualTotalAward, actualAward)
 	}
+
+	// If there is remaining award, distribute a second round based on stake amount.
+	remaining := new(big.Int).Sub(totalAward, actualTotalAward)
+	if remaining.Cmp(big.NewInt(0)) > 0 {
+		fmt.Printf("there is remaining award, distribute a second round based on stake amount. remaining: %d\v", remaining)
+		for _, val := range validators {
+			award(val, totalShares, ac, remaining)
+		}
+	}
+}
+
+func award(val validator, totalShares *big.Int, ac awardCalculator, remaining *big.Int) (actualAward *big.Int) {
+	again := !(remaining.Cmp(big.NewInt(0)) == 0)
+	x := new(big.Float).SetInt(val.shares)
+	y := new(big.Float).SetInt(totalShares)
+	val.sharesPercentage = new(big.Float).Quo(x, y)
+	if !again && val.sharesPercentage.Cmp(big.NewFloat(0.1)) > 0 {
+		val.sharesPercentage = big.NewFloat(0.1)
+	}
+
+	fmt.Printf("val.shares: %f, totalShares: %f, percentage: %f\n", x, y, val.sharesPercentage)
+
+	if again {
+		actualAward = remaining
+	} else {
+		actualAward = ac.getBlockAwardForValidator(val)
+	}
+
+	remainingAward := actualAward
+
+	// award to delegators
+	for _, delegator := range val.delegators {
+		delegatorAward := ac.getDelegatorAward(delegator, val, actualAward)
+		remainingAward.Sub(remainingAward, delegatorAward)
+		ac.awardToDelegator(delegator, val, delegatorAward)
+	}
+	ac.awardToValidator(val, remainingAward)
+
+	return
 }
 
 func (ac awardCalculator) getBlockAwardForValidator(val validator) (result *big.Int) {
