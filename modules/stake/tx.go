@@ -50,10 +50,6 @@ type TxDeclareCandidacy struct {
 }
 
 func (tx TxDeclareCandidacy) ValidateBasic() error {
-	if tx.PubKey.Empty() {
-		return errCandidateEmpty
-	}
-
 	return nil
 }
 

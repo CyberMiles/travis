@@ -13,7 +13,8 @@ ERPCPORT=8545
 
 RSTEP=10
 
-seeds="127.0.0.1:$TP2PPORT"
+#seeds="127.0.0.1:$TP2PPORT"
+seeds=""
 
 # init params
 if [ -z $INST_COUNT ]; then

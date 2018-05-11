@@ -69,7 +69,7 @@ func GetWithProofOptions(path string, key []byte, opts rpcclient.ABCIQueryOption
 
 	if len(resp.Value) > 0 {
 		// The key was found, construct a proof of existence.
-		eproof, err := iavl.ReadKeyExistsProof(resp.Proof)
+		eproof, err := iavl.ReadKeyProof(resp.Proof)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "Error reading proof")
 		}
@@ -83,8 +83,7 @@ func GetWithProofOptions(path string, key []byte, opts rpcclient.ABCIQueryOption
 	}
 
 	// The key wasn't found, construct a proof of non-existence.
-	var aproof *iavl.KeyAbsentProof
-	aproof, err = iavl.ReadKeyAbsentProof(resp.Proof)
+	aproof, err := iavl.ReadKeyProof(resp.Proof)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Error reading proof")
 	}

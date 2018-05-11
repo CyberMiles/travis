@@ -28,12 +28,12 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 	}
 	var pkEd crypto.PubKeyEd25519
 	copy(pkEd[:], pkBytes[:])
-	pk = pkEd.Wrap()
+	pk = pkEd
 	return
 }
 
 func PubKeyString(pk crypto.PubKey) string {
-	switch pki := pk.PubKeyInner.(type) {
+	switch pki := pk.(type) {
 	case crypto.PubKeyEd25519:
 		return fmt.Sprintf("%X", pki[:])
 	case crypto.PubKeySecp256k1:

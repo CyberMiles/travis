@@ -1,5 +1,5 @@
-hash: cbbd9806c49e13060f5226eefe7d43bf09058d068e2df26614ea9915c5fe917f
-updated: 2018-03-30T11:40:34.080627+08:00
+hash: dc4d2d3309ee964b70e2f0750fa07b88243238bf6a7fd24bcb3134628b6111f0
+updated: 2018-05-10T16:45:16.033558+08:00
 imports:
 - name: github.com/aristanetworks/goarista
   version: c294d07ad966d5db9cedf32a67c62837a46e9d90
@@ -15,22 +15,10 @@ imports:
   version: a368813c5e648fee92e5f6c30e3944ff9d5e8895
 - name: github.com/cosmos/cosmos-sdk
   version: be92f16b52cdeaba6dddaa62e0a8d1eed9e9640e
+- name: github.com/davecgh/go-spew
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
-  - client
-  - client/commands
-  - client/commands/auto
-  - client/commands/keys
-  - client/commands/query
-  - client/commands/txs
-  - errors
-  - modules/auth
-  - modules/base
-  - modules/base/commands
-  - modules/roles
-  - modules/roles/commands
-  - stack
-  - state
-  - version
+  - spew
 - name: github.com/ebuchman/fail-test
   version: 95f809107225be108efcf10a3509e4ea6ceef3c4
 - name: github.com/edsrzf/mmap-go
@@ -99,23 +87,17 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/go-kit/kit
-  version: 4dc7be5d2d12881735283bcab7352178e190fc71
+  version: ca4112baa34cb55091301bdc13b1420a122b1b9e
   subpackages:
   - log
   - log/level
   - log/term
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
-- name: github.com/go-playground/locales
-  version: e4cbcb5d0652150d40ad0646651076b6bd2be4f6
-  subpackages:
-  - currency
-- name: github.com/go-playground/universal-translator
-  version: 71201497bace774495daed26a3874fd339e0b538
 - name: github.com/go-stack/stack
   version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
 - name: github.com/gogo/protobuf
-  version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
+  version: 1adfc126b41513cc696b209667c8656ea7aac67c
   subpackages:
   - gogoproto
   - jsonpb
@@ -152,8 +134,6 @@ imports:
   - json/parser
   - json/scanner
   - json/token
-- name: github.com/howeyc/crc16
-  version: 2b2a61e366a66d3efb279e46176e7291001e0354
 - name: github.com/huin/goupnp
   version: dceda08e705b2acee36aab47d765ed801f64cfc7
   subpackages:
@@ -238,11 +218,11 @@ imports:
   - leveldb/table
   - leveldb/util
 - name: github.com/tendermint/abci
-  version: 5d5ea6869b91cadb55dbc4211ad7b326f053a33e
+  version: 78a8905690ef54f9d57e3b2b0ee7ad3a04ef3f1f
   subpackages:
   - client
   - example/code
-  - example/dummy
+  - example/kvstore
   - server
   - types
 - name: github.com/tendermint/ed25519
@@ -250,24 +230,21 @@ imports:
   subpackages:
   - edwards25519
   - extra25519
+- name: github.com/tendermint/go-amino
+  version: ecf42f8907e063f630fcce7605c61252db93c355
 - name: github.com/tendermint/go-crypto
-  version: 53360ccea60ffab17ce209f445a04b688f3aa258
+  version: 915416979bf70efa4bcbf1c6cd5d64c5fff9fc19
   subpackages:
   - cmd
   - keys
-  - keys/cryptostore
-  - keys/storage/filestorage
-  - keys/wordlist
 - name: github.com/tendermint/go-wire
   version: b8470691aa56b059e06dbfced95a4a21a407df81
   subpackages:
   - data
-  - data/base58
-  - nowriter/tmlegacy
 - name: github.com/tendermint/iavl
-  version: 594cc0c062a7174475f0ab654384038d77067917
+  version: fd37a0fa3a7454423233bc3d5ea828f38e0af787
 - name: github.com/tendermint/tendermint
-  version: 381fe19335ba8825e04d1d0fefa5cac709bb7178
+  version: 26f633ed48441f72895b710f0e87b7b6c6791066
   subpackages:
   - blockchain
   - cmd/tendermint/commands
@@ -283,6 +260,8 @@ imports:
   - mempool
   - node
   - p2p
+  - p2p/conn
+  - p2p/pex
   - p2p/trust
   - p2p/upnp
   - proxy
@@ -300,9 +279,10 @@ imports:
   - state/txindex/kv
   - state/txindex/null
   - types
+  - types/priv_validator
   - version
 - name: github.com/tendermint/tmlibs
-  version: 91b4b534ad78e442192c8175db92a06a51064064
+  version: cc5f287c4798ffe88c04d02df219ecb6932080fd
   subpackages:
   - autofile
   - cli
@@ -398,8 +378,6 @@ imports:
   - transport
 - name: gopkg.in/fatih/set.v0
   version: 168a5d71ba0669ae06888225478d73a113f1687e
-- name: gopkg.in/go-playground/validator.v9
-  version: 48a433ba4bcadc5be9aa16d4bdcb383d3f57a741
 - name: gopkg.in/karalabe/cookiejar.v2
   version: 8dcd6a7f4951f6ff3ee9cbb919a06d8925822e57
   subpackages:
@@ -415,10 +393,6 @@ imports:
 - name: gopkg.in/yaml.v2
   version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 testImports:
-- name: github.com/davecgh/go-spew
-  version: 346938d642f2ec3594ed81d874461961cd0faa76
-  subpackages:
-  - spew
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:

@@ -12,7 +12,6 @@ import (
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth"
-	"github.com/tendermint/go-wire/data"
 	"math/big"
 )
 
@@ -38,24 +37,24 @@ type delegatedProofOfStake interface {
 //_______________________________________________________________________
 
 // InitState - set genesis parameters for staking
-func InitState(key, value string, store state.SimpleDB) error {
+func InitState(key string, value interface{}, store state.SimpleDB) error {
 	params := loadParams(store)
 	switch key {
 	case "reserve_requirement_ratio":
-		i, err := strconv.Atoi(value)
+		i, err := strconv.Atoi(value.(string))
 		if err != nil {
 			return fmt.Errorf("input must be integer, Error: %v", err.Error())
 		}
 		params.ReserveRequirementRatio = uint16(i)
 	case "max_vals":
-		i, err := strconv.Atoi(value)
+		i, err := strconv.Atoi(value.(string))
 		if err != nil {
 			return fmt.Errorf("input must be integer, Error: %v", err.Error())
 		}
 
 		params.MaxVals = uint16(i)
 	case "validator":
-		setValidator(value, store)
+		setValidator(value.(types.GenesisValidator), store)
 	default:
 		return errors.ErrUnknownKey(key)
 	}
@@ -64,19 +63,15 @@ func InitState(key, value string, store state.SimpleDB) error {
 	return nil
 }
 
-func setValidator(value string, store state.SimpleDB) error {
-	var val genesisValidator
-	err := data.FromJSON([]byte(value), &val)
-	if err != nil {
-		return fmt.Errorf("error reading validators")
-	}
-
-	if val.Address == common.HexToAddress("0000000000000000000000000000000000000000") {
+func setValidator(val types.GenesisValidator, store state.SimpleDB) error {
+	if val.Address == "0000000000000000000000000000000000000000" {
 		return ErrBadValidatorAddr()
 	}
 
+	addr := common.HexToAddress(val.Address)
+
 	// create and save the empty candidate
-	bond := GetCandidateByAddress(val.Address)
+	bond := GetCandidateByAddress(addr)
 	if bond != nil {
 		return ErrCandidateExistsAddr()
 	}
@@ -89,7 +84,7 @@ func setValidator(value string, store state.SimpleDB) error {
 	params := loadParams(store)
 	deliverer := deliver{
 		store:  store,
-		sender: val.Address,
+		sender: addr,
 		params: params,
 	}
 

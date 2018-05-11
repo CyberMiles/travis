@@ -12,9 +12,10 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tendermint/tendermint/types"
+	pv "github.com/tendermint/tendermint/types/priv_validator"
 	cmn "github.com/tendermint/tmlibs/common"
 
+	"github.com/CyberMiles/travis/types"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 )
 
@@ -42,12 +43,14 @@ func initFiles(cmd *cobra.Command, args []string) error {
 func initTendermint() {
 	// private validator
 	privValFile := config.TMConfig.PrivValidatorFile()
-	var privValidator *types.PrivValidatorFS
+	var privValidator *pv.FilePV
 	if cmn.FileExists(privValFile) {
-		privValidator = types.LoadPrivValidatorFS(privValFile)
+		privValidator = pv.LoadFilePV(privValFile)
 		logger.Info("Found private validator", "path", privValFile)
 	} else {
-		privValidator = types.GenPrivValidatorFS(privValFile)
+		dir := filepath.Dir(privValFile)
+		os.Mkdir(dir, os.ModePerm)
+		privValidator = pv.GenFilePV(privValFile)
 		privValidator.Save()
 		logger.Info("Genetated private validator", "path", privValFile)
 	}
@@ -62,7 +65,7 @@ func initTendermint() {
 			MaxVals:                 4,
 			ReserveRequirementRatio: 10,
 		}
-		genDoc.Validators = []GenesisValidator{{
+		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    privValidator.GetPubKey(),
 			Power:     1000,
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",

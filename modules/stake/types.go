@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-wire"
 	"math/big"
 )
 
@@ -89,9 +88,9 @@ func (c *Candidate) validator() Validator {
 type Validator Candidate
 
 // ABCIValidator - Get the validator from a bond value
-func (v Validator) ABCIValidator() *abci.Validator {
-	return &abci.Validator{
-		PubKey: wire.BinaryBytes(v.PubKey),
+func (v Validator) ABCIValidator() abci.Validator {
+	return abci.Validator{
+		PubKey: v.PubKey.Bytes(),
 		Power:  v.VotingPower,
 	}
 }
@@ -188,14 +187,14 @@ func (vs Validators) Sort() {
 }
 
 // determine all changed validators between two validator sets
-func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validator) {
+func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator) {
 
 	//first sort the validator sets
 	vs.Sort()
 	vs2.Sort()
 
 	max := len(vs) + len(vs2)
-	changed = make([]*abci.Validator, max)
+	changed = make([]abci.Validator, max)
 	i, j, n := 0, 0, 0 //counters for vs loop, vs2 loop, changed element
 
 	for i < len(vs) && j < len(vs2) {
@@ -208,7 +207,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validato
 				j++
 				continue
 			} // else, the old validator has been removed
-			changed[n] = &abci.Validator{vs[i].PubKey.Bytes(), 0}
+			changed[n] = abci.Validator{vs[i].PubKey.Bytes(), 0}
 			n++
 			i++
 			continue
@@ -229,7 +228,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validato
 
 	// remove any excess validators left in set 1
 	for ; i < len(vs); i, n = i+1, n+1 {
-		changed[n] = &abci.Validator{vs[i].PubKey.Bytes(), 0}
+		changed[n] = abci.Validator{vs[i].PubKey.Bytes(), 0}
 	}
 
 	return changed[:n]
@@ -242,7 +241,7 @@ func (vs Validators) Remove(i int32) Validators {
 
 // UpdateValidatorSet - Updates the voting power for the candidate set and
 // returns the subset of validators which have changed for Tendermint
-func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err error) {
+func UpdateValidatorSet(store state.SimpleDB) (change []abci.Validator, err error) {
 
 	// get the validators before update
 	candidates := GetCandidates()

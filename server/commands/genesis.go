@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/go-crypto"
+	travis "github.com/CyberMiles/travis/types"
 	"github.com/tendermint/go-wire/data"
 	"github.com/tendermint/tendermint/types"
 	cmn "github.com/tendermint/tmlibs/common"
@@ -16,31 +16,21 @@ import (
 //------------------------------------------------------------
 // core types for a genesis definition
 
-// GenesisValidator is an initial validator.
-type GenesisValidator struct {
-	PubKey    crypto.PubKey `json:"pub_key"`
-	Power     int64         `json:"power"`
-	Name      string        `json:"name"`
-	Address   string        `json:"address"`
-	Cut       int64         `json:"cut"`
-	MaxAmount int64         `json:"max_amount"`
-}
-
 // GenesisDoc defines the initial conditions for a tendermint blockchain, in particular its validator set.
 type GenesisDoc struct {
 	GenesisTime             time.Time              `json:"genesis_time"`
 	ChainID                 string                 `json:"chain_id"`
 	ConsensusParams         *types.ConsensusParams `json:"consensus_params,omitempty"`
-	Validators              []GenesisValidator     `json:"validators"`
+	Validators              []travis.GenesisValidator     `json:"validators"`
 	AppHash                 data.Bytes             `json:"app_hash"`
-	AppOptions              interface{}            `json:"app_options,omitempty"`
 	MaxVals                 uint16                 `json:"max_vals"`
 	ReserveRequirementRatio uint16                 `json:"reserve_requirement_ratio"`
 }
 
 // SaveAs is a utility method for saving GenensisDoc as a JSON file.
 func (genDoc *GenesisDoc) SaveAs(file string) error {
-	genDocBytes, err := json.Marshal(genDoc)
+	// genDocBytes, err := json.Marshal(genDoc)
+	genDocBytes, err := cdc.MarshalJSONIndent(genDoc, "", "  ")
 	if err != nil {
 		return err
 	}

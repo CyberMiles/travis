@@ -64,12 +64,3 @@ func GetTrustedProvider() lite.Provider {
 func GetProviders() (trusted lite.Provider, source lite.Provider) {
 	return GetTrustedProvider(), GetSourceProvider()
 }
-
-// GetCertifier constructs a dynamic certifier from the config info
-func GetCertifier() (*lite.Inquiring, error) {
-	// load up the latest store....
-	trust := GetTrustedProvider()
-	source := GetSourceProvider()
-	chainID := GetChainID()
-	return client.GetCertifier(chainID, trust, source)
-}

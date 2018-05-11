@@ -127,8 +127,7 @@ func (c CheckResult) ToABCI() abci.ResponseCheckTx {
 	return abci.ResponseCheckTx{
 		Data: c.Data,
 		Log:  c.Log,
-		Gas:  c.GasAllocated,
-		Fee:  c.GasPayment,
+		GasUsed:  c.GasAllocated,
 	}
 }
 
@@ -142,7 +141,6 @@ type DeliverResult struct {
 	Data    data.Bytes
 	Log     string
 	Diff    []*abci.Validator
-	Tags    []*abci.KVPair
 	GasUsed int64 // unused
 }
 
@@ -150,7 +148,7 @@ func (d DeliverResult) ToABCI() abci.ResponseDeliverTx {
 	return abci.ResponseDeliverTx{
 		Data: d.Data,
 		Log:  d.Log,
-		Tags: d.Tags,
+		Tags: nil,
 	}
 }
 

@@ -9,73 +9,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	wire "github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
-	"github.com/tendermint/iavl"
 	cmn "github.com/tendermint/tmlibs/common"
 
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-
-	"github.com/CyberMiles/travis/sdk/client"
-	"github.com/CyberMiles/travis/sdk/client/commands"
 )
-
-// GetParsed does most of the work of the query commands, but is quite
-// opinionated, so if you want more control about parsing, call Get
-// directly.
-//
-// It will try to get the proof for the given key.  If it is successful,
-// it will return the height and also unserialize proof.Data into the data
-// argument (so pass in a pointer to the appropriate struct)
-func GetParsed(key []byte, data interface{}, height int64, prove bool) (int64, error) {
-	bs, h, err := Get(key, height, prove)
-	if err != nil {
-		return 0, err
-	}
-	err = wire.ReadBinaryBytes(bs, data)
-	if err != nil {
-		return 0, err
-	}
-	return h, nil
-}
-
-// Get queries the given key and returns the value stored there and the
-// height we checked at.
-//
-// If prove is true (and why shouldn't it be?),
-// the data is fully verified before returning.  If prove is false,
-// we just repeat whatever any (potentially malicious) node gives us.
-// Only use that if you are running the full node yourself,
-// and it is localhost or you have a secure connection (not HTTP)
-func Get(key []byte, height int64, prove bool) (data.Bytes, int64, error) {
-	if height < 0 {
-		return nil, 0, fmt.Errorf("Height cannot be negative")
-	}
-
-	if !prove {
-		node := commands.GetNode()
-		resp, err := node.ABCIQueryWithOptions("/key", key,
-			rpcclient.ABCIQueryOptions{Trusted: true, Height: int64(height)})
-		if resp == nil {
-			return nil, height, err
-		}
-		return data.Bytes(resp.Response.Value), resp.Response.Height, err
-	}
-	val, h, _, err := GetWithProof(key, height)
-	return val, h, err
-}
-
-// GetWithProof returns the values stored under a given key at the named
-// height as in Get.  Additionally, it will return a validated merkle
-// proof for the key-value pair if it exists, and all checks pass.
-func GetWithProof(key []byte, height int64) (data.Bytes, int64, iavl.KeyProof, error) {
-	node := commands.GetNode()
-	cert, err := commands.GetCertifier()
-	if err != nil {
-		return nil, 0, nil, err
-	}
-	return client.GetWithProof(key, height, node, cert)
-}
 
 // ParseHexKey parses the key flag as hex and converts to bytes or returns error
 // argname is used to customize the error message

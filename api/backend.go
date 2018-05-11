@@ -150,7 +150,7 @@ func (b *Backend) InitEthState(receiver common.Address) error {
 
 // UpdateHeaderWithTimeInfo uses the tendermint header to update the ethereum header
 // #unstable
-func (b *Backend) UpdateHeaderWithTimeInfo(tmHeader *abciTypes.Header) {
+func (b *Backend) UpdateHeaderWithTimeInfo(tmHeader abciTypes.Header) {
 	b.es.UpdateHeaderWithTimeInfo(b.ethereum.ApiBackend.ChainConfig(), uint64(tmHeader.Time),
 		uint64(tmHeader.GetNumTxs()))
 }

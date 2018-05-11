@@ -26,7 +26,7 @@ type BaseApp struct {
 	checkedTx           map[common.Hash]*types.Transaction
 	ethereum            *eth.Ethereum
 	AbsentValidators    []int32
-	ByzantineValidators []*abci.Evidence
+	ByzantineValidators []abci.Evidence
 }
 
 const (
@@ -108,7 +108,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		resp := app.EthApp.CheckTx(tx)
 		app.logger.Debug("EthApp CheckTx response: %v\n", resp)
 		if resp.IsErr() {
-			return errors.CheckResult(goerr.New(resp.Error()))
+			return errors.CheckResult(goerr.New(resp.String()))
 		}
 		app.checkedTx[tx.Hash()] = tx
 		return sdk.NewCheck(0, "").ToABCI()
@@ -174,13 +174,13 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	return
 }
 
-func (app *BaseApp) InitState(module, key, value string) error {
+func (app *BaseApp) InitState(module, key string, value interface{}) error {
 	state := app.Append()
 	logger := app.Logger().With("module", module, "key", key)
 
 	if module == sdk.ModuleNameBase {
 		if key == sdk.ChainKey {
-			app.info.SetChainID(state, value)
+			app.info.SetChainID(state, value.(string))
 			return nil
 		}
 		logger.Error("Invalid genesis option")
@@ -205,7 +205,7 @@ func isEthTx(tx *types.Transaction) bool {
 
 // Tick - Called every block even if no transaction, process all queues,
 // validator rewards, and calculate the validator set difference
-func tick(store state.SimpleDB) (change []*abci.Validator, err error) {
+func tick(store state.SimpleDB) (change []abci.Validator, err error) {
 	change, err = stake.UpdateValidatorSet(store)
 	return
 }
