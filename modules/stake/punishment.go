@@ -24,7 +24,7 @@ func PunishAbsentValidator(pubKey crypto.PubKey) (err error) {
 
 func punish(pubKey crypto.PubKey, ratio int64, reason string) (err error) {
 	totalDeduction := new(big.Int)
-	v := GetCandidateByPubKey(pubKey.KeyString())
+	v := GetCandidateByPubKey(utils.PubKeyString(pubKey))
 	if v == nil {
 		return ErrNoCandidateForAddress()
 	}

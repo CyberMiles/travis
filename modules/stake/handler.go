@@ -207,7 +207,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 		return fmt.Errorf("address has been declared")
 	}
 
-	candidate = GetCandidateByPubKey(tx.PubKey.KeyString())
+	candidate = GetCandidateByPubKey(utils.PubKeyString(tx.PubKey))
 	if candidate != nil {
 		return fmt.Errorf("pubkey has been declared")
 	}
@@ -427,6 +427,14 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 		return ErrNoCandidateForAddress()
 	}
 
+	nilAddress := common.Address{}
+	addressChanged := false
+	origAddress := candidate.OwnerAddress
+	if tx.NewAddress != nilAddress {
+		candidate.OwnerAddress = tx.NewAddress
+		addressChanged = true
+	}
+
 	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
 	// and the different will be charged or refunded from / into the new account address.
 	if tx.MaxAmount != "" {
@@ -437,33 +445,40 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 
 		if candidate.MaxShares.Cmp(maxAmount) != 0 {
 			z := new(big.Int)
-			diff := new(big.Int).Sub(candidate.MaxShares, maxAmount)
+			diff := new(big.Int).Sub(maxAmount, candidate.MaxShares)
 			y := big.NewInt(int64(d.params.ReserveRequirementRatio))
 			z.Mul(diff, y)
 			z.Div(z, big.NewInt(100))
 
 			amount, _ := new(big.Int).SetString(z.String(), 10)
-			if diff.Cmp(big.NewInt(0)) < 0 {
+			amountAbs := new(big.Int)
+			amountAbs.Abs(amount)
+			addr := common.Address{}
+			if addressChanged {
+				addr = tx.NewAddress
+			} else {
+				addr = d.sender
+			}
+
+			if diff.Cmp(big.NewInt(0)) > 0 {
 				// charge
-				commons.Transfer(d.sender, utils.HoldAccount, amount)
+				commons.Transfer(addr, utils.HoldAccount, amountAbs)
 			} else {
 				// refund
-				commons.Transfer(utils.HoldAccount, d.sender, amount)
+				commons.Transfer(utils.HoldAccount, addr, amountAbs)
 			}
 
 			candidate.MaxShares = maxAmount
 			shares := new(big.Int)
 			shares.Add(candidate.Shares, amount)
-			candidate.Shares = z
-		}
-	}
+			candidate.Shares = shares
 
-	nilAddress := common.Address{}
-	addressChanged := false
-	origAddress := candidate.OwnerAddress
-	if tx.NewAddress != nilAddress {
-		candidate.OwnerAddress = tx.NewAddress
-		addressChanged = true
+			// update delegation
+			delegation := GetDelegation(d.sender, candidate.PubKey)
+			delegation.DelegateAmount.Add(delegation.DelegateAmount, amount)
+			delegation.UpdatedAt = utils.GetNow()
+			UpdateDelegation(delegation)
+		}
 	}
 
 	// If other information was updated, set the verified status to false
@@ -592,12 +607,21 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		return ErrInvalidWithdrawalAmount()
 	}
 
+	delegation := GetDelegation(d.sender, candidate.PubKey)
+
 	// candidates can't withdraw the reserved reservation fund
 	if d.sender == candidate.OwnerAddress {
-		return ErrCandidateWithdrawalDisallowed()
+		rr := new(big.Int)
+		rrr := big.NewInt(int64(d.params.ReserveRequirementRatio))
+		rr.Mul(candidate.MaxShares, rrr)
+		rr.Div(rr, big.NewInt(100))
+		remained := new(big.Int)
+		remained.Sub(delegation.Shares(), amount)
+		if remained.Cmp(rr) < 0 {
+			return ErrCandidateWithdrawalDisallowed()
+		}
 	}
 
-	delegation := GetDelegation(d.sender, candidate.PubKey)
 	delegation.WithdrawAmount.Add(delegation.WithdrawAmount, amount)
 	if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
 		// todo remove or not?
