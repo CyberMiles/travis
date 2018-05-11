@@ -15,6 +15,6 @@ var nodeCmd = &cobra.Command{
 func prepareNodeCommands() {
 	nodeCmd.AddCommand(
 		basecmd.InitCmd,
-		basecmd.GetTickStartCmd(),
+		basecmd.GetStartCmd(),
 	)
 }

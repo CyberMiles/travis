@@ -521,7 +521,10 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 		RemoveDelegation(delegation)
 	}
 
-	removeCandidate(candidate)
+	//removeCandidate(candidate)
+	candidate.Shares = big.NewInt(0)
+	candidate.UpdatedAt = utils.GetNow()
+	updateCandidate(candidate)
 	return nil
 }
 
