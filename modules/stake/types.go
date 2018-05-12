@@ -246,14 +246,15 @@ func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err err
 
 	// get the validators before update
 	candidates := GetCandidates()
-
-	// clean all of the candidates had been withdrawed
-	cleanCandidates()
+	candidates.Sort()
 
 	v1 := candidates.Validators()
 	v2 := candidates.updateVotingPower(store).Validators()
 
 	change = v1.validatorsChanged(v2)
+
+	// clean all of the candidates had been withdrawed
+	cleanCandidates()
 	return
 }
 
