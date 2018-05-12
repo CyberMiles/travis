@@ -242,14 +242,14 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 	// and the different will be charged or refunded from / into the new account address.
 	if tx.MaxAmount != "" {
 		rr := new(big.Int)
-		x, ok := new(big.Int).SetString(tx.MaxAmount, 10)
+		maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
 		if !ok {
 			return ErrBadAmount()
 		}
 
-		if candidate.MaxShares.Cmp(x) != 0 {
+		if candidate.MaxShares.Cmp(maxAmount) != 0 {
 			y := big.NewInt(int64(c.params.ReserveRequirementRatio))
-			rr.Mul(x, y)
+			rr.Mul(maxAmount, y)
 			rr.Div(rr, big.NewInt(100))
 
 			balance, err := commons.GetBalance(c.ethereum, c.sender)
@@ -257,7 +257,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 				return err
 			}
 
-			if balance.Cmp(rr) < 0 {
+			if maxAmount.Cmp(candidate.MaxShares) > 0 && balance.Cmp(rr) < 0 {
 				return ErrInsufficientFunds()
 			}
 		}
