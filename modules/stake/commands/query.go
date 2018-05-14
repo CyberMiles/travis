@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
 	"os"
+	"github.com/CyberMiles/travis/utils"
 )
 
 /**
@@ -85,13 +85,13 @@ func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
 	return Foutput(delegation)
 }
 
-func Get(path string, params []byte) (data.Bytes, error) {
+func Get(path string, params []byte) ([]byte, error) {
 	node := commands.GetNode()
 	resp, err := node.ABCIQuery(path, params)
 	if resp == nil {
 		return nil, err
 	}
-	return data.Bytes(resp.Response.Value), err
+	return resp.Response.Value, err
 }
 
 func GetParsed(path string, params []byte, data interface{}) error {
@@ -100,8 +100,7 @@ func GetParsed(path string, params []byte, data interface{}) error {
 		return err
 	}
 
-	//err = json.Unmarshal(bs, data)
-	err = wire.ReadBinaryBytes(bs, data)
+	err = utils.Cdc.UnmarshalBinary(bs, data)
 	if err != nil {
 		return err
 	}

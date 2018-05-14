@@ -11,6 +11,7 @@ import (
 	"github.com/tendermint/go-wire/data"
 	"github.com/tendermint/tendermint/types"
 	cmn "github.com/tendermint/tmlibs/common"
+	"github.com/CyberMiles/travis/utils"
 )
 
 //------------------------------------------------------------
@@ -30,7 +31,7 @@ type GenesisDoc struct {
 // SaveAs is a utility method for saving GenensisDoc as a JSON file.
 func (genDoc *GenesisDoc) SaveAs(file string) error {
 	// genDocBytes, err := json.Marshal(genDoc)
-	genDocBytes, err := cdc.MarshalJSONIndent(genDoc, "", "  ")
+	genDocBytes, err := utils.Cdc.MarshalJSONIndent(genDoc, "", "  ")
 	if err != nil {
 		return err
 	}

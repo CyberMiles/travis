@@ -22,9 +22,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
-	"github.com/tendermint/go-wire"
 	"github.com/tendermint/tmlibs/cli"
 	"os"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -189,13 +189,13 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		}
 	case "/validators":
 		candidates := stake.GetCandidates()
-		b := wire.BinaryBytes(candidates)
+		b, _ := utils.Cdc.MarshalBinary(candidates)
 		resQuery.Value = b
 	case "/validator":
 		address := common.HexToAddress(string(reqQuery.Data))
 		candidate := stake.GetCandidateByAddress(address)
 		if candidate != nil {
-			b := wire.BinaryBytes(*candidate)
+			b, _ := utils.Cdc.MarshalBinary(candidate)
 			resQuery.Value = b
 		} else {
 			resQuery.Value = []byte{}
@@ -203,11 +203,11 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/delegator":
 		address := common.HexToAddress(string(reqQuery.Data))
 		delegations := stake.GetDelegationsByDelegator(address)
-		b := wire.BinaryBytes(delegations)
+		b, _ := utils.Cdc.MarshalBinary(delegations)
 		resQuery.Value = b
 	case "/governance/proposals":
 		proposals := governance.GetProposals()
-		b := wire.BinaryBytes(proposals)
+		b, _ := utils.Cdc.MarshalBinary(proposals)
 		resQuery.Value = b
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest

@@ -1,12 +1,12 @@
-package commands
+package utils
 
 import (
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/go-crypto"
 )
 
-var cdc = amino.NewCodec()
+var Cdc = amino.NewCodec()
 
 func init() {
-	crypto.RegisterAmino(cdc)
+	crypto.RegisterAmino(Cdc)
 }
