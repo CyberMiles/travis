@@ -72,13 +72,13 @@ func (ac awardCalculator) AwardAll() {
 	for _, val := range ac.validators {
 		var validator validator
 		var delegators []delegator
-		candidate := GetCandidateByAddress(val.OwnerAddress)
+		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
 		if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
 			continue
 		}
 
 		validator.shares = candidate.Shares
-		validator.ownerAddress = candidate.OwnerAddress
+		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
 		validator.pubKey = candidate.PubKey
 		validator.cut = candidate.Cut
 		totalShares.Add(totalShares, candidate.Shares)

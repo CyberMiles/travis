@@ -54,7 +54,7 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	}
 	return &Candidate{
 		PubKey:       pk,
-		OwnerAddress: address,
+		OwnerAddress: address.String(),
 		Shares:       s,
 		VotingPower:  votingPower,
 		MaxShares:    ms,
@@ -99,7 +99,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 	}
 	return &Candidate{
 		PubKey:       pk,
-		OwnerAddress: common.HexToAddress(address),
+		OwnerAddress: address,
 		Shares:       s,
 		VotingPower:  votingPower,
 		MaxShares:    ms,
@@ -142,7 +142,7 @@ func GetCandidates() (candidates Candidates) {
 		}
 		candidate := &Candidate{
 			PubKey:       pk,
-			OwnerAddress: common.HexToAddress(address),
+			OwnerAddress: address,
 			Shares:       s,
 			VotingPower:  votingPower,
 			MaxShares:    ms,
@@ -181,7 +181,7 @@ func SaveCandidate(candidate *Candidate) {
 
 	_, err = stmt.Exec(
 		utils.PubKeyString(candidate.PubKey),
-		candidate.OwnerAddress.String(),
+		candidate.OwnerAddress,
 		candidate.Shares.String(),
 		candidate.VotingPower,
 		candidate.MaxShares.String(),
@@ -215,7 +215,7 @@ func updateCandidate(candidate *Candidate) {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
-		candidate.OwnerAddress.String(),
+		candidate.OwnerAddress,
 		candidate.Shares.String(),
 		candidate.VotingPower,
 		candidate.MaxShares.String(),
@@ -248,7 +248,7 @@ func removeCandidate(candidate *Candidate) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(candidate.OwnerAddress.String())
+	_, err = stmt.Exec(candidate.OwnerAddress)
 	if err != nil {
 		panic(err)
 	}

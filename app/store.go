@@ -189,13 +189,13 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		}
 	case "/validators":
 		candidates := stake.GetCandidates()
-		b, _ := utils.Cdc.MarshalBinary(candidates)
+		b, _ := utils.Cdc.MarshalJSONIndent(candidates, "", "  ")
 		resQuery.Value = b
 	case "/validator":
 		address := common.HexToAddress(string(reqQuery.Data))
 		candidate := stake.GetCandidateByAddress(address)
 		if candidate != nil {
-			b, _ := utils.Cdc.MarshalBinary(candidate)
+			b, _ := utils.Cdc.MarshalJSONIndent(candidate, "", "  ")
 			resQuery.Value = b
 		} else {
 			resQuery.Value = []byte{}
@@ -203,11 +203,11 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/delegator":
 		address := common.HexToAddress(string(reqQuery.Data))
 		delegations := stake.GetDelegationsByDelegator(address)
-		b, _ := utils.Cdc.MarshalBinary(delegations)
+		b, _ := utils.Cdc.MarshalJSONIndent(delegations, "", "  ")
 		resQuery.Value = b
 	case "/governance/proposals":
 		proposals := governance.GetProposals()
-		b, _ := utils.Cdc.MarshalBinary(proposals)
+		b, _ := utils.Cdc.MarshalJSONIndent(proposals, "", "  ")
 		resQuery.Value = b
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest

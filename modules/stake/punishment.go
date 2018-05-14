@@ -39,7 +39,7 @@ func punish(pubKey crypto.PubKey, ratio int64, reason string) (err error) {
 		deduction := new(big.Int)
 		deduction.Mul(delegation.DelegateAmount, big.NewInt(ratio))
 		deduction.Div(deduction, big.NewInt(100))
-		punishDelegator(delegation, v.OwnerAddress, deduction)
+		punishDelegator(delegation, common.HexToAddress(v.OwnerAddress), deduction)
 		totalDeduction.Add(totalDeduction, deduction)
 	}
 

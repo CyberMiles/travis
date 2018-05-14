@@ -54,7 +54,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if bytes.Equal(v.OwnerAddress.Bytes(), txInner.Proposer.Bytes()) {
+			if v.OwnerAddress == txInner.Proposer.String() {
 				break
 			}
 			if i + 1 == len(validators) {
@@ -84,7 +84,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if bytes.Equal(v.OwnerAddress.Bytes(), txInner.Voter.Bytes()) {
+			if v.OwnerAddress == txInner.Voter.String() {
 				break
 			}
 			if i + 1 == len(validators) {
@@ -194,7 +194,7 @@ func CheckProposal(pid string, voter *common.Address) string {
 	for _, va := range validators {
 		for _, vo := range votes {
 			// should check voter is still valid validator first
-			if bytes.Equal(vo.Voter.Bytes(), va.OwnerAddress.Bytes()) {
+			if vo.Voter.String() == va.OwnerAddress {
 				if strings.Compare(vo.Answer, "Y") == 0 {
 					approvedPower.Add(approvedPower, big.NewInt(va.VotingPower))
 				}
@@ -203,7 +203,7 @@ func CheckProposal(pid string, voter *common.Address) string {
 				}
 			}
 		}
-		if voter != nil && bytes.Equal(voter.Bytes(), va.OwnerAddress.Bytes()) {
+		if voter != nil && voter.String() == va.OwnerAddress {
 			voterPower = big.NewInt(va.VotingPower)
 		}
 		allPower.Add(allPower, big.NewInt(va.VotingPower))

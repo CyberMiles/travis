@@ -432,9 +432,9 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 
 	nilAddress := common.Address{}
 	addressChanged := false
-	origAddress := candidate.OwnerAddress
+	origAddress := common.HexToAddress(candidate.OwnerAddress)
 	if tx.NewAddress != nilAddress {
-		candidate.OwnerAddress = tx.NewAddress
+		candidate.OwnerAddress = tx.NewAddress.String()
 		addressChanged = true
 	}
 
@@ -616,7 +616,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	delegation := GetDelegation(d.sender, candidate.PubKey)
 
 	// candidates can't withdraw the reserved reservation fund
-	if d.sender == candidate.OwnerAddress {
+	if d.sender.String() == candidate.OwnerAddress {
 		rr := new(big.Int)
 		rrr := big.NewInt(int64(d.params.ReserveRequirementRatio))
 		rr.Mul(candidate.MaxShares, rrr)

@@ -2,14 +2,11 @@ package commands
 
 import (
 	"fmt"
-	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/sdk/client/commands"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/tendermint/go-wire/data"
 	"os"
-	"github.com/CyberMiles/travis/utils"
 )
 
 /**
@@ -53,36 +50,33 @@ func init() {
 }
 
 func cmdQueryValidators(cmd *cobra.Command, args []string) error {
-	var candidates stake.Candidates
-	err := GetParsed("/validators", []byte{0}, &candidates)
+	b, err := Get("/validators", []byte{0})
 	if err != nil {
 		return err
 	}
-	return Foutput(candidates)
+	return Foutput(b)
 }
 
 func cmdQueryValidator(cmd *cobra.Command, args []string) error {
-	var candidate stake.Candidate
 	address := viper.GetString(FlagAddress)
 	if address == "" {
 		return fmt.Errorf("please enter validator address using --address")
 	}
 
-	err := GetParsed("/validator", []byte(address), &candidate)
+	b, err := Get("/validator", []byte(address))
 	if err != nil {
 		return err
 	}
-	return Foutput(candidate)
+	return Foutput(b)
 }
 
 func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
-	var delegation []*stake.Delegation
 	address := viper.GetString(FlagAddress)
-	err := GetParsed("/delegator", []byte(address), &delegation)
+	b, err := Get("/delegator", []byte(address))
 	if err != nil {
 		return err
 	}
-	return Foutput(delegation)
+	return Foutput(b)
 }
 
 func Get(path string, params []byte) ([]byte, error) {
@@ -94,24 +88,7 @@ func Get(path string, params []byte) ([]byte, error) {
 	return resp.Response.Value, err
 }
 
-func GetParsed(path string, params []byte, data interface{}) error {
-	bs, err := Get(path, params)
-	if err != nil {
-		return err
-	}
-
-	err = utils.Cdc.UnmarshalBinary(bs, data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func Foutput(v interface{}) error {
-	blob, err := data.ToJSON(v)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(os.Stdout, "%s\n", blob)
-	return nil
+func Foutput(b []byte) error {
+	_, err := fmt.Fprintf(os.Stdout, "%s\n", b)
+	return err
 }

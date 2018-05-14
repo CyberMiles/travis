@@ -22,8 +22,12 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 		err = fmt.Errorf("must use --pubkey flag")
 		return
 	}
-	pubKeyStr = `{"type":"AC26791624DE60", "value":"` + pubKeyStr + `"}`
-	err = Cdc.UnmarshalJSON([]byte(pubKeyStr), &pk)
+	jpk := JsonPubKey{
+		"AC26791624DE60",
+		pubKeyStr,
+	}
+	b, err := json.Marshal(jpk)
+	err = Cdc.UnmarshalJSON(b, &pk)
 	return
 }
 

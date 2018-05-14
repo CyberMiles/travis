@@ -42,7 +42,7 @@ func defaultParams() Params {
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
 	PubKey       crypto.PubKey  `json:"pub_key"`       // Pubkey of candidate
-	OwnerAddress common.Address `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
+	OwnerAddress string         `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
 	Shares       *big.Int       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
 	MaxShares    *big.Int       `json:"max_shares"`
@@ -65,7 +65,7 @@ func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
-		OwnerAddress: ownerAddress,
+		OwnerAddress: ownerAddress.String(),
 		Shares:       shares,
 		VotingPower:  votingPower,
 		MaxShares:    maxShares,
