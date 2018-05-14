@@ -75,7 +75,7 @@ const getProposal = () => {
   return {}
 }
 
-describe("Governance Test", function() {
+describe.skip("Governance Test", function() {
   before(function() {
     accounts.forEach(acc => {
       // unlock account
