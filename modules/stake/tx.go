@@ -4,6 +4,7 @@ import (
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/go-crypto"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // Tx
@@ -43,7 +44,7 @@ func init() {
 var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, &TxWithdrawCandidacy{}, TxVerifyCandidacy{}, &TxDelegate{}, &TxWithdraw{}
 
 type TxDeclareCandidacy struct {
-	PubKey    crypto.PubKey `json:"pub_key"`
+	PubKey    string `json:"pub_key"`
 	MaxAmount string        `json:"max_amount"`
 	Cut       int64         `json:"cut"`
 	Description
@@ -55,7 +56,7 @@ func (tx TxDeclareCandidacy) ValidateBasic() error {
 
 func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount string, cut int64, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
-		PubKey:      pubKey,
+		PubKey:      utils.PubKeyString(pubKey),
 		MaxAmount:   maxAmount,
 		Cut:         cut,
 		Description: descrpition,

@@ -129,8 +129,8 @@ func GetCandidates() (candidates Candidates) {
 		if err != nil {
 			panic(err)
 		}
-
 		pk, _ := utils.GetPubKey(pubKey)
+
 		s := new(big.Int)
 		s.SetString(shares, 10)
 		ms := new(big.Int)

@@ -88,7 +88,7 @@ func setValidator(val types.GenesisValidator, store state.SimpleDB) error {
 		params: params,
 	}
 
-	tx := TxDeclareCandidacy{val.PubKey, maxAmount.String(), val.Cut, Description{}}
+	tx := TxDeclareCandidacy{utils.PubKeyString(val.PubKey), maxAmount.String(), val.Cut, Description{}}
 	return deliverer.declareGenesisCandidacy(tx, val.Power)
 }
 
@@ -202,7 +202,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 		return fmt.Errorf("address has been declared")
 	}
 
-	candidate = GetCandidateByPubKey(utils.PubKeyString(tx.PubKey))
+	candidate = GetCandidateByPubKey(tx.PubKey)
 	if candidate != nil {
 		return fmt.Errorf("pubkey has been declared")
 	}
@@ -387,7 +387,11 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 		return ErrBadAmount()
 	}
 
-	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), 0, maxAmount, tx.Cut, tx.Description, "N", "Y")
+	pubKey, err := utils.GetPubKey(tx.PubKey)
+	if err != nil {
+		return err
+	}
+	candidate := NewCandidate(pubKey, d.sender, big.NewInt(0), 0, maxAmount, tx.Cut, tx.Description, "N", "Y")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
@@ -406,7 +410,11 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int6
 		return ErrBadAmount()
 	}
 
-	candidate := NewCandidate(tx.PubKey, d.sender, big.NewInt(0), votingPower, maxAmount, tx.Cut, tx.Description, "N", "Y")
+	pubKey, err := utils.GetPubKey(tx.PubKey)
+	if err != nil {
+		return err
+	}
+	candidate := NewCandidate(pubKey, d.sender, big.NewInt(0), votingPower, maxAmount, tx.Cut, tx.Description, "N", "Y")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
