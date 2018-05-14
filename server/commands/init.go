@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/tendermint/tendermint/p2p"
 	pv "github.com/tendermint/tendermint/types/priv_validator"
 	cmn "github.com/tendermint/tmlibs/common"
 
@@ -53,6 +54,16 @@ func initTendermint() {
 		privValidator = pv.GenFilePV(privValFile)
 		privValidator.Save()
 		logger.Info("Genetated private validator", "path", privValFile)
+	}
+
+	nodeKeyFile := config.TMConfig.NodeKeyFile()
+	if cmn.FileExists(nodeKeyFile) {
+		logger.Info("Found node key", "path", nodeKeyFile)
+	} else {
+		if _, err := p2p.LoadOrGenNodeKey(nodeKeyFile); err != nil {
+			panic(err)
+		}
+		logger.Info("Generated node key", "path", nodeKeyFile)
 	}
 
 	// genesis file
