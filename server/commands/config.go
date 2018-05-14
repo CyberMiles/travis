@@ -1,8 +1,11 @@
 package commands
 
 import (
+	"bytes"
 	"os"
 	"path"
+	"path/filepath"
+	"text/template"
 
 	"github.com/spf13/viper"
 
@@ -12,7 +15,9 @@ import (
 )
 
 const (
-	defaultConfigDir  = "config"
+	defaultConfigDir = "config"
+	defaultDataDir   = "data"
+
 	configFile        = "config.toml"
 	defaultEthChainId = 111
 )
@@ -66,8 +71,8 @@ func DefaultEthermintConfig() EthermintConfig {
 		RPCEnabledFlag:    true,
 		RPCListenAddrFlag: node.DefaultHTTPHost,
 		RPCPortFlag:       node.DefaultHTTPPort,
-		RPCApiFlag:        "eth,net,web3,personal,admin",
-		WSEnabledFlag:     true,
+		RPCApiFlag:        "cmt,eth,net,web3,personal,admin",
+		WSEnabledFlag:     false,
 		WSListenAddrFlag:  node.DefaultWSHost,
 		WSPortFlag:        node.DefaultWSPort,
 		WSApiFlag:         "",
@@ -75,45 +80,79 @@ func DefaultEthermintConfig() EthermintConfig {
 	}
 }
 
-// ParseConfig retrieves the default environment configuration,
-// sets up the Tendermint root and ensures that the root exists
+// copied from tendermint/commands/root.go
+// to call our revised EnsureRoot
 func ParseConfig() (*TravisConfig, error) {
 	conf := DefaultConfig()
 	err := viper.Unmarshal(&conf)
 	if err != nil {
 		return nil, err
 	}
-
-	rootDir := conf.TMConfig.RootDir
-	conf.TMConfig.SetRoot(rootDir)
-
-	configFilePath := path.Join(rootDir, defaultConfigDir, configFile)
-	if !cmn.FileExists(configFilePath) {
-		tmcfg.EnsureRoot(rootDir)
-		// append vm configs
-		AppendVMConfig(configFilePath)
-	}
+	conf.TMConfig.SetRoot(conf.TMConfig.RootDir)
+	// replace EnsureRoot of tendermint with our own
+	ensureRoot(conf)
 
 	return conf, nil
 }
 
-func AppendVMConfig(configFilePath string) {
+// copied from tendermint/config/toml.go
+// modified to override some defaults and append vm configs
+func ensureRoot(conf *TravisConfig) {
+	rootDir := conf.TMConfig.RootDir
+
+	if err := cmn.EnsureDir(rootDir, 0700); err != nil {
+		cmn.PanicSanity(err.Error())
+	}
+	if err := cmn.EnsureDir(filepath.Join(rootDir, defaultConfigDir), 0700); err != nil {
+		cmn.PanicSanity(err.Error())
+	}
+	if err := cmn.EnsureDir(filepath.Join(rootDir, defaultDataDir), 0700); err != nil {
+		cmn.PanicSanity(err.Error())
+	}
+
+	configFilePath := path.Join(rootDir, defaultConfigDir, configFile)
+
+	// Write default config file if missing.
+	if !cmn.FileExists(configFilePath) {
+		// override some defaults
+		conf.TMConfig.Consensus.TimeoutCommit = 10000
+		conf.TMConfig.Consensus.MaxBlockSizeTxs = 50000
+		// write config file
+		tmcfg.WriteConfigFile(configFilePath, &conf.TMConfig)
+		// append vm configs
+		AppendVMConfig(configFilePath, conf)
+	}
+}
+
+func AppendVMConfig(configFilePath string, conf *TravisConfig) {
+	var configTemplate *template.Template
+	var err error
+	if configTemplate, err = template.New("vmConfigTemplate").Parse(defaultVmTemplate); err != nil {
+		panic(err)
+	}
+
+	var buffer bytes.Buffer
+	if err := configTemplate.Execute(&buffer, conf); err != nil {
+		panic(err)
+	}
+
 	f, err := os.OpenFile(configFilePath, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
-	if _, err := f.Write([]byte(defaultVm)); err != nil {
+
+	if _, err := f.Write(buffer.Bytes()); err != nil {
 		panic(err)
 	}
 }
 
-var defaultVm = `
+var defaultVmTemplate = `
 [vm]
-rpc = true
-rpcapi = "cmt,eth,net,web3,personal,admin"
-rpcaddr = "0.0.0.0"
-rpcport = 8545
-ws = false
-verbosity = 1
+rpc = {{ .EMConfig.RPCEnabledFlag }}
+rpcapi = "{{ .EMConfig.RPCApiFlag }}"
+rpcaddr = "{{ .EMConfig.RPCListenAddrFlag }}"
+rpcport = {{ .EMConfig.RPCPortFlag }}
+ws = {{ .EMConfig.WSEnabledFlag }}
+verbosity = {{ .EMConfig.VerbosityFlag }}
 `
