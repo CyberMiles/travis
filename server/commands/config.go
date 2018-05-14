@@ -3,7 +3,6 @@ package commands
 import (
 	"os"
 	"path"
-	"strings"
 
 	"github.com/spf13/viper"
 
@@ -13,6 +12,7 @@ import (
 )
 
 const (
+	defaultConfigDir  = "config"
 	configFile        = "config.toml"
 	defaultEthChainId = 111
 )
@@ -83,48 +83,32 @@ func ParseConfig() (*TravisConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	conf.TMConfig.SetRoot(conf.BaseConfig.RootDir)
-	ensureRoot(conf.BaseConfig.RootDir)
 
-	return conf, err
-}
+	rootDir := conf.TMConfig.RootDir
+	conf.TMConfig.SetRoot(rootDir)
 
-func ensureRoot(rootDir string) {
-	if err := cmn.EnsureDir(rootDir, 0700); err != nil {
-		cmn.PanicSanity(err.Error())
-	}
-	if err := cmn.EnsureDir(rootDir+"/data", 0700); err != nil {
-		cmn.PanicSanity(err.Error())
-	}
-
-	configFilePath := path.Join(rootDir, configFile)
-
-	// Write default config file if missing.
+	configFilePath := path.Join(rootDir, defaultConfigDir, configFile)
 	if !cmn.FileExists(configFilePath) {
-		cmn.MustWriteFile(configFilePath, []byte(defaultConfig(defaultMoniker)), 0644)
+		tmcfg.EnsureRoot(rootDir)
+		// append vm configs
+		AppendVMConfig(configFilePath)
+	}
+
+	return conf, nil
+}
+
+func AppendVMConfig(configFilePath string) {
+	f, err := os.OpenFile(configFilePath, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	if _, err := f.Write([]byte(defaultVm)); err != nil {
+		panic(err)
 	}
 }
 
-func defaultConfig(moniker string) string {
-	return strings.Replace(defaultConfigTmpl, "__MONIKER__", moniker, -1)
-}
-
-var defaultConfigTmpl = `
-# This is a TOML config file.
-# For more information, see https://github.com/toml-lang/toml
-
-moniker = "__MONIKER__"
-fast_sync = true
-db_backend = "leveldb"
-log_level = "state:info,*:error"
-
-[rpc]
-laddr = "tcp://0.0.0.0:46657"
-
-[p2p]
-laddr = "tcp://0.0.0.0:46656"
-seeds = ""
-
+var defaultVm = `
 [vm]
 rpc = true
 rpcapi = "cmt,eth,net,web3,personal,admin"
@@ -132,21 +116,4 @@ rpcaddr = "0.0.0.0"
 rpcport = 8545
 ws = false
 verbosity = 1
-
-
-[consensus]
-timeout_commit = 10000
-max_block_size_txs = 50000
 `
-
-var defaultMoniker = getDefaultMoniker()
-
-// getDefaultMoniker returns a default moniker, which is the host name. If runtime
-// fails to get the host name, "anonymous" will be returned.
-func getDefaultMoniker() string {
-	moniker, err := os.Hostname()
-	if err != nil {
-		moniker = "anonymous"
-	}
-	return moniker
-}
