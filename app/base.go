@@ -152,7 +152,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
 		for _, bv := range app.ByzantineValidators {
-			pk, err := utils.GetPubKey(string(bv.PubKey))
+			pk, err := ttypes.GetPubKey(string(bv.PubKey))
 			if err != nil {
 				continue
 			}

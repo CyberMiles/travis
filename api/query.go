@@ -4,9 +4,9 @@ import (
 	"github.com/spf13/cast"
 
 	"github.com/CyberMiles/travis/sdk/client"
-	"github.com/tendermint/go-wire"
 	"github.com/tendermint/go-wire/data"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
+	"encoding/json"
 )
 
 func (s *CmtRPCService) getParsed(path string, key []byte, data interface{}, height uint64) (int64, error) {
@@ -17,7 +17,7 @@ func (s *CmtRPCService) getParsed(path string, key []byte, data interface{}, hei
 	if len(bs) == 0 {
 		return h, client.ErrNoData()
 	}
-	err = wire.ReadBinaryBytes(bs, data)
+	err = json.Unmarshal(bs, data)
 	if err != nil {
 		return 0, err
 	}

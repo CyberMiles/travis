@@ -5,9 +5,9 @@ import (
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/go-crypto"
 	"math"
 	"math/big"
+	"github.com/CyberMiles/travis/types"
 )
 
 type awardCalculator struct {
@@ -19,7 +19,7 @@ type awardCalculator struct {
 type validator struct {
 	shares           *big.Int
 	ownerAddress     common.Address
-	pubKey           crypto.PubKey
+	pubKey           types.PubKey
 	delegators       []delegator
 	cut              int64
 	sharesPercentage *big.Float

@@ -11,7 +11,7 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
-	"github.com/CyberMiles/travis/utils"
+	"github.com/CyberMiles/travis/types"
 )
 
 /*
@@ -140,7 +140,7 @@ func init() {
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
-	pk, err := utils.GetPubKey(viper.GetString(FlagPubKey))
+	pk, err := types.GetPubKey(viper.GetString(FlagPubKey))
 	if err != nil {
 		return err
 	}

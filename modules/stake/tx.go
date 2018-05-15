@@ -3,8 +3,7 @@ package stake
 import (
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/go-crypto"
-	"github.com/CyberMiles/travis/utils"
+	"github.com/CyberMiles/travis/types"
 )
 
 // Tx
@@ -54,9 +53,9 @@ func (tx TxDeclareCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount string, cut int64, descrpition Description) sdk.Tx {
+func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount string, cut int64, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
-		PubKey:      utils.PubKeyString(pubKey),
+		PubKey:      types.PubKeyString(pubKey),
 		MaxAmount:   maxAmount,
 		Cut:         cut,
 		Description: descrpition,

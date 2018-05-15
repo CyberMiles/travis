@@ -8,7 +8,6 @@ import (
 
 	cmn "github.com/tendermint/tmlibs/common"
 	"strconv"
-	"github.com/CyberMiles/travis/utils"
 )
 
 // KeyDelimiter is used to separate module and key in
@@ -91,7 +90,7 @@ func load(filePath string) (*GenesisDoc, error) {
 
 	// the basecoin genesis go-wire/data :)
 	genDoc := new(GenesisDoc)
-	err = utils.Cdc.UnmarshalJSON(bytes, genDoc)
+	err = json.Unmarshal(bytes, genDoc)
 	if err != nil {
 		return nil, errors.Wrap(err, "unmarshaling genesis file")
 	}

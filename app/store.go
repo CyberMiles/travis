@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
 	"os"
-	"github.com/CyberMiles/travis/utils"
+	"encoding/json"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -189,13 +189,13 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		}
 	case "/validators":
 		candidates := stake.GetCandidates()
-		b, _ := utils.Cdc.MarshalJSONIndent(candidates, "", "  ")
+		b, _ := json.Marshal(candidates)
 		resQuery.Value = b
 	case "/validator":
 		address := common.HexToAddress(string(reqQuery.Data))
 		candidate := stake.GetCandidateByAddress(address)
 		if candidate != nil {
-			b, _ := utils.Cdc.MarshalJSONIndent(candidate, "", "  ")
+			b, _ := json.Marshal(candidate)
 			resQuery.Value = b
 		} else {
 			resQuery.Value = []byte{}
@@ -203,11 +203,11 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/delegator":
 		address := common.HexToAddress(string(reqQuery.Data))
 		delegations := stake.GetDelegationsByDelegator(address)
-		b, _ := utils.Cdc.MarshalJSONIndent(delegations, "", "  ")
+		b, _ := json.Marshal(delegations)
 		resQuery.Value = b
 	case "/governance/proposals":
 		proposals := governance.GetProposals()
-		b, _ := utils.Cdc.MarshalJSONIndent(proposals, "", "  ")
+		b, _ := json.Marshal(proposals)
 		resQuery.Value = b
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest

@@ -5,8 +5,8 @@ import (
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/go-crypto"
 	"math/big"
+	"github.com/CyberMiles/travis/types"
 )
 
 const (
@@ -14,17 +14,17 @@ const (
 	absent_deduction_ratio    = 1 // deduction ratio %1 for those validators absent for up to 3 hours
 )
 
-func PunishByzantineValidator(pubKey crypto.PubKey) (err error) {
+func PunishByzantineValidator(pubKey types.PubKey) (err error) {
 	return punish(pubKey, byzantine_deduction_ratio, "Byzantine validator")
 }
 
-func PunishAbsentValidator(pubKey crypto.PubKey) (err error) {
+func PunishAbsentValidator(pubKey types.PubKey) (err error) {
 	return punish(pubKey, absent_deduction_ratio, "Absent for up to 3 hours")
 }
 
-func punish(pubKey crypto.PubKey, ratio int64, reason string) (err error) {
+func punish(pubKey types.PubKey, ratio int64, reason string) (err error) {
 	totalDeduction := new(big.Int)
-	v := GetCandidateByPubKey(utils.PubKeyString(pubKey))
+	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
 	if v == nil {
 		return ErrNoCandidateForAddress()
 	}

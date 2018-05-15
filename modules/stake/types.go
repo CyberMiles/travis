@@ -9,8 +9,8 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/abci/types"
-	"github.com/tendermint/go-crypto"
 	"math/big"
+	"github.com/CyberMiles/travis/types"
 )
 
 // Params defines the high level settings for staking
@@ -41,7 +41,7 @@ func defaultParams() Params {
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
-	PubKey       crypto.PubKey  `json:"pub_key"`       // Pubkey of candidate
+	PubKey       types.PubKey   `json:"pub_key"`       // Pubkey of candidate
 	OwnerAddress string         `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
 	Shares       *big.Int       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
@@ -61,7 +61,7 @@ type Description struct {
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, maxShares *big.Int, cut int64, description Description, verified string, active string) *Candidate {
+func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, maxShares *big.Int, cut int64, description Description, verified string, active string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
@@ -266,7 +266,7 @@ type Delegator struct {
 
 type Delegation struct {
 	DelegatorAddress common.Address `json:"delegator_address"`
-	PubKey           crypto.PubKey  `json:"pub_key"`
+	PubKey           types.PubKey  `json:"pub_key"`
 	DelegateAmount   *big.Int       `json:"delegate_amount"`
 	AwardAmount      *big.Int       `json:"award_amount"`
 	WithdrawAmount   *big.Int       `json:"withdraw_amount"`
@@ -286,14 +286,14 @@ func (d Delegation) Shares() (shares *big.Int) {
 type DelegateHistory struct {
 	Id               int64
 	DelegatorAddress common.Address
-	PubKey           crypto.PubKey
+	PubKey           types.PubKey
 	Amount           *big.Int
 	OpCode           string
 	CreatedAt        string
 }
 
 type PunishHistory struct {
-	PubKey         crypto.PubKey
+	PubKey         types.PubKey
 	DeductionRatio int64
 	Deduction      *big.Int
 	Reason         string
