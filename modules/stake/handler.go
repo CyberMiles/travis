@@ -241,30 +241,23 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
 	// and the different will be charged
 	if tx.MaxAmount != "" {
-		rr := new(big.Int)
 		maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
 		if !ok {
 			return ErrBadAmount()
 		}
 
 		if maxAmount.Cmp(candidate.MaxShares) > 0 {
-			diff := new(big.Int).Sub(maxAmount, candidate.MaxShares)
-			y := big.NewInt(int64(c.params.ReserveRequirementRatio))
-			rr.Mul(diff, y)
-			rr.Div(rr, big.NewInt(100))
-
+			rechargeAmount := getRechargeAmount(maxAmount, candidate, c.params.ReserveRequirementRatio)
 			balance, err := commons.GetBalance(c.ethereum, c.sender)
 			if err != nil {
 				return err
 			}
 
-			if balance.Cmp(rr) < 0 {
+			if balance.Cmp(rechargeAmount) < 0 {
 				return ErrInsufficientFunds()
 			}
 		}
 	}
-
-	// todo check to see if the candidate is changed, if not, raise error.
 
 	return nil
 }
@@ -331,19 +324,6 @@ func (c check) delegate(tx TxDelegate) error {
 	x.Add(candidate.Shares, amount)
 	if x.Cmp(candidate.MaxShares) > 0 {
 		return ErrReachMaxAmount()
-	}
-
-	return nil
-}
-
-func checkBalance(ethereum *eth.Ethereum, addr common.Address, amount *big.Int) error {
-	balance, err := commons.GetBalance(ethereum, addr)
-	if err != nil {
-		return err
-	}
-
-	if balance.Cmp(amount) < 0 {
-		return ErrInsufficientFunds()
 	}
 
 	return nil
@@ -437,31 +417,26 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 		}
 
 		if candidate.MaxShares.Cmp(maxAmount) != 0 {
-			z := new(big.Int)
-			diff := new(big.Int).Sub(maxAmount, candidate.MaxShares)
-			y := big.NewInt(int64(d.params.ReserveRequirementRatio))
-			z.Mul(diff, y)
-			z.Div(z, big.NewInt(100))
+			rechargeAmount := getRechargeAmount(maxAmount, candidate, d.params.ReserveRequirementRatio)
+			rechargeAmountAbs := new(big.Int)
+			rechargeAmountAbs.Abs(rechargeAmount)
 
-			amount, _ := new(big.Int).SetString(z.String(), 10)
-			amountAbs := new(big.Int)
-			amountAbs.Abs(amount)
-
-			if diff.Cmp(big.NewInt(0)) > 0 {
+			if rechargeAmount.Cmp(big.NewInt(0)) > 0 {
 				// charge
-				commons.Transfer(d.sender, utils.HoldAccount, amountAbs)
+				commons.Transfer(d.sender, utils.HoldAccount, rechargeAmountAbs)
+
+				shares := new(big.Int)
+				shares.Add(candidate.Shares, rechargeAmount)
+				candidate.Shares = shares
+
+				// update delegation
+				delegation := GetDelegation(d.sender, candidate.PubKey)
+				delegation.DelegateAmount.Add(delegation.DelegateAmount, rechargeAmount)
+				delegation.UpdatedAt = utils.GetNow()
+				UpdateDelegation(delegation)
 			}
 
 			candidate.MaxShares = maxAmount
-			shares := new(big.Int)
-			shares.Add(candidate.Shares, amount)
-			candidate.Shares = shares
-
-			// update delegation
-			delegation := GetDelegation(d.sender, candidate.PubKey)
-			delegation.DelegateAmount.Add(delegation.DelegateAmount, amount)
-			delegation.UpdatedAt = utils.GetNow()
-			UpdateDelegation(delegation)
 		}
 	}
 
@@ -623,4 +598,28 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 
 	// transfer coins back to account
 	return commons.Transfer(d.params.HoldAccount, d.sender, amount)
+}
+
+func checkBalance(ethereum *eth.Ethereum, addr common.Address, amount *big.Int) error {
+	balance, err := commons.GetBalance(ethereum, addr)
+	if err != nil {
+		return err
+	}
+
+	if balance.Cmp(amount) < 0 {
+		return ErrInsufficientFunds()
+	}
+
+	return nil
+}
+
+func getRechargeAmount(maxAmount *big.Int, candidate *Candidate, rrr uint16) (needRechargeAmount *big.Int) {
+	needRechargeAmount = new(big.Int)
+	diff := new(big.Int).Sub(maxAmount, candidate.MaxShares)
+	needRechargeAmount.Mul(diff, big.NewInt(int64(rrr)))
+	needRechargeAmount.Div(needRechargeAmount, big.NewInt(100))
+	delegation := GetDelegation(candidate.OwnerAddress, candidate.PubKey)
+	award := new(big.Int).Sub(delegation.Shares(), delegation.DelegateAmount)
+	needRechargeAmount.Sub(needRechargeAmount, award)
+	return
 }
