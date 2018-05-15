@@ -46,7 +46,6 @@ const (
 	FlagMaxAmount        = "max-amount"
 	FlagCut              = "cut"
 	FlagAddress          = "address"
-	FlagNewAddress       = "new-address"
 	FlagValidatorAddress = "validator-address"
 	FlagWebsite          = "website"
 	FlagLocation         = "location"
@@ -114,9 +113,6 @@ func init() {
 	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
 	fsAddr.String(FlagAddress, "", "Account address")
 
-	fsNewAddress := flag.NewFlagSet("", flag.ContinueOnError)
-	fsNewAddress.String(FlagNewAddress, "", "New account address")
-
 	fsVerified := flag.NewFlagSet("", flag.ContinueOnError)
 	fsVerified.String(FlagVerified, "false", "true or false")
 
@@ -128,7 +124,6 @@ func init() {
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCandidate)
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCut)
 
-	CmdUpdateCandidacy.Flags().AddFlagSet(fsNewAddress)
 	CmdUpdateCandidacy.Flags().AddFlagSet(fsCandidate)
 
 	CmdVerifyCandidacy.Flags().AddFlagSet(fsValidatorAddress)
@@ -170,7 +165,6 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 }
 
 func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
-	newAddress := common.HexToAddress(viper.GetString(FlagNewAddress))
 	maxAmount := viper.GetString(FlagMaxAmount)
 	if maxAmount != "" {
 		v := new(big.Int)
@@ -186,7 +180,7 @@ func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
 		Details:  viper.GetString(FlagDetails),
 	}
 
-	tx := stake.NewTxUpdateCandidacy(newAddress, maxAmount, description)
+	tx := stake.NewTxUpdateCandidacy(maxAmount, description)
 	return txcmd.DoTx(tx)
 }
 
