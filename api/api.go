@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/CyberMiles/travis/sdk"
@@ -15,6 +14,7 @@ import (
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
+	"fmt"
 )
 
 // CmtRPCService offers cmt related RPC methods
@@ -161,16 +161,12 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 type UpdateCandidacyArgs struct {
 	Nonce       *hexutil.Uint64   `json:"nonce"`
 	From        common.Address    `json:"from"`
-	NewAddress  common.Address    `json:"newAddress"`
 	MaxAmount   string            `json:"maxAmount"`
 	Description stake.Description `json:"description"`
 }
 
 func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	if len(args.NewAddress) == 0 {
-		return nil, fmt.Errorf("must provide new address")
-	}
-	tx := stake.NewTxUpdateCandidacy(args.NewAddress, args.MaxAmount, args.Description)
+	tx := stake.NewTxUpdateCandidacy(args.MaxAmount, args.Description)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {

@@ -65,22 +65,16 @@ func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount string, cut int64, des
 func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxUpdateCandidacy struct {
-	NewAddress common.Address `json:"new_address"`
-	MaxAmount  string         `json:"max_amount"`
+	MaxAmount string `json:"max_amount"`
 	Description
 }
 
 func (tx TxUpdateCandidacy) ValidateBasic() error {
-	if len(tx.NewAddress) == 0 {
-		return errCandidateEmpty
-	}
-
 	return nil
 }
 
-func NewTxUpdateCandidacy(newAddress common.Address, maxAmount string, description Description) sdk.Tx {
+func NewTxUpdateCandidacy(maxAmount string, description Description) sdk.Tx {
 	return TxUpdateCandidacy{
-		NewAddress:  newAddress,
 		MaxAmount:   maxAmount,
 		Description: description,
 	}.Wrap()

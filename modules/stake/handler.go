@@ -234,7 +234,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 	}
 
 	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
-	// and the different will be charged or refunded from / into the new account address.
+	// and the different will be charged
 	if tx.MaxAmount != "" {
 		rr := new(big.Int)
 		maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
@@ -242,9 +242,10 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 			return ErrBadAmount()
 		}
 
-		if candidate.MaxShares.Cmp(maxAmount) != 0 {
+		if maxAmount.Cmp(candidate.MaxShares) > 0 {
+			diff := new(big.Int).Sub(maxAmount, candidate.MaxShares)
 			y := big.NewInt(int64(c.params.ReserveRequirementRatio))
-			rr.Mul(maxAmount, y)
+			rr.Mul(diff, y)
 			rr.Div(rr, big.NewInt(100))
 
 			balance, err := commons.GetBalance(c.ethereum, c.sender)
@@ -252,7 +253,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 				return err
 			}
 
-			if maxAmount.Cmp(candidate.MaxShares) > 0 && balance.Cmp(rr) < 0 {
+			if balance.Cmp(rr) < 0 {
 				return ErrInsufficientFunds()
 			}
 		}
@@ -430,16 +431,8 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 		return ErrNoCandidateForAddress()
 	}
 
-	nilAddress := common.Address{}
-	addressChanged := false
-	origAddress := common.HexToAddress(candidate.OwnerAddress)
-	if tx.NewAddress != nilAddress {
-		candidate.OwnerAddress = tx.NewAddress.String()
-		addressChanged = true
-	}
-
 	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
-	// and the different will be charged or refunded from / into the new account address.
+	// and the different will be charged
 	if tx.MaxAmount != "" {
 		maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
 		if !ok {
@@ -456,19 +449,10 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 			amount, _ := new(big.Int).SetString(z.String(), 10)
 			amountAbs := new(big.Int)
 			amountAbs.Abs(amount)
-			addr := common.Address{}
-			if addressChanged {
-				addr = tx.NewAddress
-			} else {
-				addr = d.sender
-			}
 
 			if diff.Cmp(big.NewInt(0)) > 0 {
 				// charge
-				commons.Transfer(addr, utils.HoldAccount, amountAbs)
-			} else {
-				// refund
-				commons.Transfer(utils.HoldAccount, addr, amountAbs)
+				commons.Transfer(d.sender, utils.HoldAccount, amountAbs)
 			}
 
 			candidate.MaxShares = maxAmount
@@ -492,16 +476,6 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)
-
-	if addressChanged {
-		// If owner address has been changed, update self-staking delegation
-		delegations := GetDelegationsByDelegator(origAddress)
-		for _, d := range delegations {
-			d.DelegatorAddress = tx.NewAddress
-			UpdateDelegatorAddress(d, origAddress)
-		}
-	}
-
 	return nil
 }
 
