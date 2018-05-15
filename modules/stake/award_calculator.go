@@ -124,7 +124,7 @@ func award(val validator, totalShares *big.Int, ac awardCalculator, remaining *b
 	fmt.Printf("val.shares: %f, totalShares: %f, percentage: %f\n", x, y, val.sharesPercentage)
 
 	if again {
-		actualAward = remaining
+		actualAward = ac.getRemainingAwardForValidator(val, remaining)
 	} else {
 		actualAward = ac.getBlockAwardForValidator(val)
 	}
@@ -143,14 +143,21 @@ func award(val validator, totalShares *big.Int, ac awardCalculator, remaining *b
 }
 
 func (ac awardCalculator) getBlockAwardForValidator(val validator) (result *big.Int) {
+	blockAward := new(big.Int)
+	blockAward.Add(ac.getTotalBlockAward(), ac.transactionFees)
+	return ac.getAwardForValidator(val, blockAward)
+}
+
+func (ac awardCalculator) getRemainingAwardForValidator(val validator, remaining *big.Int) (result *big.Int) {
+	return ac.getAwardForValidator(val, remaining)
+}
+
+func (ac awardCalculator) getAwardForValidator(val validator, award *big.Int) (result *big.Int) {
 	result = new(big.Int)
-	z := new(big.Float)
-	x := new(big.Float).SetInt(ac.getTotalBlockAward())
-	y := new(big.Float).SetInt(ac.transactionFees)
-	z.Add(x, y)
+	z := new(big.Float).SetInt(award)
 	z.Mul(z, val.sharesPercentage)
 	z.Int(result)
-	fmt.Printf("shares percentage: %v, block award for validator: %v\n", val.sharesPercentage, result)
+	fmt.Printf("shares percentage: %v, award for validator: %v\n", val.sharesPercentage, result)
 	return
 }
 
