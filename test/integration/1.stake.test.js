@@ -47,16 +47,12 @@ let newPubKey = [
   "1135A20BACD24ACAF7779FC24839350BC0D79EDBF130F0F4EE247703CEC04752",
   "1135A20BACD24ACAF7779FC24839350BC0D79EDBF130F0F4EE247703CEC04753",
   "1135A20BACD24ACAF7779FC24839350BC0D79EDBF130F0F4EE247703CEC04754"
-  // "051FUvSNJmVL4UiFL7ucBr3TnGqG6a5JgUIgKf4UOIA=",
-  // "v0yMKq/chUKEhELdLp1HJfGAmHZJll8cEeskU5L97Mg=",
-  // "lmlbeRtIZLSgIvib9Emndk/W0isuGrJmBDlB+EwbYuY=",
-  // "OpjdWFiCbhQO4MvdHCJQlf4VM4Y/VfjBH8tG6EPpmME="
 ]
 
 let maxAmount = 200 // 2000 cmt
 let deleAmount1 = maxAmount * 0.1
 let deleAmount2 = maxAmount - maxAmount * 0.1 * 2
-let cut = 8000
+let cut = "0.8"
 
 describe("Stake Test", function() {
   before(function() {
@@ -118,7 +114,7 @@ describe("Stake Test", function() {
       Utils.expectTxFail(r)
     })
 
-    describe(`Declare to be a validator with ${maxAmount} CMT max and ${cut /
+    describe(`Declare to be a validator with ${maxAmount} CMT max and ${cut *
       100}% cut`, function() {
       describe(`Account D does not have ${maxAmount * 0.1} CMTs.`, function() {
         before(function(done) {
