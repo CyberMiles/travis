@@ -62,7 +62,7 @@ func GetOptions(path string) ([]Option, error) {
 	res := make([]Option, 0, cnt)
 	res = append(res, Option{sdk.ModuleNameBase, sdk.ChainKey, genDoc.ChainID})
 	res = append(res, Option{"stake", "max_vals", strconv.Itoa(int(genDoc.MaxVals))})
-	res = append(res, Option{"stake", "reserve_requirement_ratio", strconv.Itoa(int(genDoc.ReserveRequirementRatio))})
+	res = append(res, Option{"stake", "reserve_requirement_ratio", genDoc.ReserveRequirementRatio})
 
 	// set validators
 	for _, val := range validators {
@@ -83,7 +83,7 @@ type FullDoc struct {
 	AppOptions              *Doc              `json:"app_options"`
 	Validators              []json.RawMessage `json:"validators"`
 	MaxVals                 uint16            `json:"max_vals"`
-	ReserveRequirementRatio uint16            `json:"reserve_requirement_ratio"`
+	ReserveRequirementRatio string            `json:"reserve_requirement_ratio"`
 }
 
 // Doc - All genesis values

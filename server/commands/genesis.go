@@ -22,7 +22,7 @@ type GenesisValidator struct {
 	Power     int64         `json:"power"`
 	Name      string        `json:"name"`
 	Address   string        `json:"address"`
-	Cut       int64         `json:"cut"`
+	Cut       string        `json:"cut"`
 	MaxAmount int64         `json:"max_amount"`
 }
 
@@ -35,7 +35,7 @@ type GenesisDoc struct {
 	AppHash                 data.Bytes             `json:"app_hash"`
 	AppOptions              interface{}            `json:"app_options,omitempty"`
 	MaxVals                 uint16                 `json:"max_vals"`
-	ReserveRequirementRatio uint16                 `json:"reserve_requirement_ratio"`
+	ReserveRequirementRatio string                 `json:"reserve_requirement_ratio"`
 }
 
 // SaveAs is a utility method for saving GenensisDoc as a JSON file.
