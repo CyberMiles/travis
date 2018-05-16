@@ -22,6 +22,7 @@ import:
   - keys
 - package: github.com/tendermint/go-wire
   version: master
+  repo: https://github.com/CyberMiles/go-wire.git
   subpackages:
   - data
 - package: github.com/tendermint/tendermint
