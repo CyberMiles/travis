@@ -13,6 +13,7 @@ describe("Transaction Test", function() {
   before(function() {
     gas = web3.toBigNumber(web3.toWei(gasLimit * gasPrice, "gwei"))
     // unlock accounts
+    web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
     accounts.forEach(acc =>
       web3.personal.unlockAccount(acc, Settings.Passphrase)
     )
