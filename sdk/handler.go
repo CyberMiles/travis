@@ -2,7 +2,6 @@ package sdk
 
 import (
 	abci "github.com/tendermint/abci/types"
-	"github.com/tendermint/go-wire/data"
 	"github.com/tendermint/tmlibs/log"
 
 	"github.com/CyberMiles/travis/sdk/state"
@@ -100,13 +99,13 @@ func (c InitValidateFunc) InitValidate(l log.Logger, store state.SimpleDB, vals 
 //---------- results and some wrappers --------
 
 type Result interface {
-	GetData() data.Bytes
+	GetData() []byte
 }
 
 // CheckResult captures any non-error abci result
 // to make sure people use error for error cases
 type CheckResult struct {
-	Data data.Bytes
+	Data []byte
 	Log  string
 	// GasAllocated is the maximum units of work we allow this tx to perform
 	GasAllocated int64
@@ -131,14 +130,14 @@ func (c CheckResult) ToABCI() abci.ResponseCheckTx {
 	}
 }
 
-func (c CheckResult) GetData() data.Bytes {
+func (c CheckResult) GetData() []byte {
 	return c.Data
 }
 
 // DeliverResult captures any non-error abci result
 // to make sure people use error for error cases
 type DeliverResult struct {
-	Data    data.Bytes
+	Data    []byte
 	Log     string
 	Diff    []*abci.Validator
 	GasUsed int64 // unused
@@ -152,7 +151,7 @@ func (d DeliverResult) ToABCI() abci.ResponseDeliverTx {
 	}
 }
 
-func (d DeliverResult) GetData() data.Bytes {
+func (d DeliverResult) GetData() []byte {
 	return d.Data
 }
 

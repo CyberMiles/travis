@@ -2,7 +2,6 @@ package governance
 
 import (
 	"bytes"
-	"encoding/hex"
 	"math/big"
 	"strings"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/ethereum/go-ethereum/common"
+	"encoding/json"
 )
 
 // default proposal expiration = block count of 7 days
@@ -127,8 +127,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if txInner.Expire != 0 {
 			expire = txInner.Expire
 		}
+		hashJson, _ :=	json.Marshal(hash)
 		pp := NewProposal(
-			hex.EncodeToString(hash),
+			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
 			uint64(ctx.BlockHeight()),
 			txInner.From,

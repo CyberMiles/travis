@@ -8,7 +8,6 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 	"path"
 	"github.com/ethereum/go-ethereum/common"
-	"strings"
 )
 
 func getDb() *sql.DB {
@@ -37,7 +36,7 @@ func SaveProposal(pp *Proposal) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(strings.ToUpper(pp.Id), pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount, pp.Reason, pp.ExpireBlockHeight, pp.CreatedAt)
+	_, err = stmt.Exec(pp.Id, pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount, pp.Reason, pp.ExpireBlockHeight, pp.CreatedAt)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -56,7 +55,7 @@ func GetProposalById(pid string) *Proposal {
 
 	var proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt string
 	var blockHeight, expireBlockHeight, resultBlockHeight uint64
-	err = stmt.QueryRow(strings.ToUpper(pid)).Scan(&proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
+	err = stmt.QueryRow(pid).Scan(&proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -100,7 +99,7 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(result, msg, blockHeight, resultAt, strings.ToUpper(pid))
+	_, err = stmt.Exec(result, msg, blockHeight, resultAt, pid)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -208,7 +207,7 @@ func SaveVote(vote *Vote) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(strings.ToUpper(vote.ProposalId), vote.Voter.String(), vote.BlockHeight, vote.Answer, vote.CreatedAt)
+	_, err = stmt.Exec(vote.ProposalId, vote.Voter.String(), vote.BlockHeight, vote.Answer, vote.CreatedAt)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -227,7 +226,7 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 
 	var answer, createdAt string
 	var blockHeight uint64
-	err = stmt.QueryRow(strings.ToUpper(pid), voter).Scan(&answer, &blockHeight, &createdAt)
+	err = stmt.QueryRow(pid, voter).Scan(&answer, &blockHeight, &createdAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -254,7 +253,7 @@ func GetVotesByPid(pid string) (votes []*Vote) {
 	}
 	defer stmt.Close()
 
-	rows, err := stmt.Query(strings.ToUpper(pid))
+	rows, err := stmt.Query(pid)
 
 	if err != nil {
 		panic(err)

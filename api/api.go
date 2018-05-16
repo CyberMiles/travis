@@ -262,7 +262,7 @@ func (s *CmtRPCService) QueryValidator(address common.Address, height uint64) (*
 		return nil, err
 	}
 
-	return &StakeQueryResult{h, candidate}, nil
+	return &StakeQueryResult{h, &candidate}, nil
 }
 
 func (s *CmtRPCService) QueryDelegator(address common.Address, height uint64) (*StakeQueryResult, error) {
