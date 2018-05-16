@@ -49,7 +49,7 @@ let newPubKey = [
   "RqKjPhMuo/PkFkSJJabpqfys18kp9Rnl1WyccrcY5w4="
 ]
 
-let maxAmount = 200 // 2000 cmt
+let maxAmount = 2000 // 2000 cmt
 let deleAmount1 = maxAmount * 0.1
 let deleAmount2 = maxAmount - maxAmount * 0.1 * 2
 let cut = 8000
@@ -90,6 +90,10 @@ describe("Stake Test", function() {
         Utils.expectTxSuccess(r)
         logger.debug("validator added, max_amount: ", initAmount)
       })
+
+      maxAmount = 200
+      deleAmount1 = maxAmount * 0.1
+      deleAmount2 = maxAmount - maxAmount * 0.1 * 2
     }
   })
 
