@@ -333,7 +333,6 @@ func initTravisDb() error {
 		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 		create index idx_governance_vote_voter on governance_vote(voter);
 
-		create table suicided_contracts(contract_address tx primary key, created_at text, updated_at text not null default '');
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {
