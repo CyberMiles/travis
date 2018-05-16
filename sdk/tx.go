@@ -3,9 +3,8 @@ package sdk
 import (
 	"strings"
 
-	"github.com/tendermint/go-wire/data"
-
 	"github.com/CyberMiles/travis/sdk/errors"
+	"encoding/json"
 )
 
 const maxTxSize = 10240
@@ -23,17 +22,6 @@ type TxInner interface {
 	// tx is properly formated (required strings not blank, signatures exist, etc.)
 	// this can also be run on the client-side for better debugging before posting a tx
 	ValidateBasic() error
-}
-
-// LoadTx parses a tx from data
-func LoadTx(bin []byte) (tx Tx, err error) {
-	if len(bin) > maxTxSize {
-		return tx, errors.ErrTooLarge()
-	}
-
-	// Decode tx
-	err = data.FromWire(bin, &tx)
-	return tx, err
 }
 
 // TODO: do we need this abstraction? TxLayer???
@@ -64,13 +52,13 @@ type env struct {
 // TODO: put this functionality into go-data in a cleaner and more efficient way
 func (t Tx) GetKind() (string, error) {
 	// render as json
-	d, err := data.ToJSON(t)
+	d, err := json.Marshal(t)
 	if err != nil {
 		return "", err
 	}
 	// parse json
 	text := env{}
-	err = data.FromJSON(d, &text)
+	err = json.Unmarshal(d, &text)
 	if err != nil {
 		return "", err
 	}

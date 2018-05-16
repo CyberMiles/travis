@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 )
 
-var cdc = amino.NewCodec()
+var Cdc = amino.NewCodec()
 
 func init() {
-	crypto.RegisterAmino(cdc)
+	crypto.RegisterAmino(Cdc)
 }
 
 type jsonPubKey struct {
@@ -31,14 +31,14 @@ func GetPubKey(pubKeyStr string) (pk PubKey, err error) {
 	b, err := json.Marshal(jpk)
 
 	var cpk crypto.PubKey
-	err = cdc.UnmarshalJSON(b, &cpk)
+	err = Cdc.UnmarshalJSON(b, &cpk)
 
 	pk = PubKey{cpk}
 	return
 }
 
 func PubKeyString(pk PubKey) string {
-	b, err := cdc.MarshalJSON(pk.PubKey)
+	b, err := Cdc.MarshalJSON(pk.PubKey)
 	if err != nil {
 		return ""
 	}
@@ -52,10 +52,10 @@ type PubKey struct {
 }
 
 func (pk *PubKey) MarshalJSON() ([]byte, error) {
-	return cdc.MarshalJSON(pk.PubKey)
+	return Cdc.MarshalJSON(pk.PubKey)
 }
 
 func (pk *PubKey) UnmarshalJSON(b []byte) error {
-	err := cdc.UnmarshalJSON(b, &pk.PubKey)
+	err := Cdc.UnmarshalJSON(b, &pk.PubKey)
 	return err
 }

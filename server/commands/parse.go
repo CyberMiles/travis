@@ -88,7 +88,6 @@ func load(filePath string) (*GenesisDoc, error) {
 		return nil, errors.Wrap(err, "loading genesis file")
 	}
 
-	// the basecoin genesis go-wire/data :)
 	genDoc := new(GenesisDoc)
 	err = json.Unmarshal(bytes, genDoc)
 	if err != nil {

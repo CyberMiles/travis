@@ -26,11 +26,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/tendermint/go-wire"
-	"github.com/tendermint/go-wire/data"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/CyberMiles/travis/commons"
+	ttypes "github.com/CyberMiles/travis/types"
 )
 
 // Validatable represents anything that can be Validated
@@ -208,7 +207,7 @@ func PrepareOrPostTxSync(tx sdk.Tx) (*ctypes.ResultBroadcastTx, error) {
 // it validates the data, signs if needed, transforms to bytes,
 // and posts to the node.
 func PostTxSync(tx sdk.Tx) (*ctypes.ResultBroadcastTx, error) {
-	packet := wire.BinaryBytes(tx)
+	packet, _ := ttypes.Cdc.MarshalBinary(tx)
 	// post the bytes
 	node := commands.GetNode()
 	return node.BroadcastTxSync(packet)
@@ -224,7 +223,7 @@ func PrepareTx(tx sdk.Tx) (bool, error) {
 		return false, nil
 	}
 
-	js, err := data.ToJSON(tx)
+	js, err := json.Marshal(tx)
 	if err != nil {
 		return false, err
 	}
@@ -239,7 +238,7 @@ func PrepareTx(tx sdk.Tx) (bool, error) {
 // it validates the data, signs if needed, transforms to bytes,
 // and posts to the node.
 func PostTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
-	packet := wire.BinaryBytes(tx)
+	packet, _ := ttypes.Cdc.MarshalBinary(tx)
 	// post the bytes
 	node := commands.GetNode()
 	return node.BroadcastTxCommit(packet)

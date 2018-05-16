@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 
 	travis "github.com/CyberMiles/travis/types"
-	"github.com/tendermint/go-wire/data"
 	"github.com/tendermint/tendermint/types"
 	cmn "github.com/tendermint/tmlibs/common"
 )
@@ -22,7 +21,7 @@ type GenesisDoc struct {
 	ChainID                 string                 `json:"chain_id"`
 	ConsensusParams         *types.ConsensusParams `json:"consensus_params,omitempty"`
 	Validators              []travis.GenesisValidator     `json:"validators"`
-	AppHash                 data.Bytes             `json:"app_hash"`
+	AppHash                 []byte                 `json:"app_hash"`
 	MaxVals                 uint16                 `json:"max_vals"`
 	ReserveRequirementRatio uint16                 `json:"reserve_requirement_ratio"`
 }

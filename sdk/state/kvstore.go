@@ -2,8 +2,6 @@ package state
 
 import (
 	"sort"
-
-	"github.com/tendermint/go-wire/data"
 )
 
 // KVStore is a simple interface to get/set data
@@ -16,8 +14,8 @@ type KVStore interface {
 
 // Model grabs together key and value to allow easier return values
 type Model struct {
-	Key   data.Bytes
-	Value data.Bytes
+	Key   []byte
+	Value []byte
 }
 
 // SimpleDB allows us to do some basic range queries on a db
