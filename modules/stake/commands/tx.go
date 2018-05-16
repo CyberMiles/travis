@@ -12,6 +12,7 @@ import (
 
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 )
@@ -99,7 +100,7 @@ func init() {
 	fsPk.String(FlagPubKey, "", "PubKey of the validator-candidate")
 
 	fsAmount := flag.NewFlagSet("", flag.ContinueOnError)
-	fsAmount.String(FlagAmount, "0", "Amount of CMTs")
+	fsAmount.String(FlagAmount, "", "Amount of CMTs")
 
 	fsCandidate := flag.NewFlagSet("", flag.ContinueOnError)
 	fsCandidate.String(FlagMaxAmount, "", "Max amount of CMTs to be staked")
@@ -108,7 +109,7 @@ func init() {
 	fsCandidate.String(FlagDetails, "", "optional detailed description")
 
 	fsCut := flag.NewFlagSet("", flag.ContinueOnError)
-	fsCut.Int64(FlagCut, 0, "The percentage of block awards to be distributed back to the delegators")
+	fsCut.String(FlagCut, "0", "The percentage of block awards to be distributed back to the delegators")
 
 	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
 	fsAddr.String(FlagAddress, "", "Account address")
@@ -149,8 +150,9 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("max-amount must be positive interger")
 	}
 
-	cut := viper.GetInt64(FlagCut)
-	if cut <= 0 || cut >= 10000 {
+	cut := viper.GetString(FlagCut)
+	fcut := utils.ParseFloat(cut)
+	if fcut <= 0 || fcut >= 1 {
 		return fmt.Errorf("cut must between 0 and 1")
 	}
 

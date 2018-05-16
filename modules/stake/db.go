@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/tmlibs/cli"
-	"math/big"
 	"path"
 )
 
@@ -31,8 +30,8 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	}
 	defer stmt.Close()
 
-	var pubKey, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active string
-	var votingPower, cut int64
+	var pubKey, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, cut string
+	var votingPower int64
 	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
 
 	switch {
@@ -43,10 +42,6 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	}
 
 	pk, _ := utils.GetPubKey(pubKey)
-	s := new(big.Int)
-	s.SetString(shares, 10)
-	ms := new(big.Int)
-	ms.SetString(maxShares, 10)
 	description := Description{
 		Website:  website,
 		Location: location,
@@ -55,9 +50,9 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	return &Candidate{
 		PubKey:       pk,
 		OwnerAddress: address,
-		Shares:       s,
+		Shares:       shares,
 		VotingPower:  votingPower,
-		MaxShares:    ms,
+		MaxShares:    maxShares,
 		Cut:          cut,
 		Description:  description,
 		CreatedAt:    createdAt,
@@ -76,8 +71,8 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 	}
 	defer stmt.Close()
 
-	var address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active string
-	var votingPower, cut int64
+	var address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, cut string
+	var votingPower int64
 	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
 
 	switch {
@@ -88,10 +83,6 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 	}
 
 	pk, _ := utils.GetPubKey(pubKey)
-	s := new(big.Int)
-	s.SetString(shares, 10)
-	ms := new(big.Int)
-	ms.SetString(maxShares, 10)
 	description := Description{
 		Website:  website,
 		Location: location,
@@ -100,9 +91,9 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 	return &Candidate{
 		PubKey:       pk,
 		OwnerAddress: common.HexToAddress(address),
-		Shares:       s,
+		Shares:       shares,
 		VotingPower:  votingPower,
-		MaxShares:    ms,
+		MaxShares:    maxShares,
 		Cut:          cut,
 		Description:  description,
 		Verified:     verified,
@@ -123,18 +114,14 @@ func GetCandidates() (candidates Candidates) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var pubKey, address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active string
-		var votingPower, cut int64
+		var pubKey, address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, cut string
+		var votingPower int64
 		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
 
 		pk, _ := utils.GetPubKey(pubKey)
-		s := new(big.Int)
-		s.SetString(shares, 10)
-		ms := new(big.Int)
-		ms.SetString(maxShares, 10)
 		description := Description{
 			Website:  website,
 			Location: location,
@@ -143,9 +130,9 @@ func GetCandidates() (candidates Candidates) {
 		candidate := &Candidate{
 			PubKey:       pk,
 			OwnerAddress: common.HexToAddress(address),
-			Shares:       s,
+			Shares:       shares,
 			VotingPower:  votingPower,
-			MaxShares:    ms,
+			MaxShares:    maxShares,
 			Cut:          cut,
 			Description:  description,
 			Verified:     verified,
@@ -182,9 +169,9 @@ func SaveCandidate(candidate *Candidate) {
 	_, err = stmt.Exec(
 		candidate.PubKey.KeyString(),
 		candidate.OwnerAddress.String(),
-		candidate.Shares.String(),
+		candidate.Shares,
 		candidate.VotingPower,
-		candidate.MaxShares.String(),
+		candidate.MaxShares,
 		candidate.Cut,
 		candidate.Description.Website,
 		candidate.Description.Location,
@@ -216,9 +203,9 @@ func updateCandidate(candidate *Candidate) {
 
 	_, err = stmt.Exec(
 		candidate.OwnerAddress.String(),
-		candidate.Shares.String(),
+		candidate.Shares,
 		candidate.VotingPower,
-		candidate.MaxShares.String(),
+		candidate.MaxShares,
 		candidate.Cut,
 		candidate.Description.Website,
 		candidate.Description.Location,
@@ -354,7 +341,7 @@ func SaveDelegation(d *Delegation) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), d.PubKey.KeyString(), d.DelegateAmount.String(), d.AwardAmount.String(), d.WithdrawAmount.String(), d.SlashAmount.String(), d.CreatedAt, d.UpdatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), d.PubKey.KeyString(), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CreatedAt, d.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -396,7 +383,7 @@ func UpdateDelegation(d *Delegation) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegateAmount.String(), d.AwardAmount.String(), d.WithdrawAmount.String(), d.SlashAmount.String(), d.UpdatedAt, d.DelegatorAddress.String(), d.PubKey.KeyString())
+	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.UpdatedAt, d.DelegatorAddress.String(), d.PubKey.KeyString())
 	if err != nil {
 		panic(err)
 	}
@@ -442,17 +429,13 @@ func GetDelegation(delegatorAddress common.Address, pubKey crypto.PubKey) *Deleg
 		panic(err)
 	}
 
-	d, _ := new(big.Int).SetString(delegateAmount, 10)
-	a, _ := new(big.Int).SetString(awardAmount, 10)
-	w, _ := new(big.Int).SetString(withdrawAmount, 10)
-	s, _ := new(big.Int).SetString(slashAmount, 10)
 	return &Delegation{
 		DelegatorAddress: delegatorAddress,
 		PubKey:           pubKey,
-		DelegateAmount:   d,
-		AwardAmount:      a,
-		WithdrawAmount:   w,
-		SlashAmount:      s,
+		DelegateAmount:   delegateAmount,
+		AwardAmount:      awardAmount,
+		WithdrawAmount:   withdrawAmount,
+		SlashAmount:      slashAmount,
 		CreatedAt:        createdAt,
 		UpdatedAt:        updatedAt,
 	}
@@ -475,17 +458,13 @@ func GetDelegationsByPubKey(pubKey crypto.PubKey) (delegations []*Delegation) {
 			panic(err)
 		}
 
-		d, _ := new(big.Int).SetString(delegateAmount, 10)
-		a, _ := new(big.Int).SetString(awardAmount, 10)
-		w, _ := new(big.Int).SetString(withdrawAmount, 10)
-		s, _ := new(big.Int).SetString(slashAmount, 10)
 		delegation := &Delegation{
 			DelegatorAddress: common.HexToAddress(delegatorAddress),
 			PubKey:           pubKey,
-			DelegateAmount:   d,
-			AwardAmount:      a,
-			WithdrawAmount:   w,
-			SlashAmount:      s,
+			DelegateAmount:   delegateAmount,
+			AwardAmount:      awardAmount,
+			WithdrawAmount:   withdrawAmount,
+			SlashAmount:      slashAmount,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		}
@@ -521,17 +500,13 @@ func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*
 			return
 		}
 
-		d, _ := new(big.Int).SetString(delegateAmount, 10)
-		a, _ := new(big.Int).SetString(awardAmount, 10)
-		w, _ := new(big.Int).SetString(withdrawAmount, 10)
-		s, _ := new(big.Int).SetString(slashAmount, 10)
 		delegation := &Delegation{
 			DelegatorAddress: delegatorAddress,
 			PubKey:           pk,
-			DelegateAmount:   d,
-			AwardAmount:      a,
-			WithdrawAmount:   w,
-			SlashAmount:      s,
+			DelegateAmount:   delegateAmount,
+			AwardAmount:      awardAmount,
+			WithdrawAmount:   withdrawAmount,
+			SlashAmount:      slashAmount,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		}

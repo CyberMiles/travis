@@ -4,6 +4,7 @@ import (
 	"github.com/cosmos/cosmos-sdk"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/go-crypto"
+	"math/big"
 )
 
 // Tx
@@ -45,7 +46,7 @@ var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, 
 type TxDeclareCandidacy struct {
 	PubKey    crypto.PubKey `json:"pub_key"`
 	MaxAmount string        `json:"max_amount"`
-	Cut       int64         `json:"cut"`
+	Cut       string        `json:"cut"`
 	Description
 }
 
@@ -57,7 +58,17 @@ func (tx TxDeclareCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount string, cut int64, descrpition Description) sdk.Tx {
+func (tx TxDeclareCandidacy) ReserveRequirement(ratio string) (result *big.Int) {
+	result = new(big.Int)
+	maxAmount, _ := new(big.Float).SetString(tx.MaxAmount)
+	z := new(big.Float)
+	r, _ := new(big.Float).SetString(ratio)
+	z.Mul(maxAmount, r)
+	z.Int(result)
+	return
+}
+
+func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount, cut string, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
 		PubKey:      pubKey,
 		MaxAmount:   maxAmount,

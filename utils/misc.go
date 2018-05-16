@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/tendermint/go-crypto"
+	"math/big"
+	"strconv"
 )
 
 func RemoveFromSlice(slice []interface{}, i int) []interface{} {
@@ -29,5 +31,29 @@ func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
 	var pkEd crypto.PubKeyEd25519
 	copy(pkEd[:], pkBytes[:])
 	pk = pkEd.Wrap()
+	return
+}
+
+func ParseFloat(str string) float64 {
+	value, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		return 0
+	}
+
+	return value
+}
+
+func ParseInt(str string) *big.Int {
+	value, ok := new(big.Int).SetString(str, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+
+	return value
+}
+
+func ToWei(value int64) (result *big.Int) {
+	result = new(big.Int)
+	result.Mul(big.NewInt(value), big.NewInt(1e18))
 	return
 }
