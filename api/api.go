@@ -15,7 +15,6 @@ import (
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
-	"fmt"
 )
 
 // CmtRPCService offers cmt related RPC methods

@@ -621,7 +621,7 @@ func getRechargeAmount(maxAmount *big.Int, candidate *Candidate, rrr uint16) (ne
 	diff := new(big.Int).Sub(maxAmount, candidate.MaxShares)
 	needRechargeAmount.Mul(diff, big.NewInt(int64(rrr)))
 	needRechargeAmount.Div(needRechargeAmount, big.NewInt(100))
-	delegation := GetDelegation(candidate.OwnerAddress, candidate.PubKey)
+	delegation := GetDelegation(common.HexToAddress(candidate.OwnerAddress), candidate.PubKey)
 	award := new(big.Int).Sub(delegation.Shares(), delegation.DelegateAmount)
 	needRechargeAmount.Sub(needRechargeAmount, award)
 	return
