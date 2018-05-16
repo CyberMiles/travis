@@ -75,10 +75,11 @@ const getProposal = () => {
   return {}
 }
 
-describe.skip("Governance Test", function() {
+describe("Governance Test", function() {
   before(function() {
+    // unlock account
+    web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
     accounts.forEach(acc => {
-      // unlock account
       web3.personal.unlockAccount(acc, Settings.Passphrase)
     })
   })

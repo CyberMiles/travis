@@ -9,6 +9,14 @@ describe("Contract Test", function() {
   let tokens = 1,
     gasPrice = 5 // gwei
 
+  before(function() {
+    // unlock account
+    web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
+    accounts.forEach(acc => {
+      web3.personal.unlockAccount(acc, Settings.Passphrase)
+    })
+  })
+
   before("Transfer 1000 ETH to A, B, C, D from defaultAccount", function(done) {
     logger.info(this.test.fullTitle())
 

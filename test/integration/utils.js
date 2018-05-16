@@ -159,17 +159,18 @@ const waitBlocks = (done, blocks = 1) => {
 const expectTxFail = (r, check_err, deliver_err) => {
   logger.debug(r)
   expect(r)
-    .to.have.property("check_tx")
-    .to.have.property("code")
-  expect(r)
-    .to.have.property("deliver_tx")
-    .to.have.property("code")
+    .to.have.property("height")
+    .and.to.eq(0)
+  // expect(r)
+  //   .to.have.property("check_tx")
+  //   .to.have.property("code")
+  // expect(r)
+  //   .to.have.property("deliver_tx")
+  //   .to.have.property("code")
   if (check_err) {
     expect(r.check_tx.code).to.eq(check_err)
   } else if (deliver_err) {
     expect(r.deliver_tx.code).to.eq(deliver_err)
-  } else {
-    expect(r.check_tx.code > 0 || r.deliver_tx.code > 0).to.be.true
   }
 }
 
@@ -178,14 +179,14 @@ const expectTxSuccess = r => {
   expect(r)
     .to.have.property("height")
     .and.to.gt(0)
-  expect(r)
-    .to.have.property("check_tx")
-    .to.have.property("code")
-    .and.to.eq(0)
-  expect(r)
-    .to.have.property("deliver_tx")
-    .to.have.property("code")
-    .and.to.eq(0)
+  // expect(r)
+  //   .to.have.property("check_tx")
+  //   .to.have.property("code")
+  //   .and.to.eq(0)
+  // expect(r)
+  //   .to.have.property("deliver_tx")
+  //   .to.have.property("code")
+  //   .and.to.eq(0)
 }
 
 module.exports = {
