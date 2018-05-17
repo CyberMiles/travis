@@ -4,6 +4,7 @@ import (
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/CyberMiles/travis/types"
+	"math/big"
 )
 
 // Tx
@@ -45,7 +46,7 @@ var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, 
 type TxDeclareCandidacy struct {
 	PubKey    string `json:"pub_key"`
 	MaxAmount string        `json:"max_amount"`
-	Cut       int64         `json:"cut"`
+	Cut       string        `json:"cut"`
 	Description
 }
 
@@ -53,7 +54,17 @@ func (tx TxDeclareCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount string, cut int64, descrpition Description) sdk.Tx {
+func (tx TxDeclareCandidacy) ReserveRequirement(ratio string) (result *big.Int) {
+	result = new(big.Int)
+	maxAmount, _ := new(big.Float).SetString(tx.MaxAmount)
+	z := new(big.Float)
+	r, _ := new(big.Float).SetString(ratio)
+	z.Mul(maxAmount, r)
+	z.Int(result)
+	return
+}
+
+func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount, cut string, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
 		PubKey:      types.PubKeyString(pubKey),
 		MaxAmount:   maxAmount,

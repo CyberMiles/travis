@@ -12,9 +12,6 @@ import (
 	cmn "github.com/tendermint/tmlibs/common"
 )
 
-//------------------------------------------------------------
-// core types for a genesis definition
-
 // GenesisDoc defines the initial conditions for a tendermint blockchain, in particular its validator set.
 type GenesisDoc struct {
 	GenesisTime             time.Time              `json:"genesis_time"`
@@ -23,7 +20,7 @@ type GenesisDoc struct {
 	Validators              []travis.GenesisValidator     `json:"validators"`
 	AppHash                 []byte                 `json:"app_hash"`
 	MaxVals                 uint16                 `json:"max_vals"`
-	ReserveRequirementRatio uint16                 `json:"reserve_requirement_ratio"`
+	ReserveRequirementRatio string                 `json:"reserve_requirement_ratio"`
 }
 
 // SaveAs is a utility method for saving GenensisDoc as a JSON file.

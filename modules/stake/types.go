@@ -18,7 +18,7 @@ type Params struct {
 	HoldAccount             common.Address `json:"hold_account"` // PubKey where all bonded coins are held
 	MaxVals                 uint16         `json:"max_vals"`     // maximum number of validators
 	Validators              string         `json:"validators"`   // initial validators definition
-	ReserveRequirementRatio uint16         `json:"reserve_requirement_ratio"`
+	ReserveRequirementRatio string         `json:"reserve_requirement_ratio"`
 }
 
 func defaultParams() Params {
@@ -26,7 +26,7 @@ func defaultParams() Params {
 		HoldAccount:             utils.HoldAccount,
 		MaxVals:                 100,
 		Validators:              "",
-		ReserveRequirementRatio: 10,
+		ReserveRequirementRatio: "0.1",
 	}
 }
 
@@ -41,12 +41,12 @@ func defaultParams() Params {
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
-	PubKey       types.PubKey   `json:"pub_key"`       // Pubkey of candidate
-	OwnerAddress string         `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
-	Shares       *big.Int       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
+	PubKey       types.PubKey  `json:"pub_key"`       // Pubkey of candidate
+	OwnerAddress string `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
+	Shares       string         `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
-	MaxShares    *big.Int       `json:"max_shares"`
-	Cut          int64          `json:"cut"`
+	MaxShares    string         `json:"max_shares"`
+	Cut          string         `json:"cut"`
 	CreatedAt    string         `json:"created_at"`
 	UpdatedAt    string         `json:"updated_at"`
 	Description  Description    `json:"description"`
@@ -61,7 +61,7 @@ type Description struct {
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares *big.Int, votingPower int64, maxShares *big.Int, cut int64, description Description, verified string, active string) *Candidate {
+func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares string, votingPower int64, maxShares, cut string, description Description, verified string, active string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
@@ -82,6 +82,35 @@ func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares *big.
 // Should only be called when the Candidate qualifies as a validator.
 func (c *Candidate) validator() Validator {
 	return Validator(*c)
+}
+
+func (c *Candidate) ParseShares() *big.Int {
+	return utils.ParseInt(c.Shares)
+}
+
+func (c *Candidate) ParseMaxShares() *big.Int {
+	return utils.ParseInt(c.MaxShares)
+}
+
+func (c *Candidate) ParseCut() float64 {
+	return utils.ParseFloat(c.Cut)
+}
+
+func (c *Candidate) AddShares(value *big.Int) *big.Int {
+	x := new(big.Int)
+	x.Add(c.ParseShares(), value)
+	c.Shares = x.String()
+	return x
+}
+
+func (c *Candidate) ReserveRequirement(ratio string) (result *big.Int) {
+	result = new(big.Int)
+	z := new(big.Float)
+	maxShares := new(big.Float).SetInt(c.ParseMaxShares())
+	r, _ := new(big.Float).SetString(ratio)
+	z.Mul(maxShares, r)
+	z.Int(result)
+	return
 }
 
 // Validator is one of the top Candidates
@@ -125,9 +154,10 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 
 	// update voting power
 	for _, c := range cs {
-		if big.NewInt(c.VotingPower).Cmp(c.Shares) != 0 {
+		shares := c.ParseShares()
+		if big.NewInt(c.VotingPower).Cmp(shares) != 0 {
 			v := new(big.Int)
-			v.Div(c.Shares, big.NewInt(1e18))
+			v.Div(shares, big.NewInt(1e18))
 			c.VotingPower = v.Int64()
 		}
 	}
@@ -266,21 +296,65 @@ type Delegator struct {
 
 type Delegation struct {
 	DelegatorAddress common.Address `json:"delegator_address"`
-	PubKey           types.PubKey  `json:"pub_key"`
-	DelegateAmount   *big.Int       `json:"delegate_amount"`
-	AwardAmount      *big.Int       `json:"award_amount"`
-	WithdrawAmount   *big.Int       `json:"withdraw_amount"`
-	SlashAmount      *big.Int       `json:"slash_amount"`
+	PubKey           types.PubKey   `json:"pub_key"`
+	DelegateAmount   string         `json:"delegate_amount"`
+	AwardAmount      string         `json:"award_amount"`
+	WithdrawAmount   string         `json:"withdraw_amount"`
+	SlashAmount      string         `json:"slash_amount"`
 	CreatedAt        string         `json:"created_at"`
 	UpdatedAt        string         `json:"updated_at"`
 }
 
-func (d Delegation) Shares() (shares *big.Int) {
+func (d *Delegation) Shares() (shares *big.Int) {
 	shares = new(big.Int)
-	shares.Add(d.DelegateAmount, d.AwardAmount)
-	shares.Sub(shares, d.WithdrawAmount)
-	shares.Sub(shares, d.SlashAmount)
+	shares.Add(d.ParseDelegateAmount(), d.ParseAwardAmount())
+	shares.Sub(shares, d.ParseWithdrawAmount())
+	shares.Sub(shares, d.ParseSlashAmount())
 	return
+}
+
+func (d *Delegation) ParseDelegateAmount() *big.Int {
+	return utils.ParseInt(d.DelegateAmount)
+}
+
+func (d *Delegation) ParseAwardAmount() *big.Int {
+	return utils.ParseInt(d.AwardAmount)
+}
+
+func (d *Delegation) ParseWithdrawAmount() *big.Int {
+	return utils.ParseInt(d.WithdrawAmount)
+}
+
+func (d *Delegation) ParseSlashAmount() *big.Int {
+	return utils.ParseInt(d.SlashAmount)
+}
+
+func (d *Delegation) AddDelegateAmount(value *big.Int) *big.Int {
+	x := new(big.Int)
+	x.Add(d.ParseDelegateAmount(), value)
+	d.DelegateAmount = x.String()
+	return x
+}
+
+func (d *Delegation) AddAwardAmount(value *big.Int) *big.Int {
+	x := new(big.Int)
+	x.Add(d.ParseAwardAmount(), value)
+	d.AwardAmount = x.String()
+	return x
+}
+
+func (d *Delegation) AddWithdrawAmount(value *big.Int) *big.Int {
+	x := new(big.Int)
+	x.Add(d.ParseWithdrawAmount(), value)
+	d.WithdrawAmount = x.String()
+	return x
+}
+
+func (d *Delegation) AddSlashAmount(value *big.Int) *big.Int {
+	x := new(big.Int)
+	x.Add(d.ParseSlashAmount(), value)
+	d.SlashAmount = x.String()
+	return x
 }
 
 type DelegateHistory struct {

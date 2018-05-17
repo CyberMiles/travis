@@ -21,7 +21,7 @@ type validator struct {
 	ownerAddress     common.Address
 	pubKey           types.PubKey
 	delegators       []delegator
-	cut              int64
+	cut              float64
 	sharesPercentage *big.Float
 }
 
@@ -73,15 +73,16 @@ func (ac awardCalculator) AwardAll() {
 		var validator validator
 		var delegators []delegator
 		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
-		if candidate.Shares.Cmp(big.NewInt(0)) == 0 {
+		if candidate.Shares == "0" {
 			continue
 		}
 
-		validator.shares = candidate.Shares
+		shares := candidate.ParseShares()
+		validator.shares = shares
 		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
 		validator.pubKey = candidate.PubKey
-		validator.cut = candidate.Cut
-		totalShares.Add(totalShares, candidate.Shares)
+		validator.cut = candidate.ParseCut()
+		totalShares.Add(totalShares, shares)
 
 		// Get all of the delegators
 		delegations := GetDelegationsByPubKey(candidate.PubKey)
@@ -170,9 +171,8 @@ func (ac awardCalculator) getDelegatorAward(del delegator, val validator, blockA
 	fmt.Printf("delegator shares: %f, validator shares: %f, percentage: %f\n", x, y, z)
 	award := new(big.Float).SetInt(blockAward)
 	z.Mul(z, award)
-	cut := new(big.Float).SetInt64(val.cut)
-	z.Mul(z, cut) // format: 123 -> 0.0123 -> 1.23%
-	z.Quo(z, new(big.Float).SetInt64(10000))
+	cut := big.NewFloat(val.cut)
+	z.Mul(z, cut)
 	z.Int(result)
 	fmt.Printf("delegator award: %d\n", result)
 	return
@@ -197,13 +197,13 @@ func (ac awardCalculator) awardToDelegator(d delegator, v validator, award *big.
 		return
 	}
 
-	delegation.AwardAmount.Add(delegation.AwardAmount, award)
+	delegation.AddAwardAmount(award)
 	delegation.UpdatedAt = now
 	UpdateDelegation(delegation)
 
 	// accumulate shares of the validator
 	val := GetCandidateByAddress(v.ownerAddress)
-	val.Shares.Add(val.Shares, award)
+	val.AddShares(award)
 	val.UpdatedAt = now
 	updateCandidate(val)
 }

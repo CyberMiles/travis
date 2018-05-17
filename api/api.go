@@ -123,7 +123,7 @@ type DeclareCandidacyArgs struct {
 	From        common.Address    `json:"from"`
 	PubKey      string            `json:"pubKey"`
 	MaxAmount   string            `json:"maxAmount"`
-	Cut         int64             `json:"cut"`
+	Cut         string            `json:"cut"`
 	Description stake.Description `json:"description"`
 }
 

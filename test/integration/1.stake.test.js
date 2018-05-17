@@ -52,7 +52,7 @@ let newPubKey = [
 let maxAmount = 2000 // 2000 cmt
 let deleAmount1 = maxAmount * 0.1
 let deleAmount2 = maxAmount - maxAmount * 0.1 * 2
-let cut = 8000
+let cut = "0.8"
 
 describe("Stake Test", function() {
   before(function() {
@@ -118,7 +118,7 @@ describe("Stake Test", function() {
       Utils.expectTxFail(r)
     })
 
-    describe(`Declare to be a validator with ${maxAmount} CMT max and ${cut /
+    describe(`Declare to be a validator with ${maxAmount} CMT max and ${cut *
       100}% cut`, function() {
       describe(`Account D does not have ${maxAmount * 0.1} CMTs.`, function() {
         before(function(done) {
