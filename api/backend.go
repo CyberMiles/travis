@@ -15,6 +15,7 @@ import (
 	abciTypes "github.com/tendermint/abci/types"
 	tmn "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/CyberMiles/travis/vm/ethereum"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
@@ -117,6 +118,19 @@ func (b *Backend) SetTMNode(tmNode *tmn.Node) {
 	b.ethereum.TxPool().SetTMClient(b.localClient)
 }
 
+func (b *Backend) PeerCount() int {
+	var net *ctypes.ResultNetInfo
+	if b.localClient != nil {
+		net, _ = b.localClient.NetInfo()
+	} else if b.client != nil {
+		net, _ = b.client.NetInfo()
+	}
+	if net != nil {
+		return len(net.Peers)
+	}
+	return 0
+}
+
 //----------------------------------------------------------------------
 // Handle block processing
 
@@ -187,7 +201,7 @@ func (b *Backend) APIs() []rpc.API {
 	retApis := []rpc.API{}
 	for _, v := range apis {
 		if v.Namespace == "net" {
-			v.Service = NewNetRPCService(b.ethConfig.NetworkId)
+			v.Service = NewNetRPCService(b)
 		}
 		if v.Namespace == "miner" {
 			continue

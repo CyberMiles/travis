@@ -11,13 +11,17 @@ import (
 // NetRPCService mirrors the implementation of `internal/ethapi`
 // #unstable
 type NetRPCService struct {
+	backend        *Backend
 	networkVersion uint64
 }
 
 // NewNetRPCService creates a new net API instance.
 // #unstable
-func NewNetRPCService(networkVersion uint64) *NetRPCService {
-	return &NetRPCService{networkVersion}
+func NewNetRPCService(b *Backend) *NetRPCService {
+	return &NetRPCService{
+		backend:        b,
+		networkVersion: b.ethConfig.NetworkId,
+	}
 }
 
 // Listening returns an indication if the node is listening for network connections.
@@ -27,9 +31,8 @@ func (s *NetRPCService) Listening() bool {
 }
 
 // PeerCount returns the number of connected peers
-// #unstable
 func (s *NetRPCService) PeerCount() hexutil.Uint {
-	return hexutil.Uint(0)
+	return hexutil.Uint(s.backend.PeerCount())
 }
 
 // Version returns the current ethereum protocol version.
