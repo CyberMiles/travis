@@ -3,17 +3,14 @@ const Web3 = require("web3-cmt")
 const logger = require("./logger")
 const { Settings } = require("./constants")
 const Utils = require("./utils")
+const Globals = require("./global_vars")
 
-const initialFund = 5000 // 5000 cmt or 5000 token
-const estimateCost = 2000 // at most. not so much in fact
-const gasPrice = 5 //gwei
+// web3 setup before all
+web3 = new Web3(new Web3.providers.HttpProvider(Settings.Providers.node1))
+if (!web3 || !web3.isConnected()) throw new Error("cannot connect to server. ")
 
-before("web3 setup", function() {
+before("Set default account and unlock", function() {
   logger.info(this.test.fullTitle())
-  web3 = new Web3(new Web3.providers.HttpProvider(Settings.Providers.node1))
-  if (!web3 || !web3.isConnected())
-    throw new Error("cannot connect to server. ")
-
   // set default account
   web3.cmt.defaultAccount = web3.cmt.accounts[0]
   web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
@@ -24,15 +21,15 @@ before("Prepare 4 accounts", function() {
   // get or create 4 accounts. skip first 2 accounts
   let count = web3.cmt.accounts.length
   if (count > 2) {
-    accounts = web3.cmt.accounts.slice(2, 6)
-    logger.debug("use existing accounts: ", accounts)
+    Globals.Accounts = web3.cmt.accounts.slice(2, 6)
+    logger.debug("use existing accounts: ", Globals.Accounts)
   } else {
-    accounts = []
+    Globals.Accounts = []
   }
   for (i = 0; i < 6 - count; ++i) {
     let acc = web3.personal.newAccount(Settings.Passphrase)
     logger.debug("new account created: ", acc)
-    accounts.push(acc)
+    Globals.Accounts.push(acc)
   }
 })
 
@@ -53,19 +50,19 @@ before("Setup a ERC20 Smart contract called ETH", function(done) {
   }
 })
 
-before("Transfer 2000 CMT to A, B, C, D from defaultAccount", function(done) {
+before("Transfer 5000 CMT to A, B, C, D from defaultAccount", function(done) {
   logger.info(this.test.fullTitle())
-
   let balances = Utils.getBalance()
   let arrFund = []
   for (i = 0; i < 4; ++i) {
-    if (web3.fromWei(balances[i], "gwei") > estimateCost) continue
+    // 2000 cmt should be far enough for the testing
+    if (web3.fromWei(balances[i], "ether") > 2000) continue
 
     let hash = Utils.transfer(
       web3.cmt.defaultAccount,
-      accounts[i],
-      web3.toWei(initialFund, "ether"),
-      gasPrice
+      Globals.Accounts[i],
+      web3.toWei(5000, "ether"),
+      5 //gwei
     )
     arrFund.push(hash)
   }
@@ -82,6 +79,35 @@ before("Transfer 2000 CMT to A, B, C, D from defaultAccount", function(done) {
     logger.debug("fund skipped. ")
     done()
   }
+})
+
+before("Add some fake validators if necessary", function() {
+  logger.info(this.test.fullTitle())
+  if (web3.net.peerCount == 0) {
+    Globals.TestMode = "single"
+
+    let result = web3.cmt.stake.queryValidators()
+    let valsToAdd = 4 - result.data.length
+
+    if (valsToAdd > 0) {
+      Globals.Accounts.forEach((acc, idx) => {
+        if (idx >= valsToAdd) return
+        web3.personal.unlockAccount(acc, Settings.Passphrase)
+        let initAmount = 1000,
+          cut = "0.8"
+        let payload = {
+          from: acc,
+          pubKey: Globals.PubKeys[idx],
+          maxAmount: web3.toWei(initAmount, "cmt"),
+          cut: cut
+        }
+        let r = web3.cmt.stake.declareCandidacy(payload)
+        Utils.expectTxSuccess(r)
+        logger.debug(`validator ${acc} added, max_amount: ${initAmount}`)
+      })
+    }
+  }
+  logger.debug("test mode: ", Globals.TestMode)
 })
 
 module.exports = Utils

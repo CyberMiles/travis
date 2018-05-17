@@ -3,6 +3,7 @@ const fs = require("fs")
 const async = require("async")
 const logger = require("./logger")
 const { Settings } = require("./constants")
+const Globals = require("./global_vars")
 
 const transfer = (f, t, v, gasPrice, nonce) => {
   let payload = {
@@ -28,7 +29,7 @@ const getBalance = (index = null) => {
   let balance = new Array(4)
   for (i = 0; i < 4; i++) {
     if (index === null || i == index) {
-      balance[i] = web3.cmt.getBalance(accounts[i], "latest")
+      balance[i] = web3.cmt.getBalance(Globals.Accounts[i], "latest")
     }
   }
   logger.debug(`balance in wei: --> ${balance}`)
@@ -98,10 +99,68 @@ const getTokenBalance = () => {
 
   let balance = new Array(4)
   for (i = 0; i < 4; i++) {
-    balance[i] = tokenInstance.balanceOf(accounts[i])
+    balance[i] = tokenInstance.balanceOf(Globals.Accounts[i])
   }
   logger.debug(`token balance: --> ${balance}`)
   return balance
+}
+
+const calcAward = powers => {
+  let total = powers.reduce((s, v) => {
+    return s + v
+  })
+  let origin = powers.map(p => p / total)
+  let round1 = origin.map(p => (p > 0.1 ? 0.1 : p))
+
+  let left =
+    1 -
+    round1.reduce((s, v) => {
+      return s + v
+    })
+  let round2 = origin.map(p => left * p)
+
+  const strip = (x, precision = 12) => parseFloat(x.toPrecision(precision))
+  let final = round1.map((p, idx) => {
+    return strip(p + round2[idx])
+  })
+  // console.log(final)
+
+  let result = powers.map((p, idx) => p + final[idx] * Globals.BlockAwards)
+  // console.log(result)
+  return result
+}
+
+const calcAwards = (powers, blocks) => {
+  for (i = 0; i < blocks; ++i) {
+    powers = calcAward(powers)
+  }
+  return powers
+}
+
+const vote = (proposalId, from, answer) => {
+  expect(proposalId).to.not.be.empty
+  if (proposalId === "") return
+
+  let r = web3.cmt.governance.vote({
+    from: from,
+    proposalId: proposalId,
+    answer: answer
+  })
+  expectTxSuccess(r)
+}
+
+const getProposal = proposalId => {
+  expect(proposalId).to.not.be.empty
+  if (proposalId === "") return
+
+  let r = web3.cmt.governance.queryProposals()
+  expect(r.data.length).to.be.above(0)
+  if (r.data.length > 0) {
+    proposal = r.data.filter(d => d.Id == proposalId)
+    expect(proposal.length).to.equal(1)
+    return proposal[0]
+  }
+  return {}
 }
 
 const waitInterval = function(txhash, cb) {
@@ -161,12 +220,7 @@ const expectTxFail = (r, check_err, deliver_err) => {
   expect(r)
     .to.have.property("height")
     .and.to.eq(0)
-  // expect(r)
-  //   .to.have.property("check_tx")
-  //   .to.have.property("code")
-  // expect(r)
-  //   .to.have.property("deliver_tx")
-  //   .to.have.property("code")
+
   if (check_err) {
     expect(r.check_tx.code).to.eq(check_err)
   } else if (deliver_err) {
@@ -179,14 +233,6 @@ const expectTxSuccess = r => {
   expect(r)
     .to.have.property("height")
     .and.to.gt(0)
-  // expect(r)
-  //   .to.have.property("check_tx")
-  //   .to.have.property("code")
-  //   .and.to.eq(0)
-  // expect(r)
-  //   .to.have.property("deliver_tx")
-  //   .to.have.property("code")
-  //   .and.to.eq(0)
 }
 
 module.exports = {
@@ -196,6 +242,9 @@ module.exports = {
   tokenTransfer,
   tokenKill,
   getTokenBalance,
+  calcAwards,
+  vote,
+  getProposal,
   waitInterval,
   waitMultiple,
   waitBlocks,
