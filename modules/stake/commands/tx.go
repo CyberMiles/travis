@@ -45,7 +45,7 @@ const (
 	FlagPubKey           = "pubkey"
 	FlagAmount           = "amount"
 	FlagMaxAmount        = "max-amount"
-	FlagCut              = "cut"
+	FlagCompRate         = "comp-rate"
 	FlagAddress          = "address"
 	FlagValidatorAddress = "validator-address"
 	FlagWebsite          = "website"
@@ -108,8 +108,8 @@ func init() {
 	fsCandidate.String(FlagLocation, "", "optional location")
 	fsCandidate.String(FlagDetails, "", "optional detailed description")
 
-	fsCut := flag.NewFlagSet("", flag.ContinueOnError)
-	fsCut.String(FlagCut, "0", "The percentage of block awards to be distributed back to the delegators")
+	fsCompRate := flag.NewFlagSet("", flag.ContinueOnError)
+	fsCompRate.String(FlagCompRate, "0", "The compensation percentage of block awards to be distributed to the validator")
 
 	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
 	fsAddr.String(FlagAddress, "", "Account address")
@@ -123,7 +123,7 @@ func init() {
 	// add the flags
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCandidate)
-	CmdDeclareCandidacy.Flags().AddFlagSet(fsCut)
+	CmdDeclareCandidacy.Flags().AddFlagSet(fsCompRate)
 
 	CmdUpdateCandidacy.Flags().AddFlagSet(fsCandidate)
 
@@ -150,10 +150,10 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("max-amount must be positive interger")
 	}
 
-	cut := viper.GetString(FlagCut)
-	fcut := utils.ParseFloat(cut)
-	if fcut <= 0 || fcut >= 1 {
-		return fmt.Errorf("cut must between 0 and 1")
+	compRate := viper.GetString(FlagCompRate)
+	fCompRate := utils.ParseFloat(compRate)
+	if fCompRate <= 0 || fCompRate >= 1 {
+		return fmt.Errorf("comp-rate must between 0 and 1")
 	}
 
 	description := stake.Description{
@@ -162,7 +162,7 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		Details:  viper.GetString(FlagDetails),
 	}
 
-	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, cut, description)
+	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, compRate, description)
 	return txcmd.DoTx(tx)
 }
 

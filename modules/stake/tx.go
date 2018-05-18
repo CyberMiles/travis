@@ -46,7 +46,7 @@ var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, 
 type TxDeclareCandidacy struct {
 	PubKey    crypto.PubKey `json:"pub_key"`
 	MaxAmount string        `json:"max_amount"`
-	Cut       string        `json:"cut"`
+	CompRate  string        `json:"comp_rate"`
 	Description
 }
 
@@ -68,11 +68,11 @@ func (tx TxDeclareCandidacy) ReserveRequirement(ratio string) (result *big.Int) 
 	return
 }
 
-func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount, cut string, descrpition Description) sdk.Tx {
+func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount, compRate string, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
 		PubKey:      pubKey,
 		MaxAmount:   maxAmount,
-		Cut:         cut,
+		CompRate:    compRate,
 		Description: descrpition,
 	}.Wrap()
 }

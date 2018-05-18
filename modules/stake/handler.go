@@ -88,7 +88,7 @@ func setValidator(value string, store state.SimpleDB) error {
 		params: params,
 	}
 
-	tx := TxDeclareCandidacy{val.PubKey, utils.ToWei(val.MaxAmount).String(), val.Cut, Description{}}
+	tx := TxDeclareCandidacy{val.PubKey, utils.ToWei(val.MaxAmount).String(), val.CompRate, Description{}}
 	return deliverer.declareGenesisCandidacy(tx, val.Power)
 }
 
@@ -360,7 +360,7 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 // now we just perform action and save
 func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	// create and save the empty candidate
-	candidate := NewCandidate(tx.PubKey, d.sender, "0", 0, tx.MaxAmount, tx.Cut, tx.Description, "N", "Y")
+	candidate := NewCandidate(tx.PubKey, d.sender, "0", 0, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
@@ -371,7 +371,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 
 func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int64) error {
 	// create and save the empty candidate
-	candidate := NewCandidate(tx.PubKey, d.sender, "0", votingPower, tx.MaxAmount, tx.Cut, tx.Description, "N", "Y")
+	candidate := NewCandidate(tx.PubKey, d.sender, "0", votingPower, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount

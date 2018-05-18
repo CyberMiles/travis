@@ -24,15 +24,15 @@ func getDb() *sql.DB {
 func GetCandidateByAddress(address common.Address) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select pub_key, shares, voting_power, max_shares, cut, website, location, details, verified, active, created_at, updated_at from candidates where address = ?")
+	stmt, err := db.Prepare("select pub_key, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at from candidates where address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var pubKey, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, cut string
+	var pubKey, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, compRate string
 	var votingPower int64
-	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
+	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &compRate, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -53,7 +53,7 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 		Shares:       shares,
 		VotingPower:  votingPower,
 		MaxShares:    maxShares,
-		Cut:          cut,
+		CompRate:     compRate,
 		Description:  description,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
@@ -65,15 +65,15 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 func GetCandidateByPubKey(pubKey string) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select address, shares, voting_power, max_shares, cut, website, location, details, verified, active, created_at, updated_at from candidates where pub_key = ?")
+	stmt, err := db.Prepare("select address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at from candidates where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, cut string
+	var address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, compRate string
 	var votingPower int64
-	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
+	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &maxShares, &compRate, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -94,7 +94,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 		Shares:       shares,
 		VotingPower:  votingPower,
 		MaxShares:    maxShares,
-		Cut:          cut,
+		CompRate:     compRate,
 		Description:  description,
 		Verified:     verified,
 		CreatedAt:    createdAt,
@@ -107,16 +107,16 @@ func GetCandidates() (candidates Candidates) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, cut, website, location, details, verified, active, created_at, updated_at from candidates where active=?", "Y")
+	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at from candidates where active=?", "Y")
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var pubKey, address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, cut string
+		var pubKey, address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, compRate string
 		var votingPower int64
-		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &cut, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
+		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -133,7 +133,7 @@ func GetCandidates() (candidates Candidates) {
 			Shares:       shares,
 			VotingPower:  votingPower,
 			MaxShares:    maxShares,
-			Cut:          cut,
+			CompRate:     compRate,
 			Description:  description,
 			Verified:     verified,
 			CreatedAt:    createdAt,
@@ -160,7 +160,7 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, cut, website, location, details, verified, active, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -172,7 +172,7 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.Shares,
 		candidate.VotingPower,
 		candidate.MaxShares,
-		candidate.Cut,
+		candidate.CompRate,
 		candidate.Description.Website,
 		candidate.Description.Location,
 		candidate.Description.Details,
@@ -195,7 +195,7 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, cut = ?, website = ?, location = ?, details = ?, verified = ?, active = ?, updated_at = ? where pub_key = ?")
+	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, website = ?, location = ?, details = ?, verified = ?, active = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -206,7 +206,7 @@ func updateCandidate(candidate *Candidate) {
 		candidate.Shares,
 		candidate.VotingPower,
 		candidate.MaxShares,
-		candidate.Cut,
+		candidate.CompRate,
 		candidate.Description.Website,
 		candidate.Description.Location,
 		candidate.Description.Details,

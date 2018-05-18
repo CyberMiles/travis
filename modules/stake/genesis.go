@@ -14,5 +14,5 @@ type genesisValidator struct {
 	Power     int64          `json:"power"`
 	Name      string         `json:"name"`
 	MaxAmount int64          `json:"max_amount"`
-	Cut       string         `json:"cut"`
+	CompRate  string         `json:"cut"`
 }
