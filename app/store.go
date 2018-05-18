@@ -239,9 +239,6 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 	return abci.ResponseCommit{Data: hash}
 }
 
-// BeginBlock - ABCI
-func (app *StoreApp) BeginBlock(_ abci.RequestBeginBlock) (res abci.ResponseBeginBlock) { return }
-
 // EndBlock - ABCI
 // Returns a list of all validator changes made in this block
 func (app *StoreApp) EndBlock(_ abci.RequestEndBlock) (res abci.ResponseEndBlock) {
@@ -317,7 +314,7 @@ func initTravisDb() error {
 		defer db.Close()
 
 		sqlStmt := `
-		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, max_shares text not null default '0', cut text not null default '0', website text not null default '', location text not null default '', details text not null default '', verified text not null default 'N', active text not null default 'Y', created_at text not null, updated_at text not null default '');
+		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', website text not null default '', location text not null default '', details text not null default '', verified text not null default 'N', active text not null default 'Y', created_at text not null, updated_at text not null default '');
 		create unique index idx_candidates_pub_key on candidates(pub_key);
 		create table delegators(address text not null primary key, created_at text not null);
 		create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount not null default '0', slash_amount not null default '0', created_at text not null, updated_at text not null default '');

@@ -47,7 +47,7 @@ type Candidate struct {
 	Shares       string         `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
 	MaxShares    string         `json:"max_shares"`
-	Cut          string         `json:"cut"`
+	CompRate     string         `json:"cut"`
 	CreatedAt    string         `json:"created_at"`
 	UpdatedAt    string         `json:"updated_at"`
 	Description  Description    `json:"description"`
@@ -62,7 +62,7 @@ type Description struct {
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares string, votingPower int64, maxShares, cut string, description Description, verified string, active string) *Candidate {
+func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares string, votingPower int64, maxShares, compRate string, description Description, verified string, active string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
@@ -70,7 +70,7 @@ func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares stri
 		Shares:       shares,
 		VotingPower:  votingPower,
 		MaxShares:    maxShares,
-		Cut:          cut,
+		CompRate:     compRate,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 		Description:  description,
@@ -93,8 +93,8 @@ func (c *Candidate) ParseMaxShares() *big.Int {
 	return utils.ParseInt(c.MaxShares)
 }
 
-func (c *Candidate) ParseCut() float64 {
-	return utils.ParseFloat(c.Cut)
+func (c *Candidate) ParseCompRate() float64 {
+	return utils.ParseFloat(c.CompRate)
 }
 
 func (c *Candidate) AddShares(value *big.Int) *big.Int {

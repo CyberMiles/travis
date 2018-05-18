@@ -127,6 +127,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	app.EthApp.BeginBlock(req)
 	app.AbsentValidators = req.AbsentValidators
+	app.logger.Info("BeginBlock", "absentvalidators", app.AbsentValidators)
 	app.ByzantineValidators = req.ByzantineValidators
 
 	return abci.ResponseBeginBlock{}
@@ -147,9 +148,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	cs := stake.GetCandidates()
 	cs.Sort()
 	validators := cs.Validators()
-	//for _, i := range app.AbsentValidators {
-	//	validators.Remove(i)
-	//}
+	for _, i := range app.AbsentValidators {
+		validators.Remove(i)
+	}
 	stake.NewAwardCalculator(app.WorkingHeight(), validators, utils.BlockGasFee).AwardAll()
 
 	// punish Byzantine validators
