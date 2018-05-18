@@ -33,7 +33,7 @@ const getBalance = (index = null) => {
     }
   }
   logger.debug(`balance in wei: --> ${balance}`)
-  return balance
+  return index == null ? balance : balance[index]
 }
 
 const tokenFile = "./ETHToken.json"
@@ -110,7 +110,9 @@ const calcAward = powers => {
     return s + v
   })
   let origin = powers.map(p => p / total)
-  let round1 = origin.map(p => (p > 0.1 ? 0.1 : p))
+  let round1 = origin.map(
+    p => (p > Globals.ValSizeLimit ? Globals.ValSizeLimit : p)
+  )
 
   let left =
     1 -

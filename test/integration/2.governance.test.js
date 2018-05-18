@@ -7,9 +7,8 @@ const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
 describe("Governance Test", function() {
-  let balance_old = new Array(4),
-    balance_new = new Array(4),
-    proposalId = ""
+  let proposalId = ""
+  let balance_old, balance_new
 
   before(function() {
     // unlock account
@@ -21,16 +20,18 @@ describe("Governance Test", function() {
 
   describe("Account #1 does not have 500 CMTs.", function() {
     before(function(done) {
-      let balance = web3
-        .fromWei(web3.cmt.getBalance(Globals.Accounts[1]), "cmt")
-        .toNumber()
-      if (balance > 500) {
-        web3.cmt.sendTransaction({
-          from: Globals.Accounts[1],
-          to: web3.cmt.defaultAccount,
-          value: web3.toWei(balance - 1, "cmt")
+      let balance = Utils.getBalance(1)
+      if (web3.fromWei(balance, "cmt") > 500) {
+        let hash = Utils.transfer(
+          Globals.Accounts[1],
+          web3.cmt.defaultAccount,
+          balance
+        )
+        Utils.waitInterval(hash, (err, res) => {
+          expect(err).to.be.null
+          expect(res).to.be.not.null
+          done()
         })
-        Utils.waitBlocks(done)
       } else {
         done()
       }
@@ -50,18 +51,20 @@ describe("Governance Test", function() {
     })
   })
 
-  describe("Account #1 have 5000 CMTs. ", function() {
+  describe("Account #1 have enough CMTs. ", function() {
     before(function(done) {
-      let balance = web3
-        .fromWei(web3.cmt.getBalance(Globals.Accounts[1]), "cmt")
-        .toNumber()
-      if (balance < 5000) {
-        web3.cmt.sendTransaction({
-          from: web3.cmt.defaultAccount,
-          to: Globals.Accounts[1],
-          value: web3.toWei(5000, "cmt")
+      let balance = Utils.getBalance(1)
+      if (web3.fromWei(balance, "cmt") < 5000) {
+        let hash = Utils.transfer(
+          web3.cmt.defaultAccount,
+          Globals.Accounts[1],
+          web3.toWei(5000, "cmt")
+        )
+        Utils.waitInterval(hash, (err, res) => {
+          expect(err).to.be.null
+          expect(res).to.be.not.null
+          done()
         })
-        Utils.waitBlocks(done)
       } else {
         done()
       }
@@ -97,9 +100,7 @@ describe("Governance Test", function() {
         expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
           Number(-amount)
         )
-        expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(
-          Number(0)
-        )
+        expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
       })
       describe("Validators A, B, and C votes for the proposal. The total vote (A+B+C) now exceeds 2/3. ", function() {
         it("Verify that the 500 CMTs are transfered to account #2. ", function() {
@@ -155,9 +156,7 @@ describe("Governance Test", function() {
         expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
           Number(-amount)
         )
-        expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(
-          Number(0)
-        )
+        expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
       })
       describe("Validator A votes for the proposal, but defaultAccount, B and C vote against the proposal. The total vote (default+B+C) now exceeds 2/3.", function() {
         it("Verify that the 500 CMTs are transfered back to account #1. ", function() {
@@ -172,12 +171,8 @@ describe("Governance Test", function() {
           expect(p.Result).to.equal("Rejected")
           // balance after
           balance_new = Utils.getBalance()
-          expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
-            Number(web3.toWei(0, "cmt"))
-          )
-          expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(
-            Number(web3.toWei(0, "cmt"))
-          )
+          expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(0)
+          expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         })
       })
     })
@@ -213,9 +208,7 @@ describe("Governance Test", function() {
         expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
           Number(-amount)
         )
-        expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(
-          Number(0)
-        )
+        expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
       })
 
       describe("Validator A votes for the proposal, but no one else votes.", function() {
@@ -230,12 +223,8 @@ describe("Governance Test", function() {
           expect(p.Result).to.equal("Expired")
           // balance after
           balance_new = Utils.getBalance()
-          expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
-            Number(web3.toWei(0, "cmt"))
-          )
-          expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(
-            Number(web3.toWei(0, "cmt"))
-          )
+          expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(0)
+          expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         })
       })
     })

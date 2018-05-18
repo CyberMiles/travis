@@ -103,7 +103,7 @@ before("Add some fake validators if necessary", function() {
         }
         let r = web3.cmt.stake.declareCandidacy(payload)
         Utils.expectTxSuccess(r)
-        logger.debug(`validator ${acc} added, max_amount: ${initAmount}`)
+        logger.debug(`validator ${acc} added, max_amount: ${initAmount} cmt`)
       })
     }
   }
