@@ -1,6 +1,7 @@
 const expect = require("chai").expect
 const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
+const Globals = require("./global_vars")
 
 describe("Transaction Test", function() {
   let balance_old = new Array(4),
@@ -12,9 +13,9 @@ describe("Transaction Test", function() {
 
   before(function() {
     gas = web3.toBigNumber(web3.toWei(gasLimit * gasPrice, "gwei"))
-    // unlock accounts
+    // unlock Globals.Accounts
     web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
-    accounts.forEach(acc =>
+    Globals.Accounts.forEach(acc =>
       web3.personal.unlockAccount(acc, Settings.Passphrase)
     )
   })
@@ -28,7 +29,11 @@ describe("Transaction Test", function() {
     it("From A to B to C to D", function(done) {
       let arrHash = []
       for (i = 0; i < 3; ++i) {
-        let hash = Utils.transfer(accounts[i], accounts[i + 1], value)
+        let hash = Utils.transfer(
+          Globals.Accounts[i],
+          Globals.Accounts[i + 1],
+          value
+        )
         arrHash.push(hash)
       }
 
@@ -52,7 +57,11 @@ describe("Transaction Test", function() {
     it("From D to C to B to A", function(done) {
       let arrHash = []
       for (i = 0; i < 3; ++i) {
-        let hash = Utils.transfer(accounts[3 - i], accounts[2 - i], value)
+        let hash = Utils.transfer(
+          Globals.Accounts[3 - i],
+          Globals.Accounts[2 - i],
+          value
+        )
         arrHash.push(hash)
       }
 
@@ -78,7 +87,12 @@ describe("Transaction Test", function() {
     it("From A to B to C to D", function(done) {
       let arrHash = []
       for (i = 0; i < 3; ++i) {
-        let hash = Utils.transfer(accounts[i], accounts[i + 1], value, gasPrice)
+        let hash = Utils.transfer(
+          Globals.Accounts[i],
+          Globals.Accounts[i + 1],
+          value,
+          gasPrice
+        )
         arrHash.push(hash)
       }
 
@@ -109,8 +123,8 @@ describe("Transaction Test", function() {
       let arrHash = []
       for (i = 0; i < 3; ++i) {
         let hash = Utils.transfer(
-          accounts[3 - i],
-          accounts[2 - i],
+          Globals.Accounts[3 - i],
+          Globals.Accounts[2 - i],
           value,
           gasPrice
         )
@@ -146,7 +160,12 @@ describe("Transaction Test", function() {
       let arrHash = [],
         times = 3
       for (i = 0; i < times; ++i) {
-        let hash = Utils.transfer(accounts[0], accounts[1], value, 0)
+        let hash = Utils.transfer(
+          Globals.Accounts[0],
+          Globals.Accounts[1],
+          value,
+          0
+        )
         arrHash.push(hash)
       }
       // 2nd and 3rd will fail
@@ -174,7 +193,12 @@ describe("Transaction Test", function() {
       let arrHash = [],
         times = 3
       for (i = 0; i < times; ++i) {
-        let hash = Utils.transfer(accounts[0], accounts[1], value, gasPrice)
+        let hash = Utils.transfer(
+          Globals.Accounts[0],
+          Globals.Accounts[1],
+          value,
+          gasPrice
+        )
         arrHash.push(hash)
       }
 
