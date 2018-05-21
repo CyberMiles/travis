@@ -40,7 +40,7 @@ describe("Governance Test", function() {
     describe("Validator A proposes to move 500 CMTs from account #1 to #2. ", function() {
       it("The proposal TX returns an error. ", function() {
         let r = web3.cmt.governance.propose({
-          signer: web3.cmt.defaultAccount,
+          from: web3.cmt.defaultAccount,
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
           amount: web3.toWei(500, "cmt"),
