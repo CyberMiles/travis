@@ -76,22 +76,9 @@ describe("Stake Test", function() {
         amounts.self,
         "cmt"
       )} CMTs.`, function() {
-        before(function(done) {
+        before(function() {
           let balance = Utils.getBalance(3).toNumber()
-          if (balance > amounts.self) {
-            let hash = Utils.transfer(
-              Globals.Accounts[3],
-              web3.cmt.defaultAccount,
-              balance
-            )
-            Utils.waitInterval(hash, (err, res) => {
-              expect(err).to.be.null
-              expect(res).to.be.not.null
-              done()
-            })
-          } else {
-            done()
-          }
+          Utils.transfer(Globals.Accounts[3], web3.cmt.defaultAccount, balance)
         })
 
         it("Fails", function() {
@@ -103,6 +90,9 @@ describe("Stake Test", function() {
           }
           let r = web3.cmt.stake.declareCandidacy(payload)
           Utils.expectTxFail(r, 20)
+        })
+        after(function(done) {
+          Utils.waitBlocks(done)
         })
       })
 

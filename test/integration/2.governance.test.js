@@ -19,21 +19,10 @@ describe("Governance Test", function() {
   })
 
   describe("Account #1 does not have 500 CMTs.", function() {
-    before(function(done) {
+    before(function() {
       let balance = Utils.getBalance(1)
       if (web3.fromWei(balance, "cmt") > 500) {
-        let hash = Utils.transfer(
-          Globals.Accounts[1],
-          web3.cmt.defaultAccount,
-          balance
-        )
-        Utils.waitInterval(hash, (err, res) => {
-          expect(err).to.be.null
-          expect(res).to.be.not.null
-          done()
-        })
-      } else {
-        done()
+        Utils.transfer(Globals.Accounts[1], web3.cmt.defaultAccount, balance)
       }
     })
 
@@ -48,6 +37,9 @@ describe("Governance Test", function() {
         })
         Utils.expectTxFail(r)
       })
+    })
+    after(function(done) {
+      Utils.waitBlocks(done)
     })
   })
 
