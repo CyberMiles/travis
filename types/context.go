@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/eth"
+	"github.com/ethereum/go-ethereum/core/state"
 )
 
 type nonce int64
@@ -16,15 +16,15 @@ type Context struct {
 	chain    string
 	height   int64
 	signers  []common.Address
-	ethereum *eth.Ethereum
+	ethappState *state.StateDB
 }
 
-func NewContext(chain string, height int64, ethereum *eth.Ethereum) Context {
+func NewContext(chain string, height int64, ethappState *state.StateDB) Context {
 	return Context{
 		id:       nonce(rand.Int63()),
 		chain:    chain,
 		height:   height,
-		ethereum: ethereum,
+		ethappState: ethappState,
 	}
 }
 
@@ -45,8 +45,8 @@ func (c Context) BlockHeight() int64 {
 	}
 }*/
 
-func (c Context) Ethereum() *eth.Ethereum {
-	return c.ethereum
+func (c Context) EthappState() *state.StateDB {
+	return c.ethappState
 }
 
 func (c *Context) WithSigners(signers ...common.Address) {

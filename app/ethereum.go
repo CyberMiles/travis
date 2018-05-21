@@ -37,7 +37,7 @@ type EthermintApplication struct {
 	// and wrangles other services started by an ethereum node (eg. tx pool)
 	backend *api.Backend // backend ethereum struct
 
-	checkTxState *state.StateDB
+	checkTxState   *state.StateDB
 
 	// an ethereum rpc client we can forward queries to
 	rpcClient *rpc.Client
@@ -161,6 +161,10 @@ func (app *EthermintApplication) DeliverTx(tx *ethTypes.Transaction) abciTypes.R
 	return abciTypes.ResponseDeliverTx{
 		Code: abciTypes.CodeTypeOK,
 	}
+}
+
+func (app *EthermintApplication) DeliverTxState() *state.StateDB {
+	return app.backend.DeliverTxState()
 }
 
 // BeginBlock starts a new Ethereum block

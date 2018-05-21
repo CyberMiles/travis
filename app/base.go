@@ -92,7 +92,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.EthApp.DeliverTxState())
 	return app.deliverHandler(ctx, app.Append(), tx)
 }
 
@@ -116,7 +116,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 
 	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.EthApp.checkTxState)
 	return app.checkHandler(ctx, app.Check(), tx)
 }
 

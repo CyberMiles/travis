@@ -104,6 +104,10 @@ func (b *Backend) Ethereum() *eth.Ethereum {
 	return b.ethereum
 }
 
+func (b *Backend) DeliverTxState() *state.StateDB {
+	return b.es.GetEthState()
+}
+
 // Config returns the eth.Config.
 // #stable
 func (b *Backend) Config() *eth.Config {

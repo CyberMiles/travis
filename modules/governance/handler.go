@@ -62,8 +62,8 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
-		ethereum := ctx.Ethereum()
-		balance, err := commons.GetBalance(ethereum, *txInner.From)
+		state := ctx.EthappState()
+		balance, err := commons.GetBalance(state, *txInner.From)
 		if err != nil {
 			return sdk.NewCheck(0, ""), ErrInvalidParamerter()
 		}
@@ -139,9 +139,19 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			uint64(ctx.BlockHeight())+expire,
 		)
 
-		SaveProposal(pp)
+		state := ctx.EthappState()
+		balance, err := commons.GetBalance(state, *txInner.From)
+		if err != nil {
+			return res, ErrInvalidParamerter()
+		}
+
 		amount := big.NewInt(0)
-		amount.SetString(pp.Amount, 10)
+		amount.SetString(txInner.Amount, 10)
+		if balance.Cmp(amount) < 0 {
+			return res, ErrInsufficientBalance()
+		}
+
+		SaveProposal(pp)
 		commons.TransferWithReactor(*pp.From, utils.GovHoldAccount, amount, ProposalReactor{pp.Id, uint64(ctx.BlockHeight()), ""})
 
 		utils.PendingProposal.Add(pp.Id, pp.ExpireBlockHeight)

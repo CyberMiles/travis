@@ -143,6 +143,10 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 	return nil
 }
 
+func (es *EthState) GetEthState() *state.StateDB {
+	return es.work.state
+}
+
 func (es *EthState) UpdateHeaderWithTimeInfo(
 	config *params.ChainConfig, parentTime uint64, numTx uint64) {
 

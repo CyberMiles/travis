@@ -11,7 +11,7 @@ import (
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/eth"
+	ethstat "github.com/ethereum/go-ethereum/core/state"
 	"math/big"
 )
 
@@ -105,7 +105,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		store:    store,
 		sender:   sender,
 		params:   params,
-		ethereum: ctx.Ethereum(),
+		state:    ctx.EthappState(),
 	}
 
 	switch txInner := tx.Unwrap().(type) {
@@ -146,7 +146,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		store:    store,
 		sender:   sender,
 		params:   params,
-		ethereum: ctx.Ethereum(),
+		state:    ctx.EthappState(),
 	}
 
 	// Run the transaction
@@ -185,7 +185,7 @@ type check struct {
 	store    state.SimpleDB
 	sender   common.Address
 	params   Params
-	ethereum *eth.Ethereum
+	state    *ethstat.StateDB
 }
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
@@ -211,7 +211,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	rr := tx.ReserveRequirement(c.params.ReserveRequirementRatio)
 
 	// check if the delegator has sufficient funds
-	err := checkBalance(c.ethereum, c.sender, rr)
+	err := checkBalance(c.state, c.sender, rr)
 	if err != nil {
 		return err
 	}
@@ -235,7 +235,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 
 		if maxAmount.Cmp(candidate.ParseMaxShares()) > 0 {
 			rechargeAmount := getRechargeAmount(maxAmount, candidate, c.params.ReserveRequirementRatio)
-			balance, err := commons.GetBalance(c.ethereum, c.sender)
+			balance, err := commons.GetBalance(c.state, c.sender)
 			if err != nil {
 				return err
 			}
@@ -301,7 +301,7 @@ func (c check) delegate(tx TxDelegate) error {
 		return ErrBadAmount()
 	}
 
-	err := checkBalance(c.ethereum, c.sender, amount)
+	err := checkBalance(c.state, c.sender, amount)
 	if err != nil {
 		return err
 	}
@@ -346,7 +346,7 @@ type deliver struct {
 	store    state.SimpleDB
 	sender   common.Address
 	params   Params
-	ethereum *eth.Ethereum
+	state    *ethstat.StateDB
 }
 
 var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
@@ -574,8 +574,8 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	return commons.Transfer(d.params.HoldAccount, d.sender, amount)
 }
 
-func checkBalance(ethereum *eth.Ethereum, addr common.Address, amount *big.Int) error {
-	balance, err := commons.GetBalance(ethereum, addr)
+func checkBalance(state *ethstat.StateDB, addr common.Address, amount *big.Int) error {
+	balance, err := commons.GetBalance(state, addr)
 	if err != nil {
 		return err
 	}

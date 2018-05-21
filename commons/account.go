@@ -6,13 +6,12 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/pkg/errors"
 	"math"
 	"math/big"
 	"os"
 	"path/filepath"
 	"time"
+	"github.com/ethereum/go-ethereum/core/state"
 )
 
 const (
@@ -76,10 +75,6 @@ func TransferWithReactor(from, to common.Address, amount *big.Int, reactor utils
 	return nil
 }
 
-func GetBalance(ethereum *eth.Ethereum, addr common.Address) (*big.Int, error) {
-	state, err := ethereum.BlockChain().State()
-	if err != nil {
-		return nil, errors.Errorf("Failed to get balance: %v", err)
-	}
+func GetBalance(state *state.StateDB, addr common.Address) (*big.Int, error) {
 	return state.GetBalance(addr), nil
 }
