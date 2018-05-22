@@ -7,7 +7,7 @@ import:
 - package: github.com/spf13/pflag
 - package: github.com/spf13/viper
 - package: github.com/tendermint/abci
-  version:  0.10.3
+  version:  ~0.10.3
   subpackages:
   - server
   - types
@@ -37,7 +37,7 @@ import:
   - rpc/lib/types
   - types
 - package: github.com/tendermint/tmlibs
-  version: ~0.8.2-rc1
+  version: ~0.8.3-rc0
   subpackages:
   - cli
   - cli/flags
@@ -54,6 +54,9 @@ import:
   version: 1.x
 - package: github.com/mattn/go-sqlite3
   version: v1.6.0
+- package: github.com/tendermint/go-amino
+  version: 0.9.9
+
 testImport:
 - package: github.com/stretchr/testify
   subpackages:
