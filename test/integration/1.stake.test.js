@@ -70,7 +70,7 @@ describe("Stake Test", function() {
         "cmt"
       )} CMTs.`, function() {
         before(function() {
-          let balance = Utils.getBalance(3).toNumber()
+          let balance = Utils.getBalance(3)
           Utils.transfer(Globals.Accounts[3], web3.cmt.defaultAccount, balance)
         })
 
@@ -94,8 +94,8 @@ describe("Stake Test", function() {
         "cmt"
       )} CMTs.`, function() {
         before(function(done) {
-          let balance = Utils.getBalance(3).toNumber()
-          if (balance < amounts.self) {
+          let balance = Utils.getBalance(3)
+          if (balance.minus(amounts.self) < 0) {
             let hash = Utils.transfer(
               web3.cmt.defaultAccount,
               Globals.Accounts[3],

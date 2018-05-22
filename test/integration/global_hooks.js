@@ -92,7 +92,7 @@ before("Transfer 5000 CMT to A, B, C, D from defaultAccount", function(done) {
   }
 })
 
-before("Add some fake validators if necessary", function() {
+before("Add some fake validators if it's a single node", function() {
   logger.info(this.test.fullTitle())
   if (web3.net.peerCount == 0) {
     Globals.TestMode = "single"
@@ -118,6 +118,22 @@ before("Add some fake validators if necessary", function() {
     }
   }
   logger.debug("test mode: ", Globals.TestMode)
+})
+
+after("Remove fake validators for single node", function() {
+  logger.info(this.test.fullTitle())
+  if (web3.net.peerCount == 0) {
+    let result = web3.cmt.stake.queryValidators()
+    result.data.forEach((val, idx) => {
+      // skip the first one
+      if (idx == 0) return
+      // remove all others
+      let acc = val.owner_address
+      let r = web3.cmt.stake.withdrawCandidacy({ from: acc })
+      Utils.expectTxSuccess(r)
+      logger.debug(`validator ${acc} removed`)
+    })
+  }
 })
 
 module.exports = Utils

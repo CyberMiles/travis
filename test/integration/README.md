@@ -25,5 +25,9 @@ yarn install
 ## Usage
 
 ```bash
+# run all test cases
 yarn test
+
+# run test cases in a specified test file(e.g. 1.stake.test.js).
+node_modules/mocha/bin/mocha -t 300000 1.stake.test.js
 ```
