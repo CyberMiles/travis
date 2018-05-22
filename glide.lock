@@ -218,7 +218,7 @@ imports:
   - leveldb/table
   - leveldb/util
 - name: github.com/tendermint/abci
-  version: 78a8905690ef54f9d57e3b2b0ee7ad3a04ef3f1f
+  version: cd24e92dcb0879a48db99b9ffb07612dba8cabf8
   subpackages:
   - client
   - example/code
@@ -233,7 +233,7 @@ imports:
 - name: github.com/tendermint/go-amino
   version: ecf42f8907e063f630fcce7605c61252db93c355
 - name: github.com/tendermint/go-crypto
-  version: 915416979bf70efa4bcbf1c6cd5d64c5fff9fc19
+  version: 43570388a9dbb56e098bb30ff61d4b0d8795ae09
   subpackages:
   - cmd
   - keys
@@ -245,7 +245,7 @@ imports:
 - name: github.com/tendermint/iavl
   version: fd37a0fa3a7454423233bc3d5ea828f38e0af787
 - name: github.com/tendermint/tendermint
-  version: 26f633ed48441f72895b710f0e87b7b6c6791066
+  version: 747f28f85f77e6449a3a5b31784bc25673d68d43
   subpackages:
   - blockchain
   - cmd/tendermint/commands
@@ -283,7 +283,7 @@ imports:
   - types/priv_validator
   - version
 - name: github.com/tendermint/tmlibs
-  version: cc5f287c4798ffe88c04d02df219ecb6932080fd
+  version: d970af87248a4e162590300dbb74e102183a417d
   subpackages:
   - autofile
   - cli
