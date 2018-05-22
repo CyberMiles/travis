@@ -18,20 +18,13 @@ describe("Stake Test", function() {
     this.dele2 = web3
       .toBigNumber(this.max - this.self - this.dele1)
       .toString(10)
+    this.reducedMax = web3.toWei(maxAmount - 1, "cmt")
   }
   let amounts = new Amounts(2000) // 2000 cmt
   let cut = "0.8"
 
   let existingValidator = {}
   let balance_old, balance_new
-
-  before(function() {
-    // unlock account
-    web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
-    Globals.Accounts.forEach(acc => {
-      web3.personal.unlockAccount(acc, Settings.Passphrase)
-    })
-  })
 
   before(function() {
     // get existing validator
@@ -308,6 +301,9 @@ describe("Stake Test", function() {
     })
   })
 
+  // todo: The withdraw request reduces the stake and voting power immediately, but has
+  // a 7 day waiting period (as measured in block heights) before the fund is actually available
+  // in delegator's account to trade. It puts funds into unstaked_waiting status.
   describe.skip("Stake Withdraw", function() {
     describe(`Account B withdraw ${web3.fromWei(
       amounts.dele1,
@@ -339,36 +335,41 @@ describe("Stake Test", function() {
       // balance before
       balance_old = Utils.getBalance(3)
     })
-    it("Account D reduce max amount", function() {
-      let newAmount = amounts.self
-      let payload = {
-        from: Globals.Accounts[3],
-        maxAmount: newAmount
-      }
-      let r = web3.cmt.stake.updateCandidacy(payload)
-      Utils.expectTxSuccess(r)
-      // check validator
-      let result = web3.cmt.stake.queryValidator(Globals.Accounts[3], 0)
-      expect(result.data.max_shares).to.be.eq(newAmount)
-      expect(result.data.verified).to.be.eq("Y")
-      // balance after
-      balance_new = Utils.getBalance(3)
-      expect(balance_new.minus(balance_old).toNumber()).to.eq(0)
-    })
-    it("Account D modify other information", function() {
-      let website = "http://aaa.com"
-      let payload = {
-        from: Globals.Accounts[3],
-        description: {
-          website: website
+    describe("Account D reduce max amount", function() {
+      it("The verified status will still be true", function() {
+        let payload = {
+          from: Globals.Accounts[3],
+          maxAmount: amounts.reducedMax
         }
-      }
-      let r = web3.cmt.stake.updateCandidacy(payload)
-      Utils.expectTxSuccess(r)
-      // check validator
-      let result = web3.cmt.stake.queryValidator(Globals.Accounts[3], 0)
-      expect(result.data.description.website).to.be.eq(website)
-      expect(result.data.verified).to.be.eq("N")
+        let r = web3.cmt.stake.updateCandidacy(payload)
+        Utils.expectTxSuccess(r)
+        // check validator
+        let result = web3.cmt.stake.queryValidator(Globals.Accounts[3], 0)
+        expect(result.data.max_shares).to.be.eq(amounts.reducedMax)
+        expect(result.data.verified).to.be.eq("Y")
+      })
+      it("No refund will be issued", function() {
+        // balance after
+        balance_new = Utils.getBalance(3)
+        expect(balance_new.minus(balance_old).toNumber()).to.eq(0)
+      })
+    })
+    describe("Account D modify other information", function() {
+      it("The verified status will set to false", function() {
+        let website = "http://aaa.com"
+        let payload = {
+          from: Globals.Accounts[3],
+          description: {
+            website: website
+          }
+        }
+        let r = web3.cmt.stake.updateCandidacy(payload)
+        Utils.expectTxSuccess(r)
+        // check validator
+        let result = web3.cmt.stake.queryValidator(Globals.Accounts[3], 0)
+        expect(result.data.description.website).to.be.eq(website)
+        expect(result.data.verified).to.be.eq("N")
+      })
     })
   })
 
@@ -391,6 +392,7 @@ describe("Stake Test", function() {
         { owner_address: Globals.Accounts[3] }
       ])
     })
+    // todo: All its staked CMTs will become unstaked_waiting, and be refunded to their source accounts after 7 days.
     it("All staked tokens will be distributed back to delegator addresses", function() {
       // balance after
       balance_new = Utils.getBalance()

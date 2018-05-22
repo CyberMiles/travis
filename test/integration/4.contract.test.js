@@ -10,14 +10,6 @@ describe("Contract Test", function() {
   let tokens = 1,
     gasPrice = 5 // gwei
 
-  before(function() {
-    // unlock account
-    web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
-    Globals.Accounts.forEach(acc => {
-      web3.personal.unlockAccount(acc, Settings.Passphrase)
-    })
-  })
-
   before("Transfer 1000 ETH to A, B, C, D from defaultAccount", function(done) {
     logger.info(this.test.fullTitle())
 
@@ -50,13 +42,6 @@ describe("Contract Test", function() {
       logger.debug("token fund skipped. ")
       done()
     }
-  })
-
-  before(function() {
-    // unlock Globals.Accounts
-    Globals.Accounts.forEach(acc =>
-      web3.personal.unlockAccount(acc, Settings.Passphrase)
-    )
   })
 
   beforeEach(function() {
@@ -291,7 +276,6 @@ describe("Contract Test", function() {
   describe("Destroy the contract", function() {
     it("expect all to succeed", function(done) {
       let deployAdrress = web3.cmt.defaultAccount
-      web3.personal.unlockAccount(deployAdrress, Settings.Passphrase)
       let hash = Utils.tokenKill(deployAdrress)
 
       Utils.waitInterval(hash, (err, res) => {

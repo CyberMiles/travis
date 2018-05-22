@@ -10,14 +10,6 @@ describe("Governance Test", function() {
   let proposalId = ""
   let balance_old, balance_new
 
-  before(function() {
-    // unlock account
-    web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
-    Globals.Accounts.forEach(acc => {
-      web3.personal.unlockAccount(acc, Settings.Passphrase)
-    })
-  })
-
   describe("Account #1 does not have 500 CMTs.", function() {
     before(function() {
       let balance = Utils.getBalance(1)

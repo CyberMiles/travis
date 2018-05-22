@@ -9,11 +9,10 @@ const Globals = require("./global_vars")
 web3 = new Web3(new Web3.providers.HttpProvider(Settings.Providers.node1))
 if (!web3 || !web3.isConnected()) throw new Error("cannot connect to server. ")
 
-before("Set default account and unlock", function() {
+before("Set default account", function() {
   logger.info(this.test.fullTitle())
   // set default account
   web3.cmt.defaultAccount = web3.cmt.accounts[0]
-  web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
 })
 
 before("Prepare 4 accounts", function() {
@@ -31,6 +30,18 @@ before("Prepare 4 accounts", function() {
     logger.debug("new account created: ", acc)
     Globals.Accounts.push(acc)
   }
+})
+before("Unlock all accounts", function() {
+  logger.info(this.test.fullTitle())
+  // unlock account
+  web3.personal.unlockAccount(
+    web3.cmt.defaultAccount,
+    Settings.Passphrase,
+    3000
+  )
+  Globals.Accounts.forEach(acc => {
+    web3.personal.unlockAccount(acc, Settings.Passphrase, 3000)
+  })
 })
 
 before("Setup a ERC20 Smart contract called ETH", function(done) {
@@ -92,7 +103,6 @@ before("Add some fake validators if necessary", function() {
     if (valsToAdd > 0) {
       Globals.Accounts.forEach((acc, idx) => {
         if (idx >= valsToAdd) return
-        web3.personal.unlockAccount(acc, Settings.Passphrase)
         let initAmount = 1000,
           cut = "0.8"
         let payload = {

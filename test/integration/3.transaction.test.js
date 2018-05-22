@@ -5,20 +5,11 @@ const Globals = require("./global_vars")
 
 describe("Transaction Test", function() {
   let balance_old = new Array(4),
-    balance_new = new Array(4),
-    gas = 0
+    balance_new = new Array(4)
   let value = 1000, //wei
     gasLimit = 21000,
-    gasPrice = 5 // gwei
-
-  before(function() {
+    gasPrice = 5, // gwei
     gas = web3.toBigNumber(web3.toWei(gasLimit * gasPrice, "gwei"))
-    // unlock Globals.Accounts
-    web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
-    Globals.Accounts.forEach(acc =>
-      web3.personal.unlockAccount(acc, Settings.Passphrase)
-    )
-  })
 
   beforeEach(function() {
     // balance before
