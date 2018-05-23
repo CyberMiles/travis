@@ -1,4 +1,5 @@
 GOTOOLS = github.com/Masterminds/glide
+CGO_LDFLAGS = -L$(HOME)/.ethereum/eni/lib -Wl,-rpath,$(HOME)/.ethereum/eni/lib
 
 all: get_vendor_deps install print_cybermiles_logo
 
@@ -10,7 +11,7 @@ get_vendor_deps: tools
 
 install:
 	@echo "\n--> Installing the Travis TestNet\n"
-	go install ./cmd/travis
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" go install ./cmd/travis
 	@echo "\n\nTravis, the TestNet for CyberMiles (CMT) has successfully installed!"
 
 tools:
@@ -19,7 +20,7 @@ tools:
 	@echo "--> Tools installed successfully"
 
 build: get_vendor_deps
-	go build -o build/travis ./cmd/travis
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" go build -o build/travis ./cmd/travis
 
 NAME := ywonline/travis
 LATEST := ${NAME}:latest
