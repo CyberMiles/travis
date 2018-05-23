@@ -47,7 +47,7 @@ type Candidate struct {
 	Shares       string         `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
 	MaxShares    string         `json:"max_shares"`
-	CompRate     string         `json:"cut"`
+	CompRate     string         `json:"compRate"`
 	CreatedAt    string         `json:"created_at"`
 	UpdatedAt    string         `json:"updated_at"`
 	Description  Description    `json:"description"`
