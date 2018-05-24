@@ -58,13 +58,13 @@ func (tx TxDeclareCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func (tx TxDeclareCandidacy) ReserveRequirement(ratio string) (result *big.Int) {
-	result = new(big.Int)
+func (tx TxDeclareCandidacy) SelfStakingAmount(ratio string) (amount *big.Int) {
+	amount = new(big.Int)
 	maxAmount, _ := new(big.Float).SetString(tx.MaxAmount)
 	z := new(big.Float)
 	r, _ := new(big.Float).SetString(ratio)
 	z.Mul(maxAmount, r)
-	z.Int(result)
+	z.Int(amount)
 	return
 }
 
