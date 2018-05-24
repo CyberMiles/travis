@@ -69,8 +69,9 @@ func DefaultEthermintConfig() EthermintConfig {
 		ABCIAddr:          "tcp://0.0.0.0:8848",
 		ABCIProtocol:      "socket",
 		RPCEnabledFlag:    true,
-		RPCListenAddrFlag: node.DefaultHTTPHost,
+		RPCListenAddrFlag: "0.0.0.0",
 		RPCPortFlag:       node.DefaultHTTPPort,
+		RPCCORSDomainFlag: "*",
 		RPCApiFlag:        "cmt,eth,net,web3,personal,admin",
 		WSEnabledFlag:     false,
 		WSListenAddrFlag:  node.DefaultWSHost,
@@ -153,6 +154,7 @@ rpc = {{ .EMConfig.RPCEnabledFlag }}
 rpcapi = "{{ .EMConfig.RPCApiFlag }}"
 rpcaddr = "{{ .EMConfig.RPCListenAddrFlag }}"
 rpcport = {{ .EMConfig.RPCPortFlag }}
+rpccorsdomain = "{{ .EMConfig.RPCCORSDomainFlag }}"
 ws = {{ .EMConfig.WSEnabledFlag }}
 verbosity = {{ .EMConfig.VerbosityFlag }}
 `
