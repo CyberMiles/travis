@@ -51,7 +51,7 @@ func (ac awardCalculator) getMintableAmount() (result *big.Int) {
 	year := ac.height / yearlyBlockNumber
 	pow := big.NewFloat(math.Pow(float64(1+inflationRate/100), float64(year)))
 	new(big.Float).Mul(base, pow).Int(result)
-	fmt.Printf("year: %d, minable amount: %v\n", year, result)
+	fmt.Printf("year: %d, mintable amount: %v\n", year, result)
 	return
 }
 
@@ -81,7 +81,7 @@ func (ac awardCalculator) AwardAll() {
 		validator.shares = shares
 		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
 		validator.pubKey = candidate.PubKey
-		validator.cut = candidate.ParseCut()
+		validator.cut = candidate.ParseCompRate()
 		totalShares.Add(totalShares, shares)
 
 		// Get all of the delegators

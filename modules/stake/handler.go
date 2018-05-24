@@ -83,7 +83,7 @@ func setValidator(val types.GenesisValidator, store state.SimpleDB) error {
 		params: params,
 	}
 
-	tx := TxDeclareCandidacy{types.PubKeyString(val.PubKey), utils.ToWei(val.MaxAmount).String(), val.Cut, Description{}}
+	tx := TxDeclareCandidacy{types.PubKeyString(val.PubKey), utils.ToWei(val.MaxAmount).String(), val.CompRate, Description{}}
 	return deliverer.declareGenesisCandidacy(tx, val.Power)
 }
 
@@ -355,12 +355,11 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 // now we just perform action and save
 func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	// create and save the empty candidate
-
 	pubKey, err := types.GetPubKey(tx.PubKey)
 	if err != nil {
 		return err
 	}
-	candidate := NewCandidate(pubKey, d.sender, "0", 0, tx.MaxAmount, tx.Cut, tx.Description, "N", "Y")
+	candidate := NewCandidate(pubKey, d.sender, "0", 0, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
@@ -375,7 +374,7 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int6
 	if err != nil {
 		return err
 	}
-	candidate := NewCandidate(pubKey, d.sender, "0", votingPower, tx.MaxAmount, tx.Cut, tx.Description, "N", "Y")
+	candidate := NewCandidate(pubKey, d.sender, "0", votingPower, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y")
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount

@@ -80,7 +80,7 @@ func initTendermint() {
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
 			Power:     1000,
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
-			Cut:       "0.5",
+			CompRate:  "0.5",
 			MaxAmount: 10000,
 		}}
 
