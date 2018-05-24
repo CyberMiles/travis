@@ -19,7 +19,7 @@ RUN apt update \
 	&& git clone https://github.com/CyberMiles/libeni \
 	&& cd libeni \
 	&& mkdir build && cd build && cmake .. && make -j8 \
-	&& find . -name "*.so" | xargs -I{} cp {} $LIBENI_PATH
+	&& find . -name "*.so" | xargs -I{} cp {} $LIBENI_PATH \
 
 	&& curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer -o gvm.sh \
 	&& chmod +x gvm.sh \
