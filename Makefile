@@ -1,5 +1,6 @@
 GOTOOLS = github.com/Masterminds/glide
-CGO_LDFLAGS = -L$(HOME)/.travis/lib/eni -Wl,-rpath,$(HOME)/.travis/lib/eni
+ENI_LIB?=$(HOME)/.travis/lib/eni
+CGO_LDFLAGS = -L$(ENI_LIB) -Wl,-rpath,$(ENI_LIB)
 
 all: get_vendor_deps install print_cybermiles_logo
 

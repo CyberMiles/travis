@@ -1,22 +1,29 @@
 # build stage
-FROM golang:1.9-alpine3.6 AS build-env
+FROM golang:1.9 AS build-env
 
-RUN apk add --no-cache bash build-base curl jq git linux-headers
+ENV LIBENI_SRC=/usr/local/lib/libeni
+
+RUN mkdir -p $LIBENI_SRC && cd $LIBENI_SRC \
+    && rm -f libeni.tar.gz && wget http://18.218.62.0/lib/libeni.tar.gz \
+    && tar zxvf libeni.tar.gz -C $LIBENI_SRC
 
 WORKDIR /go/src/github.com/CyberMiles/travis
 ADD . .
 
-RUN make build
+RUN ENI_LIB=$LIBENI_SRC make build
 
 # final stage
-FROM alpine:3.6
+FROM ubuntu:16.04
 
 ENV DATA_ROOT /travis
+
+ENV LIBENI_SRC=/usr/local/lib/libeni
 
 WORKDIR /app
 
 # Now just add the binary
 COPY --from=build-env /go/src/github.com/CyberMiles/travis/build/travis .
+COPY --from=build-env $LIBENI_SRC/*.so $LIBENI_SRC/
 
 VOLUME $DATA_ROOT
 

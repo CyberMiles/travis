@@ -6,6 +6,7 @@ branches:
   - develop
   - staging
   - tmup
+  - lity
   - /^v.*$/
 
 services:
