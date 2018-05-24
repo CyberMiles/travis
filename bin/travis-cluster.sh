@@ -15,6 +15,8 @@ RSTEP=10
 #seeds="127.0.0.1:$TP2PPORT"
 seeds=""
 
+shopt -s extglob
+
 # init params
 if [ -z $INST_COUNT ]; then
 	INST_COUNT=1
@@ -94,7 +96,7 @@ do
 	cd $dir
 
 	if [ $CLEAR == "$CLS" ] || [ $newnode -eq 1 ] ; then
-		rm -rf *
+		rm -rf !(lib)
 		travis node init --home .
 		if [ $i -ne 1 ]; then
 			modifyConf $dir $seq
