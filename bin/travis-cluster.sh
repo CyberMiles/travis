@@ -96,7 +96,7 @@ do
 	cd $dir
 
 	if [ $CLEAR == "$CLS" ] || [ $newnode -eq 1 ] ; then
-		rm -rf !(lib)
+		rm -rf !(eni)
 		travis node init --home .
 		if [ $i -ne 1 ]; then
 			modifyConf $dir $seq
