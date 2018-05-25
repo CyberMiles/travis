@@ -1,24 +1,14 @@
 # build stage
 FROM golang:1.9 AS build-env
 
-ENV LIBENI_SRC=/usr/local/lib
-ENV LIBENI_PATH=/usr/local/lib/libeni
-
-RUN apt-get update \
-  && apt-get upgrade -y \
-  && apt-get install -y bison libboost-all-dev cmake libssl-dev
+ENV LIBENI_PATH=/app/lib
 
 WORKDIR /root
 
-RUN wget https://github.com/skymizer/SkyPat/releases/download/v3.1.1/skypat-3.1.1.deb \
-  && dpkg -i skypat-3.1.1.deb
-
-RUN mkdir -p $LIBENI_PATH \
-  && cd $LIBENI_SRC \
-  && git clone https://github.com/CyberMiles/libeni \
-  && cd libeni \
-  && mkdir build && cd build && cmake .. && make -j8 \
-  && find . -name "*.so" | xargs -I{} cp {} $LIBENI_PATH
+RUN mkdir -p libeni \
+  && wget https://github.com/CyberMiles/libeni/releases/download/v1.0.x/libeni.tar.gz -P libeni \
+  && tar zxvf libeni/libeni.tar.gz \
+  && mkdir -p $LIBENI_PATH && cp libeni/ubuntu/eni/lib/*.so $LIBENI_PATH
 
 WORKDIR /go/src/github.com/CyberMiles/travis
 ADD . .
@@ -29,8 +19,7 @@ RUN ENI_LIB=$LIBENI_PATH make build
 FROM ubuntu:16.04
 
 ENV DATA_ROOT /travis
-
-ENV LIBENI_PATH=/usr/local/lib/libeni
+ENV LIBENI_PATH=/app/lib
 
 WORKDIR /app
 
