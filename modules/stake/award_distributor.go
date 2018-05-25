@@ -33,30 +33,25 @@ func (v validator) getAwardForValidatorSelf(totalAward *big.Int, ac *awardDistri
 	award = new(big.Int)
 	x := new(big.Int)
 	z := new(big.Float).SetInt(totalAward)
-	p := new(big.Float)
-	if v.exceedLimit {
-		p = v.sharesPercentage
-	} else {
-		p = v.computeSelfSharesPercentage()
-	}
+	p := v.computeSelfSharesPercentage()
 	z.Mul(z, p)
 	z.Int(x)
 
-	t := v.getAwardForValidator(totalAward, ac)
-	t.Sub(t, x)
+	d := new(big.Int)
+	d.Sub(totalAward, x)
 	r := new(big.Float).SetFloat64(v.compRate)
-	tmp := new(big.Float).SetInt(t)
+	tmp := new(big.Float).SetInt(d)
 	tmp.Mul(tmp, r)
 	y := new(big.Int)
 	tmp.Int(y)
 
 	award.Add(x, y)
 
-	fmt.Printf("shares percentage: %v, award for validator self: %v\n", v.sharesPercentage, award)
+	fmt.Printf("shares percentage: %v, award for validator self: %v\n", p, award)
 	return
 }
 
-func (v validator) getAwardForValidator(totalAward *big.Int, ac *awardDistributor) (award *big.Int) {
+func (v validator) getTotalAwardForValidator(totalAward *big.Int, ac *awardDistributor) (award *big.Int) {
 	award = new(big.Int)
 	z := new(big.Float).SetInt(totalAward)
 	z.Mul(z, v.sharesPercentage)
@@ -107,8 +102,6 @@ func (d delegator) getAwardForDelegator(totalShares, totalAward *big.Int, ac *aw
 	tmp := new(big.Float)
 	ta := new(big.Float).SetInt(totalAward)
 	tmp.Mul(ta, d.sharesPercentage)
-	r := big.NewFloat(1 - val.compRate)
-	tmp.Mul(tmp, r)
 	tmp.Int(award)
 	fmt.Printf("delegator award: %d\n", award)
 	return
@@ -208,11 +201,13 @@ func (ad awardDistributor) DistributeAll() {
 }
 
 func distribute(val *validator, ad *awardDistributor, totalAward *big.Int) (actualTotalAward *big.Int) {
+	fmt.Printf("########## distribute begin ########")
+	actualTotalAward = val.getTotalAwardForValidator(totalAward, ad)
+
 	// distribute to the validator
-	valAward := val.getAwardForValidatorSelf(totalAward, ad)
+	valAward := val.getAwardForValidatorSelf(actualTotalAward, ad)
 	ad.awardToValidator(val, valAward)
 
-	actualTotalAward = val.getAwardForValidator(totalAward, ad)
 	remainingAward := new(big.Int)
 	remainingAward.Sub(actualTotalAward, valAward)
 
@@ -222,6 +217,8 @@ func distribute(val *validator, ad *awardDistributor, totalAward *big.Int) (actu
 		delegatorAward := delegator.getAwardForDelegator(val.totalShares, remainingAward, ad, val)
 		ad.awardToDelegator(delegator, val, delegatorAward)
 	}
+
+	fmt.Printf("########## distribute end ########")
 
 	return
 }
