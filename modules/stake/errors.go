@@ -27,7 +27,7 @@ var (
 	errReachMaxAmount                  = fmt.Errorf("validator has reached its declared max amount CMTs to be staked")
 	errDelegationNotExists             = fmt.Errorf("no corresponding delegation exists")
 	errInvalidWithdrawalAmount         = fmt.Errorf("invalid withdrawal amount")
-	errCandidateWithdrawalDisallowed   = fmt.Errorf("candidate can't withdraw the reserved reservation fund")
+	errCandidateWithdrawalDisallowed   = fmt.Errorf("candidate can't withdraw the self-staking funds")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )

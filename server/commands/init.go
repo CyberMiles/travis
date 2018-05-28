@@ -58,15 +58,15 @@ func initTendermint() {
 		logger.Info("Found genesis file", "path", genFile)
 	} else {
 		genDoc := GenesisDoc{
-			ChainID:                 viper.GetString(FlagChainID),
-			MaxVals:                 4,
-			ReserveRequirementRatio: "0.1",
+			ChainID:          viper.GetString(FlagChainID),
+			MaxVals:          4,
+			SelfStakingRatio: "0.1",
 		}
 		genDoc.Validators = []GenesisValidator{{
 			PubKey:    privValidator.GetPubKey(),
 			Power:     1000,
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
-			Cut:       "0.5",
+			CompRate:  "0.5",
 			MaxAmount: 10000,
 		}}
 

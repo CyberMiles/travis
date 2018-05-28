@@ -41,12 +41,12 @@ type delegatedProofOfStake interface {
 func InitState(key, value string, store state.SimpleDB) error {
 	params := loadParams(store)
 	switch key {
-	case "reserve_requirement_ratio":
+	case "self_staking_ratio":
 		ratio, err := strconv.ParseFloat(value, 64)
 		if err != nil || ratio <= 0 || ratio >= 1 {
 			return fmt.Errorf("input must be float, Error: %v", err.Error())
 		}
-		params.ReserveRequirementRatio = value
+		params.SelfStakingRatio = value
 	case "max_vals":
 		i, err := strconv.Atoi(value)
 		if err != nil {
@@ -207,13 +207,13 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 		return fmt.Errorf("pubkey has been declared")
 	}
 
-	// check to see if the associated account has 10%(RRR, short for Reserve Requirement Ratio, configurable) of the max staked CMT amount
+	// check to see if the associated account has 10%(ssr, short for self-staking ratio, configurable) of the max staked CMT amount
 	_, ok := new(big.Int).SetString(tx.MaxAmount, 10)
 	if !ok {
 		return ErrBadAmount()
 	}
 
-	rr := tx.ReserveRequirement(c.params.ReserveRequirementRatio)
+	rr := tx.SelfStakingAmount(c.params.SelfStakingRatio)
 
 	// check if the delegator has sufficient funds
 	err := checkBalance(c.ethereum, c.sender, rr)
@@ -239,7 +239,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 		}
 
 		if maxAmount.Cmp(candidate.ParseMaxShares()) > 0 {
-			rechargeAmount := getRechargeAmount(maxAmount, candidate, c.params.ReserveRequirementRatio)
+			rechargeAmount := getRechargeAmount(maxAmount, candidate, c.params.SelfStakingRatio)
 			balance, err := commons.GetBalance(c.ethereum, c.sender)
 			if err != nil {
 				return err
@@ -364,7 +364,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
-	amount := tx.ReserveRequirement(d.params.ReserveRequirementRatio)
+	amount := tx.SelfStakingAmount(d.params.SelfStakingRatio)
 	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
 	return d.delegate(txDelegate)
 }
@@ -393,7 +393,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 		maxAmount := utils.ParseInt(tx.MaxAmount)
 
 		if candidate.ParseMaxShares().Cmp(maxAmount) != 0 {
-			rechargeAmount := getRechargeAmount(maxAmount, candidate, d.params.ReserveRequirementRatio)
+			rechargeAmount := getRechargeAmount(maxAmount, candidate, d.params.SelfStakingRatio)
 			rechargeAmountAbs := new(big.Int)
 			rechargeAmountAbs.Abs(rechargeAmount)
 
@@ -538,7 +538,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	if d.sender == candidate.OwnerAddress {
 		remained := new(big.Int)
 		remained.Sub(delegation.Shares(), amount)
-		if remained.Cmp(candidate.ReserveRequirement(d.params.ReserveRequirementRatio)) < 0 {
+		if remained.Cmp(candidate.SelfStakingAmount(d.params.SelfStakingRatio)) < 0 {
 			return ErrCandidateWithdrawalDisallowed()
 		}
 	}

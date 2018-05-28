@@ -22,20 +22,20 @@ type GenesisValidator struct {
 	Power     int64         `json:"power"`
 	Name      string        `json:"name"`
 	Address   string        `json:"address"`
-	Cut       string        `json:"cut"`
+	CompRate  string        `json:"comp_rate"`
 	MaxAmount int64         `json:"max_amount"`
 }
 
 // GenesisDoc defines the initial conditions for a tendermint blockchain, in particular its validator set.
 type GenesisDoc struct {
-	GenesisTime             time.Time              `json:"genesis_time"`
-	ChainID                 string                 `json:"chain_id"`
-	ConsensusParams         *types.ConsensusParams `json:"consensus_params,omitempty"`
-	Validators              []GenesisValidator     `json:"validators"`
-	AppHash                 data.Bytes             `json:"app_hash"`
-	AppOptions              interface{}            `json:"app_options,omitempty"`
-	MaxVals                 uint16                 `json:"max_vals"`
-	ReserveRequirementRatio string                 `json:"reserve_requirement_ratio"`
+	GenesisTime      time.Time              `json:"genesis_time"`
+	ChainID          string                 `json:"chain_id"`
+	ConsensusParams  *types.ConsensusParams `json:"consensus_params,omitempty"`
+	Validators       []GenesisValidator     `json:"validators"`
+	AppHash          data.Bytes             `json:"app_hash"`
+	AppOptions       interface{}            `json:"app_options,omitempty"`
+	MaxVals          uint16                 `json:"max_vals"`
+	SelfStakingRatio string                 `json:"self_staking_ratio"`
 }
 
 // SaveAs is a utility method for saving GenensisDoc as a JSON file.
