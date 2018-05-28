@@ -123,7 +123,7 @@ type DeclareCandidacyArgs struct {
 	From        common.Address    `json:"from"`
 	PubKey      string            `json:"pubKey"`
 	MaxAmount   string            `json:"maxAmount"`
-	Cut         string            `json:"cut"`
+	CompRate    string            `json:"compRate"`
 	Description stake.Description `json:"description"`
 }
 
@@ -132,7 +132,7 @@ func (s *CmtRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.Res
 	if err != nil {
 		return nil, err
 	}
-	tx := stake.NewTxDeclareCandidacy(pubKey, args.MaxAmount, args.Cut, args.Description)
+	tx := stake.NewTxDeclareCandidacy(pubKey, args.MaxAmount, args.CompRate, args.Description)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {

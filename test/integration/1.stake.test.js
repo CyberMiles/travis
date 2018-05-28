@@ -52,7 +52,7 @@ let newPubKey = [
 let maxAmount = 200 // 2000 cmt
 let deleAmount1 = maxAmount * 0.1
 let deleAmount2 = maxAmount - maxAmount * 0.1 * 2
-let cut = "0.8"
+let compRate = "0.8"
 
 describe("Stake Test", function() {
   before(function() {
@@ -84,7 +84,7 @@ describe("Stake Test", function() {
           from: acc,
           pubKey: newPubKey[idx],
           maxAmount: web3.toWei(initAmount, "cmt"),
-          cut: cut
+          compRate: compRate
         }
         let r = web3.cmt.stake.declareCandidacy(payload)
         Utils.expectTxSuccess(r)
@@ -114,8 +114,8 @@ describe("Stake Test", function() {
       Utils.expectTxFail(r)
     })
 
-    describe(`Declare to be a validator with ${maxAmount} CMT max and ${cut *
-      100}% cut`, function() {
+    describe(`Declare to be a validator with ${maxAmount} CMT max and ${compRate *
+      100}% compRate`, function() {
       describe(`Account D does not have ${maxAmount * 0.1} CMTs.`, function() {
         before(function(done) {
           let balance = web3
@@ -138,7 +138,7 @@ describe("Stake Test", function() {
             from: accounts[3],
             pubKey: newPubKey[3],
             maxAmount: web3.toWei(maxAmount, "cmt"),
-            cut: cut
+            compRate: compRate
           }
           let r = web3.cmt.stake.declareCandidacy(payload)
           Utils.expectTxFail(r, 20)
@@ -173,7 +173,7 @@ describe("Stake Test", function() {
             from: accounts[3],
             pubKey: newPubKey[3],
             maxAmount: wei,
-            cut: cut
+            compRate: compRate
           }
           let r = web3.cmt.stake.declareCandidacy(payload)
           Utils.expectTxSuccess(r)
@@ -211,7 +211,7 @@ describe("Stake Test", function() {
       logger.debug(result.data)
       expect(result.data.owner_address).to.eq(accounts[3])
       expect(result.data.verified).to.eq("Y")
-      expect(result.data.cut).to.eq(cut)
+      expect(result.data.comp_rate).to.eq(compRate)
       expect(result.data.pub_key.data).to.eq(newPubKey[3])
       // todo
       // expect(result.data.max_shares).to.eq(maxAmount)
