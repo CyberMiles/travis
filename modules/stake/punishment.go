@@ -2,11 +2,13 @@ package stake
 
 import (
 	"fmt"
-	"github.com/CyberMiles/travis/commons"
-	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 )
 
 const (

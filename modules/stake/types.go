@@ -2,31 +2,31 @@ package stake
 
 import (
 	"bytes"
+	"math/big"
 	"sort"
 
-	"github.com/CyberMiles/travis/sdk/state"
-
-	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/abci/types"
-	"math/big"
+
+	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // Params defines the high level settings for staking
 type Params struct {
-	HoldAccount             common.Address `json:"hold_account"` // PubKey where all bonded coins are held
-	MaxVals                 uint16         `json:"max_vals"`     // maximum number of validators
-	Validators              string         `json:"validators"`   // initial validators definition
-	ReserveRequirementRatio string         `json:"reserve_requirement_ratio"`
+	HoldAccount      common.Address `json:"hold_account"` // PubKey where all bonded coins are held
+	MaxVals          uint16         `json:"max_vals"`     // maximum number of validators
+	Validators       string         `json:"validators"`   // initial validators definition
+	SelfStakingRatio string         `json:"self_staking_ratio"`
 }
 
 func defaultParams() Params {
 	return Params{
-		HoldAccount:             utils.HoldAccount,
-		MaxVals:                 100,
-		Validators:              "",
-		ReserveRequirementRatio: "0.1",
+		HoldAccount:      utils.HoldAccount,
+		MaxVals:          100,
+		Validators:       "",
+		SelfStakingRatio: "0.1",
 	}
 }
 
@@ -41,17 +41,17 @@ func defaultParams() Params {
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
-	PubKey       types.PubKey  `json:"pub_key"`       // Pubkey of candidate
-	OwnerAddress string `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
-	Shares       string         `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
-	MaxShares    string         `json:"max_shares"`
-	CompRate     string         `json:"cut"`
-	CreatedAt    string         `json:"created_at"`
-	UpdatedAt    string         `json:"updated_at"`
-	Description  Description    `json:"description"`
-	Verified     string         `json:"verified"`
-	Active       string         `json:"active"`
+	PubKey       types.PubKey `json:"pub_key"`       // Pubkey of candidate
+	OwnerAddress string       `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
+	Shares       string       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
+	VotingPower  int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
+	MaxShares    string       `json:"max_shares"`
+	CompRate     string       `json:"comp_rate"`
+	CreatedAt    string       `json:"created_at"`
+	UpdatedAt    string       `json:"updated_at"`
+	Description  Description  `json:"description"`
+	Verified     string       `json:"verified"`
+	Active       string       `json:"active"`
 }
 
 type Description struct {
@@ -103,7 +103,7 @@ func (c *Candidate) AddShares(value *big.Int) *big.Int {
 	return x
 }
 
-func (c *Candidate) ReserveRequirement(ratio string) (result *big.Int) {
+func (c *Candidate) SelfStakingAmount(ratio string) (result *big.Int) {
 	result = new(big.Int)
 	z := new(big.Float)
 	maxShares := new(big.Float).SetInt(c.ParseMaxShares())

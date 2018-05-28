@@ -21,7 +21,7 @@ describe("Stake Test", function() {
     this.reducedMax = web3.toWei(maxAmount - 1, "cmt")
   }
   let amounts = new Amounts(2000) // 2000 cmt
-  let cut = "0.8"
+  let compRate = "0.8"
 
   let existingValidator = {}
   let balance_old, balance_new
@@ -64,7 +64,7 @@ describe("Stake Test", function() {
     describe(`Declare to be a validator with ${web3.fromWei(
       amounts.max,
       "cmt"
-    )} CMTs max and ${cut * 100}% cut`, function() {
+    )} CMTs max and ${compRate * 100}% compRate`, function() {
       describe(`Account D does not have ${web3.fromWei(
         amounts.self,
         "cmt"
@@ -79,7 +79,7 @@ describe("Stake Test", function() {
             from: Globals.Accounts[3],
             pubKey: Globals.PubKeys[3],
             maxAmount: amounts.max,
-            cut: cut
+            compRate: compRate
           }
           let r = web3.cmt.stake.declareCandidacy(payload)
           Utils.expectTxFail(r, 20)
@@ -123,7 +123,7 @@ describe("Stake Test", function() {
             from: Globals.Accounts[3],
             pubKey: Globals.PubKeys[3],
             maxAmount: amounts.max,
-            cut: cut
+            compRate: compRate
           }
           let r = web3.cmt.stake.declareCandidacy(payload)
           Utils.expectTxSuccess(r)
@@ -161,7 +161,7 @@ describe("Stake Test", function() {
       logger.debug(result.data)
       expect(result.data.owner_address).to.eq(Globals.Accounts[3])
       expect(result.data.verified).to.eq("Y")
-      expect(result.data.cut).to.eq(cut)
+      expect(result.data.comp_rate).to.eq(compRate)
       expect(result.data.pub_key.value).to.eq(Globals.PubKeys[3])
       expect(result.data.max_shares).to.eq(amounts.max.toString())
       expect(result.data.shares).to.eq(amounts.self.toString())

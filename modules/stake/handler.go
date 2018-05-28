@@ -5,11 +5,11 @@ import (
 	"strconv"
 
 	"github.com/CyberMiles/travis/commons"
-	"github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	ethstat "github.com/ethereum/go-ethereum/core/state"
 	"math/big"
@@ -40,12 +40,12 @@ type delegatedProofOfStake interface {
 func InitState(key string, value interface{}, store state.SimpleDB) error {
 	params := loadParams(store)
 	switch key {
-	case "reserve_requirement_ratio":
+	case "self_staking_ratio":
 		ratio, err := strconv.ParseFloat(value.(string), 64)
 		if err != nil || ratio <= 0 || ratio >= 1 {
 			return fmt.Errorf("input must be float, Error: %v", err.Error())
 		}
-		params.ReserveRequirementRatio = value.(string)
+		params.SelfStakingRatio = value.(string)
 	case "max_vals":
 		i, err := strconv.Atoi(value.(string))
 		if err != nil {
@@ -102,10 +102,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 
 	params := loadParams(store)
 	checker := check{
-		store:    store,
-		sender:   sender,
-		params:   params,
-		state:    ctx.EthappState(),
+		store:  store,
+		sender: sender,
+		params: params,
+		state:  ctx.EthappState(),
 	}
 
 	switch txInner := tx.Unwrap().(type) {
@@ -143,10 +143,10 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 
 	params := loadParams(store)
 	deliverer := deliver{
-		store:    store,
-		sender:   sender,
-		params:   params,
-		state:    ctx.EthappState(),
+		store:  store,
+		sender: sender,
+		params: params,
+		state:  ctx.EthappState(),
 	}
 
 	// Run the transaction
@@ -182,10 +182,10 @@ func getTxSender(ctx types.Context) (sender common.Address, err error) {
 //_______________________________________________________________________
 
 type check struct {
-	store    state.SimpleDB
-	sender   common.Address
-	params   Params
-	state    *ethstat.StateDB
+	store  state.SimpleDB
+	sender common.Address
+	params Params
+	state  *ethstat.StateDB
 }
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
@@ -202,13 +202,13 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 		return fmt.Errorf("pubkey has been declared")
 	}
 
-	// check to see if the associated account has 10%(RRR, short for Reserve Requirement Ratio, configurable) of the max staked CMT amount
+	// check to see if the associated account has 10%(ssr, short for self-staking ratio, configurable) of the max staked CMT amount
 	_, ok := new(big.Int).SetString(tx.MaxAmount, 10)
 	if !ok {
 		return ErrBadAmount()
 	}
 
-	rr := tx.ReserveRequirement(c.params.ReserveRequirementRatio)
+	rr := tx.SelfStakingAmount(c.params.SelfStakingRatio)
 
 	// check if the delegator has sufficient funds
 	err := checkBalance(c.state, c.sender, rr)
@@ -234,7 +234,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 		}
 
 		if maxAmount.Cmp(candidate.ParseMaxShares()) > 0 {
-			rechargeAmount := getRechargeAmount(maxAmount, candidate, c.params.ReserveRequirementRatio)
+			rechargeAmount := getRechargeAmount(maxAmount, candidate, c.params.SelfStakingRatio)
 			balance, err := commons.GetBalance(c.state, c.sender)
 			if err != nil {
 				return err
@@ -343,10 +343,10 @@ func (c check) withdraw(tx TxWithdraw) error {
 //_____________________________________________________________________
 
 type deliver struct {
-	store    state.SimpleDB
-	sender   common.Address
-	params   Params
-	state    *ethstat.StateDB
+	store  state.SimpleDB
+	sender common.Address
+	params Params
+	state  *ethstat.StateDB
 }
 
 var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
@@ -363,7 +363,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
-	amount := tx.ReserveRequirement(d.params.ReserveRequirementRatio)
+	amount := tx.SelfStakingAmount(d.params.SelfStakingRatio)
 	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
 	return d.delegate(txDelegate)
 }
@@ -396,7 +396,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
 		maxAmount := utils.ParseInt(tx.MaxAmount)
 
 		if candidate.ParseMaxShares().Cmp(maxAmount) != 0 {
-			rechargeAmount := getRechargeAmount(maxAmount, candidate, d.params.ReserveRequirementRatio)
+			rechargeAmount := getRechargeAmount(maxAmount, candidate, d.params.SelfStakingRatio)
 			rechargeAmountAbs := new(big.Int)
 			rechargeAmountAbs.Abs(rechargeAmount)
 
@@ -541,7 +541,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	if d.sender.String() == candidate.OwnerAddress {
 		remained := new(big.Int)
 		remained.Sub(delegation.Shares(), amount)
-		if remained.Cmp(candidate.ReserveRequirement(d.params.ReserveRequirementRatio)) < 0 {
+		if remained.Cmp(candidate.SelfStakingAmount(d.params.SelfStakingRatio)) < 0 {
 			return ErrCandidateWithdrawalDisallowed()
 		}
 	}

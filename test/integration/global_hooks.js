@@ -104,12 +104,12 @@ before("Add some fake validators if it's a single node", function() {
       Globals.Accounts.forEach((acc, idx) => {
         if (idx >= valsToAdd) return
         let initAmount = 1000,
-          cut = "0.8"
+          compRate = "0.8"
         let payload = {
           from: acc,
           pubKey: Globals.PubKeys[idx],
           maxAmount: web3.toWei(initAmount, "cmt"),
-          cut: cut
+          compRate: compRate
         }
         let r = web3.cmt.stake.declareCandidacy(payload)
         Utils.expectTxSuccess(r)
