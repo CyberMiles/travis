@@ -151,7 +151,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	for _, i := range app.AbsentValidators {
 		validators.Remove(i)
 	}
-	stake.NewAwardDistributor(app.WorkingHeight(), validators, utils.BlockGasFee).DistributeAll()
+	stake.NewAwardDistributor(app.WorkingHeight(), validators, utils.BlockGasFee, app.logger).DistributeAll()
 
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {

@@ -1,11 +1,11 @@
 package stake
 
 import (
-	"fmt"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/go-crypto"
+	"github.com/tendermint/tmlibs/log"
 	"math"
 	"math/big"
 )
@@ -46,8 +46,6 @@ func (v validator) getAwardForValidatorSelf(totalAward *big.Int, ac *awardDistri
 	tmp.Int(y)
 
 	award.Add(x, y)
-
-	fmt.Printf("shares percentage: %v, award for validator self: %v\n", p, award)
 	return
 }
 
@@ -56,7 +54,6 @@ func (v validator) getTotalAwardForValidator(totalAward *big.Int, ac *awardDistr
 	z := new(big.Float).SetInt(totalAward)
 	z.Mul(z, v.sharesPercentage)
 	z.Int(award)
-	fmt.Printf("shares percentage: %v, award for whole validator: %v\n", v.sharesPercentage, award)
 	return
 }
 
@@ -94,7 +91,6 @@ func (d *delegator) computeSharesPercentage(val *validator) {
 	tmp.Sub(val.shares, val.selfDelegator.shares)
 	y := new(big.Float).SetInt(tmp) // total shares of the validator
 	d.sharesPercentage.Quo(x, y)
-	fmt.Printf("delegator shares: %f, validator shares: %f, percentage: %f\n", x, y, d.sharesPercentage)
 }
 
 func (d delegator) getAwardForDelegator(totalShares, totalAward *big.Int, ac *awardDistributor, val *validator) (award *big.Int) {
@@ -103,7 +99,6 @@ func (d delegator) getAwardForDelegator(totalShares, totalAward *big.Int, ac *aw
 	ta := new(big.Float).SetInt(totalAward)
 	tmp.Mul(ta, d.sharesPercentage)
 	tmp.Int(award)
-	fmt.Printf("delegator award: %d\n", award)
 	return
 }
 
@@ -113,11 +108,11 @@ type awardDistributor struct {
 	height          int64
 	validators      Validators
 	transactionFees *big.Int
+	logger          log.Logger
 }
 
-func NewAwardDistributor(height int64, validators Validators, transactionFees *big.Int) *awardDistributor {
-	fmt.Printf("new award calculator, height: %d, transaction fees: %d\n", height, transactionFees)
-	return &awardDistributor{height, validators, transactionFees}
+func NewAwardDistributor(height int64, validators Validators, transactionFees *big.Int, logger log.Logger) *awardDistributor {
+	return &awardDistributor{height, validators, transactionFees, logger}
 }
 
 func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
@@ -130,7 +125,7 @@ func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
 	year := ad.height / yearlyBlockNumber
 	pow := big.NewFloat(math.Pow(float64(1+inflationRate/100), float64(year)))
 	new(big.Float).Mul(base, pow).Int(amount)
-	fmt.Printf("year: %d, mintable amount: %v\n", year, amount)
+	ad.logger.Debug("getMintableAmount", "height", ad.height, "year", year, "amount", amount)
 	return
 }
 
@@ -140,7 +135,7 @@ func (ad awardDistributor) getBlockAward() (blockAward *big.Int) {
 	blockAward.Mul(ad.getMintableAmount(), big.NewInt(inflationRate))
 	blockAward.Div(blockAward, big.NewInt(100))
 	blockAward.Div(blockAward, ybn)
-	fmt.Printf("yearly block number: %d, total block award: %v\n", ybn, blockAward)
+	ad.logger.Debug("getBlockAward", "yearly_block_number", ybn, "total_block_award", blockAward)
 	return
 }
 
@@ -185,23 +180,23 @@ func (ad awardDistributor) DistributeAll() {
 	for _, val := range validators {
 		val.totalShares = totalShares
 		val.computeTotalSharesPercentage(false)
-		actualAward := distribute(val, &ad, totalAward)
+		actualAward := ad.distribute(val, totalAward)
 		actualDistributed.Add(actualDistributed, actualAward)
 	}
 
 	// If there is remaining distribute, distribute a second round based on stake amount.
 	remaining := new(big.Int).Sub(totalAward, actualDistributed)
 	if remaining.Cmp(big.NewInt(0)) > 0 {
-		fmt.Printf("there is remaining award, distribute a second round based on stake amount. remaining: %d\v", remaining)
+		ad.logger.Debug("there is remaining award, distribute a second round based on stake amount.", "remaining", remaining)
 		for _, val := range validators {
 			val.computeTotalSharesPercentage(true)
-			distribute(val, &ad, remaining)
+			ad.distribute(val, remaining)
 		}
 	}
 }
 
-func distribute(val *validator, ad *awardDistributor, totalAward *big.Int) (actualTotalAward *big.Int) {
-	fmt.Printf("########## distribute begin ########")
+func (ad *awardDistributor) distribute(val *validator, totalAward *big.Int) (actualTotalAward *big.Int) {
+	ad.logger.Debug("########## distribute begin ########")
 	actualTotalAward = val.getTotalAwardForValidator(totalAward, ad)
 
 	// distribute to the validator
@@ -218,7 +213,7 @@ func distribute(val *validator, ad *awardDistributor, totalAward *big.Int) (actu
 		ad.awardToDelegator(delegator, val, delegatorAward)
 	}
 
-	fmt.Printf("########## distribute end ########")
+	ad.logger.Debug("########## distribute end ########")
 
 	return
 }
@@ -230,7 +225,7 @@ func (ad awardDistributor) getBlockAwardAndTxFees() *big.Int {
 }
 
 func (ad awardDistributor) awardToValidator(v *validator, award *big.Int) {
-	fmt.Printf("award to validator, owner_address: %s, award: %d\n", v.ownerAddress.String(), award)
+	ad.logger.Debug("awardToValidator", "validator_address", v.ownerAddress.String(), "award", award)
 
 	// validator is also a delegator
 	d := delegator{address: v.ownerAddress}
@@ -238,7 +233,7 @@ func (ad awardDistributor) awardToValidator(v *validator, award *big.Int) {
 }
 
 func (ad awardDistributor) awardToDelegator(d delegator, v *validator, award *big.Int) {
-	fmt.Printf("award to delegator, address: %s, amount: %d\n", d.address.String(), award)
+	ad.logger.Debug("awardToDelegator", "delegator_address", d.address.String(), "award", award)
 	commons.Transfer(utils.MintAccount, utils.HoldAccount, award)
 	now := utils.GetNow()
 
