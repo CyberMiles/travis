@@ -27,8 +27,9 @@ type BaseApp struct {
 	EthApp              *EthermintApplication
 	checkedTx           map[common.Hash]*types.Transaction
 	ethereum            *eth.Ethereum
-	AbsentValidators    []int32
+	AbsentValidators    *stake.AbsentValidators
 	ByzantineValidators []*abci.Evidence
+	LastValidators      []stake.Validator
 }
 
 const (
@@ -54,11 +55,12 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 	}
 
 	app := &BaseApp{
-		StoreApp:  store,
-		handler:   modules.Handler{},
-		EthApp:    ethApp,
-		checkedTx: make(map[common.Hash]*types.Transaction),
-		ethereum:  ethereum,
+		StoreApp:         store,
+		handler:          modules.Handler{},
+		EthApp:           ethApp,
+		checkedTx:        make(map[common.Hash]*types.Transaction),
+		ethereum:         ethereum,
+		AbsentValidators: stake.NewAbsentValidators(),
 	}
 
 	return app, nil
@@ -126,8 +128,15 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 // BeginBlock - ABCI
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	app.EthApp.BeginBlock(req)
-	app.AbsentValidators = req.AbsentValidators
-	app.logger.Info("BeginBlock", "absentvalidators", app.AbsentValidators)
+
+	// handle the absent validators
+	for _, i := range req.AbsentValidators {
+		v := app.LastValidators[i]
+		app.AbsentValidators.Add(v.PubKey, app.WorkingHeight())
+	}
+	app.AbsentValidators.Clear(app.WorkingHeight())
+
+	app.logger.Info("BeginBlock", "absent_validators", app.AbsentValidators)
 	app.ByzantineValidators = req.ByzantineValidators
 
 	return abci.ResponseBeginBlock{}
@@ -148,9 +157,16 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	cs := stake.GetCandidates()
 	cs.Sort()
 	validators := cs.Validators()
-	for _, i := range app.AbsentValidators {
-		validators.Remove(i)
+	app.LastValidators = validators
+
+	for i, val := range validators {
+		for k := range app.AbsentValidators.Validators {
+			if k == val.PubKey {
+				validators.Remove(i)
+			}
+		}
 	}
+
 	stake.NewAwardDistributor(app.WorkingHeight(), validators, utils.BlockGasFee, app.logger).DistributeAll()
 
 	// punish Byzantine validators
@@ -166,7 +182,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		}
 	}
 
-	// todo punish those validators who has been absent for up to 3 hours
+	// punish those absent validators
+	for k, v := range app.AbsentValidators.Validators {
+		stake.PunishAbsentValidator(k, v)
+	}
 
 	return app.StoreApp.EndBlock(req)
 }

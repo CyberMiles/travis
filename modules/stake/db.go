@@ -564,8 +564,8 @@ func savePunishHistory(punishHistory *PunishHistory) {
 
 	_, err = stmt.Exec(
 		punishHistory.PubKey.KeyString(),
-		punishHistory.DeductionRatio,
-		punishHistory.Deduction.String(),
+		punishHistory.SlashingRatio,
+		punishHistory.Slashing.String(),
 		punishHistory.Reason,
 		punishHistory.CreatedAt,
 	)
