@@ -128,6 +128,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	// handle the absent validators
 	for _, i := range req.AbsentValidators {
+		if i >= int32(len(app.LastValidators)) {
+			continue
+		}
+
 		v := app.LastValidators[i]
 		app.AbsentValidators.Add(v.PubKey, app.WorkingHeight())
 	}
