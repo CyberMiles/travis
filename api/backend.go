@@ -117,9 +117,6 @@ func (b *Backend) Config() *eth.Config {
 func (b *Backend) SetTMNode(tmNode *tmn.Node) {
 	b.chainID = tmNode.GenesisDoc().ChainID
 	b.localClient = rpcClient.NewLocal(tmNode)
-	// uncomment this for TxPool broadcast tx to tendermint directly,
-	// the TxPool must has SetTMClient method when uncomment this
-	b.ethereum.TxPool().SetTMClient(b.localClient)
 }
 
 func (b *Backend) PeerCount() int {
