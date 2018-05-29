@@ -265,7 +265,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validato
 	return changed[:n]
 }
 
-func (vs Validators) Remove(i int32) Validators {
+func (vs Validators) Remove(i int) Validators {
 	copy(vs[i:], vs[i+1:])
 	return vs[:len(vs)-1]
 }
@@ -368,9 +368,9 @@ type DelegateHistory struct {
 }
 
 type PunishHistory struct {
-	PubKey         crypto.PubKey
-	DeductionRatio int64
-	Deduction      *big.Int
-	Reason         string
-	CreatedAt      string
+	PubKey        crypto.PubKey
+	SlashingRatio float64
+	SlashAmount   *big.Int
+	Reason        string
+	CreatedAt     string
 }
