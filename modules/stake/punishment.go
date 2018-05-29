@@ -12,41 +12,88 @@ import (
 )
 
 const (
-	byzantine_deduction_ratio = 5 // deduction ratio %5 for byzantine validators
-	absent_deduction_ratio    = 1 // deduction ratio %1 for those validators absent for up to 3 hours
+	byzantine_slashing_ratio = 5     // deduction ratio %5 for byzantine validators
+	absent_slashing_ratio    = 0.001 // deduction ratio for the absent validators
+	max_slashes_limit        = 12
 )
 
+type Absence struct {
+	count           int16
+	lastBlockHeight int64
+}
+
+func (a Absence) Accumulate() {
+	a.count++
+	a.lastBlockHeight++
+}
+
+func (a Absence) ReachMaxSlashesLimit() bool {
+	return a.count >= max_slashes_limit
+}
+
+type AbsentValidators struct {
+	Validators map[types.PubKey]*Absence
+}
+
+func NewAbsentValidators() *AbsentValidators {
+	return &AbsentValidators{Validators: make(map[types.PubKey]*Absence)}
+}
+
+func (av AbsentValidators) Add(pk types.PubKey, height int64) {
+	absence := av.Validators[pk]
+	if absence == nil {
+		absence = &Absence{count: 1, lastBlockHeight: height}
+	} else {
+		absence.Accumulate()
+	}
+	av.Validators[pk] = absence
+}
+
+func (av AbsentValidators) Remove(pk types.PubKey) {
+	delete(av.Validators, pk)
+}
+
+func (av AbsentValidators) Clear(currentBlockHeight int64) {
+	for k, v := range av.Validators {
+		if v.lastBlockHeight != currentBlockHeight {
+			delete(av.Validators, k)
+		}
+	}
+}
+
 func PunishByzantineValidator(pubKey types.PubKey) (err error) {
-	return punish(pubKey, byzantine_deduction_ratio, "Byzantine validator")
+	return punish(pubKey, byzantine_slashing_ratio, "Byzantine validator")
 }
 
-func PunishAbsentValidator(pubKey types.PubKey) (err error) {
-	return punish(pubKey, absent_deduction_ratio, "Absent for up to 3 hours")
+func PunishAbsentValidator(pubKey types.PubKey, absence *Absence) (err error) {
+	err = punish(pubKey, absent_slashing_ratio, "Absent")
+	if absence.ReachMaxSlashesLimit() {
+		err = RemoveAbsentValidator(pubKey)
+	}
+	return
 }
 
-func punish(pubKey types.PubKey, ratio int64, reason string) (err error) {
+func punish(pubKey types.PubKey, ratio float64, reason string) (err error) {
 	totalDeduction := new(big.Int)
 	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
 	if v == nil {
 		return ErrNoCandidateForAddress()
 	}
 
-	v.Active = "N"
-	v.UpdatedAt = utils.GetNow()
-	updateCandidate(v)
-
 	// Get all of the delegators(includes the validator itself)
 	delegations := GetDelegationsByPubKey(v.PubKey)
 	for _, delegation := range delegations {
-		deduction := new(big.Int)
-		deduction.Mul(delegation.ParseDelegateAmount(), big.NewInt(ratio))
-		deduction.Div(deduction, big.NewInt(100))
-		punishDelegator(delegation, common.HexToAddress(v.OwnerAddress), deduction)
-		totalDeduction.Add(totalDeduction, deduction)
+		tmp := new(big.Float)
+		x := new(big.Float).SetInt(delegation.ParseDelegateAmount())
+		tmp.Mul(x, big.NewFloat(ratio))
+		slash := new(big.Int)
+		tmp.Int(slash)
+		punishDelegator(delegation, common.HexToAddress(v.OwnerAddress), slash)
+		totalDeduction.Add(totalDeduction, slash)
 	}
 
 	// Save punishment history
-	punishHistory := &PunishHistory{PubKey: pubKey, DeductionRatio: ratio, Deduction: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
+	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: ratio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
 	savePunishHistory(punishHistory)
 
 	return
@@ -59,7 +106,7 @@ func punishDelegator(d *Delegation, validatorAddress common.Address, amount *big
 	now := utils.GetNow()
 
 	neg := new(big.Int).Neg(amount)
-	d.AddDelegateAmount(neg)
+	d.AddSlashAmount(neg)
 	d.UpdatedAt = now
 	UpdateDelegation(d)
 
@@ -68,4 +115,20 @@ func punishDelegator(d *Delegation, validatorAddress common.Address, amount *big
 	val.AddShares(neg)
 	val.UpdatedAt = now
 	updateCandidate(val)
+}
+
+func RemoveAbsentValidator(pubKey types.PubKey) (err error) {
+	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
+	if v == nil {
+		return ErrNoCandidateForAddress()
+	}
+
+	v.Active = "N"
+	v.UpdatedAt = utils.GetNow()
+	updateCandidate(v)
+
+	// Save punishment history
+	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: 0, SlashAmount: big.NewInt(0), Reason: "Absent for up to 12 consecutive blocks", CreatedAt: utils.GetNow()}
+	savePunishHistory(punishHistory)
+	return
 }
