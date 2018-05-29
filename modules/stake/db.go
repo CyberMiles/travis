@@ -556,7 +556,7 @@ func savePunishHistory(punishHistory *PunishHistory) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into punish_history(pub_key, deduction_ratio, deduction, reason, created_at) values(?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into punish_history(pub_key, slashing_ratio, slash_amount, reason, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -565,7 +565,7 @@ func savePunishHistory(punishHistory *PunishHistory) {
 	_, err = stmt.Exec(
 		punishHistory.PubKey.KeyString(),
 		punishHistory.SlashingRatio,
-		punishHistory.Slashing.String(),
+		punishHistory.SlashAmount.String(),
 		punishHistory.Reason,
 		punishHistory.CreatedAt,
 	)

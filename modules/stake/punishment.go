@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	byzantine_deduction_ratio = 5     // deduction ratio %5 for byzantine validators
-	absent_deduction_ratio    = 0.001 // deduction ratio for the absent validators
-	max_slashes_limit         = 12
+	byzantine_slashing_ratio = 5     // deduction ratio %5 for byzantine validators
+	absent_slashing_ratio    = 0.001 // deduction ratio for the absent validators
+	max_slashes_limit        = 12
 )
 
 type Absence struct {
@@ -60,11 +60,11 @@ func (av AbsentValidators) Clear(currentBlockHeight int64) {
 }
 
 func PunishByzantineValidator(pubKey crypto.PubKey) (err error) {
-	return punish(pubKey, byzantine_deduction_ratio, "Byzantine validator")
+	return punish(pubKey, byzantine_slashing_ratio, "Byzantine validator")
 }
 
 func PunishAbsentValidator(pubKey crypto.PubKey, absence *Absence) (err error) {
-	err = punish(pubKey, absent_deduction_ratio, "Absent")
+	err = punish(pubKey, absent_slashing_ratio, "Absent")
 	if absence.ReachMaxSlashesLimit() {
 		err = RemoveAbsentValidator(pubKey)
 	}
@@ -91,7 +91,7 @@ func punish(pubKey crypto.PubKey, ratio float64, reason string) (err error) {
 	}
 
 	// Save punishment history
-	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: ratio, Slashing: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
+	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: ratio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
 	savePunishHistory(punishHistory)
 
 	return
@@ -126,7 +126,7 @@ func RemoveAbsentValidator(pubKey crypto.PubKey) (err error) {
 	updateCandidate(v)
 
 	// Save punishment history
-	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: 0, Slashing: big.NewInt(0), Reason: "Absent for up to 12 consecutive blocks", CreatedAt: utils.GetNow()}
+	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: 0, SlashAmount: big.NewInt(0), Reason: "Absent for up to 12 consecutive blocks", CreatedAt: utils.GetNow()}
 	savePunishHistory(punishHistory)
 	return
 }

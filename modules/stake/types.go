@@ -370,7 +370,7 @@ type DelegateHistory struct {
 type PunishHistory struct {
 	PubKey        crypto.PubKey
 	SlashingRatio float64
-	Slashing      *big.Int
+	SlashAmount   *big.Int
 	Reason        string
 	CreatedAt     string
 }
