@@ -5,6 +5,7 @@ module.exports = Object.freeze({
     },
     Passphrase: "1234",
     BlockTimeout: 5,
-    IntervalMs: 2000
+    IntervalMs: 2000,
+    WaitTimeout: 60
   }
 })

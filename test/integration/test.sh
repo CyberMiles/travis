@@ -38,4 +38,5 @@ docker run --rm -v ~/volumes/local:/travis $IMG node init --home=/travis
 docker run --rm -v ~/volumes/local:/travis -d -p 46657:46657 -p 8545:8545 $IMG node start --home=/travis
 sleep 3
 
+cd $BASEDIR
 yarn test

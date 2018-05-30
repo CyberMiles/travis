@@ -167,14 +167,22 @@ const getProposal = proposalId => {
 
 const waitInterval = function(txhash, cb) {
   let startingBlock = web3.cmt.blockNumber
+  let startingTime = Math.round(new Date().getTime() / 1000)
 
   logger.debug("Starting block:", startingBlock)
   let interval = setInterval(() => {
     let blocksGone = web3.cmt.blockNumber - startingBlock
+    let timeGone = Math.round(new Date().getTime() / 1000) - startingTime
+
     if (blocksGone > Settings.BlockTimeout) {
       clearInterval(interval)
       cb(new Error(`Pending full after ${Settings.BlockTimeout} blocks`))
       return
+    }
+    if (timeGone > Settings.WaitTimeout) {
+      clearInterval(interval)
+      logger.error(`Pending full after ${Settings.WaitTimeout} seconds`)
+      process.exit(1)
     }
 
     let receipt = web3.cmt.getTransactionReceipt(txhash)
