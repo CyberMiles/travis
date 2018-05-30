@@ -91,7 +91,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 			}
 		}
 		resp := app.EthApp.DeliverTx(tx)
-		app.logger.Debug("EthApp DeliverTx response: %v\n", resp)
+		app.logger.Debug("EthApp DeliverTx response", "resp", resp)
 		return resp
 	}
 
@@ -111,7 +111,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 
 	if isEthTx(tx) {
 		resp := app.EthApp.CheckTx(tx)
-		app.logger.Debug("EthApp CheckTx response: %v\n", resp)
+		app.logger.Debug("EthApp CheckTx response", "resp", resp)
 		if resp.IsErr() {
 			return errors.CheckResult(goerr.New(resp.Error()))
 		}
@@ -131,6 +131,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	// handle the absent validators
 	for _, i := range req.AbsentValidators {
+		app.logger.Debug("BeginBlock", "index", i)
 		if i >= int32(len(app.LastValidators)) {
 			continue
 		}
@@ -150,27 +151,22 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.EthApp.EndBlock(req)
 
-	// execute tick if present
-	diff, err := tick(app.Append())
-	if err != nil {
-		panic(err)
-	}
-	app.AddValChange(diff)
-
-	// block award
 	cs := stake.GetCandidates()
 	cs.Sort()
+	app.LastValidators = cs.Validators()
 	validators := cs.Validators()
-	app.LastValidators = validators
 
 	for i, val := range validators {
+		app.logger.Debug("validators", "index", i, "val", val.PubKey.KeyString())
 		for k := range app.AbsentValidators.Validators {
 			if k == val.PubKey {
-				validators.Remove(i)
+				//app.logger.Debug("validator matched", "pubkey", k.KeyString())
+				validators = validators.Remove(i)
 			}
 		}
 	}
 
+	// block award
 	stake.NewAwardDistributor(app.WorkingHeight(), validators, utils.BlockGasFee, app.logger).DistributeAll()
 
 	// punish Byzantine validators
@@ -186,10 +182,17 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		}
 	}
 
-	// punish those absent validators
+	// punish the absent validators
 	for k, v := range app.AbsentValidators.Validators {
 		stake.PunishAbsentValidator(k, v)
 	}
+
+	// execute tick if present
+	diff, err := tick(app.Append())
+	if err != nil {
+		panic(err)
+	}
+	app.AddValChange(diff)
 
 	return app.StoreApp.EndBlock(req)
 }
