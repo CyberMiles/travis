@@ -2,16 +2,15 @@ package stake
 
 import (
 	"bytes"
+	"math/big"
 	"sort"
 
-	"github.com/cosmos/cosmos-sdk/state"
-
-	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/abci/types"
-	"github.com/tendermint/go-crypto"
-	"github.com/tendermint/go-wire"
-	"math/big"
+
+	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // Params defines the high level settings for staking
@@ -42,17 +41,17 @@ func defaultParams() Params {
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
-	PubKey       crypto.PubKey  `json:"pub_key"`       // Pubkey of candidate
-	OwnerAddress common.Address `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
-	Shares       string         `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower  int64          `json:"voting_power"`  // Voting power if pubKey is a considered a validator
-	MaxShares    string         `json:"max_shares"`
-	CompRate     string         `json:"comp_rate"`
-	CreatedAt    string         `json:"created_at"`
-	UpdatedAt    string         `json:"updated_at"`
-	Description  Description    `json:"description"`
-	Verified     string         `json:"verified"`
-	Active       string         `json:"active"`
+	PubKey       types.PubKey `json:"pub_key"`       // Pubkey of candidate
+	OwnerAddress string       `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
+	Shares       string       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
+	VotingPower  int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
+	MaxShares    string       `json:"max_shares"`
+	CompRate     string       `json:"comp_rate"`
+	CreatedAt    string       `json:"created_at"`
+	UpdatedAt    string       `json:"updated_at"`
+	Description  Description  `json:"description"`
+	Verified     string       `json:"verified"`
+	Active       string       `json:"active"`
 }
 
 type Description struct {
@@ -62,11 +61,11 @@ type Description struct {
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey crypto.PubKey, ownerAddress common.Address, shares string, votingPower int64, maxShares, compRate string, description Description, verified string, active string) *Candidate {
+func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares string, votingPower int64, maxShares, compRate string, description Description, verified string, active string) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
-		OwnerAddress: ownerAddress,
+		OwnerAddress: ownerAddress.String(),
 		Shares:       shares,
 		VotingPower:  votingPower,
 		MaxShares:    maxShares,
@@ -118,9 +117,9 @@ func (c *Candidate) SelfStakingAmount(ratio string) (result *big.Int) {
 type Validator Candidate
 
 // ABCIValidator - Get the validator from a bond value
-func (v Validator) ABCIValidator() *abci.Validator {
-	return &abci.Validator{
-		PubKey: wire.BinaryBytes(v.PubKey),
+func (v Validator) ABCIValidator() abci.Validator {
+	return abci.Validator{
+		PubKey: v.PubKey.Bytes(),
 		Power:  v.VotingPower,
 	}
 }
@@ -218,14 +217,14 @@ func (vs Validators) Sort() {
 }
 
 // determine all changed validators between two validator sets
-func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validator) {
+func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator) {
 
 	//first sort the validator sets
 	vs.Sort()
 	vs2.Sort()
 
 	max := len(vs) + len(vs2)
-	changed = make([]*abci.Validator, max)
+	changed = make([]abci.Validator, max)
 	i, j, n := 0, 0, 0 //counters for vs loop, vs2 loop, changed element
 
 	for i < len(vs) && j < len(vs2) {
@@ -238,7 +237,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validato
 				j++
 				continue
 			} // else, the old validator has been removed
-			changed[n] = &abci.Validator{vs[i].PubKey.Bytes(), 0}
+			changed[n] = abci.Validator{vs[i].PubKey.Bytes(), 0}
 			n++
 			i++
 			continue
@@ -259,7 +258,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []*abci.Validato
 
 	// remove any excess validators left in set 1
 	for ; i < len(vs); i, n = i+1, n+1 {
-		changed[n] = &abci.Validator{vs[i].PubKey.Bytes(), 0}
+		changed[n] = abci.Validator{vs[i].PubKey.Bytes(), 0}
 	}
 
 	return changed[:n]
@@ -272,7 +271,7 @@ func (vs Validators) Remove(i int) Validators {
 
 // UpdateValidatorSet - Updates the voting power for the candidate set and
 // returns the subset of validators which have changed for Tendermint
-func UpdateValidatorSet(store state.SimpleDB) (change []*abci.Validator, err error) {
+func UpdateValidatorSet(store state.SimpleDB) (change []abci.Validator, err error) {
 
 	// get the validators before update
 	candidates := GetCandidates()
@@ -297,7 +296,7 @@ type Delegator struct {
 
 type Delegation struct {
 	DelegatorAddress common.Address `json:"delegator_address"`
-	PubKey           crypto.PubKey  `json:"pub_key"`
+	PubKey           types.PubKey   `json:"pub_key"`
 	DelegateAmount   string         `json:"delegate_amount"`
 	AwardAmount      string         `json:"award_amount"`
 	WithdrawAmount   string         `json:"withdraw_amount"`
@@ -361,14 +360,14 @@ func (d *Delegation) AddSlashAmount(value *big.Int) *big.Int {
 type DelegateHistory struct {
 	Id               int64
 	DelegatorAddress common.Address
-	PubKey           crypto.PubKey
+	PubKey           types.PubKey
 	Amount           *big.Int
 	OpCode           string
 	CreatedAt        string
 }
 
 type PunishHistory struct {
-	PubKey        crypto.PubKey
+	PubKey        types.PubKey
 	SlashingRatio float64
 	SlashAmount   *big.Int
 	Reason        string

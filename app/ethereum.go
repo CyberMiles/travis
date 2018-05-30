@@ -37,7 +37,7 @@ type EthermintApplication struct {
 	// and wrangles other services started by an ethereum node (eg. tx pool)
 	backend *api.Backend // backend ethereum struct
 
-	checkTxState *state.StateDB
+	checkTxState   *state.StateDB
 
 	// an ethereum rpc client we can forward queries to
 	rpcClient *rpc.Client
@@ -153,7 +153,7 @@ func (app *EthermintApplication) DeliverTx(tx *ethTypes.Transaction) abciTypes.R
 	if res.IsErr() {
 		// nolint: errcheck
 		app.logger.Error("DeliverTx: Error delivering tx to ethereum backend", "tx", tx,
-			"err", res.Error())
+			"err", res.String())
 		return res
 	}
 	app.CollectTx(tx)
@@ -161,6 +161,10 @@ func (app *EthermintApplication) DeliverTx(tx *ethTypes.Transaction) abciTypes.R
 	return abciTypes.ResponseDeliverTx{
 		Code: abciTypes.CodeTypeOK,
 	}
+}
+
+func (app *EthermintApplication) DeliverTxState() *state.StateDB {
+	return app.backend.DeliverTxState()
 }
 
 // BeginBlock starts a new Ethereum block
@@ -194,19 +198,13 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 	if err != nil {
 		// nolint: errcheck
 		app.logger.Error("Error getting latest ethereum state", "err", err)
-		return abciTypes.ResponseCommit{
-			Code: errors.CodeTypeInternalErr,
-			Log:  err.Error(),
-		}
+		return abciTypes.ResponseCommit{}
 	}
 
 	state, err := app.backend.ResetState()
 	if err != nil {
 		app.logger.Error("Error getting latest state", "err", err) // nolint: errcheck
-		return abciTypes.ResponseCommit{
-			Code: errors.CodeTypeInternalErr,
-			Log:  err.Error(),
-		}
+		return abciTypes.ResponseCommit{}
 	}
 	app.checkTxState = state.StateDB
 

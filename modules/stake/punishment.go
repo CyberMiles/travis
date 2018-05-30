@@ -2,11 +2,13 @@ package stake
 
 import (
 	"fmt"
-	"github.com/CyberMiles/travis/commons"
-	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/go-crypto"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/CyberMiles/travis/commons"
+	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 )
 
 const (
@@ -29,14 +31,14 @@ func (a Absence) GetCount() int16 {
 }
 
 type AbsentValidators struct {
-	Validators map[crypto.PubKey]*Absence
+	Validators map[types.PubKey]*Absence
 }
 
 func NewAbsentValidators() *AbsentValidators {
-	return &AbsentValidators{Validators: make(map[crypto.PubKey]*Absence)}
+	return &AbsentValidators{Validators: make(map[types.PubKey]*Absence)}
 }
 
-func (av AbsentValidators) Add(pk crypto.PubKey, height int64) {
+func (av AbsentValidators) Add(pk types.PubKey, height int64) {
 	absence := av.Validators[pk]
 	if absence == nil {
 		absence = &Absence{count: 1, lastBlockHeight: height}
@@ -46,7 +48,7 @@ func (av AbsentValidators) Add(pk crypto.PubKey, height int64) {
 	av.Validators[pk] = absence
 }
 
-func (av AbsentValidators) Remove(pk crypto.PubKey) {
+func (av AbsentValidators) Remove(pk types.PubKey) {
 	delete(av.Validators, pk)
 }
 
@@ -58,11 +60,11 @@ func (av AbsentValidators) Clear(currentBlockHeight int64) {
 	}
 }
 
-func PunishByzantineValidator(pubKey crypto.PubKey) (err error) {
+func PunishByzantineValidator(pubKey types.PubKey) (err error) {
 	return punish(pubKey, "Byzantine validator")
 }
 
-func PunishAbsentValidator(pubKey crypto.PubKey, absence *Absence) (err error) {
+func PunishAbsentValidator(pubKey types.PubKey, absence *Absence) (err error) {
 	if absence.GetCount() <= max_slashes_limit {
 		err = punish(pubKey, "Absent")
 	}
@@ -73,9 +75,9 @@ func PunishAbsentValidator(pubKey crypto.PubKey, absence *Absence) (err error) {
 	return
 }
 
-func punish(pubKey crypto.PubKey, reason string) (err error) {
+func punish(pubKey types.PubKey, reason string) (err error) {
 	totalDeduction := new(big.Int)
-	v := GetCandidateByPubKey(utils.PubKeyString(pubKey))
+	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
 	if v == nil {
 		return ErrNoCandidateForAddress()
 	}
@@ -88,7 +90,7 @@ func punish(pubKey crypto.PubKey, reason string) (err error) {
 		tmp.Mul(x, big.NewFloat(slashing_ratio))
 		slash := new(big.Int)
 		tmp.Int(slash)
-		punishDelegator(delegation, v.OwnerAddress, slash)
+		punishDelegator(delegation, common.HexToAddress(v.OwnerAddress), slash)
 		totalDeduction.Add(totalDeduction, slash)
 	}
 
@@ -117,8 +119,8 @@ func punishDelegator(d *Delegation, validatorAddress common.Address, amount *big
 	updateCandidate(val)
 }
 
-func RemoveAbsentValidator(pubKey crypto.PubKey) (err error) {
-	v := GetCandidateByPubKey(pubKey.KeyString())
+func RemoveAbsentValidator(pubKey types.PubKey) (err error) {
+	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
 	if v == nil {
 		return ErrNoCandidateForAddress()
 	}

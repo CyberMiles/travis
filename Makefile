@@ -30,10 +30,9 @@ docker_image:
 	@docker build -t $(IMAGE) .
 	@docker tag ${IMAGE} ${LATEST}
 
-DEV := ${NAME}:develop
-push_dev_image:
-	@docker tag $(IMAGE) ${DEV}
-	@docker push $(DEV)
+push_branch_image:
+	@docker tag $(IMAGE) ${NAME}:${BRANCH}
+	@docker push ${NAME}:${BRANCH}
 
 push_image:
 	@docker push $(LATEST)

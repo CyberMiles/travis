@@ -1,20 +1,18 @@
 package commands
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/go-crypto"
-
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+	"github.com/CyberMiles/travis/types"
 )
 
 /*
@@ -138,7 +136,7 @@ func init() {
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
-	pk, err := GetPubKey(viper.GetString(FlagPubKey))
+	pk, err := types.GetPubKey(viper.GetString(FlagPubKey))
 	if err != nil {
 		return err
 	}
@@ -239,25 +237,4 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 
 	tx := stake.NewTxWithdraw(validatorAddress, amount)
 	return txcmd.DoTx(tx)
-}
-
-// GetPubKey - create the pubkey from a pubkey string
-func GetPubKey(pubKeyStr string) (pk crypto.PubKey, err error) {
-	if len(pubKeyStr) == 0 {
-		err = fmt.Errorf("must use --pubkey flag")
-		return
-	}
-	if len(pubKeyStr) != 64 { //if len(pkBytes) != 32 {
-		err = fmt.Errorf("pubkey must be Ed25519 hex encoded string which is 64 characters long")
-		return
-	}
-	var pkBytes []byte
-	pkBytes, err = hex.DecodeString(pubKeyStr)
-	if err != nil {
-		return
-	}
-	var pkEd crypto.PubKeyEd25519
-	copy(pkEd[:], pkBytes[:])
-	pk = pkEd.Wrap()
-	return
 }

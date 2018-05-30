@@ -14,9 +14,9 @@ type MinerRewardStrategy interface {
 
 // ValidatorsStrategy is a validator strategy
 type ValidatorsStrategy interface {
-	SetValidators(validators []*types.Validator)
+	SetValidators(validators []types.Validator)
 	CollectTx(tx *ethTypes.Transaction)
-	GetUpdatedValidators() []*types.Validator
+	GetUpdatedValidators() []types.Validator
 }
 
 // Strategy encompasses all available strategies

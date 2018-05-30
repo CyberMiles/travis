@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -14,7 +14,7 @@ import (
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/CyberMiles/travis/utils"
+	"github.com/CyberMiles/travis/types"
 )
 
 // CmtRPCService offers cmt related RPC methods
@@ -128,7 +128,7 @@ type DeclareCandidacyArgs struct {
 }
 
 func (s *CmtRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	pubKey, err := utils.GetPubKey(args.PubKey)
+	pubKey, err := types.GetPubKey(args.PubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +262,7 @@ func (s *CmtRPCService) QueryValidator(address common.Address, height uint64) (*
 		return nil, err
 	}
 
-	return &StakeQueryResult{h, candidate}, nil
+	return &StakeQueryResult{h, &candidate}, nil
 }
 
 func (s *CmtRPCService) QueryDelegator(address common.Address, height uint64) (*StakeQueryResult, error) {

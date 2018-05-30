@@ -9,13 +9,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/CyberMiles/travis/sdk/version"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/tendermint/tmlibs/cli"
 	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/app"
-	"github.com/CyberMiles/travis/genesis"
 )
 
 // GetStartCmd - initialize a command as the start command with tick
@@ -74,9 +73,9 @@ func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *app.Ether
 	// else, assume it's been loaded
 	if travisApp.GetChainID() == "" {
 		// If genesis file exists, set key-value options
-		genesisFile := path.Join(rootDir, "genesis.json")
+		genesisFile := path.Join(rootDir, DefaultConfig().TMConfig.GenesisFile())
 		if _, err := os.Stat(genesisFile); err == nil {
-			err = genesis.Load(travisApp, genesisFile)
+			err = Load(travisApp, genesisFile)
 			if err != nil {
 				return nil, errors.Errorf("Error in LoadGenesis: %v\n", err)
 			}

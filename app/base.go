@@ -5,30 +5,28 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/errors"
+	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/errors"
+	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	abci "github.com/tendermint/abci/types"
 
-	"github.com/CyberMiles/travis/modules"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
-	"github.com/cosmos/cosmos-sdk/state"
 )
 
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler             modules.Handler
 	EthApp              *EthermintApplication
 	checkedTx           map[common.Hash]*types.Transaction
 	ethereum            *eth.Ethereum
 	AbsentValidators    *stake.AbsentValidators
-	ByzantineValidators []*abci.Evidence
+	ByzantineValidators []abci.Evidence
 	LastValidators      []stake.Validator
 }
 
@@ -56,7 +54,6 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 
 	app := &BaseApp{
 		StoreApp:         store,
-		handler:          modules.Handler{},
 		EthApp:           ethApp,
 		checkedTx:        make(map[common.Hash]*types.Transaction),
 		ethereum:         ethereum,
@@ -97,7 +94,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.EthApp.DeliverTxState())
 	return app.deliverHandler(ctx, app.Append(), tx)
 }
 
@@ -113,7 +110,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		resp := app.EthApp.CheckTx(tx)
 		app.logger.Debug("EthApp CheckTx response", "resp", resp)
 		if resp.IsErr() {
-			return errors.CheckResult(goerr.New(resp.Error()))
+			return errors.CheckResult(goerr.New(resp.String()))
 		}
 		app.checkedTx[tx.Hash()] = tx
 		return sdk.NewCheck(0, "").ToABCI()
@@ -121,7 +118,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 
 	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.EthApp.checkTxState)
 	return app.checkHandler(ctx, app.Check(), tx)
 }
 
@@ -172,7 +169,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
 		for _, bv := range app.ByzantineValidators {
-			pk, err := utils.GetPubKey(string(bv.PubKey))
+			pk, err := ttypes.GetPubKey(string(bv.PubKey))
 			if err != nil {
 				continue
 			}
@@ -204,13 +201,13 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	return
 }
 
-func (app *BaseApp) InitState(module, key, value string) error {
+func (app *BaseApp) InitState(module, key string, value interface{}) error {
 	state := app.Append()
 	logger := app.Logger().With("module", module, "key", key)
 
 	if module == sdk.ModuleNameBase {
 		if key == sdk.ChainKey {
-			app.info.SetChainID(state, value)
+			app.info.SetChainID(state, value.(string))
 			return nil
 		}
 		logger.Error("Invalid genesis option")
@@ -235,7 +232,7 @@ func isEthTx(tx *types.Transaction) bool {
 
 // Tick - Called every block even if no transaction, process all queues,
 // validator rewards, and calculate the validator set difference
-func tick(store state.SimpleDB) (change []*abci.Validator, err error) {
+func tick(store state.SimpleDB) (change []abci.Validator, err error) {
 	change, err = stake.UpdateValidatorSet(store)
 	return
 }

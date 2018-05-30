@@ -4,7 +4,7 @@ package governance
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/errors"
+	"github.com/CyberMiles/travis/sdk/errors"
 )
 
 var (

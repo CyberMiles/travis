@@ -16,5 +16,6 @@ func prepareNodeCommands() {
 	nodeCmd.AddCommand(
 		basecmd.InitCmd,
 		basecmd.GetStartCmd(),
+		basecmd.ShowNodeIDCmd,
 	)
 }

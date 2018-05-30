@@ -2,20 +2,13 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/errors"
-	"github.com/cosmos/cosmos-sdk/state"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/errors"
+	"github.com/CyberMiles/travis/sdk/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
-	"github.com/ethereum/go-ethereum/rlp"
 	abci "github.com/tendermint/abci/types"
-	"github.com/tendermint/go-wire/data"
-
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
@@ -109,20 +102,4 @@ func lookupRoute(tx sdk.Tx) (string, error) {
 	// grab everything before the /
 	name := strings.SplitN(kind, "/", 2)[0]
 	return name, nil
-}
-
-func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
-	rlp.Encode(hw, x)
-	hw.Sum(h[:0])
-	return h
-}
-
-func output(v interface{}) error {
-	blob, err := data.ToJSON(v)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(os.Stdout, "%s\n", blob)
-	return nil
 }

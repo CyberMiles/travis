@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 )
 
 // nolint
@@ -49,12 +49,6 @@ func doRawTx(cmd *cobra.Command, args []string) error {
 	err = json.Unmarshal(raw, &tx)
 	if err != nil {
 		return errors.WithStack(err)
-	}
-
-	// sign it
-	err = SignTx(tx)
-	if err != nil {
-		return err
 	}
 
 	commit := viper.GetString(FlagType)

@@ -1,9 +1,9 @@
-package genesis
+package commands
 
 import (
 	"encoding/json"
 
-	"github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/pkg/errors"
 
 	cmn "github.com/tendermint/tmlibs/common"
@@ -19,14 +19,14 @@ const KeyDelimiter = "/"
 type Option struct {
 	Module string
 	Key    string
-	Value  string
+	Value  interface{}
 }
 
 // InitStater is anything that can handle app options
 // from genesis file. Setting the merkle store, config options,
 // or anything else
 type InitStater interface {
-	InitState(module, key, value string) error
+	InitState(module, key string, value interface{}) error
 }
 
 // Load parses the genesis file and sets the initial
@@ -66,7 +66,7 @@ func GetOptions(path string) ([]Option, error) {
 
 	// set validators
 	for _, val := range validators {
-		res = append(res, Option{"stake", "validator", string(val)})
+		res = append(res, Option{"stake", "validator", val})
 	}
 
 	return res, nil
@@ -77,35 +77,21 @@ type keyValue struct {
 	Value string `json:"value"`
 }
 
-// FullDoc - includes tendermint (in the json, we ignore here)
-type FullDoc struct {
-	ChainID          string            `json:"chain_id"`
-	AppOptions       *Doc              `json:"app_options"`
-	Validators       []json.RawMessage `json:"validators"`
-	MaxVals          uint16            `json:"max_vals"`
-	SelfStakingRatio string            `json:"self_staking_ratio"`
-}
-
 // Doc - All genesis values
 type Doc struct {
 	Accounts []json.RawMessage `json:"accounts"`
 }
 
-func load(filePath string) (*FullDoc, error) {
+func load(filePath string) (*GenesisDoc, error) {
 	bytes, err := cmn.ReadFile(filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "loading genesis file")
 	}
 
-	// the basecoin genesis go-wire/data :)
-	genDoc := new(FullDoc)
+	genDoc := new(GenesisDoc)
 	err = json.Unmarshal(bytes, genDoc)
 	if err != nil {
 		return nil, errors.Wrap(err, "unmarshaling genesis file")
-	}
-
-	if genDoc.AppOptions == nil {
-		genDoc.AppOptions = new(Doc)
 	}
 
 	return genDoc, nil

@@ -1,9 +1,8 @@
 package stake
 
 import (
-	"github.com/tendermint/go-wire"
-
-	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/types"
 )
 
 // nolint
@@ -21,7 +20,7 @@ func loadParams(store state.SimpleDB) (params Params) {
 		return defaultParams()
 	}
 
-	err := wire.ReadBinaryBytes(b, &params)
+	err := types.Cdc.UnmarshalBinary(b, &params)
 	if err != nil {
 		panic(err) // This error should never occur big problem if does
 	}
@@ -29,6 +28,6 @@ func loadParams(store state.SimpleDB) (params Params) {
 	return
 }
 func saveParams(store state.SimpleDB, params Params) {
-	b := wire.BinaryBytes(params)
+	b, _ := types.Cdc.MarshalBinary(params)
 	store.Set(ParamKey, b)
 }

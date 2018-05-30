@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"bytes"
 	"os"
 	"path"
-	"strings"
+	"path/filepath"
+	"text/template"
 
 	"github.com/spf13/viper"
 
@@ -13,6 +15,9 @@ import (
 )
 
 const (
+	defaultConfigDir = "config"
+	defaultDataDir   = "data"
+
 	configFile        = "config.toml"
 	defaultEthChainId = 111
 )
@@ -64,10 +69,11 @@ func DefaultEthermintConfig() EthermintConfig {
 		ABCIAddr:          "tcp://0.0.0.0:8848",
 		ABCIProtocol:      "socket",
 		RPCEnabledFlag:    true,
-		RPCListenAddrFlag: node.DefaultHTTPHost,
+		RPCListenAddrFlag: "0.0.0.0",
 		RPCPortFlag:       node.DefaultHTTPPort,
-		RPCApiFlag:        "eth,net,web3,personal,admin",
-		WSEnabledFlag:     true,
+		RPCCORSDomainFlag: "*",
+		RPCApiFlag:        "cmt,eth,net,web3,personal,admin",
+		WSEnabledFlag:     false,
 		WSListenAddrFlag:  node.DefaultWSHost,
 		WSPortFlag:        node.DefaultWSPort,
 		WSApiFlag:         "",
@@ -75,78 +81,80 @@ func DefaultEthermintConfig() EthermintConfig {
 	}
 }
 
-// ParseConfig retrieves the default environment configuration,
-// sets up the Tendermint root and ensures that the root exists
+// copied from tendermint/commands/root.go
+// to call our revised EnsureRoot
 func ParseConfig() (*TravisConfig, error) {
 	conf := DefaultConfig()
 	err := viper.Unmarshal(&conf)
 	if err != nil {
 		return nil, err
 	}
-	conf.TMConfig.SetRoot(conf.BaseConfig.RootDir)
-	ensureRoot(conf.BaseConfig.RootDir)
+	conf.TMConfig.SetRoot(conf.TMConfig.RootDir)
+	// replace EnsureRoot of tendermint with our own
+	ensureRoot(conf)
 
-	return conf, err
+	return conf, nil
 }
 
-func ensureRoot(rootDir string) {
+// copied from tendermint/config/toml.go
+// modified to override some defaults and append vm configs
+func ensureRoot(conf *TravisConfig) {
+	rootDir := conf.TMConfig.RootDir
+
 	if err := cmn.EnsureDir(rootDir, 0700); err != nil {
 		cmn.PanicSanity(err.Error())
 	}
-	if err := cmn.EnsureDir(rootDir+"/data", 0700); err != nil {
+	if err := cmn.EnsureDir(filepath.Join(rootDir, defaultConfigDir), 0700); err != nil {
+		cmn.PanicSanity(err.Error())
+	}
+	if err := cmn.EnsureDir(filepath.Join(rootDir, defaultDataDir), 0700); err != nil {
 		cmn.PanicSanity(err.Error())
 	}
 
-	configFilePath := path.Join(rootDir, configFile)
+	configFilePath := path.Join(rootDir, defaultConfigDir, configFile)
 
 	// Write default config file if missing.
 	if !cmn.FileExists(configFilePath) {
-		cmn.MustWriteFile(configFilePath, []byte(defaultConfig(defaultMoniker)), 0644)
+		// override some defaults
+		conf.TMConfig.Consensus.TimeoutCommit = 10000
+		conf.TMConfig.Consensus.MaxBlockSizeTxs = 50000
+		// write config file
+		tmcfg.WriteConfigFile(configFilePath, &conf.TMConfig)
+		// append vm configs
+		AppendVMConfig(configFilePath, conf)
 	}
 }
 
-func defaultConfig(moniker string) string {
-	return strings.Replace(defaultConfigTmpl, "__MONIKER__", moniker, -1)
-}
+func AppendVMConfig(configFilePath string, conf *TravisConfig) {
+	var configTemplate *template.Template
+	var err error
+	if configTemplate, err = template.New("vmConfigTemplate").Parse(defaultVmTemplate); err != nil {
+		panic(err)
+	}
 
-var defaultConfigTmpl = `
-# This is a TOML config file.
-# For more information, see https://github.com/toml-lang/toml
+	var buffer bytes.Buffer
+	if err := configTemplate.Execute(&buffer, conf); err != nil {
+		panic(err)
+	}
 
-moniker = "__MONIKER__"
-fast_sync = true
-db_backend = "leveldb"
-log_level = "state:info,*:error"
-
-[rpc]
-laddr = "tcp://0.0.0.0:46657"
-
-[p2p]
-laddr = "tcp://0.0.0.0:46656"
-seeds = ""
-
-[vm]
-rpc = true
-rpcapi = "cmt,eth,net,web3,personal,admin"
-rpcaddr = "0.0.0.0"
-rpcport = 8545
-ws = false
-verbosity = 1
-
-
-[consensus]
-timeout_commit = 10000
-max_block_size_txs = 50000
-`
-
-var defaultMoniker = getDefaultMoniker()
-
-// getDefaultMoniker returns a default moniker, which is the host name. If runtime
-// fails to get the host name, "anonymous" will be returned.
-func getDefaultMoniker() string {
-	moniker, err := os.Hostname()
+	f, err := os.OpenFile(configFilePath, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		moniker = "anonymous"
+		panic(err)
 	}
-	return moniker
+	defer f.Close()
+
+	if _, err := f.Write(buffer.Bytes()); err != nil {
+		panic(err)
+	}
 }
+
+var defaultVmTemplate = `
+[vm]
+rpc = {{ .EMConfig.RPCEnabledFlag }}
+rpcapi = "{{ .EMConfig.RPCApiFlag }}"
+rpcaddr = "{{ .EMConfig.RPCListenAddrFlag }}"
+rpcport = {{ .EMConfig.RPCPortFlag }}
+rpccorsdomain = "{{ .EMConfig.RPCCORSDomainFlag }}"
+ws = {{ .EMConfig.WSEnabledFlag }}
+verbosity = {{ .EMConfig.VerbosityFlag }}
+`

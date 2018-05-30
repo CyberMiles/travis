@@ -1,13 +1,15 @@
 package stake
 
 import (
-	"github.com/CyberMiles/travis/commons"
-	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/go-crypto"
-	"github.com/tendermint/tmlibs/log"
 	"math"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/tmlibs/log"
+
+	"github.com/CyberMiles/travis/commons"
+	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 )
 
 const (
@@ -20,7 +22,7 @@ const (
 type validator struct {
 	shares           *big.Int
 	ownerAddress     common.Address
-	pubKey           crypto.PubKey
+	pubKey           types.PubKey
 	delegators       []delegator
 	compRate         float64
 	sharesPercentage *big.Float
@@ -146,14 +148,14 @@ func (ad awardDistributor) DistributeAll() {
 	for _, val := range ad.validators {
 		var validator validator
 		var delegators []delegator
-		candidate := GetCandidateByAddress(val.OwnerAddress)
+		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
 		if candidate.Shares == "0" {
 			continue
 		}
 
 		shares := candidate.ParseShares()
 		validator.shares = shares
-		validator.ownerAddress = candidate.OwnerAddress
+		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
 		validator.pubKey = candidate.PubKey
 		validator.compRate = candidate.ParseCompRate()
 		totalShares.Add(totalShares, shares)

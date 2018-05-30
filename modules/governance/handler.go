@@ -2,7 +2,6 @@ package governance
 
 import (
 	"bytes"
-	"encoding/hex"
 	"math/big"
 	"strings"
 
@@ -10,9 +9,10 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
-	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/state"
+	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/ethereum/go-ethereum/common"
+	"encoding/json"
 )
 
 // default proposal expiration = block count of 7 days
@@ -54,7 +54,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if bytes.Equal(v.OwnerAddress.Bytes(), txInner.Proposer.Bytes()) {
+			if v.OwnerAddress == txInner.Proposer.String() {
 				break
 			}
 			if i + 1 == len(validators) {
@@ -62,8 +62,8 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
-		ethereum := ctx.Ethereum()
-		balance, err := commons.GetBalance(ethereum, *txInner.From)
+		state := ctx.EthappState()
+		balance, err := commons.GetBalance(state, *txInner.From)
 		if err != nil {
 			return sdk.NewCheck(0, ""), ErrInvalidParamerter()
 		}
@@ -84,7 +84,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if bytes.Equal(v.OwnerAddress.Bytes(), txInner.Voter.Bytes()) {
+			if v.OwnerAddress == txInner.Voter.String() {
 				break
 			}
 			if i + 1 == len(validators) {
@@ -127,8 +127,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if txInner.Expire != 0 {
 			expire = txInner.Expire
 		}
+		hashJson, _ :=	json.Marshal(hash)
 		pp := NewProposal(
-			hex.EncodeToString(hash),
+			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
 			uint64(ctx.BlockHeight()),
 			txInner.From,
@@ -138,9 +139,19 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			uint64(ctx.BlockHeight())+expire,
 		)
 
-		SaveProposal(pp)
+		state := ctx.EthappState()
+		balance, err := commons.GetBalance(state, *txInner.From)
+		if err != nil {
+			return res, ErrInvalidParamerter()
+		}
+
 		amount := big.NewInt(0)
-		amount.SetString(pp.Amount, 10)
+		amount.SetString(txInner.Amount, 10)
+		if balance.Cmp(amount) < 0 {
+			return res, ErrInsufficientBalance()
+		}
+
+		SaveProposal(pp)
 		commons.TransferWithReactor(*pp.From, utils.GovHoldAccount, amount, ProposalReactor{pp.Id, uint64(ctx.BlockHeight()), ""})
 
 		utils.PendingProposal.Add(pp.Id, pp.ExpireBlockHeight)
@@ -194,7 +205,7 @@ func CheckProposal(pid string, voter *common.Address) string {
 	for _, va := range validators {
 		for _, vo := range votes {
 			// should check voter is still valid validator first
-			if bytes.Equal(vo.Voter.Bytes(), va.OwnerAddress.Bytes()) {
+			if vo.Voter.String() == va.OwnerAddress {
 				if strings.Compare(vo.Answer, "Y") == 0 {
 					approvedPower.Add(approvedPower, big.NewInt(va.VotingPower))
 				}
@@ -203,7 +214,7 @@ func CheckProposal(pid string, voter *common.Address) string {
 				}
 			}
 		}
-		if voter != nil && bytes.Equal(voter.Bytes(), va.OwnerAddress.Bytes()) {
+		if voter != nil && voter.String() == va.OwnerAddress {
 			voterPower = big.NewInt(va.VotingPower)
 		}
 		allPower.Add(allPower, big.NewInt(va.VotingPower))

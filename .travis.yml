@@ -4,6 +4,7 @@ branches:
   only:
   - master
   - develop
+  - tmup
 
 services:
   - docker
@@ -27,10 +28,9 @@ script:
   - make docker_image && ./test/integration/test.sh
 
 after_success:
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
   - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
-      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
       make push_image ;
-    elif [[ "$TRAVIS_BRANCH" == "develop" ]]; then
-      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-      make push_dev_image  ;
+    else
+      BRANCH=$TRAVIS_BRANCH make push_branch_image ;
     fi

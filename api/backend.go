@@ -15,6 +15,7 @@ import (
 	abciTypes "github.com/tendermint/abci/types"
 	tmn "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/CyberMiles/travis/vm/ethereum"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
@@ -103,6 +104,10 @@ func (b *Backend) Ethereum() *eth.Ethereum {
 	return b.ethereum
 }
 
+func (b *Backend) DeliverTxState() *state.StateDB {
+	return b.es.GetEthState()
+}
+
 // Config returns the eth.Config.
 // #stable
 func (b *Backend) Config() *eth.Config {
@@ -112,9 +117,19 @@ func (b *Backend) Config() *eth.Config {
 func (b *Backend) SetTMNode(tmNode *tmn.Node) {
 	b.chainID = tmNode.GenesisDoc().ChainID
 	b.localClient = rpcClient.NewLocal(tmNode)
-	// uncomment this for TxPool broadcast tx to tendermint directly,
-	// the TxPool must has SetTMClient method when uncomment this
-	b.ethereum.TxPool().SetTMClient(b.localClient)
+}
+
+func (b *Backend) PeerCount() int {
+	var net *ctypes.ResultNetInfo
+	if b.localClient != nil {
+		net, _ = b.localClient.NetInfo()
+	} else if b.client != nil {
+		net, _ = b.client.NetInfo()
+	}
+	if net != nil {
+		return len(net.Peers)
+	}
+	return 0
 }
 
 //----------------------------------------------------------------------
@@ -150,7 +165,7 @@ func (b *Backend) InitEthState(receiver common.Address) error {
 
 // UpdateHeaderWithTimeInfo uses the tendermint header to update the ethereum header
 // #unstable
-func (b *Backend) UpdateHeaderWithTimeInfo(tmHeader *abciTypes.Header) {
+func (b *Backend) UpdateHeaderWithTimeInfo(tmHeader abciTypes.Header) {
 	b.es.UpdateHeaderWithTimeInfo(b.ethereum.ApiBackend.ChainConfig(), uint64(tmHeader.Time),
 		uint64(tmHeader.GetNumTxs()))
 }
@@ -187,7 +202,7 @@ func (b *Backend) APIs() []rpc.API {
 	retApis := []rpc.API{}
 	for _, v := range apis {
 		if v.Namespace == "net" {
-			v.Service = NewNetRPCService(b.ethConfig.NetworkId)
+			v.Service = NewNetRPCService(b)
 		}
 		if v.Namespace == "miner" {
 			continue

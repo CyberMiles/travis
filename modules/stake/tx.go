@@ -1,9 +1,9 @@
 package stake
 
 import (
-	"github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/go-crypto"
+	"github.com/CyberMiles/travis/types"
 	"math/big"
 )
 
@@ -44,17 +44,13 @@ func init() {
 var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, &TxWithdrawCandidacy{}, TxVerifyCandidacy{}, &TxDelegate{}, &TxWithdraw{}
 
 type TxDeclareCandidacy struct {
-	PubKey    crypto.PubKey `json:"pub_key"`
+	PubKey    string `json:"pub_key"`
 	MaxAmount string        `json:"max_amount"`
 	CompRate  string        `json:"comp_rate"`
 	Description
 }
 
 func (tx TxDeclareCandidacy) ValidateBasic() error {
-	if tx.PubKey.Empty() {
-		return errCandidateEmpty
-	}
-
 	return nil
 }
 
@@ -68,9 +64,9 @@ func (tx TxDeclareCandidacy) SelfStakingAmount(ratio string) (amount *big.Int) {
 	return
 }
 
-func NewTxDeclareCandidacy(pubKey crypto.PubKey, maxAmount, compRate string, descrpition Description) sdk.Tx {
+func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount, compRate string, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
-		PubKey:      pubKey,
+		PubKey:      types.PubKeyString(pubKey),
 		MaxAmount:   maxAmount,
 		CompRate:    compRate,
 		Description: descrpition,

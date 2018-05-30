@@ -2,13 +2,10 @@ package commands
 
 import (
 	"fmt"
-	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/cosmos/cosmos-sdk/client/commands"
+	"github.com/CyberMiles/travis/sdk/client/commands"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/tendermint/go-wire"
-	"github.com/tendermint/go-wire/data"
 	"os"
 )
 
@@ -53,66 +50,45 @@ func init() {
 }
 
 func cmdQueryValidators(cmd *cobra.Command, args []string) error {
-	var candidates stake.Candidates
-	err := GetParsed("/validators", []byte{0}, &candidates)
+	b, err := Get("/validators", []byte{0})
 	if err != nil {
 		return err
 	}
-	return Foutput(candidates)
+	return Foutput(b)
 }
 
 func cmdQueryValidator(cmd *cobra.Command, args []string) error {
-	var candidate stake.Candidate
 	address := viper.GetString(FlagAddress)
 	if address == "" {
 		return fmt.Errorf("please enter validator address using --address")
 	}
 
-	err := GetParsed("/validator", []byte(address), &candidate)
+	b, err := Get("/validator", []byte(address))
 	if err != nil {
 		return err
 	}
-	return Foutput(candidate)
+	return Foutput(b)
 }
 
 func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
-	var delegation []*stake.Delegation
 	address := viper.GetString(FlagAddress)
-	err := GetParsed("/delegator", []byte(address), &delegation)
+	b, err := Get("/delegator", []byte(address))
 	if err != nil {
 		return err
 	}
-	return Foutput(delegation)
+	return Foutput(b)
 }
 
-func Get(path string, params []byte) (data.Bytes, error) {
+func Get(path string, params []byte) ([]byte, error) {
 	node := commands.GetNode()
 	resp, err := node.ABCIQuery(path, params)
 	if resp == nil {
 		return nil, err
 	}
-	return data.Bytes(resp.Response.Value), err
+	return resp.Response.Value, err
 }
 
-func GetParsed(path string, params []byte, data interface{}) error {
-	bs, err := Get(path, params)
-	if err != nil {
-		return err
-	}
-
-	//err = json.Unmarshal(bs, data)
-	err = wire.ReadBinaryBytes(bs, data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func Foutput(v interface{}) error {
-	blob, err := data.ToJSON(v)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(os.Stdout, "%s\n", blob)
-	return nil
+func Foutput(b []byte) error {
+	_, err := fmt.Fprintf(os.Stdout, "%s\n", b)
+	return err
 }

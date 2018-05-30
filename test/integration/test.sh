@@ -10,10 +10,10 @@ mkdir -p ~/volumes
 git clone https://github.com/CyberMiles/testnet.git ~/volumes/testnet
 
 cd ~/volumes/testnet/travis/scripts
+git checkout tmup
 yes "" | sudo ./cluster.sh test 6 4
 docker-compose up -d all
-sleep 5
-curl http://node-1:46657/status
+sleep 3
 
 # web3-cmt
 git clone https://github.com/CyberMiles/web3-cmt.js ~/web3-cmt.js
@@ -26,4 +26,16 @@ yarn link
 cd $BASEDIR
 yarn install
 yarn link "web3-cmt"
+yarn test
+
+
+# single node test
+cd ~/volumes/testnet/travis/scripts
+docker-compose down
+
+IMG=ywonline/travis
+docker run --rm -v ~/volumes/local:/travis $IMG node init --home=/travis
+docker run --rm -v ~/volumes/local:/travis -d -p 46657:46657 -p 8545:8545 $IMG node start --home=/travis
+sleep 3
+
 yarn test

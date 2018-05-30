@@ -3,7 +3,7 @@ package txs
 import (
 	"github.com/spf13/pflag"
 
-	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 )
 
 var (

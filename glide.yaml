@@ -7,16 +7,16 @@ import:
 - package: github.com/spf13/pflag
 - package: github.com/spf13/viper
 - package: github.com/tendermint/abci
-  version:  0.9.x
+  version:  ~0.10.3
   subpackages:
   - server
   - types
 - package: github.com/cosmos/cosmos-sdk
   version: be92f16b52cdeaba6dddaa62e0a8d1eed9e9640e
 - package: github.com/tendermint/iavl
-  version: v0.5.0
+  version: ~0.7.0
 - package: github.com/tendermint/go-crypto
-  version: remove_ledger
+  version: 0.6.2
   subpackages:
   - cmd
   - keys
@@ -26,7 +26,7 @@ import:
   subpackages:
   - data
 - package: github.com/tendermint/tendermint
-  version: v0.15.0
+  version: v0.19.1
   subpackages:
   - config
   - node
@@ -37,7 +37,7 @@ import:
   - rpc/lib/types
   - types
 - package: github.com/tendermint/tmlibs
-  version: 0.6.x
+  version: ~0.8.3-rc0
   subpackages:
   - cli
   - cli/flags
@@ -48,12 +48,15 @@ import:
 - package: github.com/gorilla/mux
   version: ^1.5.0
 - package: github.com/ethereum/go-ethereum
-  version: travis
+  version: c5d5fbb3ae0d24644ddf0dddc91e3dea9e3e3917
   repo: https://github.com/CyberMiles/go-ethereum.git
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
 - package: github.com/mattn/go-sqlite3
   version: v1.6.0
+- package: github.com/tendermint/go-amino
+  version: 0.9.9
+
 testImport:
 - package: github.com/stretchr/testify
   subpackages:

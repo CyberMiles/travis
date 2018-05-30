@@ -17,7 +17,7 @@ import (
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
-	"github.com/tendermint/tendermint/types"
+	pv "github.com/tendermint/tendermint/types/priv_validator"
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/app"
@@ -233,7 +233,7 @@ func startTendermint(basecoinApp abcitypes.Application) (*node.Node, error) {
 
 	// Create & start tendermint node
 	n, err := node.NewNode(cfg,
-		types.LoadOrGenPrivValidatorFS(cfg.PrivValidatorFile()),
+		pv.LoadOrGenFilePV(cfg.PrivValidatorFile()),
 		papp,
 		node.DefaultGenesisDocProviderFunc(cfg),
 		node.DefaultDBProvider,

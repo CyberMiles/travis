@@ -2,20 +2,13 @@ const expect = require("chai").expect
 const logger = require("./logger")
 const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
+const Globals = require("./global_vars")
 
 describe("Contract Test", function() {
   let token_balance_old = new Array(4),
     token_balance_new = new Array(4)
   let tokens = 1,
     gasPrice = 5 // gwei
-
-  before(function() {
-    // unlock account
-    web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase)
-    accounts.forEach(acc => {
-      web3.personal.unlockAccount(acc, Settings.Passphrase)
-    })
-  })
 
   before("Transfer 1000 ETH to A, B, C, D from defaultAccount", function(done) {
     logger.info(this.test.fullTitle())
@@ -30,7 +23,7 @@ describe("Contract Test", function() {
 
       let hash = Utils.tokenTransfer(
         web3.cmt.defaultAccount,
-        accounts[i],
+        Globals.Accounts[i],
         initialFund,
         gasPrice
       )
@@ -51,13 +44,6 @@ describe("Contract Test", function() {
     }
   })
 
-  before(function() {
-    // unlock accounts
-    accounts.forEach(acc =>
-      web3.personal.unlockAccount(acc, Settings.Passphrase)
-    )
-  })
-
   beforeEach(function() {
     // token balance before
     token_balance_old = Utils.getTokenBalance()
@@ -67,7 +53,11 @@ describe("Contract Test", function() {
     it("from A to B to C to D", function(done) {
       let arrHash = []
       for (i = 0; i < 3; ++i) {
-        let hash = Utils.tokenTransfer(accounts[i], accounts[i + 1], tokens)
+        let hash = Utils.tokenTransfer(
+          Globals.Accounts[i],
+          Globals.Accounts[i + 1],
+          tokens
+        )
         arrHash.push(hash)
       }
 
@@ -99,7 +89,11 @@ describe("Contract Test", function() {
     it("from D to C to B to A", function(done) {
       let arrHash = []
       for (i = 0; i < 3; ++i) {
-        let hash = Utils.tokenTransfer(accounts[3 - i], accounts[2 - i], tokens)
+        let hash = Utils.tokenTransfer(
+          Globals.Accounts[3 - i],
+          Globals.Accounts[2 - i],
+          tokens
+        )
         arrHash.push(hash)
       }
 
@@ -135,8 +129,8 @@ describe("Contract Test", function() {
       let arrHash = []
       for (i = 0; i < 3; ++i) {
         let hash = Utils.tokenTransfer(
-          accounts[i],
-          accounts[i + 1],
+          Globals.Accounts[i],
+          Globals.Accounts[i + 1],
           tokens,
           gasPrice
         )
@@ -172,8 +166,8 @@ describe("Contract Test", function() {
       let arrHash = []
       for (i = 0; i < 3; ++i) {
         let hash = Utils.tokenTransfer(
-          accounts[3 - i],
-          accounts[2 - i],
+          Globals.Accounts[3 - i],
+          Globals.Accounts[2 - i],
           tokens,
           gasPrice
         )
@@ -212,7 +206,12 @@ describe("Contract Test", function() {
       let arrHash = [],
         times = 3
       for (i = 0; i < times; ++i) {
-        let hash = Utils.tokenTransfer(accounts[0], accounts[1], tokens, 0)
+        let hash = Utils.tokenTransfer(
+          Globals.Accounts[0],
+          Globals.Accounts[1],
+          tokens,
+          0
+        )
         arrHash.push(hash)
       }
       // 2nd and 3rd will fail
@@ -244,8 +243,8 @@ describe("Contract Test", function() {
         times = 3
       for (i = 0; i < times; ++i) {
         let hash = Utils.tokenTransfer(
-          accounts[0],
-          accounts[1],
+          Globals.Accounts[0],
+          Globals.Accounts[1],
           tokens,
           gasPrice
         )
@@ -276,8 +275,7 @@ describe("Contract Test", function() {
 
   describe("Destroy the contract", function() {
     it("expect all to succeed", function(done) {
-      let deployAdrress = web3.cmt.accounts[0]
-      web3.personal.unlockAccount(deployAdrress, Settings.Passphrase)
+      let deployAdrress = web3.cmt.defaultAccount
       let hash = Utils.tokenKill(deployAdrress)
 
       Utils.waitInterval(hash, (err, res) => {
