@@ -10,9 +10,8 @@ import (
 )
 
 const (
-	byzantine_slashing_ratio = 5     // deduction ratio %5 for byzantine validators
-	absent_slashing_ratio    = 0.001 // deduction ratio for the absent validators
-	max_slashes_limit        = 12
+	slashing_ratio    = 0.001 // deduction ratio for the absent validators
+	max_slashes_limit = 12
 )
 
 type Absence struct {
@@ -20,13 +19,13 @@ type Absence struct {
 	lastBlockHeight int64
 }
 
-func (a Absence) Accumulate() {
+func (a *Absence) Accumulate() {
 	a.count++
 	a.lastBlockHeight++
 }
 
-func (a Absence) ReachMaxSlashesLimit() bool {
-	return a.count >= max_slashes_limit
+func (a Absence) GetCount() int16 {
+	return a.count
 }
 
 type AbsentValidators struct {
@@ -60,18 +59,21 @@ func (av AbsentValidators) Clear(currentBlockHeight int64) {
 }
 
 func PunishByzantineValidator(pubKey crypto.PubKey) (err error) {
-	return punish(pubKey, byzantine_slashing_ratio, "Byzantine validator")
+	return punish(pubKey, "Byzantine validator")
 }
 
 func PunishAbsentValidator(pubKey crypto.PubKey, absence *Absence) (err error) {
-	err = punish(pubKey, absent_slashing_ratio, "Absent")
-	if absence.ReachMaxSlashesLimit() {
+	if absence.GetCount() <= max_slashes_limit {
+		err = punish(pubKey, "Absent")
+	}
+
+	if absence.GetCount() == max_slashes_limit {
 		err = RemoveAbsentValidator(pubKey)
 	}
 	return
 }
 
-func punish(pubKey crypto.PubKey, ratio float64, reason string) (err error) {
+func punish(pubKey crypto.PubKey, reason string) (err error) {
 	totalDeduction := new(big.Int)
 	v := GetCandidateByPubKey(utils.PubKeyString(pubKey))
 	if v == nil {
@@ -83,7 +85,7 @@ func punish(pubKey crypto.PubKey, ratio float64, reason string) (err error) {
 	for _, delegation := range delegations {
 		tmp := new(big.Float)
 		x := new(big.Float).SetInt(delegation.ParseDelegateAmount())
-		tmp.Mul(x, big.NewFloat(ratio))
+		tmp.Mul(x, big.NewFloat(slashing_ratio))
 		slash := new(big.Int)
 		tmp.Int(slash)
 		punishDelegator(delegation, v.OwnerAddress, slash)
@@ -91,7 +93,7 @@ func punish(pubKey crypto.PubKey, ratio float64, reason string) (err error) {
 	}
 
 	// Save punishment history
-	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: ratio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
+	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: slashing_ratio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
 	savePunishHistory(punishHistory)
 
 	return
@@ -103,13 +105,13 @@ func punishDelegator(d *Delegation, validatorAddress common.Address, amount *big
 	commons.Transfer(d.DelegatorAddress, utils.MintAccount, amount)
 	now := utils.GetNow()
 
-	neg := new(big.Int).Neg(amount)
-	d.AddSlashAmount(neg)
+	d.AddSlashAmount(amount)
 	d.UpdatedAt = now
 	UpdateDelegation(d)
 
 	// accumulate shares of the validator
 	val := GetCandidateByAddress(validatorAddress)
+	neg := new(big.Int).Neg(amount)
 	val.AddShares(neg)
 	val.UpdatedAt = now
 	updateCandidate(val)
