@@ -154,7 +154,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	validators := cs.Validators()
 
 	for i, val := range validators {
-		app.logger.Debug("validators", "index", i, "val", val.PubKey.KeyString())
 		for k := range app.AbsentValidators.Validators {
 			if k == val.PubKey {
 				//app.logger.Debug("validator matched", "pubkey", k.KeyString())
