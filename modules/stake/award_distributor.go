@@ -111,10 +111,11 @@ type awardDistributor struct {
 	validators      Validators
 	transactionFees *big.Int
 	logger          log.Logger
+	absentValidators *AbsentValidators
 }
 
-func NewAwardDistributor(height int64, validators Validators, transactionFees *big.Int, logger log.Logger) *awardDistributor {
-	return &awardDistributor{height, validators, transactionFees, logger}
+func NewAwardDistributor(height int64, validators Validators, transactionFees *big.Int, absentValidators *AbsentValidators, logger log.Logger) *awardDistributor {
+	return &awardDistributor{height, validators, transactionFees, logger, absentValidators}
 }
 
 func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
@@ -146,6 +147,11 @@ func (ad awardDistributor) DistributeAll() {
 	totalShares := new(big.Int)
 
 	for _, val := range ad.validators {
+		if ad.isAbsent(val) {
+			ad.logger.Debug("The validator is absent, no award", "validator", val.OwnerAddress)
+			continue
+		}
+
 		var validator validator
 		var delegators []delegator
 		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
@@ -254,4 +260,14 @@ func (ad awardDistributor) awardToDelegator(d delegator, v *validator, award *bi
 	val.AddShares(award)
 	val.UpdatedAt = now
 	updateCandidate(val)
+}
+
+func (ad awardDistributor) isAbsent(val Validator) bool {
+	for k := range ad.absentValidators.Validators {
+		if k == val.PubKey {
+			return true
+		}
+	}
+
+	return false
 }

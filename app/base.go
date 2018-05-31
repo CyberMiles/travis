@@ -172,17 +172,8 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	app.LastValidators = cs.Validators()
 	validators := cs.Validators()
 
-	for i, val := range validators {
-		for k := range app.AbsentValidators.Validators {
-			if k == val.PubKey {
-				//app.logger.Debug("validator matched", "pubkey", k.KeyString())
-				validators = validators.Remove(i)
-			}
-		}
-	}
-
 	// block award
-	stake.NewAwardDistributor(app.WorkingHeight(), validators, utils.BlockGasFee, app.logger).DistributeAll()
+	stake.NewAwardDistributor(app.WorkingHeight(), validators, utils.BlockGasFee, app.AbsentValidators, app.logger).DistributeAll()
 
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
