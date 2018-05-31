@@ -34,3 +34,9 @@ after_success:
     else
       BRANCH=$TRAVIS_BRANCH make push_branch_image ;
     fi
+
+after_failure:
+  - if [[ "$TRAVIS_BRANCH" == "develop" ]]; then
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      BRANCH=$TRAVIS_BRANCH make push_branch_image ;
+    fi
