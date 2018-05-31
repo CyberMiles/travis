@@ -17,6 +17,8 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
+	"golang.org/x/crypto/ripemd160"
+	"bytes"
 )
 
 // BaseApp - The ABCI application
@@ -66,6 +68,23 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 // InitChain - ABCI
 func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
 	return
+}
+
+// Info implements abci.Application. It returns the height and hash,
+// as well as the abci name and version.
+//
+// The height is the block that holds the transactions, not the apphash itself.
+func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
+	ethInfoRes := app.EthApp.Info(req)
+
+	if big.NewInt(ethInfoRes.LastBlockHeight).Cmp(bigZero) == 0 {
+		return ethInfoRes
+	}
+
+	travisInfoRes := app.StoreApp.Info(req)
+
+	travisInfoRes.LastBlockAppHash = finalAppHash(ethInfoRes.LastBlockAppHash, travisInfoRes.LastBlockAppHash, travisInfoRes.LastBlockHeight, nil)
+	return travisInfoRes
 }
 
 // DeliverTx - ABCI
@@ -195,8 +214,12 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
-	app.EthApp.Commit()
+	ethAppCommit := app.EthApp.Commit()
+
+	workingHeight := app.WorkingHeight()
+
 	res = app.StoreApp.Commit()
+	res.Data = finalAppHash(ethAppCommit.Data, res.Data, workingHeight, nil)
 	return
 }
 
@@ -234,4 +257,19 @@ func isEthTx(tx *types.Transaction) bool {
 func tick(store state.SimpleDB) (change []abci.Validator, err error) {
 	change, err = stake.UpdateValidatorSet(store)
 	return
+}
+
+func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, workingHeight int64, store *state.SimpleDB) []byte{
+
+	hasher := ripemd160.New()
+	buf := new(bytes.Buffer)
+	buf.Write(ethCommitHash)
+	buf.Write(travisCommitHash)
+	hasher.Write(buf.Bytes())
+	hash := hasher.Sum(nil)
+
+	if store != nil {
+		// TODO: save to DB
+	}
+	return hash
 }
