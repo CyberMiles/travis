@@ -122,7 +122,7 @@ type DeclareCandidacyArgs struct {
 	Nonce       *hexutil.Uint64   `json:"nonce"`
 	From        common.Address    `json:"from"`
 	PubKey      string            `json:"pubKey"`
-	MaxAmount   string            `json:"maxAmount"`
+	MaxAmount   hexutil.Big       `json:"maxAmount"`
 	CompRate    string            `json:"compRate"`
 	Description stake.Description `json:"description"`
 }
@@ -132,7 +132,7 @@ func (s *CmtRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.Res
 	if err != nil {
 		return nil, err
 	}
-	tx := stake.NewTxDeclareCandidacy(pubKey, args.MaxAmount, args.CompRate, args.Description)
+	tx := stake.NewTxDeclareCandidacy(pubKey, args.MaxAmount.ToInt().String(), args.CompRate, args.Description)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -161,12 +161,12 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 type UpdateCandidacyArgs struct {
 	Nonce       *hexutil.Uint64   `json:"nonce"`
 	From        common.Address    `json:"from"`
-	MaxAmount   string            `json:"maxAmount"`
+	MaxAmount   hexutil.Big       `json:"maxAmount"`
 	Description stake.Description `json:"description"`
 }
 
 func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := stake.NewTxUpdateCandidacy(args.MaxAmount, args.Description)
+	tx := stake.NewTxUpdateCandidacy(args.MaxAmount.ToInt().String(), args.Description)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -201,14 +201,14 @@ type DelegateArgs struct {
 	Nonce            *hexutil.Uint64 `json:"nonce"`
 	From             common.Address  `json:"from"`
 	ValidatorAddress common.Address  `json:"validatorAddress"`
-	Amount           string          `json:"amount"`
+	Amount           hexutil.Big     `json:"amount"`
 }
 
 func (s *CmtRPCService) Delegate(args DelegateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	if len(args.ValidatorAddress) == 0 {
 		return nil, fmt.Errorf("must provide validator address")
 	}
-	tx := stake.NewTxDelegate(args.ValidatorAddress, args.Amount)
+	tx := stake.NewTxDelegate(args.ValidatorAddress, args.Amount.ToInt().String())
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -222,14 +222,14 @@ type WithdrawArgs struct {
 	Nonce            *hexutil.Uint64 `json:"nonce"`
 	From             common.Address  `json:"from"`
 	ValidatorAddress common.Address  `json:"validatorAddress"`
-	Amount           string          `json:"amount"`
+	Amount           hexutil.Big     `json:"amount"`
 }
 
 func (s *CmtRPCService) Withdraw(args WithdrawArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	if len(args.ValidatorAddress) == 0 {
 		return nil, fmt.Errorf("must provide validator address")
 	}
-	tx := stake.NewTxWithdraw(args.ValidatorAddress, args.Amount)
+	tx := stake.NewTxWithdraw(args.ValidatorAddress, args.Amount.ToInt().String())
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -280,13 +280,13 @@ type GovernanceProposalArgs struct {
 	From         common.Address  `json:"from"`
 	TransferFrom common.Address  `json:"transferFrom"`
 	TransferTo   common.Address  `json:"transferTo"`
-	Amount       string          `json:"amount"`
+	Amount       hexutil.Big     `json:"amount"`
 	Reason       string          `json:"reason"`
 	Expire       uint64          `json:"expire"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount, args.Reason, args.Expire)
+	tx := governance.NewTxPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount.ToInt().String(), args.Reason, args.Expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != err {
