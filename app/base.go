@@ -83,7 +83,7 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 
 	travisInfoRes := app.StoreApp.Info(req)
 
-	travisInfoRes.LastBlockAppHash = finalAppHash(ethInfoRes.LastBlockAppHash, travisInfoRes.LastBlockAppHash, travisInfoRes.LastBlockHeight, nil)
+	travisInfoRes.LastBlockAppHash = finalAppHash(ethInfoRes.LastBlockAppHash, travisInfoRes.LastBlockAppHash, app.StoreApp.GetDbHash(), travisInfoRes.LastBlockHeight, nil)
 	return travisInfoRes
 }
 
@@ -210,7 +210,8 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	workingHeight := app.WorkingHeight()
 
 	res = app.StoreApp.Commit()
-	res.Data = finalAppHash(ethAppCommit.Data, res.Data, workingHeight, nil)
+	dbHash := app.StoreApp.GetDbHash()
+	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
 	return
 }
 
@@ -250,12 +251,13 @@ func tick(store state.SimpleDB) (change []abci.Validator, err error) {
 	return
 }
 
-func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, workingHeight int64, store *state.SimpleDB) []byte{
+func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, workingHeight int64, store *state.SimpleDB) []byte{
 
 	hasher := ripemd160.New()
 	buf := new(bytes.Buffer)
 	buf.Write(ethCommitHash)
 	buf.Write(travisCommitHash)
+	buf.Write(dbHash)
 	hasher.Write(buf.Bytes())
 	hash := hasher.Sum(nil)
 

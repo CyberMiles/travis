@@ -47,6 +47,7 @@ type Candidate struct {
 	VotingPower  int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
 	MaxShares    string       `json:"max_shares"`
 	CompRate     string       `json:"comp_rate"`
+	Hash		 string       `json:"hash"`
 	CreatedAt    string       `json:"created_at"`
 	UpdatedAt    string       `json:"updated_at"`
 	Description  Description  `json:"description"`
@@ -70,6 +71,7 @@ func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares strin
 		VotingPower:  votingPower,
 		MaxShares:    maxShares,
 		CompRate:     compRate,
+		Hash:			"",
 		CreatedAt:    now,
 		UpdatedAt:    now,
 		Description:  description,
@@ -301,6 +303,7 @@ type Delegation struct {
 	AwardAmount      string         `json:"award_amount"`
 	WithdrawAmount   string         `json:"withdraw_amount"`
 	SlashAmount      string         `json:"slash_amount"`
+	Hash		 	 string         `json:"hash"`
 	CreatedAt        string         `json:"created_at"`
 	UpdatedAt        string         `json:"updated_at"`
 }
