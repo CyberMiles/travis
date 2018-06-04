@@ -156,7 +156,9 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	// update voting power
 	for _, c := range cs {
 		shares := c.ParseShares()
-		if big.NewInt(c.VotingPower).Cmp(shares) != 0 {
+		if c.Active == "N" {
+			c.VotingPower = 0
+		} else if big.NewInt(c.VotingPower).Cmp(shares) != 0 {
 			v := new(big.Int)
 			v.Div(shares, big.NewInt(1e18))
 			c.VotingPower = v.Int64()
