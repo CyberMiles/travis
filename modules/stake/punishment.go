@@ -6,7 +6,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 )
@@ -103,10 +102,7 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 
 func punishDelegator(d *Delegation, validatorAddress common.Address, amount *big.Int) {
 	fmt.Printf("punish delegator, address: %s, amount: %d\n", d.DelegatorAddress.String(), amount)
-
-	commons.Transfer(d.DelegatorAddress, utils.MintAccount, amount)
 	now := utils.GetNow()
-
 	d.AddSlashAmount(amount)
 	d.UpdatedAt = now
 	UpdateDelegation(d)
