@@ -108,7 +108,7 @@ func GetCandidates() (candidates Candidates) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at from candidates where active=?", "Y")
+	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at from candidates")
 	if err != nil {
 		panic(err)
 	}

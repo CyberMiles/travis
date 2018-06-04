@@ -137,7 +137,8 @@ func (cs Candidates) Len() int      { return len(cs) }
 func (cs Candidates) Swap(i, j int) { cs[i], cs[j] = cs[j], cs[i] }
 func (cs Candidates) Less(i, j int) bool {
 	vp1, vp2 := cs[i].VotingPower, cs[j].VotingPower
-	pk1, pk2 := cs[i].PubKey.Bytes(), cs[j].PubKey.Bytes()
+	//pk1, pk2 := cs[i].PubKey.Bytes(), cs[j].PubKey.Bytes()
+	pk1, pk2 := cs[i].PubKey.Address(), cs[j].PubKey.Address()
 
 	//note that all ChainId and App must be the same for a group of candidates
 	if vp1 != vp2 {
@@ -157,7 +158,9 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	// update voting power
 	for _, c := range cs {
 		shares := c.ParseShares()
-		if big.NewInt(c.VotingPower).Cmp(shares) != 0 {
+		if c.Active == "N" {
+			c.VotingPower = 0
+		} else if big.NewInt(c.VotingPower).Cmp(shares) != 0 {
 			v := new(big.Int)
 			v.Div(shares, big.NewInt(1e18))
 			c.VotingPower = v.Int64()
@@ -209,8 +212,11 @@ var _ sort.Interface = Validators{} //enforce the sort interface at compile time
 func (vs Validators) Len() int      { return len(vs) }
 func (vs Validators) Swap(i, j int) { vs[i], vs[j] = vs[j], vs[i] }
 func (vs Validators) Less(i, j int) bool {
-	pk1, pk2 := vs[i].PubKey.Bytes(), vs[j].PubKey.Bytes()
-	return bytes.Compare(pk1, pk2) == -1
+	//pk1, pk2 := vs[i].PubKey.Bytes(), vs[j].PubKey.Bytes()
+	//return bytes.Compare(pk1, pk2) == -1
+
+	pk1, pk2 := vs[i].PubKey, vs[j].PubKey
+	return bytes.Compare(pk1.Address(), pk2.Address()) == -1
 }
 
 // Sort - Sort validators by pubkey
