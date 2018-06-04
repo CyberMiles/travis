@@ -25,6 +25,7 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 	"os"
 	"encoding/json"
+	"golang.org/x/crypto/ripemd160"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -314,22 +315,29 @@ func initTravisDb() error {
 		defer db.Close()
 
 		sqlStmt := `
-		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', website text not null default '', location text not null default '', details text not null default '', verified text not null default 'N', active text not null default 'Y', created_at text not null, updated_at text not null default '');
+		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', website text not null default '', location text not null default '', details text not null default '', verified text not null default 'N', active text not null default 'Y', hash text not null default '', created_at text not null, updated_at text not null default '');
 		create unique index idx_candidates_pub_key on candidates(pub_key);
+		create index idx_candidates_hash on candidates(hash);
+
 		create table delegators(address text not null primary key, created_at text not null);
-		create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount not null default '0', slash_amount not null default '0', created_at text not null, updated_at text not null default '');
+		create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount not null default '0', slash_amount not null default '0', hash text not null default '',  created_at text not null, updated_at text not null default '');
 		create unique index idx_delegations_delegator_address_pub_key on delegations(delegator_address, pub_key);
+		create index idx_delegations_hash on delegations(hash);
+
 		create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, amount text not null default '0', op_code text not null default '', created_at text not null);
 		create index idx_delegate_history_delegator_address on delegate_history(delegator_address);
 		create index idx_delegate_history_pub_key on delegate_history(pub_key);
+		
 		create table punish_history(pub_key text not null, slashing_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null);
 		create index idx_punish_history_pub_key on punish_history(pub_key);
 
-		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, expire_block_height text not null, created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
-		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null, created_at text not null, unique(proposal_id, voter) ON conflict replace);
-		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
-		create index idx_governance_vote_voter on governance_vote(voter);
+		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, expire_block_height text not null, hash text not null default '', created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
+		create index idx_governance_proposal_hash on governance_proposal(hash);
 
+		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null,  hash text not null default '', created_at text not null, unique(proposal_id, voter) ON conflict replace);
+		create index idx_governance_vote_voter on governance_vote(voter);
+		create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
+		create index idx_governance_vote_hash on governance_vote(hash);
 		`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {
@@ -339,4 +347,63 @@ func initTravisDb() error {
 	}
 
 	return nil
+}
+
+func getDb() *sql.DB {
+	rootDir := viper.GetString(cli.HomeFlag)
+	dbPath := path.Join(rootDir, "data", "travis.db")
+
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
+func (app *StoreApp) GetDbHash() []byte{
+	db := getDb()
+	defer db.Close()
+
+	tables := []string{"candidates", "delegations", "governance_proposal", "governance_vote"}
+	hashes := make([]byte, len(tables))
+	for _, table := range tables {
+		hashes = append(hashes, getTableHash(db, table)...)
+	}
+	return hashing(hashes)
+}
+
+func getTableHash(db *sql.DB, table string) []byte {
+	stmt, err := db.Prepare("select hash from " + table + " where 1=1 order by hash")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer stmt.Close()
+	rows, err := stmt.Query()
+	if err != nil {
+		panic(err)
+	}
+	var hash string
+	hashes := make([]byte, 80)
+	for rows.Next() {
+		err = rows.Scan(&hash)
+		if err != nil {
+			panic(err)
+		}
+		hashes = append(hashes, []byte(hash)...)
+	}
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	//fmt.Printf("Table %s, hash: %s\n", table, common.Bytes2Hex(hashing(hashes)))
+	return hashing(hashes)
+}
+
+func hashing(h []byte) []byte {
+	hasher := ripemd160.New()
+	buf := new(bytes.Buffer)
+	buf.Write(h)
+	hasher.Write(buf.Bytes())
+	return hasher.Sum(nil)
 }

@@ -14,6 +14,7 @@ type Proposal struct {
 	Amount       string
 	Reason       string
 	ExpireBlockHeight uint64
+	Hash		 string
 	CreatedAt    string
 	Result       string
 	ResultMsg    string
@@ -32,6 +33,7 @@ func NewProposal(id string, proposer *common.Address, blockHeight uint64, from *
 		amount,
 		reason,
 		expireBlockHeight,
+		"",
 		now,
 		"",
 		"",
@@ -45,6 +47,7 @@ type Vote struct {
 	Voter          common.Address
 	BlockHeight    uint64
 	Answer         string
+	Hash		 string
 	CreatedAt      string
 }
 
@@ -55,6 +58,7 @@ func NewVote(proposalId string, voter common.Address, blockHeight uint64, answer
 		voter,
 		blockHeight,
 		answer,
+		"",
 		now,
 	}
 }
