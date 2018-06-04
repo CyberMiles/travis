@@ -443,7 +443,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 		if err != nil {
 			return err
 		}
-		RemoveDelegation(delegation)
+		//RemoveDelegation(delegation)
 	}
 
 	//removeCandidate(candidate)
