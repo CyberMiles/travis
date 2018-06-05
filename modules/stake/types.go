@@ -11,6 +11,8 @@ import (
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
+	"encoding/json"
+	"golang.org/x/crypto/ripemd160"
 )
 
 // Params defines the high level settings for staking
@@ -47,7 +49,6 @@ type Candidate struct {
 	VotingPower  int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
 	MaxShares    string       `json:"max_shares"`
 	CompRate     string       `json:"comp_rate"`
-	Hash		 string       `json:"hash"`
 	CreatedAt    string       `json:"created_at"`
 	UpdatedAt    string       `json:"updated_at"`
 	Description  Description  `json:"description"`
@@ -71,7 +72,6 @@ func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares strin
 		VotingPower:  votingPower,
 		MaxShares:    maxShares,
 		CompRate:     compRate,
-		Hash:			"",
 		CreatedAt:    now,
 		UpdatedAt:    now,
 		Description:  description,
@@ -114,6 +114,41 @@ func (c *Candidate) SelfStakingAmount(ratio string) (result *big.Int) {
 	z.Int(result)
 	return
 }
+
+func (c *Candidate) Hash() []byte {
+	candidate, err := json.Marshal(struct {
+		PubKey       types.PubKey
+		OwnerAddress string
+		Shares       string
+		VotingPower  int64
+		MaxShares    string
+		CompRate     string
+		Description  Description
+		Verified     string
+		Active       string
+	}{
+		c.PubKey,
+		c.OwnerAddress,
+		c.Shares,
+		c.VotingPower,
+		c.MaxShares,
+		c.CompRate,
+		Description {
+		c.Description.Website,
+		c.Description.Location,
+		c.Description.Details,
+		},
+		c.Verified,
+		c.Active,
+	})
+	if err != nil {
+		panic(err)
+	}
+	hasher := ripemd160.New()
+	hasher.Write(candidate)
+	return hasher.Sum(nil)
+}
+
 
 // Validator is one of the top Candidates
 type Validator Candidate
@@ -309,7 +344,6 @@ type Delegation struct {
 	AwardAmount      string         `json:"award_amount"`
 	WithdrawAmount   string         `json:"withdraw_amount"`
 	SlashAmount      string         `json:"slash_amount"`
-	Hash		 	 string         `json:"hash"`
 	CreatedAt        string         `json:"created_at"`
 	UpdatedAt        string         `json:"updated_at"`
 }
@@ -364,6 +398,30 @@ func (d *Delegation) AddSlashAmount(value *big.Int) *big.Int {
 	x.Add(d.ParseSlashAmount(), value)
 	d.SlashAmount = x.String()
 	return x
+}
+
+func (d *Delegation) Hash() []byte {
+	delegation, err := json.Marshal(struct {
+		DelegatorAddress common.Address
+		PubKey           types.PubKey
+		DelegateAmount   string
+		AwardAmount      string
+		WithdrawAmount   string
+		SlashAmount      string
+	}{
+		d.DelegatorAddress,
+		d.PubKey,
+		d.DelegateAmount,
+		d.AwardAmount,
+		d.WithdrawAmount,
+		d.SlashAmount,
+	})
+	if err != nil {
+		panic(err)
+	}
+	hasher := ripemd160.New()
+	hasher.Write(delegation)
+	return hasher.Sum(nil)
 }
 
 type DelegateHistory struct {
