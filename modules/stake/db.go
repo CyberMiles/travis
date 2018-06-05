@@ -3,7 +3,6 @@ package stake
 import (
 	"database/sql"
 	"path"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
@@ -160,7 +159,7 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -178,6 +177,7 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.Description.Details,
 		candidate.Verified,
 		candidate.Active,
+		common.Bytes2Hex(candidate.Hash()),
 		candidate.CreatedAt,
 		candidate.UpdatedAt,
 	)
@@ -195,7 +195,7 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, website = ?, location = ?, details = ?, verified = ?, active = ?, updated_at = ? where pub_key = ?")
+	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, website = ?, location = ?, details = ?, verified = ?, active = ?, hash = ?,  updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -212,6 +212,7 @@ func updateCandidate(candidate *Candidate) {
 		candidate.Description.Details,
 		candidate.Verified,
 		candidate.Active,
+		common.Bytes2Hex(candidate.Hash()),
 		candidate.UpdatedAt,
 		types.PubKeyString(candidate.PubKey),
 	)
@@ -335,13 +336,13 @@ func SaveDelegation(d *Delegation) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, hash, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CreatedAt, d.UpdatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -377,13 +378,13 @@ func UpdateDelegation(d *Delegation) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
+	stmt, err := tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, hash = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
+	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
 	}
