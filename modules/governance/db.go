@@ -30,13 +30,13 @@ func SaveProposal(pp *Proposal) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into governance_proposal(id, proposer, block_height, from_address, to_address, amount, reason, expire_block_height, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into governance_proposal(id, proposer, block_height, from_address, to_address, amount, reason, expire_block_height, hash, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(pp.Id, pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount, pp.Reason, pp.ExpireBlockHeight, pp.CreatedAt)
+	_, err = stmt.Exec(pp.Id, pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount, pp.Reason, pp.ExpireBlockHeight, common.Bytes2Hex(pp.Hash()), pp.CreatedAt)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -76,7 +76,6 @@ func GetProposalById(pid string) *Proposal {
 		amount,
 		reason,
 		expireBlockHeight,
-		hash,
 		createdAt,
 		result,
 		resultMsg,
@@ -86,6 +85,11 @@ func GetProposalById(pid string) *Proposal {
 }
 
 func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt string) {
+	p := GetProposalById(pid)
+	if p == nil {
+		return
+	}
+
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -94,13 +98,18 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update governance_proposal set result = ?, result_msg = ?, result_block_height = ?, result_at = ? where id = ?")
+	stmt, err := tx.Prepare("update governance_proposal set result = ?, result_msg = ?, result_block_height = ?, result_at = ?, hash = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(result, msg, blockHeight, resultAt, pid)
+	p.Result = result
+	p.ResultMsg = msg
+	p.ResultBlockHeight = blockHeight
+	p.ResultAt = resultAt
+
+	_, err = stmt.Exec(result, msg, blockHeight, resultAt, common.Bytes2Hex(p.Hash()), pid)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -139,7 +148,6 @@ func GetProposals() (proposals []*Proposal) {
 			amount,
 			reason,
 			expireBlockHeight,
-			hash,
 			createdAt,
 			result,
 			resultMsg,
@@ -203,13 +211,13 @@ func SaveVote(vote *Vote) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into governance_vote(proposal_id, voter, block_height, answer, created_at) values(?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into governance_vote(proposal_id, voter, block_height, answer, hash, created_at) values(?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(vote.ProposalId, vote.Voter.String(), vote.BlockHeight, vote.Answer, vote.CreatedAt)
+	_, err = stmt.Exec(vote.ProposalId, vote.Voter.String(), vote.BlockHeight, vote.Answer, common.Bytes2Hex(vote.Hash()), vote.CreatedAt)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -241,7 +249,6 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 		common.HexToAddress(voter),
 		blockHeight,
 		answer,
-		hash,
 		createdAt,
 	}
 }
@@ -275,7 +282,6 @@ func GetVotesByPid(pid string) (votes []*Vote) {
 			common.HexToAddress(voter),
 			blockHeight,
 			answer,
-			hash,
 			createdAt,
 		}
 
