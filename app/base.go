@@ -169,10 +169,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	cs := stake.GetCandidates()
 	cs.Sort()
-
-	lastValidators := cs.Validators()
-	lastValidators.Sort()
-	app.LastValidators = lastValidators
 	validators := cs.Validators()
 
 	// block award
@@ -202,6 +198,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		panic(err)
 	}
 	app.AddValChange(diff)
+
+	lastValidators := cs.Validators()
+	lastValidators.Sort()
+	app.LastValidators = lastValidators
 
 	return app.StoreApp.EndBlock(req)
 }
