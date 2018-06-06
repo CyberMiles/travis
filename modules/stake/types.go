@@ -237,7 +237,8 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 
 		if !vs[i].PubKey.Equals(vs2[j].PubKey) {
 			// pk1 > pk2, a new validator was introduced between these pubkeys
-			if bytes.Compare(vs[i].PubKey.Bytes(), vs2[j].PubKey.Bytes()) == 1 {
+			//if bytes.Compare(vs[i].PubKey.Bytes(), vs2[j].PubKey.Bytes()) == 1 {
+			if bytes.Compare(vs[i].PubKey.Address(), vs2[j].PubKey.Address()) == 1 {
 				changed[n] = vs2[j].ABCIValidator()
 				n++
 				j++
