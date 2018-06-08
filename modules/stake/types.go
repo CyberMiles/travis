@@ -8,10 +8,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/abci/types"
 
+	"encoding/json"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
-	"encoding/json"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -54,6 +54,7 @@ type Candidate struct {
 	Description  Description  `json:"description"`
 	Verified     string       `json:"verified"`
 	Active       string       `json:"active"`
+	BlockHeight  int64        `json:"block_height"`
 }
 
 type Description struct {
@@ -63,7 +64,7 @@ type Description struct {
 }
 
 // NewCandidate - initialize a new candidate
-func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares string, votingPower int64, maxShares, compRate string, description Description, verified string, active string) *Candidate {
+func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares string, votingPower int64, maxShares, compRate string, description Description, verified string, active string, blockHeight int64) *Candidate {
 	now := utils.GetNow()
 	return &Candidate{
 		PubKey:       pubKey,
@@ -77,6 +78,7 @@ func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares strin
 		Description:  description,
 		Verified:     verified,
 		Active:       active,
+		BlockHeight:  blockHeight,
 	}
 }
 
@@ -133,10 +135,10 @@ func (c *Candidate) Hash() []byte {
 		c.VotingPower,
 		c.MaxShares,
 		c.CompRate,
-		Description {
-		c.Description.Website,
-		c.Description.Location,
-		c.Description.Details,
+		Description{
+			c.Description.Website,
+			c.Description.Location,
+			c.Description.Details,
 		},
 		c.Verified,
 		c.Active,
@@ -148,7 +150,6 @@ func (c *Candidate) Hash() []byte {
 	hasher.Write(candidate)
 	return hasher.Sum(nil)
 }
-
 
 // Validator is one of the top Candidates
 type Validator Candidate

@@ -17,15 +17,15 @@ import (
 
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/ethereum/go-ethereum/common"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
-	"os"
-	"encoding/json"
 	"golang.org/x/crypto/ripemd160"
+	"os"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -315,7 +315,7 @@ func initTravisDb() error {
 		defer db.Close()
 
 		sqlStmt := `
-		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', website text not null default '', location text not null default '', details text not null default '', verified text not null default 'N', active text not null default 'Y', hash text not null default '', created_at text not null, updated_at text not null default '');
+		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', website text not null default '', location text not null default '', details text not null default '', verified text not null default 'N', active text not null default 'Y', hash text not null default '', block_height integer not null, created_at text not null, updated_at text not null default '');
 		create unique index idx_candidates_pub_key on candidates(pub_key);
 		create index idx_candidates_hash on candidates(hash);
 
@@ -360,7 +360,7 @@ func getDb() *sql.DB {
 	return db
 }
 
-func (app *StoreApp) GetDbHash() []byte{
+func (app *StoreApp) GetDbHash() []byte {
 	db := getDb()
 	defer db.Close()
 

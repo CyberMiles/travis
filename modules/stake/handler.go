@@ -147,6 +147,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		sender: sender,
 		params: params,
 		state:  ctx.EthappState(),
+		height: ctx.BlockHeight(),
 	}
 
 	// Run the transaction
@@ -347,6 +348,7 @@ type deliver struct {
 	sender common.Address
 	params Params
 	state  *ethstat.StateDB
+	height int64
 }
 
 var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
@@ -359,7 +361,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	if err != nil {
 		return err
 	}
-	candidate := NewCandidate(pubKey, d.sender, "0", 0, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y")
+	candidate := NewCandidate(pubKey, d.sender, "0", 0, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y", d.height)
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
@@ -374,7 +376,7 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int6
 	if err != nil {
 		return err
 	}
-	candidate := NewCandidate(pubKey, d.sender, "0", votingPower, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y")
+	candidate := NewCandidate(pubKey, d.sender, "0", votingPower, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y", 1)
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
