@@ -81,6 +81,10 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 		return ErrNoCandidateForAddress()
 	}
 
+	if v.ParseShares().Cmp(big.NewInt(0)) <= 0 {
+		return nil
+	}
+
 	// Get all of the delegators(includes the validator itself)
 	delegations := GetDelegationsByPubKey(v.PubKey)
 	for _, delegation := range delegations {
