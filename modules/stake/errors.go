@@ -28,6 +28,7 @@ var (
 	errDelegationNotExists             = fmt.Errorf("no corresponding delegation exists")
 	errInvalidWithdrawalAmount         = fmt.Errorf("invalid withdrawal amount")
 	errCandidateWithdrawalDisallowed   = fmt.Errorf("candidate can't withdraw the self-staking funds")
+	errInvalidStakedAmount             = fmt.Errorf("the amount of CMTs a single CMT Cube device can hold and stake must between 1000 and 100,000")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
@@ -78,4 +79,8 @@ func ErrInvalidWithdrawalAmount() error {
 
 func ErrCandidateWithdrawalDisallowed() error {
 	return errors.WithCode(errCandidateWithdrawalDisallowed, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrInvalidStakedAmount() error {
+	return errors.WithCode(errInvalidStakedAmount, errors.CodeTypeBaseInvalidOutput)
 }
