@@ -208,8 +208,8 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	}
 
 	// check to see if the associated account has 10%(ssr, short for self-staking ratio, configurable) of the max staked CMT amount
-	_, ok := new(big.Int).SetString(tx.MaxAmount, 10)
-	if !ok {
+	maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
+	if !ok || maxAmount.Cmp(big.NewInt(0)) < 0 {
 		return ErrBadAmount()
 	}
 
@@ -234,7 +234,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 	// and the different will be charged
 	if tx.MaxAmount != "" {
 		maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
-		if !ok {
+		if !ok || maxAmount.Cmp(big.NewInt(0)) < 0 {
 			return ErrBadAmount()
 		}
 
@@ -300,9 +300,8 @@ func (c check) delegate(tx TxDelegate) error {
 	}
 
 	// check if the delegator has sufficient funds
-	amount := new(big.Int)
-	_, ok := amount.SetString(tx.Amount, 10)
-	if !ok {
+	amount, ok := new(big.Int).SetString(tx.Amount, 10)
+	if !ok || amount.Cmp(big.NewInt(0)) < 0 {
 		return ErrBadAmount()
 	}
 
@@ -333,7 +332,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 	}
 
 	amount, ok := new(big.Int).SetString(tx.Amount, 10)
-	if !ok {
+	if !ok || amount.Cmp(big.NewInt(0)) < 0 {
 		return ErrBadAmount()
 	}
 
@@ -493,7 +492,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 
 	delegateAmount, ok := new(big.Int).SetString(tx.Amount, 0)
-	if !ok {
+	if !ok || delegateAmount.Cmp(big.NewInt(0)) < 0 {
 		return ErrBadAmount()
 	}
 
