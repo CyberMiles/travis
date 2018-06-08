@@ -107,10 +107,10 @@ func (d delegator) getAwardForDelegator(totalShares, totalAward *big.Int, ac *aw
 //_______________________________________________________________________
 
 type awardDistributor struct {
-	height          int64
-	validators      Validators
-	transactionFees *big.Int
-	logger          log.Logger
+	height           int64
+	validators       Validators
+	transactionFees  *big.Int
+	logger           log.Logger
 	absentValidators *AbsentValidators
 }
 
@@ -156,6 +156,11 @@ func (ad awardDistributor) DistributeAll() {
 		var delegators []delegator
 		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
 		if candidate.Shares == "0" {
+			continue
+		}
+
+		//ad.logger.Debug("height information", "current_height", ad.height, "join_height", candidate.BlockHeight)
+		if ad.height-candidate.BlockHeight <= 1 {
 			continue
 		}
 

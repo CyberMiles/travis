@@ -2,10 +2,10 @@ package stake
 
 import (
 	"database/sql"
-	"path"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
+	"path"
 
 	"github.com/CyberMiles/travis/types"
 )
@@ -24,15 +24,15 @@ func getDb() *sql.DB {
 func GetCandidateByAddress(address common.Address) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select pub_key, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at from candidates where address = ?")
+	stmt, err := db.Prepare("select pub_key, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, block_height, created_at, updated_at from candidates where address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	var pubKey, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, compRate string
-	var votingPower int64
-	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &compRate, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
+	var votingPower, blockHeight int64
+	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &compRate, &website, &location, &details, &verified, &active, &blockHeight, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -59,21 +59,22 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 		UpdatedAt:    updatedAt,
 		Verified:     verified,
 		Active:       active,
+		BlockHeight:  blockHeight,
 	}
 }
 
 func GetCandidateByPubKey(pubKey string) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at from candidates where pub_key = ?")
+	stmt, err := db.Prepare("select address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, block_height, created_at, updated_at from candidates where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	var address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, compRate string
-	var votingPower int64
-	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &maxShares, &compRate, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
+	var votingPower, blockHeight int64
+	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &maxShares, &compRate, &website, &location, &details, &verified, &active, &blockHeight, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -100,6 +101,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
 		Active:       active,
+		BlockHeight:  blockHeight,
 	}
 }
 
@@ -107,7 +109,7 @@ func GetCandidates() (candidates Candidates) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, created_at, updated_at from candidates")
+	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, block_height, created_at, updated_at from candidates")
 	if err != nil {
 		panic(err)
 	}
@@ -115,8 +117,8 @@ func GetCandidates() (candidates Candidates) {
 
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, website, location, details, verified, active, compRate string
-		var votingPower int64
-		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &website, &location, &details, &verified, &active, &createdAt, &updatedAt)
+		var votingPower, blockHeight int64
+		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &website, &location, &details, &verified, &active, &blockHeight, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -138,6 +140,7 @@ func GetCandidates() (candidates Candidates) {
 			CreatedAt:    createdAt,
 			UpdatedAt:    updatedAt,
 			Active:       active,
+			BlockHeight:  blockHeight,
 		}
 		candidates = append(candidates, candidate)
 	}
@@ -159,7 +162,7 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, website, location, details, verified, active, hash, block_height, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -178,6 +181,7 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.Verified,
 		candidate.Active,
 		common.Bytes2Hex(candidate.Hash()),
+		candidate.BlockHeight,
 		candidate.CreatedAt,
 		candidate.UpdatedAt,
 	)
