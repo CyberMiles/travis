@@ -53,3 +53,33 @@ $ travis attach http://localhost:8545
 personal.unlockAccount("from_address")
 cmt.sendTransaction({"from": "from_address", "to": "to_address", "value": web3.toWei(0.001, "cmt")})
 ```
+
+## Write a script to check all Travis client account balances
+The following script can be pasted into the Travis client, at the > prompt.
+
+```
+function checkAllBalances() {
+    var totalBal = 0;
+    for (var acctNum in cmt.accounts) {
+        var acct = cmt.accounts[acctNum];
+        var acctBal = web3.fromWei(cmt.getBalance(acct), "cmt");
+        totalBal += parseFloat(acctBal);
+        console.log("  cmt.accounts[" + acctNum + "]: \t" + acct + " \tbalance: " + acctBal + " CMT");
+    }
+    console.log("  Total balance: " + totalBal + "CMT");
+};
+```
+### Run the checkAllBalances() script
+
+```
+checkAllBalances();
+```
+
+### Example output
+
+```
+> checkAllBalances();
+  cmt.accounts[0]: 	0x6....................................230 	balance: 466.798526 CMT
+  cmt.accounts[1]: 	0x6....................................244 	balance: 1531 CMT
+  Total balance: 1997.798526CMT
+```
