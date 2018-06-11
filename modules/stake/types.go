@@ -442,3 +442,13 @@ type PunishHistory struct {
 	Reason        string
 	CreatedAt     string
 }
+
+type UnstakeRequest struct {
+	Id                   string
+	DelegatorAddress     common.Address
+	InitiatedBlockHeight int64
+	PerformedBlockHeight int64
+	State                string
+	CreatedAt            string
+	UpdatedAt            string
+}

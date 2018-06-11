@@ -583,6 +583,15 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	return commons.Transfer(d.params.HoldAccount, d.sender, amount)
 }
 
+func handlePendingUnstakeRequests() error {
+	reqs := GetUnstakeRequests()
+	for _, req := range reqs {
+
+	}
+
+	return
+}
+
 func checkBalance(state *ethstat.StateDB, addr common.Address, amount *big.Int) error {
 	balance, err := commons.GetBalance(state, addr)
 	if err != nil {

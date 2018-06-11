@@ -578,3 +578,97 @@ func savePunishHistory(punishHistory *PunishHistory) {
 		panic(err)
 	}
 }
+
+func saveUnstakeRequest(req *UnstakeRequest) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("insert into unstake_requests(id, delegator_address, initiated_block_height, performed_block_height, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(
+		req.DelegatorAddress.String(),
+		req.InitiatedBlockHeight,
+		req.PerformedBlockHeight,
+		req.State,
+		req.CreatedAt,
+		req.UpdatedAt,
+	)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GetUnstakeRequests() (reqs []*UnstakeRequest) {
+	db := getDb()
+	defer db.Close()
+
+	rows, err := db.Query("select id, delegator_address, initiated_block_height, performed_block_height, state, created_at, updated_at from unstake_requests")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id, delegatorAddress, state, createdAt, updatedAt string
+		var initiatedBlockHeight, performedBlockHeight int64
+		err = rows.Scan(&id, &delegatorAddress, &initiatedBlockHeight, &performedBlockHeight, &state, &createdAt, &updatedAt)
+		if err != nil {
+			panic(err)
+		}
+
+		req := &UnstakeRequest{
+			Id:                   id,
+			DelegatorAddress:     common.HexToAddress(delegatorAddress),
+			InitiatedBlockHeight: initiatedBlockHeight,
+			PerformedBlockHeight: performedBlockHeight,
+			State:                state,
+			CreatedAt:            createdAt,
+			UpdatedAt:            updatedAt,
+		}
+		reqs = append(reqs, req)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return
+}
+
+func updateUnstakeRequest(req *UnstakeRequest) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("update unstake_requests set delegator_address = ?, initiated_block_height = ?, performed_block_height = ?, state = ?, updated_at = ? where id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(
+		req.DelegatorAddress.String(),
+		req.InitiatedBlockHeight,
+		req.PerformedBlockHeight,
+		req.State,
+		req.UpdatedAt,
+		req.Id,
+	)
+	if err != nil {
+		panic(err)
+	}
+}
