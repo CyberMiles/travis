@@ -21,10 +21,10 @@ const (
 	foundationAddress = "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc" // fixme move to config file
 )
 
-var (
-	minStakedAmount, _ = new(big.Int).SetString("1000000000000000000000", 10)   // 1000: the minimum amount of CMTs a single CMT Cube device can hold and stake
-	maxStakedAmount, _ = new(big.Int).SetString("100000000000000000000000", 10) // 100,000: the maximum amount of CMTs a single CMT Cube device can hold and stake
-)
+//var (
+//	minStakedAmount, _ = new(big.Int).SetString("1000000000000000000000", 10)   // 1000: the minimum amount of CMTs a single CMT Cube device can hold and stake
+//	maxStakedAmount, _ = new(big.Int).SetString("100000000000000000000000", 10) // 100,000: the maximum amount of CMTs a single CMT Cube device can hold and stake
+//)
 
 //_______________________________________________________________________
 
@@ -306,9 +306,9 @@ func (c check) delegate(tx TxDelegate) error {
 		return ErrBadAmount()
 	}
 
-	if amount.Cmp(minStakedAmount) < 0 || amount.Cmp(maxStakedAmount) > 0 {
-		return ErrInvalidStakedAmount()
-	}
+	//if amount.Cmp(minStakedAmount) < 0 || amount.Cmp(maxStakedAmount) > 0 {
+	//	return ErrInvalidStakedAmount()
+	//}
 
 	err := checkBalance(c.state, c.sender, amount)
 	if err != nil {
