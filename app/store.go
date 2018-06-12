@@ -320,7 +320,7 @@ func initTravisDb() error {
 		create index idx_candidates_hash on candidates(hash);
 
 		create table delegators(address text not null primary key, created_at text not null);
-		create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount not null default '0', slash_amount not null default '0', hash text not null default '',  created_at text not null, updated_at text not null default '');
+		create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', slash_amount text not null default '0', hash text not null default '',  created_at text not null, updated_at text not null default '');
 		create unique index idx_delegations_delegator_address_pub_key on delegations(delegator_address, pub_key);
 		create index idx_delegations_hash on delegations(hash);
 
@@ -330,6 +330,8 @@ func initTravisDb() error {
 		
 		create table punish_history(pub_key text not null, slashing_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null);
 		create index idx_punish_history_pub_key on punish_history(pub_key);
+
+		create table unstake_requests(id text not null primary key, delegator_address text not null, pub_key text not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', created_at text not null, updated_at text not null default '');
 
 		create table governance_proposal(id text not null primary key, proposer text not null, block_height integer not null, from_address text not null, to_address text not null, amount text not null, reason text not null, expire_block_height text not null, hash text not null default '', created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 		create index idx_governance_proposal_hash on governance_proposal(hash);

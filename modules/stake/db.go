@@ -578,3 +578,105 @@ func savePunishHistory(punishHistory *PunishHistory) {
 		panic(err)
 	}
 }
+
+func saveUnstakeRequest(req *UnstakeRequest) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("insert into unstake_requests(id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(
+		req.Id,
+		req.DelegatorAddress.String(),
+		types.PubKeyString(req.PubKey),
+		req.InitiatedBlockHeight,
+		req.PerformedBlockHeight,
+		req.Amount,
+		req.State,
+		req.CreatedAt,
+		req.UpdatedAt,
+	)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
+	db := getDb()
+	defer db.Close()
+
+	rows, err := db.Query("select id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, created_at, updated_at from unstake_requests where state = ? and performed_block_height <= ?", "PENDING", height)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id, delegatorAddress, pubKey, state, amount, createdAt, updatedAt string
+		var initiatedBlockHeight, performedBlockHeight int64
+		err = rows.Scan(&id, &delegatorAddress, &pubKey, &initiatedBlockHeight, &performedBlockHeight, &amount, &state, &createdAt, &updatedAt)
+		if err != nil {
+			panic(err)
+		}
+
+		pk, _ := types.GetPubKey(pubKey)
+		req := &UnstakeRequest{
+			Id:                   id,
+			DelegatorAddress:     common.HexToAddress(delegatorAddress),
+			PubKey:               pk,
+			InitiatedBlockHeight: initiatedBlockHeight,
+			PerformedBlockHeight: performedBlockHeight,
+			State:                state,
+			Amount:               amount,
+			CreatedAt:            createdAt,
+			UpdatedAt:            updatedAt,
+		}
+		reqs = append(reqs, req)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return
+}
+
+func updateUnstakeRequest(req *UnstakeRequest) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("update unstake_requests set delegator_address = ?, pub_key = ?, initiated_block_height = ?, performed_block_height = ?, amount = ?, state = ?, updated_at = ? where id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(
+		req.DelegatorAddress.String(),
+		types.PubKeyString(req.PubKey),
+		req.InitiatedBlockHeight,
+		req.PerformedBlockHeight,
+		req.Amount,
+		req.State,
+		req.UpdatedAt,
+		req.Id,
+	)
+	if err != nil {
+		panic(err)
+	}
+}

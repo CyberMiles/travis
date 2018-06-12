@@ -203,6 +203,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	lastValidators.Sort()
 	app.LastValidators = lastValidators
 
+	// handle the pending unstake requests
+	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
+
 	return app.StoreApp.EndBlock(req)
 }
 
