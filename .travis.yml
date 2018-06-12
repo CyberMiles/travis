@@ -28,7 +28,7 @@ install:
   - npm install
 
 script:
-  - make docker_image && ./test/integration/test.sh
+  - BRANCH=$TRAVIS_BRANCH make docker_image && ./test/integration/test.sh
 
 after_success:
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
