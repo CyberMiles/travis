@@ -556,40 +556,61 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		}
 	}
 
+	// update delegation withdraw amount
 	delegation.AddWithdrawAmount(amount)
-	if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
-		// todo remove or not?
-		RemoveDelegation(delegation)
-	} else {
-		UpdateDelegation(delegation)
-	}
+	UpdateDelegation(delegation)
 
 	// deduct shares from the candidate
 	neg := new(big.Int).Neg(amount)
 	candidate.AddShares(neg)
-	if candidate.Shares == "0" {
-		//candidate.State = "N"
-		removeCandidate(candidate)
-	}
-
 	now := utils.GetNow()
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
+	// record unstake requests, waiting 7 days
+	performedBlockHeight := d.height + (7 * 24 * 3600 / 10)
+	// just for test
+	//performedBlockHeight := d.height + 4
+	unstakeRequest := &UnstakeRequest{"", d.sender, candidate.PubKey, d.height, performedBlockHeight, tx.Amount, "PENDING", now, now}
+	unstakeRequest.Id = common.Bytes2Hex(unstakeRequest.GenId())
+	saveUnstakeRequest(unstakeRequest)
+
 	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, amount, "withdraw", now}
 	saveDelegateHistory(delegateHistory)
 
-	// transfer coins back to account
-	return commons.Transfer(d.params.HoldAccount, d.sender, amount)
+	return nil
 }
 
-func handlePendingUnstakeRequests() error {
-	reqs := GetUnstakeRequests()
+func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
+	params := loadParams(store)
+	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
+		// get pubKey candidate
+		candidate := GetCandidateByPubKey(types.PubKeyString(req.PubKey))
+		if candidate == nil {
+			continue
+		}
 
+		if candidate.Shares == "0" {
+			//candidate.State = "N"
+			removeCandidate(candidate)
+		}
+
+		delegation := GetDelegation(req.DelegatorAddress, candidate.PubKey)
+		if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
+			RemoveDelegation(delegation)
+		}
+
+		req.State = "COMPLETED"
+		req.UpdatedAt = utils.GetNow()
+		updateUnstakeRequest(req)
+
+		// transfer coins back to account
+		amount, _ := new(big.Int).SetString(req.Amount, 10)
+		commons.Transfer(params.HoldAccount, req.DelegatorAddress, amount)
 	}
 
-	return
+	return nil
 }
 
 func checkBalance(state *ethstat.StateDB, addr common.Address, amount *big.Int) error {
