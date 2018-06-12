@@ -1,9 +1,11 @@
 package utils
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"math"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type StateChangeObject struct {
@@ -82,6 +84,15 @@ func (p *pendingProposal) ReachMin(blockHeight uint64) (pids []string) {
 	return
 }
 
+func IsEthTx(tx *types.Transaction) bool {
+	zero := big.NewInt(0)
+	return tx.Data() == nil ||
+		tx.GasPrice().Cmp(zero) != 0 ||
+		tx.Gas().Cmp(zero) != 0 ||
+		tx.Value().Cmp(zero) != 0 ||
+		tx.To() != nil
+}
+
 var (
 	BlockGasFee      *big.Int
 	StateChangeQueue []StateChangeObject
@@ -95,7 +106,7 @@ var (
 		math.MaxUint64,
 		nil,
 	}
-	MintAccount = common.HexToAddress("0000000000000000000000000000000000000000")
-	HoldAccount = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	MintAccount    = common.HexToAddress("0000000000000000000000000000000000000000")
+	HoldAccount    = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 	GovHoldAccount = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 )

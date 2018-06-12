@@ -1,20 +1,29 @@
 package api
 
 import (
+	"bytes"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 
-	"github.com/CyberMiles/travis/sdk"
+	"github.com/spf13/cast"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	ttypes "github.com/tendermint/tendermint/types"
+	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // CmtRPCService offers cmt related RPC methods
@@ -50,7 +59,7 @@ func (s *CmtRPCService) makeTravisTxArgs(tx sdk.Tx, address common.Address, nonc
 	}, nil
 }
 
-// SendTransaction creates a transaction for the given argument, sign it and broardcast it to tendermint.
+// SendTransaction creates a transaction for the given argument, sign it and broadcast it to tendermint.
 func (s *CmtRPCService) sendTransaction(args *SendTxArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 
 	// Look up the wallet containing the requested signer
@@ -83,40 +92,101 @@ func (s *CmtRPCService) sendTransaction(args *SendTxArgs) (*ctypes.ResultBroadca
 	return s.backend.BroadcastTxCommit(signed)
 }
 
+// SendRawTransaction will broadcast the signed transaction to tendermint.
+// The sender is responsible for signing the transaction and using the correct nonce.
 func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
 	tx := new(ethTypes.Transaction)
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return nil, err
 	}
-
 	return s.backend.BroadcastTxCommit(tx)
 }
 
-/*
-func (s *CmtRPCService) GetBlock(height uint64) (*ctypes.ResultBlock, error) {
+// GetBlockByNumber returns the requested block by height.
+func (s *CmtRPCService) GetBlockByNumber(height uint64) (*ctypes.ResultBlock, error) {
 	h := cast.ToInt64(height)
 	return s.backend.localClient.Block(&h)
 }
-func (s *CmtRPCService) GetTransaction(hash string) (*ctypes.ResultTx, error) {
-	bkey, err := hex.DecodeString(cmn.StripHex(hash))
-	if err != nil {
+
+// RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
+type RPCTransaction struct {
+	Height int64          `json:"height"`
+	Hash   cmn.HexBytes   `json:"hash"`
+	From   common.Address `json:"from"`
+	Nonce  hexutil.Uint64 `json:"nonce"`
+	Input  interface{}    `json:"input"`
+	V      *hexutil.Big   `json:"v"`
+	R      *hexutil.Big   `json:"r"`
+	S      *hexutil.Big   `json:"s"`
+}
+
+// newRPCTransaction returns a transaction that will serialize to the RPC representation.
+func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
+	tx := new(ethTypes.Transaction)
+	rlpStream := rlp.NewStream(bytes.NewBuffer(res.Tx), 0)
+	if err := tx.DecodeRLP(rlpStream); err != nil {
 		return nil, err
 	}
-	return s.backend.localClient.Tx(bkey, false)
+	if utils.IsEthTx(tx) {
+		return nil, errors.New("It's an Ethereum transaction. ")
+	}
+
+	var signer ethTypes.Signer = ethTypes.FrontierSigner{}
+	if tx.Protected() {
+		signer = ethTypes.NewEIP155Signer(tx.ChainId())
+	}
+	from, _ := ethTypes.Sender(signer, tx)
+	v, r, s := tx.RawSignatureValues()
+
+	var travisTx sdk.Tx
+	if err := json.Unmarshal(tx.Data(), &travisTx); err != nil {
+		return nil, err
+	}
+
+	return &RPCTransaction{
+		Height: res.Height,
+		Hash:   res.Hash,
+		From:   from,
+		Nonce:  hexutil.Uint64(tx.Nonce()),
+		Input:  travisTx,
+		V:      (*hexutil.Big)(v),
+		R:      (*hexutil.Big)(r),
+		S:      (*hexutil.Big)(s),
+	}, nil
 }
-func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index int64) (*ctypes.ResultTx, error) {
+
+// GetTransactionFromBlock returns the transaction for the given block number and index.
+func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index uint64) (*RPCTransaction, error) {
+	// get block
 	h := cast.ToInt64(height)
 	block, err := s.backend.localClient.Block(&h)
 	if err != nil {
 		return nil, err
 	}
-	if index >= block.Block.NumTxs {
+	// check index
+	if cast.ToInt64(index) >= block.Block.NumTxs {
 		return nil, errors.New(fmt.Sprintf("No transaction in block %d, index %d. ", height, index))
 	}
-	hash := block.Block.Txs[index].Hash()
-	return s.GetTransaction(hex.EncodeToString(hash))
+	// get transaction by hash
+	tx := ttypes.Tx(block.Block.Txs[index])
+	return s.GetTransactionByHash(hex.EncodeToString(tx.Hash()))
 }
-*/
+
+// GetTransactionByHash returns the transaction for the given hash
+func (s *CmtRPCService) GetTransactionByHash(hash string) (*RPCTransaction, error) {
+	// bytes from hash string
+	bkey, err := hex.DecodeString(cmn.StripHex(hash))
+	if err != nil {
+		return nil, err
+	}
+	// get transaction
+	res, err := s.backend.localClient.Tx(bkey, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return newRPCTransaction(res)
+}
 
 type DeclareCandidacyArgs struct {
 	Nonce       *hexutil.Uint64   `json:"nonce"`

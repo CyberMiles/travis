@@ -1,11 +1,12 @@
 package api
 
 import (
+	"encoding/json"
+
 	"github.com/spf13/cast"
+	rpcclient "github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/CyberMiles/travis/sdk/client"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	"encoding/json"
 )
 
 func (s *CmtRPCService) getParsed(path string, key []byte, data interface{}, height uint64) (int64, error) {

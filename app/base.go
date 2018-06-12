@@ -13,12 +13,12 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	abci "github.com/tendermint/abci/types"
 
+	"bytes"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"golang.org/x/crypto/ripemd160"
-	"bytes"
 )
 
 // BaseApp - The ABCI application
@@ -95,7 +95,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 		return errors.DeliverResult(err)
 	}
 
-	if isEthTx(tx) {
+	if utils.IsEthTx(tx) {
 		if checkedTx, ok := app.checkedTx[tx.Hash()]; ok {
 			tx = checkedTx
 		} else {
@@ -125,7 +125,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 		return errors.CheckResult(err)
 	}
 
-	if isEthTx(tx) {
+	if utils.IsEthTx(tx) {
 		resp := app.EthApp.CheckTx(tx)
 		app.logger.Debug("EthApp CheckTx response", "resp", resp)
 		if resp.IsErr() {
@@ -238,15 +238,6 @@ func (app *BaseApp) InitState(module, key string, value interface{}) error {
 	return err
 }
 
-func isEthTx(tx *types.Transaction) bool {
-	zero := big.NewInt(0)
-	return tx.Data() == nil ||
-		tx.GasPrice().Cmp(zero) != 0 ||
-		tx.Gas().Cmp(zero) != 0 ||
-		tx.Value().Cmp(zero) != 0 ||
-		tx.To() != nil
-}
-
 // Tick - Called every block even if no transaction, process all queues,
 // validator rewards, and calculate the validator set difference
 func tick(store state.SimpleDB) (change []abci.Validator, err error) {
@@ -254,7 +245,7 @@ func tick(store state.SimpleDB) (change []abci.Validator, err error) {
 	return
 }
 
-func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, workingHeight int64, store *state.SimpleDB) []byte{
+func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, workingHeight int64, store *state.SimpleDB) []byte {
 
 	hasher := ripemd160.New()
 	buf := new(bytes.Buffer)
