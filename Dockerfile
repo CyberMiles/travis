@@ -6,9 +6,9 @@ ENV LIBENI_PATH=/app/lib
 WORKDIR /root
 
 RUN mkdir -p libeni \
-  && wget https://github.com/CyberMiles/libeni/releases/download/v1.0.x/libeni.tar.gz -P libeni \
-  && tar zxvf libeni/libeni.tar.gz \
-  && mkdir -p $LIBENI_PATH && cp libeni/ubuntu/eni/lib/*.so $LIBENI_PATH
+  && wget https://github.com/CyberMiles/libeni/releases/download/v1.1.0/libeni-1.1.0_ubuntu-16.04.tar.gz -P libeni \
+  && tar zxvf libeni/*.tar.gz -C libeni \
+  && mkdir -p $LIBENI_PATH && cp libeni/*/lib/*.so $LIBENI_PATH
 
 WORKDIR /go/src/github.com/CyberMiles/travis
 ADD . .
@@ -19,7 +19,7 @@ RUN ENI_LIB=$LIBENI_PATH make build
 FROM ubuntu:16.04
 
 ENV DATA_ROOT /travis
-ENV LIBENI_PATH=/app/lib
+ENV LIBENI_PATH /app/lib
 
 WORKDIR /app
 
