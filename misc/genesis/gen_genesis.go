@@ -11,6 +11,10 @@ import (
 	"math/big"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/common"
+	"encoding/csv"
+	"os"
+	"io"
+	"strconv"
 )
 
 
@@ -32,6 +36,7 @@ func _main() {
 		Mixhash: common.HexToHash("0x0"),
 		Alloc: *(devAllocs()),
 		//Alloc: *(simulateAllocs()),
+		//Alloc: *(mainnetAllocs()),
 		ParentHash: common.HexToHash("0x0"),
 	}
 	//getAllocs()
@@ -66,7 +71,35 @@ func devAllocs() *core.GenesisAlloc {
 	return &allocs
 }
 
-
 func mainnetAllocs() *core.GenesisAlloc {
-	return nil
+	/* content of example.csv
+	0x7eff122b94897ea5b0e2a9abf47b86337fafebdc,1000000000000000000
+	0x77beb894fc9b0ed41231e51f128a347043960a9d,1000000000000000000
+	*/
+	file := "/tmp/example.csv"
+	f, err := os.Open(file)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	csvr := csv.NewReader(f)
+
+	allocs := make(core.GenesisAlloc, 10)
+	for {
+		row, err := csvr.Read()
+		if err != nil {
+			if err != io.EOF {
+				panic(err)
+			}
+			return &allocs
+		}
+
+		if balance, err := strconv.ParseInt(row[1], 10, 64); err != nil {
+			panic(err)
+		} else {
+			allocs[common.HexToAddress(row[0])] = core.GenesisAccount{Balance: big.NewInt(balance)}
+		}
+	}
+	return &allocs
 }
