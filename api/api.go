@@ -267,6 +267,22 @@ func (s *CmtRPCService) VerifyCandidacy(args VerifyCandidacyArgs) (*ctypes.Resul
 	return s.sendTransaction(txArgs)
 }
 
+type ActivateCandidacyArgs struct {
+	Nonce *hexutil.Uint64 `json:"nonce"`
+	From  common.Address  `json:"from"`
+}
+
+func (s *CmtRPCService) ActivateCandidacy(args ActivateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := stake.NewTxActivateCandidacy()
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sendTransaction(txArgs)
+}
+
 type DelegateArgs struct {
 	Nonce            *hexutil.Uint64 `json:"nonce"`
 	From             common.Address  `json:"from"`
