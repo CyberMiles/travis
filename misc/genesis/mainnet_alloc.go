@@ -1,0 +1,3 @@
+package genesis
+
+const mainnetAllocData = ""
