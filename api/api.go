@@ -92,14 +92,29 @@ func (s *CmtRPCService) sendTransaction(args *SendTxArgs) (*ctypes.ResultBroadca
 	return s.backend.BroadcastTxCommit(signed)
 }
 
-// SendRawTransaction will broadcast the signed transaction to tendermint.
+// SendRawTx will broadcast the signed transaction to tendermint.
 // The sender is responsible for signing the transaction and using the correct nonce.
 func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadcastTxCommit, error) {
 	tx := new(ethTypes.Transaction)
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return nil, err
 	}
-	return s.backend.BroadcastTxCommit(tx)
+
+	if utils.IsEthTx(tx) {
+		result, err := s.backend.BroadcastTxSync(tx)
+		if err != nil {
+			return nil, err
+		}
+		if result.Code > 0 {
+			return nil, errors.New(result.Log)
+		}
+
+		return &ctypes.ResultBroadcastTxCommit{
+			Hash: ttypes.Tx(encodedTx).Hash(), //tx.Hash().Hex(),
+		}, nil
+	} else {
+		return s.backend.BroadcastTxCommit(tx)
+	}
 }
 
 // GetBlockByNumber returns the requested block by height.
@@ -110,14 +125,20 @@ func (s *CmtRPCService) GetBlockByNumber(height uint64) (*ctypes.ResultBlock, er
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
-	Height int64          `json:"height"`
-	Hash   cmn.HexBytes   `json:"hash"`
-	From   common.Address `json:"from"`
-	Nonce  hexutil.Uint64 `json:"nonce"`
-	Input  interface{}    `json:"input"`
-	V      *hexutil.Big   `json:"v"`
-	R      *hexutil.Big   `json:"r"`
-	S      *hexutil.Big   `json:"s"`
+	BlockNumber *hexutil.Big    `json:"blockNumber"`
+	From        common.Address  `json:"from"`
+	Gas         *hexutil.Big    `json:"gas"`
+	GasPrice    *hexutil.Big    `json:"gasPrice"`
+	Hash        common.Hash     `json:"hash"`
+	CmtHash     cmn.HexBytes    `json:"cmt_hash"`
+	Input       hexutil.Bytes   `json:"input"`
+	CmtInput    interface{}     `json:"cmt_input"`
+	Nonce       hexutil.Uint64  `json:"nonce"`
+	To          *common.Address `json:"to"`
+	Value       *hexutil.Big    `json:"value"`
+	V           *hexutil.Big    `json:"v"`
+	R           *hexutil.Big    `json:"r"`
+	S           *hexutil.Big    `json:"s"`
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC representation.
@@ -126,9 +147,6 @@ func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
 	rlpStream := rlp.NewStream(bytes.NewBuffer(res.Tx), 0)
 	if err := tx.DecodeRLP(rlpStream); err != nil {
 		return nil, err
-	}
-	if utils.IsEthTx(tx) {
-		return nil, errors.New("It's an Ethereum transaction. ")
 	}
 
 	var signer ethTypes.Signer = ethTypes.FrontierSigner{}
@@ -139,19 +157,27 @@ func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
 	v, r, s := tx.RawSignatureValues()
 
 	var travisTx sdk.Tx
-	if err := json.Unmarshal(tx.Data(), &travisTx); err != nil {
-		return nil, err
+	if !utils.IsEthTx(tx) {
+		if err := json.Unmarshal(tx.Data(), &travisTx); err != nil {
+			return nil, err
+		}
 	}
 
 	return &RPCTransaction{
-		Height: res.Height,
-		Hash:   res.Hash,
-		From:   from,
-		Nonce:  hexutil.Uint64(tx.Nonce()),
-		Input:  travisTx,
-		V:      (*hexutil.Big)(v),
-		R:      (*hexutil.Big)(r),
-		S:      (*hexutil.Big)(s),
+		BlockNumber: (*hexutil.Big)(big.NewInt(res.Height)),
+		From:        from,
+		Gas:         (*hexutil.Big)(tx.Gas()),
+		GasPrice:    (*hexutil.Big)(tx.GasPrice()),
+		Hash:        tx.Hash(),
+		CmtHash:     res.Hash,
+		Input:       hexutil.Bytes(tx.Data()),
+		CmtInput:    travisTx,
+		Nonce:       hexutil.Uint64(tx.Nonce()),
+		To:          tx.To(),
+		Value:       (*hexutil.Big)(tx.Value()),
+		V:           (*hexutil.Big)(v),
+		R:           (*hexutil.Big)(r),
+		S:           (*hexutil.Big)(s),
 	}, nil
 }
 
