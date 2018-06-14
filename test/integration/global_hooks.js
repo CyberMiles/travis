@@ -97,7 +97,7 @@ before("Add some fake validators if it's a single node", function() {
   if (web3.net.peerCount == 0) {
     Globals.TestMode = "single"
 
-    let result = web3.cmt.stake.queryValidators()
+    let result = web3.cmt.stake.validator.list()
     let valsToAdd = 4 - result.data.length
 
     if (valsToAdd > 0) {
@@ -111,7 +111,7 @@ before("Add some fake validators if it's a single node", function() {
           maxAmount: web3.toWei(initAmount, "cmt"),
           compRate: compRate
         }
-        let r = web3.cmt.stake.declareCandidacy(payload)
+        let r = web3.cmt.stake.validator.declare(payload)
         Utils.expectTxSuccess(r)
         logger.debug(`validator ${acc} added, max_amount: ${initAmount} cmt`)
       })
@@ -123,13 +123,13 @@ before("Add some fake validators if it's a single node", function() {
 after("Remove fake validators for single node", function() {
   logger.info(this.test.fullTitle())
   if (web3.net.peerCount == 0) {
-    let result = web3.cmt.stake.queryValidators()
+    let result = web3.cmt.stake.validator.list()
     result.data.forEach((val, idx) => {
       // skip the first one
       if (idx == 0) return
       // remove all others
       let acc = val.owner_address
-      let r = web3.cmt.stake.withdrawCandidacy({ from: acc })
+      let r = web3.cmt.stake.validator.withdraw({ from: acc })
       Utils.expectTxSuccess(r)
       logger.debug(`validator ${acc} removed`)
     })
