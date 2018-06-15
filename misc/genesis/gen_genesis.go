@@ -14,11 +14,13 @@ import (
 	"encoding/csv"
 	"os"
 	"io"
-	"strconv"
 )
 
+var (
+	balance, _ = big.NewInt(0).SetString("10000000000000000000000000000000000", 10)
+)
 
-func _main() {
+func main() {
 	config := &params.ChainConfig{
 		ChainId: big.NewInt(15),
 		HomesteadBlock: big.NewInt(0),
@@ -48,7 +50,7 @@ func _main() {
 }
 
 func simulateAllocs() *core.GenesisAlloc {
-	num := 100000
+	num := 100
 	allocs := make(core.GenesisAlloc, num)
 	hexes := []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"}
 	// fmt.Println(time.Now().Unix())
@@ -59,15 +61,15 @@ func simulateAllocs() *core.GenesisAlloc {
 		for j := 0; j < 40; j++ {
 			addr = append(addr, hexes[rand.Intn(len(hexes))])
 		}
-		allocs[common.HexToAddress(strings.Join(addr, ""))] = core.GenesisAccount{Balance: big.NewInt(0x10)}
+		allocs[common.HexToAddress(strings.Join(addr, ""))] = core.GenesisAccount{Balance: big.NewInt(0x100000)}
 	}
 	return &allocs
 }
 
 func devAllocs() *core.GenesisAlloc {
 	allocs := make(core.GenesisAlloc, 2)
-	allocs[common.HexToAddress("0x7eff122b94897ea5b0e2a9abf47b86337fafebdc")] = core.GenesisAccount{Balance: big.NewInt(0xFFFFFFFFFFFFFFF)}
-	allocs[common.HexToAddress("0x77beb894fc9b0ed41231e51f128a347043960a9d")] = core.GenesisAccount{Balance: big.NewInt(0xFFFFFFFFFFFFFFF)}
+	allocs[common.HexToAddress("0x7eff122b94897ea5b0e2a9abf47b86337fafebdc")] = core.GenesisAccount{Balance: balance}
+	allocs[common.HexToAddress("0x77beb894fc9b0ed41231e51f128a347043960a9d")] = core.GenesisAccount{Balance: balance}
 	return &allocs
 }
 
@@ -95,11 +97,11 @@ func mainnetAllocs() *core.GenesisAlloc {
 			return &allocs
 		}
 
-		if balance, err := strconv.ParseInt(row[1], 10, 64); err != nil {
-			panic(err)
-		} else {
-			allocs[common.HexToAddress(row[0])] = core.GenesisAccount{Balance: big.NewInt(balance)}
+		balance, success := big.NewInt(0).SetString(row[1], 10)
+		if !success {
+			panic("convert alloc balance error!")
 		}
+			allocs[common.HexToAddress(row[0])] = core.GenesisAccount{Balance:balance}
 	}
 	return &allocs
 }
