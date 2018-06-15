@@ -17,7 +17,7 @@ describe("Stake Test", function() {
       maxAmount * (1 - Globals.ValMinSelfStakingRatio - 0.1),
       "cmt"
     )
-    this.reducedMax = web3.toWei(maxAmount - 1, "cmt")
+    this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")
   }
   let amounts = new Amounts(2000) // 2000 cmt
   let compRate = "0.8"
