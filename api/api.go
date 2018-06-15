@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	abci "github.com/tendermint/abci/types"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	ttypes "github.com/tendermint/tendermint/types"
 	cmn "github.com/tendermint/tmlibs/common"
@@ -125,20 +127,22 @@ func (s *CmtRPCService) GetBlockByNumber(height uint64) (*ctypes.ResultBlock, er
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
-	BlockNumber *hexutil.Big    `json:"blockNumber"`
-	From        common.Address  `json:"from"`
-	Gas         *hexutil.Big    `json:"gas"`
-	GasPrice    *hexutil.Big    `json:"gasPrice"`
-	Hash        common.Hash     `json:"hash"`
-	CmtHash     cmn.HexBytes    `json:"cmt_hash"`
-	Input       hexutil.Bytes   `json:"input"`
-	CmtInput    interface{}     `json:"cmt_input"`
-	Nonce       hexutil.Uint64  `json:"nonce"`
-	To          *common.Address `json:"to"`
-	Value       *hexutil.Big    `json:"value"`
-	V           *hexutil.Big    `json:"v"`
-	R           *hexutil.Big    `json:"r"`
-	S           *hexutil.Big    `json:"s"`
+	BlockNumber      *hexutil.Big           `json:"blockNumber"`
+	From             common.Address         `json:"from"`
+	Gas              *hexutil.Big           `json:"gas"`
+	GasPrice         *hexutil.Big           `json:"gasPrice"`
+	Hash             common.Hash            `json:"hash"`
+	CmtHash          cmn.HexBytes           `json:"cmt_hash"`
+	Input            hexutil.Bytes          `json:"input"`
+	CmtInput         interface{}            `json:"cmt_input"`
+	Nonce            hexutil.Uint64         `json:"nonce"`
+	To               *common.Address        `json:"to"`
+	TransactionIndex hexutil.Uint           `json:"transactionIndex"`
+	Value            *hexutil.Big           `json:"value"`
+	V                *hexutil.Big           `json:"v"`
+	R                *hexutil.Big           `json:"r"`
+	S                *hexutil.Big           `json:"s"`
+	TxResult         abci.ResponseDeliverTx `json:"tx_result"`
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC representation.
@@ -164,20 +168,22 @@ func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
 	}
 
 	return &RPCTransaction{
-		BlockNumber: (*hexutil.Big)(big.NewInt(res.Height)),
-		From:        from,
-		Gas:         (*hexutil.Big)(tx.Gas()),
-		GasPrice:    (*hexutil.Big)(tx.GasPrice()),
-		Hash:        tx.Hash(),
-		CmtHash:     res.Hash,
-		Input:       hexutil.Bytes(tx.Data()),
-		CmtInput:    travisTx,
-		Nonce:       hexutil.Uint64(tx.Nonce()),
-		To:          tx.To(),
-		Value:       (*hexutil.Big)(tx.Value()),
-		V:           (*hexutil.Big)(v),
-		R:           (*hexutil.Big)(r),
-		S:           (*hexutil.Big)(s),
+		BlockNumber:      (*hexutil.Big)(big.NewInt(res.Height)),
+		From:             from,
+		Gas:              (*hexutil.Big)(tx.Gas()),
+		GasPrice:         (*hexutil.Big)(tx.GasPrice()),
+		Hash:             tx.Hash(),
+		CmtHash:          res.Hash,
+		Input:            hexutil.Bytes(tx.Data()),
+		CmtInput:         travisTx,
+		Nonce:            hexutil.Uint64(tx.Nonce()),
+		To:               tx.To(),
+		TransactionIndex: hexutil.Uint(res.Index),
+		Value:            (*hexutil.Big)(tx.Value()),
+		V:                (*hexutil.Big)(v),
+		R:                (*hexutil.Big)(r),
+		S:                (*hexutil.Big)(s),
+		TxResult:         res.TxResult,
 	}, nil
 }
 
@@ -212,6 +218,17 @@ func (s *CmtRPCService) GetTransactionByHash(hash string) (*RPCTransaction, erro
 	}
 
 	return newRPCTransaction(res)
+}
+
+// DecodeRawTx returns the transaction from the raw tx string in the block data
+func (s *CmtRPCService) DecodeRawTx(raw string) (*RPCTransaction, error) {
+	tx, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil {
+		return nil, err
+	}
+	return newRPCTransaction(&ctypes.ResultTx{
+		Tx: tx,
+	})
 }
 
 type DeclareCandidacyArgs struct {
