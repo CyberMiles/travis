@@ -89,7 +89,7 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 	delegations := GetDelegationsByPubKey(v.PubKey)
 	for _, delegation := range delegations {
 		tmp := new(big.Float)
-		x := new(big.Float).SetInt(delegation.ParseDelegateAmount())
+		x := new(big.Float).SetInt(delegation.Shares())
 		tmp.Mul(x, big.NewFloat(slashing_ratio))
 		slash := new(big.Int)
 		tmp.Int(slash)

@@ -449,11 +449,8 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	// Self-staked CMTs will be refunded back to the validator address.
 	delegations := GetDelegationsByPubKey(candidate.PubKey)
 	for _, delegation := range delegations {
-		err := commons.Transfer(d.params.HoldAccount, delegation.DelegatorAddress, delegation.Shares())
-		if err != nil {
-			return err
-		}
-		//RemoveDelegation(delegation)
+		txWithdraw := TxWithdraw{validatorAddress, delegation.Shares().String()}
+		d.doWithdraw(delegation, delegation.Shares(), candidate, txWithdraw)
 	}
 
 	//removeCandidate(candidate)
@@ -556,9 +553,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		}
 	}
 
-	// update delegation withdraw amount
-	delegation.AddWithdrawAmount(amount)
-	UpdateDelegation(delegation)
+	d.doWithdraw(delegation, amount, candidate, tx)
 
 	// deduct shares from the candidate
 	neg := new(big.Int).Neg(amount)
@@ -567,18 +562,27 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
-	// record unstake requests, waiting 7 days
-	performedBlockHeight := d.height + (7 * 24 * 3600 / 10)
-	// just for test
-	//performedBlockHeight := d.height + 4
-	unstakeRequest := &UnstakeRequest{"", d.sender, candidate.PubKey, d.height, performedBlockHeight, tx.Amount, "PENDING", now, now}
-	unstakeRequest.Id = common.Bytes2Hex(unstakeRequest.GenId())
-	saveUnstakeRequest(unstakeRequest)
-
 	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, amount, "withdraw", now}
 	saveDelegateHistory(delegateHistory)
 
 	return nil
+}
+
+func (d deliver) doWithdraw(delegation *Delegation, amount *big.Int, candidate *Candidate, tx TxWithdraw) {
+	// update delegation withdraw amount
+	delegation.AddWithdrawAmount(amount)
+	UpdateDelegation(delegation)
+	now := utils.GetNow()
+
+	// record unstake requests, waiting 7 days
+	performedBlockHeight := d.height + (7 * 24 * 3600 / 10)
+	// just for test
+	//performedBlockHeight := d.height + 4
+	unstakeRequest := &UnstakeRequest{"", d.sender, candidate.PubKey, d.height, performedBlockHeight, amount.String(), "PENDING", now, now}
+	unstakeRequest.Id = common.Bytes2Hex(unstakeRequest.GenId())
+	saveUnstakeRequest(unstakeRequest)
+
+	return
 }
 
 func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
