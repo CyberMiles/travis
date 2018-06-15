@@ -69,8 +69,11 @@ describe("Stake Test", function() {
         "cmt"
       )} CMTs.`, function() {
         before(function() {
-          let balance = Utils.getBalance(3)
+          balance = Utils.getBalance(3)
           Utils.transfer(Globals.Accounts[3], web3.cmt.defaultAccount, balance)
+        })
+        after(function() {
+          Utils.transfer(web3.cmt.defaultAccount, Globals.Accounts[3], balance)
         })
 
         it("Fails", function() {
@@ -175,6 +178,8 @@ describe("Stake Test", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(1)
+        // delegation before
+        delegation_before = Utils.getDelegation(1, 3)
       })
 
       it("CMTs are moved from account B", function() {
@@ -192,11 +197,12 @@ describe("Stake Test", function() {
         )
       })
       it("CMTs show up as staked balance for B", function() {
-        let result = web3.cmt.stake.delegator.query(Globals.Accounts[1], 0)
-        let delegation = result.data.find(
-          d => d.pub_key.value == Globals.PubKeys[3]
-        )
-        expect(delegation.delegate_amount).to.eq(amounts.dele1.toString())
+        let delegation_after = Utils.getDelegation(1, 3)
+        expect(
+          delegation_after.delegate_amount
+            .minus(delegation_before.delegate_amount)
+            .toNumber()
+        ).to.eq(Number(amounts.dele1))
       })
       it("D is still not a validator", function() {
         let result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
@@ -211,6 +217,8 @@ describe("Stake Test", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(2)
+        // delegation before
+        delegation_before = Utils.getDelegation(2, 3)
       })
       it("CMTs are moved from account C", function() {
         let payload = {
@@ -227,11 +235,12 @@ describe("Stake Test", function() {
         )
       })
       it("CMTs show up as staked balance for C", function() {
-        let result = web3.cmt.stake.delegator.query(Globals.Accounts[2], 0)
-        let delegation = result.data.find(
-          d => d.pub_key.value == Globals.PubKeys[3]
-        )
-        expect(delegation.delegate_amount).to.eq(amounts.dele2.toString())
+        let delegation_after = Utils.getDelegation(2, 3)
+        expect(
+          delegation_after.delegate_amount
+            .minus(delegation_before.delegate_amount)
+            .toNumber()
+        ).to.eq(Number(amounts.dele2))
       })
       it("D is now a validator", function() {
         let result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
@@ -270,35 +279,23 @@ describe("Stake Test", function() {
       // expect(current).to.eq(powers_new[4])
     })
     it("B: total awards * 80% * 0.1", function() {
-      let result = web3.cmt.stake.delegator.query(Globals.Accounts[1], 0)
-      let delegation = result.data.find(
-        d => d.pub_key.value == Globals.PubKeys[3]
-      )
+      let delegation = Utils.getDelegation(1, 3)
       console.log(delegation)
       // expect((delegation.awards = total_awards * 0.8 * 0.1))
     })
     it("C: total awards * 80% * 0.8", function() {
-      let result = web3.cmt.stake.delegator.query(Globals.Accounts[2], 0)
-      let delegation = result.data.find(
-        d => d.pub_key.value == Globals.PubKeys[3]
-      )
+      let delegation = Utils.getDelegation(2, 3)
       console.log(delegation)
       // expect((delegation.awards = total_awards * 0.8 * 0.8))
     })
     it("D: total awards - B - C", function() {
-      let result = web3.cmt.stake.delegator.query(Globals.Accounts[3], 0)
-      let delegation = result.data.find(
-        d => d.pub_key.value == Globals.PubKeys[3]
-      )
+      let delegation = Utils.getDelegation(3, 3)
       console.log(delegation)
       // expect((delegation.awards = total_awards - total_awards * 0.8 * 0.9))
     })
   })
 
-  // todo: The withdraw request reduces the stake and voting power immediately, but has
-  // a 7 day waiting period (as measured in block heights) before the fund is actually available
-  // in delegator's account to trade. It puts funds into unstaked_waiting status.
-  describe.skip("Stake Withdraw", function() {
+  describe("Stake Withdraw", function() {
     describe(`Account B withdraw ${web3.fromWei(
       amounts.dele1,
       "cmt"
@@ -308,10 +305,7 @@ describe("Stake Test", function() {
         // balance before
         balance_old = Utils.getBalance(1)
         // delegation before
-        let result = web3.cmt.stake.delegator.query(Globals.Accounts[1], 0)
-        delegation_before = result.data.find(
-          d => d.pub_key.value == Globals.PubKeys[3]
-        )
+        delegation_before = Utils.getDelegation(1, 3)
       })
       it("CMTs are moved back to account B(locked)", function() {
         let payload = {
@@ -325,14 +319,10 @@ describe("Stake Test", function() {
         balance_new = Utils.getBalance(1)
         expect(balance_new.minus(balance_old).toNumber()).to.eq(Number(0))
         // delegation after
-        let result = web3.cmt.stake.delegator.query(Globals.Accounts[1], 0)
-        delegation_after = result.data.find(
-          d => d.pub_key.value == Globals.PubKeys[3]
-        )
+        let delegation_after = Utils.getDelegation(1, 3)
         expect(
-          web3
-            .toBigNumber(delegation_after.withdraw_amount)
-            .minus(web3.toBigNumber(delegation_before.withdraw_amount))
+          delegation_after.withdraw_amount
+            .minus(delegation_before.withdraw_amount)
             .toNumber()
         ).to.eq(Number(amounts.dele1))
       })
@@ -401,21 +391,25 @@ describe("Stake Test", function() {
         { owner_address: Globals.Accounts[3] }
       ])
     })
-    // todo: All its staked CMTs will become unstaked_waiting, and be refunded to their source accounts after 7 days.
-    it.skip("All staked tokens will be distributed back to delegator addresses", function() {
+    it("account balance no change", function() {
       // balance after
       balance_new = Utils.getBalance()
-      // account[1] has withdrawed, refund some interests
-      expect(balance_new[1].minus(balance_old[1]).toNumber() >= 0).to.be.true
-      // account[2] refund delegate amount and interests
-      expect(
-        balance_new[2].minus(balance_old[2]).toNumber() >= Number(amounts.dele2)
-      ).to.be.true
+      for (i = 1; i < 4; ++i) {
+        expect(balance_new[i].minus(balance_old[i]).toNumber()).to.eq(0)
+      }
     })
-    it.skip("Self-staked CMTs will be refunded back to the validator address", function() {
-      expect(
-        balance_new[3].minus(balance_old[3]).toNumber() >= Number(amounts.self)
-      ).to.be.true
+    it("All its staked CMTs will move to withdraw_amount, and be refunded later", function() {
+      for (i = 1; i < 4; ++i) {
+        d = Utils.getDelegation(i, 3)
+        expect(d).to.be.not.null
+        expect(
+          d.delegate_amount
+            .plus(d.award_amount)
+            .minus(d.slash_amount)
+            .minus(d.withdraw_amount)
+            .toNumber()
+        ).to.eq(0)
+      }
     })
   })
 })

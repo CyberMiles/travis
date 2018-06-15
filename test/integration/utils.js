@@ -105,6 +105,36 @@ const getTokenBalance = () => {
   return balance
 }
 
+const getDelegation = (acc_index, pk_index) => {
+  let delegation = {
+    delegate_amount: web3.toBigNumber(0),
+    award_amount: web3.toBigNumber(0),
+    withdraw_amount: web3.toBigNumber(0),
+    slash_amount: web3.toBigNumber(0)
+  }
+  result = web3.cmt.stake.delegator.query(Globals.Accounts[acc_index], 0)
+  if (result && result.data) {
+    let data = result.data.find(
+      d => d.pub_key.value == Globals.PubKeys[pk_index]
+    )
+    if (data)
+      delegation = {
+        delegate_amount: web3.toBigNumber(data.delegate_amount),
+        award_amount: web3.toBigNumber(data.award_amount),
+        withdraw_amount: web3.toBigNumber(data.withdraw_amount),
+        slash_amount: web3.toBigNumber(data.slash_amount)
+      }
+  }
+  logger.debug(
+    "delegation: --> ",
+    `delegate_amount: ${delegation.delegate_amount.toString(10)}`,
+    `award_amount: ${delegation.award_amount.toString(10)}`,
+    `withdraw_amount: ${delegation.withdraw_amount.toString(10)}`,
+    `slash_amount: ${delegation.slash_amount.toString(10)}`
+  )
+  return delegation
+}
+
 const calcAward = powers => {
   let total = powers.reduce((s, v) => {
     return s + v
@@ -252,6 +282,7 @@ module.exports = {
   tokenTransfer,
   tokenKill,
   getTokenBalance,
+  getDelegation,
   calcAwards,
   vote,
   getProposal,
