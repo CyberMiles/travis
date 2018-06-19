@@ -10,10 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
+	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/vm/ethereum"
-	rpcClient "github.com/tendermint/tendermint/rpc/client"
 )
 
 const (

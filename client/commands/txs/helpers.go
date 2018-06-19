@@ -116,7 +116,7 @@ func wrapAndSign(tx sdk.Tx, from common.Address, passphrase string) (hexutil.Byt
 
 	account := accounts.Account{Address: from}
 	wallet, err := am.Find(account)
-	signed, err := wallet.SignTx(account, ethTx, big.NewInt(111))
+	signed, err := wallet.SignTx(account, ethTx, big.NewInt(viper.GetInt64(FlagVMChainId)))
 	if err != nil {
 		return nil, err
 	}

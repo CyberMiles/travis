@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -81,7 +82,8 @@ func (app *EthermintApplication) basicCheck(tx *ethTypes.Transaction) (*state.St
 				Log:  core.ErrOversizedData.Error()}
 	}
 
-	signer := ethTypes.NewEIP155Signer(tx.ChainId())
+	networkId := big.NewInt(int64(app.backend.Ethereum().NetVersion()))
+	signer := ethTypes.NewEIP155Signer(networkId)
 
 	// Make sure the transaction is signed properly
 	from, err := ethTypes.Sender(signer, tx)
@@ -90,7 +92,7 @@ func (app *EthermintApplication) basicCheck(tx *ethTypes.Transaction) (*state.St
 		return nil, common.Address{}, 0,
 			abciTypes.ResponseCheckTx{
 				Code: errors.CodeTypeInternalErr,
-				Log:  core.ErrInvalidSender.Error()}
+				Log:  err.Error()}
 	}
 
 	// Transactions can't be negative. This may never happen using RLP decoded

@@ -12,13 +12,14 @@ import (
 
 // nolint
 const (
-	FlagName    = "name"
-	FlagNoSign  = "no-sign"
-	FlagIn      = "in"
-	FlagPrepare = "prepare"
-	FlagAddress = "address"
-	FlagType    = "type"
-	FlagNonce   = "nonce"
+	FlagName      = "name"
+	FlagNoSign    = "no-sign"
+	FlagIn        = "in"
+	FlagPrepare   = "prepare"
+	FlagAddress   = "address"
+	FlagType      = "type"
+	FlagNonce     = "nonce"
+	FlagVMChainId = "vm-chain-id"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -36,6 +37,7 @@ func init() {
 	RootCmd.Flags().String(FlagIn, "", "file with tx in json format")
 	RootCmd.PersistentFlags().String(FlagType, "commit", "type(sync|commit) of broadcast tx to tendermint")
 	RootCmd.PersistentFlags().Int(FlagNonce, -1, "Sequence number for this transaction")
+	RootCmd.PersistentFlags().Int64(FlagVMChainId, 267, "266: staging, 267: testnet, 268: mainnet")
 }
 
 func doRawTx(cmd *cobra.Command, args []string) error {

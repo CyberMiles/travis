@@ -21,6 +21,13 @@ import (
 const (
 	defaultLogLevel = "error"
 	FlagLogLevel    = "log_level"
+	FlagENV         = "env"
+)
+
+const (
+	Staging = 266
+	TestNet = 267
+	MainNet = 268
 )
 
 var (
@@ -52,6 +59,7 @@ func preRunSetup(cmd *cobra.Command, args []string) (err error) {
 func SetUpRoot(cmd *cobra.Command) {
 	cmd.PersistentPreRunE = preRunSetup
 	cmd.PersistentFlags().String(FlagLogLevel, defaultLogLevel, "Log level")
+	cmd.PersistentFlags().String(FlagENV, "testnet", "env")
 }
 
 // copied from ethermint
@@ -122,7 +130,6 @@ func setupEmtContext() error {
 	context = cli.NewContext(a, set, nil)
 
 	context.GlobalSet(ethUtils.DataDirFlag.Name, config.BaseConfig.RootDir)
-	context.GlobalSet(ethUtils.NetworkIdFlag.Name, strconv.Itoa(int(config.EMConfig.EthChainId)))
 	context.GlobalSet(emtUtils.VerbosityFlag.Name, strconv.Itoa(int(config.EMConfig.VerbosityFlag)))
 
 	context.GlobalSet(emtUtils.TendermintAddrFlag.Name, config.TMConfig.RPC.ListenAddress)
@@ -139,6 +146,18 @@ func setupEmtContext() error {
 
 	context.GlobalSet(ethUtils.WSEnabledFlag.Name, strconv.FormatBool(config.EMConfig.WSEnabledFlag))
 	context.GlobalSet(ethUtils.WSApiFlag.Name, config.EMConfig.WSApiFlag)
+
+	switch viper.GetString(FlagENV) {
+	case "staging":
+		config.EMConfig.ChainId = Staging
+	case "mainnet":
+		config.EMConfig.ChainId = MainNet
+	case "testnet":
+		config.EMConfig.ChainId = TestNet
+	default:
+		config.EMConfig.ChainId = TestNet
+	}
+	context.GlobalSet(ethUtils.NetworkIdFlag.Name, strconv.Itoa(int(config.EMConfig.ChainId)))
 
 	if err := emtUtils.Setup(context); err != nil {
 		return err

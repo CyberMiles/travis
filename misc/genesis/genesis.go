@@ -1,23 +1,24 @@
 package genesis
 
 import (
-	"strings"
-	"github.com/ethereum/go-ethereum/core"
 	"math/big"
-	"github.com/ethereum/go-ethereum/params"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
 // DefaultGenesisBlock returns the Ethereum main net genesis block.
 func SimulateGenesisBlock() *core.Genesis {
 	return &core.Genesis{
-		Config:     &params.ChainConfig{
-			ChainId: big.NewInt(15),
+		Config: &params.ChainConfig{
+			ChainId:        big.NewInt(15),
 			HomesteadBlock: big.NewInt(0),
-			EIP155Block: big.NewInt(0),
-			EIP158Block: big.NewInt(0),
+			EIP155Block:    big.NewInt(0),
+			EIP158Block:    big.NewInt(0),
 		},
 		Nonce:      uint64(0xdeadbeefdeadbeef),
 		ExtraData:  hexutil.MustDecode("0x"),
@@ -42,11 +43,11 @@ func DefaultGenesisBlock() *core.Genesis {
 // DevGenesisBlock returns the 'geth --dev' genesis block.
 func DevGenesisBlock() *core.Genesis {
 	return &core.Genesis{
-		Config:     &params.ChainConfig{
-			ChainId: big.NewInt(15),
+		Config: &params.ChainConfig{
+			ChainId:        big.NewInt(267),
 			HomesteadBlock: big.NewInt(0),
-			EIP155Block: big.NewInt(0),
-			EIP158Block: big.NewInt(0),
+			EIP155Block:    big.NewInt(0),
+			EIP158Block:    big.NewInt(0),
 		},
 		Nonce:      uint64(0xdeadbeefdeadbeef),
 		ExtraData:  hexutil.MustDecode("0x"),
@@ -55,7 +56,6 @@ func DevGenesisBlock() *core.Genesis {
 		Alloc:      decodePrealloc(devAllocData),
 	}
 }
-
 
 func decodePrealloc(data string) core.GenesisAlloc {
 	var p []struct{ Addr, Balance *big.Int }

@@ -1,24 +1,25 @@
 package app
 
 import (
+	"bytes"
 	goerr "errors"
 	"fmt"
 	"math/big"
 
-	"github.com/CyberMiles/travis/sdk"
-	"github.com/CyberMiles/travis/sdk/errors"
-	"github.com/CyberMiles/travis/sdk/state"
+	"golang.org/x/crypto/ripemd160"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	abci "github.com/tendermint/abci/types"
 
-	"bytes"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/errors"
+	"github.com/CyberMiles/travis/sdk/state"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
-	"golang.org/x/crypto/ripemd160"
 )
 
 // BaseApp - The ABCI application
@@ -100,8 +101,10 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 			tx = checkedTx
 		} else {
 			// force cache from of tx
-			// TODO: Get chainID from config
-			if _, err := types.Sender(types.NewEIP155Signer(big.NewInt(111)), tx); err != nil {
+			networkId := big.NewInt(int64(app.ethereum.NetVersion()))
+			signer := types.NewEIP155Signer(networkId)
+
+			if _, err := types.Sender(signer, tx); err != nil {
 				app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
 				return errors.DeliverResult(err)
 			}
