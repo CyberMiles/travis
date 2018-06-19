@@ -157,7 +157,10 @@ type Validator Candidate
 // ABCIValidator - Get the validator from a bond value
 func (v Validator) ABCIValidator() abci.Validator {
 	return abci.Validator{
-		PubKey: v.PubKey.Bytes(),
+		PubKey: abci.PubKey{
+			Type: abci.PubKeyEd25519,
+			Data:  v.PubKey.Bytes(),
+		},
 		Power:  v.VotingPower,
 	}
 }
@@ -282,7 +285,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 				j++
 				continue
 			} // else, the old validator has been removed
-			changed[n] = abci.Validator{vs[i].PubKey.Bytes(), 0}
+			changed[n] = abci.Validator{ vs[i].PubKey.Bytes(), abci.PubKey{abci.PubKeyEd25519, vs[i].PubKey.Bytes(),}, 0}
 			n++
 			i++
 			continue
@@ -303,7 +306,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 
 	// remove any excess validators left in set 1
 	for ; i < len(vs); i, n = i+1, n+1 {
-		changed[n] = abci.Validator{vs[i].PubKey.Bytes(), 0}
+		changed[n] = abci.Validator{vs[i].PubKey.Bytes(), abci.PubKey{abci.PubKeyEd25519, vs[i].PubKey.Bytes(),}, 0}
 	}
 
 	return changed[:n]
