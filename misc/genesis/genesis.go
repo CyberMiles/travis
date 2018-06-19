@@ -44,7 +44,7 @@ func DefaultGenesisBlock() *core.Genesis {
 func DevGenesisBlock() *core.Genesis {
 	return &core.Genesis{
 		Config: &params.ChainConfig{
-			ChainId:        big.NewInt(267),
+			ChainId:        big.NewInt(15),
 			HomesteadBlock: big.NewInt(0),
 			EIP155Block:    big.NewInt(0),
 			EIP158Block:    big.NewInt(0),

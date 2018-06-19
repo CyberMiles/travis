@@ -130,6 +130,7 @@ func setupEmtContext() error {
 	context = cli.NewContext(a, set, nil)
 
 	context.GlobalSet(ethUtils.DataDirFlag.Name, config.BaseConfig.RootDir)
+	context.GlobalSet(ethUtils.NetworkIdFlag.Name, strconv.Itoa(int(config.EMConfig.ChainId)))
 	context.GlobalSet(emtUtils.VerbosityFlag.Name, strconv.Itoa(int(config.EMConfig.VerbosityFlag)))
 
 	context.GlobalSet(emtUtils.TendermintAddrFlag.Name, config.TMConfig.RPC.ListenAddress)
@@ -146,18 +147,6 @@ func setupEmtContext() error {
 
 	context.GlobalSet(ethUtils.WSEnabledFlag.Name, strconv.FormatBool(config.EMConfig.WSEnabledFlag))
 	context.GlobalSet(ethUtils.WSApiFlag.Name, config.EMConfig.WSApiFlag)
-
-	switch viper.GetString(FlagENV) {
-	case "staging":
-		config.EMConfig.ChainId = Staging
-	case "mainnet":
-		config.EMConfig.ChainId = MainNet
-	case "testnet":
-		config.EMConfig.ChainId = TestNet
-	default:
-		config.EMConfig.ChainId = TestNet
-	}
-	context.GlobalSet(ethUtils.NetworkIdFlag.Name, strconv.Itoa(int(config.EMConfig.ChainId)))
 
 	if err := emtUtils.Setup(context); err != nil {
 		return err
