@@ -84,7 +84,7 @@ func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares strin
 
 // Validator returns a copy of the Candidate as a Validator.
 // Should only be called when the Candidate qualifies as a validator.
-func (c *Candidate) validator() Validator {
+func (c *Candidate) Validator() Validator {
 	return Validator(*c)
 }
 
@@ -159,9 +159,9 @@ func (v Validator) ABCIValidator() abci.Validator {
 	return abci.Validator{
 		PubKey: abci.PubKey{
 			Type: abci.PubKeyEd25519,
-			Data:  v.PubKey.Bytes(),
+			Data: v.PubKey.Bytes(),
 		},
-		Power:  v.VotingPower,
+		Power: v.VotingPower,
 	}
 }
 
@@ -234,7 +234,7 @@ func (cs Candidates) Validators() Validators {
 		if c.VotingPower == 0 { //exit as soon as the first Voting power set to zero is found
 			return validators[:i]
 		}
-		validators[i] = c.validator()
+		validators[i] = c.Validator()
 	}
 
 	return validators
@@ -285,7 +285,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 				j++
 				continue
 			} // else, the old validator has been removed
-			changed[n] =  abci.Ed25519Validator(vs[i].PubKey.Bytes(), 0)
+			changed[n] = abci.Ed25519Validator(vs[i].PubKey.Bytes(), 0)
 			n++
 			i++
 			continue
@@ -306,7 +306,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 
 	// remove any excess validators left in set 1
 	for ; i < len(vs); i, n = i+1, n+1 {
-		changed[n] =  abci.Ed25519Validator(vs[i].PubKey.Bytes(), 0)
+		changed[n] = abci.Ed25519Validator(vs[i].PubKey.Bytes(), 0)
 	}
 
 	return changed[:n]

@@ -29,7 +29,8 @@ type BaseApp struct {
 	ethereum            *eth.Ethereum
 	AbsentValidators    *stake.AbsentValidators
 	ByzantineValidators []abci.Evidence
-	LastValidators      []stake.Validator
+	//LastValidators      []stake.Validator
+	PresentValidators stake.Validators
 }
 
 const (
@@ -146,15 +147,19 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.EthApp.BeginBlock(req)
 
 	// handle the absent validators
-	for _, i := range req.AbsentValidators {
-		app.logger.Debug("BeginBlock", "index", i)
-		if i >= int32(len(app.LastValidators)) {
+	for _, sv := range req.Validators {
+		pk, err := ttypes.GetPubKey(string(sv.Validator.PubKey.Data))
+		if err != nil {
 			continue
 		}
 
-		v := app.LastValidators[i]
-		app.AbsentValidators.Add(v.PubKey, app.WorkingHeight())
+		if !sv.SignedLastBlock {
+			app.AbsentValidators.Add(pk, app.WorkingHeight())
+		} else {
+			app.PresentValidators = append(app.PresentValidators, stake.GetCandidateByPubKey(ttypes.PubKeyString(pk)).Validator())
+		}
 	}
+
 	app.AbsentValidators.Clear(app.WorkingHeight())
 
 	app.logger.Info("BeginBlock", "absent_validators", app.AbsentValidators)
@@ -167,17 +172,17 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.EthApp.EndBlock(req)
 
-	cs := stake.GetCandidates()
-	cs.Sort()
-	validators := cs.Validators()
+	//cs := stake.GetCandidates()
+	//cs.Sort()
+	//validators := cs.Validators()
 
 	// block award
-	stake.NewAwardDistributor(app.WorkingHeight(), validators, utils.BlockGasFee, app.AbsentValidators, app.logger).DistributeAll()
+	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, utils.BlockGasFee, app.AbsentValidators, app.logger).DistributeAll()
 
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
 		for _, bv := range app.ByzantineValidators {
-			pk, err := ttypes.GetPubKey(string(bv.PubKey))
+			pk, err := ttypes.GetPubKey(string(bv.Validator.PubKey.Data))
 			if err != nil {
 				continue
 			}
@@ -199,9 +204,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 	app.AddValChange(diff)
 
-	lastValidators := cs.Validators()
-	lastValidators.Sort()
-	app.LastValidators = lastValidators
+	//lastValidators := cs.Validators()
+	//lastValidators.Sort()
+	//app.LastValidators = lastValidators
 
 	// handle the pending unstake requests
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
