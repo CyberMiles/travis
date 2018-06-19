@@ -82,6 +82,14 @@ func (app *EthermintApplication) basicCheck(tx *ethTypes.Transaction) (*state.St
 				Log:  core.ErrOversizedData.Error()}
 	}
 
+	// tx.ChainID() must > 0
+	if tx.ChainId().Cmp(big.NewInt(0)) <= 0 {
+		return nil, common.Address{}, 0,
+			abciTypes.ResponseCheckTx{
+				Code: errors.CodeTypeInternalErr,
+				Log:  types.ErrInvalidChainId.Error()}
+	}
+
 	networkId := big.NewInt(int64(app.backend.Ethereum().NetVersion()))
 	signer := ethTypes.NewEIP155Signer(networkId)
 
