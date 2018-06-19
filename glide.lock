@@ -1,5 +1,5 @@
-hash: 4cb08036f40efcb45a97340fd014f0bb4cf5cdb75e0d56ec4f2e3a90dc834166
-updated: 2018-06-15T18:39:25.027508151+08:00
+hash: c29dba4c1dece4393940c44d5b36de52abc694631a4d85760f99bf9b89e9b1fd
+updated: 2018-06-19T09:48:45.286317615+08:00
 imports:
 - name: github.com/aristanetworks/goarista
   version: 59944ff78bc1de686b0aba1444dfd380f48f03d4
@@ -181,7 +181,7 @@ imports:
 - name: github.com/rjeczalik/notify
   version: d152f3ce359a5464dc41e84a8919fc67e55bbbf0
 - name: github.com/robertkrimen/otto
-  version: 03d472dc43abece8691e609a23d295ab732abba6
+  version: 15f95af6e78dcd2030d8195a138bd88d4f403546
   subpackages:
   - ast
   - dbg
@@ -248,7 +248,7 @@ imports:
 - name: github.com/tendermint/iavl
   version: fd37a0fa3a7454423233bc3d5ea828f38e0af787
 - name: github.com/tendermint/tendermint
-  version: 26f633ed48441f72895b710f0e87b7b6c6791066
+  version: 27bd1deabe4ba6a2d9b463b8f3e3f1e31b993e61
   subpackages:
   - blockchain
   - cmd/tendermint/commands
@@ -256,6 +256,9 @@ imports:
   - consensus
   - consensus/types
   - evidence
+  - libs/events
+  - libs/pubsub
+  - libs/pubsub/query
   - lite
   - lite/client
   - lite/errors
@@ -266,8 +269,8 @@ imports:
   - p2p
   - p2p/conn
   - p2p/pex
-  - p2p/trust
   - p2p/upnp
+  - privval
   - proxy
   - rpc/client
   - rpc/clientw
@@ -283,7 +286,6 @@ imports:
   - state/txindex/kv
   - state/txindex/null
   - types
-  - types/priv_validator
   - version
 - name: github.com/tendermint/tmlibs
   version: 692f1d86a6e2c0efa698fd1e4541b68c74ffaf38
@@ -299,10 +301,8 @@ imports:
   - log
   - logger
   - merkle
-  - pubsub
-  - pubsub/query
 - name: golang.org/x/crypto
-  version: a8fb68e7206f8c78be19b432c58eb52a6aa34462
+  version: 027cca12c2d63e3d62b670d901e8a2c95854feec
   subpackages:
   - curve25519
   - internal/subtle
@@ -334,11 +334,11 @@ imports:
   subpackages:
   - syncmap
 - name: golang.org/x/sys
-  version: 8014b7b116a67fea23fbb82cd834c9ad656ea44b
+  version: 6c888cc515d3ed83fc103cf1d84468aad274b0a7
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: 5c1cf69b5978e5a34c5f9ba09a83e56acc4b7877
+  version: 5cec4b58c438bd98288aeb248bab2c1840713d21
   subpackages:
   - encoding
   - encoding/charmap
@@ -365,12 +365,11 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: d2f8e5a29d1b7307bc83f91a41c21ef776e73e35
+  version: b28608a9dbfcc585a10c13222c50cfeb50b7ac7a
   subpackages:
   - balancer
   - balancer/base
   - balancer/roundrobin
-  - channelz
   - codes
   - connectivity
   - credentials
@@ -379,6 +378,7 @@ imports:
   - grpclog
   - internal
   - internal/backoff
+  - internal/channelz
   - internal/grpcrand
   - keepalive
   - metadata

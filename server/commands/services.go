@@ -17,7 +17,7 @@ import (
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
-	pv "github.com/tendermint/tendermint/types/priv_validator"
+	pv "github.com/tendermint/tendermint/privval"
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/app"
