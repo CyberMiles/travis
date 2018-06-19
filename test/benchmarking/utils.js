@@ -10,7 +10,7 @@ const concurrency = config.get("concurrency") || 100
 const sendTxGas = 21000 // Simple transaction gas requirement
 const sendTokenTxGas = 37611 // Token transaction gas requirement(estimate)
 
-exports.generateRawTransaction = txObject => {
+exports.generateRawTransaction = (txObject, chainId) => {
   const txParams = {
     nonce: "0x" + txObject.nonce.toString(16),
     gasPrice: "0x" + txObject.gasPrice.toString(16),
@@ -18,7 +18,8 @@ exports.generateRawTransaction = txObject => {
     from: txObject.from,
     to: txObject.to,
     value: txObject.value ? "0x" + txObject.value.toString(16) : "0x00",
-    data: "0x"
+    data: "0x",
+    chainId: chainId
   }
   let tx = new Tx(txParams)
   tx.sign(txObject.privKey)

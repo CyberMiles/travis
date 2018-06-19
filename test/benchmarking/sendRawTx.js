@@ -7,6 +7,7 @@ let utils = require("./utils")
 let web3 = new Web3(new Web3.providers.HttpProvider(config.get("provider")))
 let wallet = Wallet.fromV3(config.get("wallet"), config.get("password"))
 let walletAddress = wallet.getAddressString()
+let chainId = web3.net.id
 
 // to,value and total accounts * transactions
 let destAddress = config.get("to")
@@ -105,14 +106,17 @@ utils.sendTransactions(web3, transactions, (err, ms) => {
         initialNonces[addr] = web3.cmt.getTransactionCount(addr)
         let txs = []
         for (let i = 0; i < txsPerAccount; i++) {
-          let tx = utils.generateRawTransaction({
-            nonce: initialNonces[addr] + i,
-            gasPrice: gasPrice,
-            from: addr,
-            to: destAddress,
-            privKey: w.getPrivateKey(),
-            value: value
-          })
+          let tx = utils.generateRawTransaction(
+            {
+              nonce: initialNonces[addr] + i,
+              gasPrice: gasPrice,
+              from: addr,
+              to: destAddress,
+              privKey: w.getPrivateKey(),
+              value: value
+            },
+            chainId
+          )
           txs.push(tx)
         }
         transactions[addr] = txs
