@@ -81,10 +81,7 @@ func (app *EthermintApplication) basicCheck(tx *ethTypes.Transaction) (*state.St
 				Log:  core.ErrOversizedData.Error()}
 	}
 
-	var signer ethTypes.Signer = ethTypes.FrontierSigner{}
-	if tx.Protected() {
-		signer = ethTypes.NewEIP155Signer(tx.ChainId())
-	}
+	signer := ethTypes.NewEIP155Signer(tx.ChainId())
 
 	// Make sure the transaction is signed properly
 	from, err := ethTypes.Sender(signer, tx)

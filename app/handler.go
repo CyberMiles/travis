@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"strings"
 
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
+	abci "github.com/tendermint/abci/types"
+
+	"github.com/CyberMiles/travis/modules/governance"
+	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
-	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	abci "github.com/tendermint/abci/types"
-	"github.com/CyberMiles/travis/modules/governance"
-	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 )
@@ -57,10 +58,7 @@ func (app BaseApp) deliverHandler(ctx types.Context, store state.SimpleDB, tx *e
 		return errors.DeliverResult(err)
 	}
 
-	var signer ethTypes.Signer = ethTypes.FrontierSigner{}
-	if tx.Protected() {
-		signer = ethTypes.NewEIP155Signer(tx.ChainId())
-	}
+	signer := ethTypes.NewEIP155Signer(tx.ChainId())
 
 	// Make sure the transaction is signed properly
 	from, err := ethTypes.Sender(signer, tx)

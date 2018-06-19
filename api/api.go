@@ -153,10 +153,7 @@ func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
 		return nil, err
 	}
 
-	var signer ethTypes.Signer = ethTypes.FrontierSigner{}
-	if tx.Protected() {
-		signer = ethTypes.NewEIP155Signer(tx.ChainId())
-	}
+	signer := ethTypes.NewEIP155Signer(tx.ChainId())
 	from, _ := ethTypes.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
 
