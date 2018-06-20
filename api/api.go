@@ -228,6 +228,16 @@ func (s *CmtRPCService) DecodeRawTx(raw string) (*RPCTransaction, error) {
 	})
 }
 
+// Info about the node's syncing state
+func (s *CmtRPCService) Syncing() (*ctypes.SyncInfo, error) {
+	status, err := s.backend.localClient.Status()
+	if err != nil {
+		return nil, err
+	}
+
+	return &status.SyncInfo, nil
+}
+
 type DeclareCandidacyArgs struct {
 	Nonce       *hexutil.Uint64   `json:"nonce"`
 	From        common.Address    `json:"from"`
