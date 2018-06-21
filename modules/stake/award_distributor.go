@@ -147,10 +147,10 @@ func (ad awardDistributor) DistributeAll() {
 	totalShares := new(big.Int)
 
 	for _, val := range ad.validators {
-		if ad.isAbsent(val) {
-			ad.logger.Debug("The validator is absent, no award", "validator", val.OwnerAddress)
-			continue
-		}
+		//if ad.isAbsent(val) {
+		//	ad.logger.Debug("The validator is absent, no award", "validator", val.OwnerAddress)
+		//	continue
+		//}
 
 		var validator validator
 		var delegators []delegator
@@ -160,9 +160,9 @@ func (ad awardDistributor) DistributeAll() {
 		}
 
 		//ad.logger.Debug("height information", "current_height", ad.height, "join_height", candidate.BlockHeight)
-		if ad.height-candidate.BlockHeight <= 1 {
-			continue
-		}
+		//if ad.height-candidate.BlockHeight <= 1 {
+		//	continue
+		//}
 
 		shares := candidate.ParseShares()
 		validator.shares = shares

@@ -1,25 +1,25 @@
 package app
 
 import (
-	"bytes"
 	goerr "errors"
 	"fmt"
 	"math/big"
 
-	"golang.org/x/crypto/ripemd160"
-
+	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/errors"
+	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	abci "github.com/tendermint/abci/types"
 
+	"bytes"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/CyberMiles/travis/sdk"
-	"github.com/CyberMiles/travis/sdk/errors"
-	"github.com/CyberMiles/travis/sdk/state"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/tendermint/go-crypto"
+	"golang.org/x/crypto/ripemd160"
 )
 
 // BaseApp - The ABCI application
@@ -30,7 +30,8 @@ type BaseApp struct {
 	ethereum            *eth.Ethereum
 	AbsentValidators    *stake.AbsentValidators
 	ByzantineValidators []abci.Evidence
-	LastValidators      []stake.Validator
+	//LastValidators      []stake.Validator
+	PresentValidators stake.Validators
 }
 
 const (
@@ -147,17 +148,26 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 // BeginBlock - ABCI
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	app.EthApp.BeginBlock(req)
+	app.PresentValidators = app.PresentValidators[:0]
 
 	// handle the absent validators
-	for _, i := range req.AbsentValidators {
-		app.logger.Debug("BeginBlock", "index", i)
-		if i >= int32(len(app.LastValidators)) {
-			continue
-		}
+	for _, sv := range req.Validators {
+		//pk, err := ttypes.GetPubKey(string(sv.Validator.PubKey.Data))
+		//if err != nil {
+		//	continue
+		//}
 
-		v := app.LastValidators[i]
-		app.AbsentValidators.Add(v.PubKey, app.WorkingHeight())
+		var pk crypto.PubKeyEd25519
+		copy(pk[:], sv.Validator.PubKey.Data)
+
+		pubKey := ttypes.PubKey{pk}
+		if !sv.SignedLastBlock {
+			app.AbsentValidators.Add(pubKey, app.WorkingHeight())
+		} else {
+			app.PresentValidators = append(app.PresentValidators, stake.GetCandidateByPubKey(ttypes.PubKeyString(pubKey)).Validator())
+		}
 	}
+
 	app.AbsentValidators.Clear(app.WorkingHeight())
 
 	app.logger.Info("BeginBlock", "absent_validators", app.AbsentValidators)
@@ -170,17 +180,17 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.EthApp.EndBlock(req)
 
-	cs := stake.GetCandidates()
-	cs.Sort()
-	validators := cs.Validators()
+	//cs := stake.GetCandidates()
+	//cs.Sort()
+	//validators := cs.Validators()
 
 	// block award
-	stake.NewAwardDistributor(app.WorkingHeight(), validators, utils.BlockGasFee, app.AbsentValidators, app.logger).DistributeAll()
+	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, utils.BlockGasFee, app.AbsentValidators, app.logger).DistributeAll()
 
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
 		for _, bv := range app.ByzantineValidators {
-			pk, err := ttypes.GetPubKey(string(bv.PubKey))
+			pk, err := ttypes.GetPubKey(string(bv.Validator.PubKey.Data))
 			if err != nil {
 				continue
 			}
@@ -202,9 +212,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 	app.AddValChange(diff)
 
-	lastValidators := cs.Validators()
-	lastValidators.Sort()
-	app.LastValidators = lastValidators
+	//lastValidators := cs.Validators()
+	//lastValidators.Sort()
+	//app.LastValidators = lastValidators
 
 	// handle the pending unstake requests
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())

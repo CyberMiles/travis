@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/tendermint/go-crypto"
 
 	travis "github.com/CyberMiles/travis/types"
 	"github.com/tendermint/tendermint/types"
@@ -15,16 +14,6 @@ import (
 
 //------------------------------------------------------------
 // core types for a genesis definition
-
-// GenesisValidator is an initial validator.
-type GenesisValidator struct {
-	PubKey    crypto.PubKey `json:"pub_key"`
-	Power     int64         `json:"power"`
-	Name      string        `json:"name"`
-	Address   string        `json:"address"`
-	CompRate  string        `json:"comp_rate"`
-	MaxAmount int64         `json:"max_amount"`
-}
 
 // GenesisDoc defines the initial conditions for a tendermint blockchain, in particular its validator set.
 type GenesisDoc struct {

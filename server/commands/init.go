@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/tendermint/tendermint/p2p"
-	pv "github.com/tendermint/tendermint/types/priv_validator"
+	pv "github.com/tendermint/tendermint/privval"
 	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/types"

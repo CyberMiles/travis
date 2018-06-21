@@ -7,7 +7,7 @@ import:
 - package: github.com/spf13/pflag
 - package: github.com/spf13/viper
 - package: github.com/tendermint/abci
-  version:  ~0.10.3
+  version:  ~0.11.0
   subpackages:
   - server
   - types
@@ -16,7 +16,7 @@ import:
 - package: github.com/tendermint/iavl
   version: ~0.7.0
 - package: github.com/tendermint/go-crypto
-  version: 0.6.2
+  version: ~0.6.2
   subpackages:
   - cmd
   - keys
@@ -26,7 +26,7 @@ import:
   subpackages:
   - data
 - package: github.com/tendermint/tendermint
-  version: v0.19.1
+  version: v0.20.0
   subpackages:
   - config
   - node
@@ -37,7 +37,7 @@ import:
   - rpc/lib/types
   - types
 - package: github.com/tendermint/tmlibs
-  version: ~0.8.3-rc0
+  version: ~0.8.4
   subpackages:
   - cli
   - cli/flags
@@ -55,7 +55,12 @@ import:
 - package: github.com/mattn/go-sqlite3
   version: v1.6.0
 - package: github.com/tendermint/go-amino
-  version: 0.9.9
+  version: =0.9.9
+- package: google.golang.org/genproto
+  version: 7fd901a49ba6a7f87732eb344f6e3c5b19d1b200
+- package: github.com/golang/protobuf
+  version: ~1.0.0
+
 
 testImport:
 - package: github.com/stretchr/testify

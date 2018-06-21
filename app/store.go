@@ -266,7 +266,7 @@ func (app *StoreApp) AddValChange(diffs []abci.Validator) {
 // return index of list with validator of same PubKey, or -1 if no match
 func pubKeyIndex(val abci.Validator, list []abci.Validator) int {
 	for i, v := range list {
-		if bytes.Equal(val.PubKey, v.PubKey) {
+		if bytes.Equal(val.PubKey.Data, v.PubKey.Data) {
 			return i
 		}
 	}
