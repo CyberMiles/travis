@@ -18,6 +18,7 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/tendermint/go-crypto"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -148,15 +149,19 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	// handle the absent validators
 	for _, sv := range req.Validators {
-		pk, err := ttypes.GetPubKey(string(sv.Validator.PubKey.Data))
-		if err != nil {
-			continue
-		}
+		//pk, err := ttypes.GetPubKey(string(sv.Validator.PubKey.Data))
+		//if err != nil {
+		//	continue
+		//}
 
+		var pk crypto.PubKeyEd25519
+		copy(pk[:], sv.Validator.PubKey.Data)
+
+		pubKey := ttypes.PubKey{pk}
 		if !sv.SignedLastBlock {
-			app.AbsentValidators.Add(pk, app.WorkingHeight())
+			app.AbsentValidators.Add(pubKey, app.WorkingHeight())
 		} else {
-			app.PresentValidators = append(app.PresentValidators, stake.GetCandidateByPubKey(ttypes.PubKeyString(pk)).Validator())
+			app.PresentValidators = append(app.PresentValidators, stake.GetCandidateByPubKey(ttypes.PubKeyString(pubKey)).Validator())
 		}
 	}
 
