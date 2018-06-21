@@ -13,6 +13,7 @@ import (
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"golang.org/x/crypto/ripemd160"
+	"github.com/tendermint/go-crypto"
 )
 
 // Params defines the high level settings for staking
@@ -156,10 +157,11 @@ type Validator Candidate
 
 // ABCIValidator - Get the validator from a bond value
 func (v Validator) ABCIValidator() abci.Validator {
+	pk := v.PubKey.PubKey.(crypto.PubKeyEd25519)
 	return abci.Validator{
 		PubKey: abci.PubKey{
 			Type: abci.PubKeyEd25519,
-			Data: v.PubKey.Bytes(),
+			Data: pk[:],
 		},
 		Power: v.VotingPower,
 	}
@@ -285,7 +287,8 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 				j++
 				continue
 			} // else, the old validator has been removed
-			changed[n] = abci.Ed25519Validator(vs[i].PubKey.Bytes(), 0)
+			pk := vs[i].PubKey.PubKey.(crypto.PubKeyEd25519)
+			changed[n] = abci.Ed25519Validator(pk[:], 0)
 			n++
 			i++
 			continue
@@ -306,7 +309,8 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 
 	// remove any excess validators left in set 1
 	for ; i < len(vs); i, n = i+1, n+1 {
-		changed[n] = abci.Ed25519Validator(vs[i].PubKey.Bytes(), 0)
+		pk := vs[i].PubKey.PubKey.(crypto.PubKeyEd25519)
+		changed[n] = abci.Ed25519Validator(pk[:], 0)
 	}
 
 	return changed[:n]
