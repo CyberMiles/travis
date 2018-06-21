@@ -30,8 +30,7 @@ type BaseApp struct {
 	ethereum            *eth.Ethereum
 	AbsentValidators    *stake.AbsentValidators
 	ByzantineValidators []abci.Evidence
-	//LastValidators      []stake.Validator
-	PresentValidators stake.Validators
+	PresentValidators   stake.Validators
 }
 
 const (
@@ -152,11 +151,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	// handle the absent validators
 	for _, sv := range req.Validators {
-		//pk, err := ttypes.GetPubKey(string(sv.Validator.PubKey.Data))
-		//if err != nil {
-		//	continue
-		//}
-
 		var pk crypto.PubKeyEd25519
 		copy(pk[:], sv.Validator.PubKey.Data)
 
@@ -179,10 +173,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 // EndBlock - ABCI - triggers Tick actions
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.EthApp.EndBlock(req)
-
-	//cs := stake.GetCandidates()
-	//cs.Sort()
-	//validators := cs.Validators()
 
 	// block award
 	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, utils.BlockGasFee, app.AbsentValidators, app.logger).DistributeAll()
@@ -211,10 +201,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		panic(err)
 	}
 	app.AddValChange(diff)
-
-	//lastValidators := cs.Validators()
-	//lastValidators.Sort()
-	//app.LastValidators = lastValidators
 
 	// handle the pending unstake requests
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
