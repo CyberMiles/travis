@@ -640,7 +640,6 @@ func getRechargeAmount(maxAmount *big.Int, candidate *Candidate, ratio string) (
 	z.Int(needRechargeAmount)
 
 	delegation := GetDelegation(common.HexToAddress(candidate.OwnerAddress), candidate.PubKey)
-	award := new(big.Int).Sub(delegation.Shares(), delegation.ParseDelegateAmount())
-	needRechargeAmount.Sub(needRechargeAmount, award)
+	needRechargeAmount.Sub(needRechargeAmount, delegation.ParseAwardAmount())
 	return
 }
