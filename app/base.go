@@ -146,6 +146,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 // BeginBlock - ABCI
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	app.EthApp.BeginBlock(req)
+	app.PresentValidators = app.PresentValidators[:0]
 
 	// handle the absent validators
 	for _, sv := range req.Validators {
