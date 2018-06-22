@@ -8,4 +8,8 @@ type GenesisValidator struct {
 	Address   string `json:"address"`
 	CompRate  string `json:"comp_rate"`
 	MaxAmount int64  `json:"max_amount"`
+	Website   string `json:"website"`
+	Location  string `json:"location"`
+	Email     string `json:"email"`
+	Profile   string `json:profile`
 }
