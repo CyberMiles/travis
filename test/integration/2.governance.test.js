@@ -12,10 +12,13 @@ describe("Governance Test", function() {
 
   describe("Account #1 does not have 500 CMTs.", function() {
     before(function() {
-      let balance = Utils.getBalance(1)
-      if (web3.fromWei(balance, "cmt") > 500) {
-        Utils.transfer(Globals.Accounts[1], web3.cmt.defaultAccount, balance)
-      }
+      balance = Utils.getBalance(1)
+      Utils.transfer(Globals.Accounts[1], web3.cmt.defaultAccount, balance)
+    })
+    after(function() {
+      Utils.transfer(web3.cmt.defaultAccount, Globals.Accounts[1], balance)
+      let result = web3.cmt.stake.validator.list()
+      logger.debug(result.data)
     })
 
     describe("Validator A proposes to move 500 CMTs from account #1 to #2. ", function() {
@@ -30,19 +33,16 @@ describe("Governance Test", function() {
         Utils.expectTxFail(r)
       })
     })
-    after(function(done) {
-      Utils.waitBlocks(done)
-    })
   })
 
   describe("Account #1 have enough CMTs. ", function() {
     before(function(done) {
       let balance = Utils.getBalance(1)
-      if (web3.fromWei(balance, "cmt") < 5000) {
+      if (web3.fromWei(balance, "cmt") < 500) {
         let hash = Utils.transfer(
           web3.cmt.defaultAccount,
           Globals.Accounts[1],
-          web3.toWei(5000, "cmt")
+          web3.toWei(500, "cmt")
         )
         Utils.waitInterval(hash, (err, res) => {
           expect(err).to.be.null

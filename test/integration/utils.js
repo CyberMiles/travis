@@ -247,6 +247,7 @@ const waitBlocks = (done, blocks = 1) => {
   logger.debug("waiting start: ", startingBlock)
   let interval = setInterval(() => {
     let blocksGone = web3.cmt.blockNumber - startingBlock
+    logger.debug(`Blocks Passed ${blocksGone}`)
     if (blocksGone == blocks) {
       logger.debug("waiting end. ")
       clearInterval(interval)

@@ -86,9 +86,6 @@ describe("Stake Test", function() {
           let r = web3.cmt.stake.validator.declare(payload)
           Utils.expectTxFail(r, 20)
         })
-        after(function(done) {
-          Utils.waitBlocks(done)
-        })
       })
 
       describe(`Account D has over ${web3.fromWei(

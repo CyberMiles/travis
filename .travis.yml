@@ -24,20 +24,50 @@ install:
   - nvm use stable
   - npm install
 
+before_script:
+  - source ./bin/check-deploy.sh
+  - if [[ "$DEPLOY" == "true" ]]; then
+      git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)" ;
+    fi
+
 script:
-  - make docker_image && ./test/integration/test.sh
+  - if [[ "$DEPLOY" == "true" ]]; then
+      make build ;
+    else
+      make docker_image && ./test/integration/test.sh ;
+    fi
 
 after_success:
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
-      make push_image ;
-    else
-      BRANCH=$TRAVIS_BRANCH make push_branch_image ;
+  - if [[ "$DEPLOY" != "true" ]]; then
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      if [[ "$TRAVIS_BRANCH" == "master" ]]; then
+        make push_image ;
+      else
+        BRANCH=$TRAVIS_BRANCH make push_branch_image ;
+      fi
     fi
 
 after_failure:
-  - curl -i http://localhost:46657/dump_consensus_state;
-  - if [[ "$TRAVIS_BRANCH" == "develop" ]]; then
-      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-      BRANCH=$TRAVIS_BRANCH make push_branch_image ;
+  - curl -i "http://localhost:46657/dump_consensus_state"
+  - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t
+  - if [[ "$DEPLOY" != "true" ]]; then
+      if [[ "$TRAVIS_BRANCH" == "develop" ]]; then
+        docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+        BRANCH=$TRAVIS_BRANCH make push_branch_image ;
+      fi
     fi
+
+before_deploy:
+  - export RELEASE_PKG_FILE=$(ls build/*)
+
+deploy:
+  provider: releases
+  api_key:
+    secure: R1HkK29Q9/pY1hpxQHrdTcpdfNOYcKVwJ5Q/QULhwpuzQESEzknUE62Uw2OPshEsPKhTbSZ67QdTNUX4z3tSMx+lEm7Aam5b6yBRghpUgIoff6r6qcI1AX0j21XMSGlOGu4zss31XHOS1O+MUEorKmas8DInn2zYXDUoEC2swtdZhyBAlIHQObUhR1s8VAzxvUUp3pkUYtnWgm8gwsKu7oK/8TkErCn1wvc0DXvDzZiquI3pSpYxOuYwaAjQUXBdgO0sW+w789MciLUOk5Bdq/NpzNlFzg/Hq9njrLQTQvp1/SVzq6OzO5yA/E7y463gqOAfVMGTytUsVPVPd3Vh0iuZRKhfv3sFcXILqoc15g1T2XSU+tw/a05zALLfiZ1/hPn3WRaqb8DbzZd92srLqO9vj6ATUTY4M+jmjnhcnyvVFMLQ95CM3S3ddlON9+YmoN2DyTL9Yydf7Yx9uevXcs1RbuoWQZAVr74g7+DdpiPlUyTDA8d2RM1f4ywsL0A0dlIxs9pvyJ6n3HeEx0ZDjPghH6On5z7clB18OZiyqZxJKYd6+VHaDwMVPDYjvF5A+AHQsvgxWG5ysDF3cxA3JvVE+QMCMkvnmVLpXI6ChLsJQ1Fodj5gdOeYZcx8VYTrOyG8bYcL+wM0UR3fGerbAQh9z1WKOZbPUiLSKvUNIbc=
+  skip_cleanup: true
+  file_glob: true
+  file: "${RELEASE_PKG_FILE}"
+  on:
+    repo: CyberMiles/travis
+    branch: develop
+    condition: "$DEPLOY = true"

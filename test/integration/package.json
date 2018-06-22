@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "mocha -t 300000 *.test.js"
+    "test": "mocha -t 300000 -b *.test.js"
   },
   "author": "",
   "license": "ISC",

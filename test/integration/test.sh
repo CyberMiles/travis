@@ -13,7 +13,6 @@ cd ~/volumes/testnet/travis/scripts
 git checkout tmup
 yes "" | sudo ./cluster.sh test 6 4
 docker-compose up -d all
-sleep 3
 
 # web3-cmt
 git clone https://github.com/CyberMiles/web3-cmt.js ~/web3-cmt.js
