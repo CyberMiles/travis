@@ -88,7 +88,15 @@ func setValidator(val types.GenesisValidator, store state.SimpleDB) error {
 		params: params,
 	}
 
-	tx := TxDeclareCandidacy{types.PubKeyString(val.PubKey), utils.ToWei(val.MaxAmount).String(), val.CompRate, Description{}}
+	desc := Description{
+		Name:     val.Name,
+		Website:  val.Website,
+		Location: val.Location,
+		Email:    val.Email,
+		Profile:  val.Profile,
+	}
+
+	tx := TxDeclareCandidacy{types.PubKeyString(val.PubKey), utils.ToWei(val.MaxAmount).String(), val.CompRate, desc}
 	return deliverer.declareGenesisCandidacy(tx, val.Power)
 }
 
@@ -369,7 +377,22 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 	if err != nil {
 		return err
 	}
-	candidate := NewCandidate(pubKey, d.sender, "0", 0, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y", d.height)
+
+	now := utils.GetNow()
+	candidate := &Candidate{
+		PubKey:       pubKey,
+		OwnerAddress: d.sender.String(),
+		Shares:       "0",
+		VotingPower:  0,
+		MaxShares:    tx.MaxAmount,
+		CompRate:     tx.CompRate,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		Description:  tx.Description,
+		Verified:     "N",
+		Active:       "Y",
+		BlockHeight:  d.height,
+	}
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
@@ -384,7 +407,22 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int6
 	if err != nil {
 		return err
 	}
-	candidate := NewCandidate(pubKey, d.sender, "0", votingPower, tx.MaxAmount, tx.CompRate, tx.Description, "N", "Y", 1)
+
+	now := utils.GetNow()
+	candidate := &Candidate{
+		PubKey:       pubKey,
+		OwnerAddress: d.sender.String(),
+		Shares:       "0",
+		VotingPower:  votingPower,
+		MaxShares:    tx.MaxAmount,
+		CompRate:     tx.CompRate,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		Description:  tx.Description,
+		Verified:     "N",
+		Active:       "Y",
+		BlockHeight:  1,
+	}
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount

@@ -12,8 +12,8 @@ import (
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
-	"golang.org/x/crypto/ripemd160"
 	"github.com/tendermint/go-crypto"
+	"golang.org/x/crypto/ripemd160"
 )
 
 // Params defines the high level settings for staking
@@ -56,31 +56,16 @@ type Candidate struct {
 	Verified     string       `json:"verified"`
 	Active       string       `json:"active"`
 	BlockHeight  int64        `json:"block_height"`
+	Rank         int64        `json:"rank"`
+	State        string       `json:"state"`
 }
 
 type Description struct {
+	Name     string `json:"name"`
 	Website  string `json:"website"`
 	Location string `json:"location"`
-	Details  string `json:"details"`
-}
-
-// NewCandidate - initialize a new candidate
-func NewCandidate(pubKey types.PubKey, ownerAddress common.Address, shares string, votingPower int64, maxShares, compRate string, description Description, verified string, active string, blockHeight int64) *Candidate {
-	now := utils.GetNow()
-	return &Candidate{
-		PubKey:       pubKey,
-		OwnerAddress: ownerAddress.String(),
-		Shares:       shares,
-		VotingPower:  votingPower,
-		MaxShares:    maxShares,
-		CompRate:     compRate,
-		CreatedAt:    now,
-		UpdatedAt:    now,
-		Description:  description,
-		Verified:     verified,
-		Active:       active,
-		BlockHeight:  blockHeight,
-	}
+	Email    string `json:"email"`
+	Profile  string `json:"profile"`
 }
 
 // Validator returns a copy of the Candidate as a Validator.
@@ -137,9 +122,11 @@ func (c *Candidate) Hash() []byte {
 		c.MaxShares,
 		c.CompRate,
 		Description{
-			c.Description.Website,
-			c.Description.Location,
-			c.Description.Details,
+			Name:     c.Description.Name,
+			Website:  c.Description.Website,
+			Location: c.Description.Location,
+			Profile:  c.Description.Profile,
+			Email:    c.Description.Email,
 		},
 		c.Verified,
 		c.Active,

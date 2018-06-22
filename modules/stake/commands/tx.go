@@ -9,10 +9,10 @@ import (
 
 	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
-	"github.com/CyberMiles/travis/types"
 )
 
 /*
@@ -46,9 +46,11 @@ const (
 	FlagCompRate         = "comp-rate"
 	FlagAddress          = "address"
 	FlagValidatorAddress = "validator-address"
+	FlagName             = "name"
+	FlagEmail            = "email"
 	FlagWebsite          = "website"
 	FlagLocation         = "location"
-	FlagDetails          = "details"
+	FlagProfile          = "profile"
 	FlagVerified         = "verified"
 )
 
@@ -102,9 +104,11 @@ func init() {
 
 	fsCandidate := flag.NewFlagSet("", flag.ContinueOnError)
 	fsCandidate.String(FlagMaxAmount, "", "Max amount of CMTs to be staked")
-	fsCandidate.String(FlagWebsite, "", "optional website")
-	fsCandidate.String(FlagLocation, "", "optional location")
-	fsCandidate.String(FlagDetails, "", "optional detailed description")
+	fsCandidate.String(FlagName, "", "name")
+	fsCandidate.String(FlagWebsite, "", "website")
+	fsCandidate.String(FlagLocation, "", "location")
+	fsCandidate.String(FlagEmail, "", "email")
+	fsCandidate.String(FlagProfile, "", "profile")
 
 	fsCompRate := flag.NewFlagSet("", flag.ContinueOnError)
 	fsCompRate.String(FlagCompRate, "0", "The compensation percentage of block awards to be distributed to the validator")
@@ -155,9 +159,11 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 	}
 
 	description := stake.Description{
+		Name:     viper.GetString(FlagName),
+		Email:    viper.GetString(FlagEmail),
 		Website:  viper.GetString(FlagWebsite),
 		Location: viper.GetString(FlagLocation),
-		Details:  viper.GetString(FlagDetails),
+		Profile:  viper.GetString(FlagProfile),
 	}
 
 	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, compRate, description)
@@ -175,9 +181,11 @@ func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
 	}
 
 	description := stake.Description{
+		Name:     viper.GetString(FlagName),
+		Email:    viper.GetString(FlagEmail),
 		Website:  viper.GetString(FlagWebsite),
 		Location: viper.GetString(FlagLocation),
-		Details:  viper.GetString(FlagDetails),
+		Profile:  viper.GetString(FlagProfile),
 	}
 
 	tx := stake.NewTxUpdateCandidacy(maxAmount, description)
