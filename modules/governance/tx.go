@@ -14,19 +14,19 @@ import (
 const (
 	ByteTxPropose      = 0xA1
 	ByteTxVote         = 0xA2
-	TypeTxPropose      = governanceModuleName + "/propose"
+	TypeTransferTxPropose      = governanceModuleName + "/propose/transfer"
 	TypeTxVote         = governanceModuleName + "/vote"
 )
 
 func init() {
-	sdk.TxMapper.RegisterImplementation(TxPropose{}, TypeTxPropose, ByteTxPropose)
+	sdk.TxMapper.RegisterImplementation(TransferTxPropose{}, TypeTransferTxPropose, ByteTxPropose)
 	sdk.TxMapper.RegisterImplementation(TxVote{}, TypeTxVote, ByteTxVote)
 }
 
 //Verify interface at compile time
-var _, _ sdk.TxInner = &TxPropose{}, &TxVote{}
+var _, _ sdk.TxInner = &TransferTxPropose{}, &TxVote{}
 
-type TxPropose struct {
+type TransferTxPropose struct {
 	Proposer     *common.Address   `json:"proposer"`
 	From         *common.Address   `json:"from"`
 	To           *common.Address   `json:"to"`
@@ -35,12 +35,12 @@ type TxPropose struct {
 	Expire       uint64	           `json:"expire"`
 }
 
-func (tx TxPropose) ValidateBasic() error {
+func (tx TransferTxPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string, expire uint64) sdk.Tx {
-	return TxPropose{
+func NewTransferTxPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string, expire uint64) sdk.Tx {
+	return TransferTxPropose{
 		proposer,
 		fromAddr,
 		toAddr,
@@ -50,7 +50,7 @@ func NewTxPropose(proposer *common.Address, fromAddr *common.Address, toAddr *co
 	}.Wrap()
 }
 
-func (tx TxPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
+func (tx TransferTxPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxVote struct {
 	ProposalId       string            `json:"proposal_id"`

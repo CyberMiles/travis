@@ -45,7 +45,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 	}
 
 	switch txInner := tx.Unwrap().(type) {
-	case TxPropose:
+	case TransferTxPropose:
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
@@ -122,7 +122,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 	}
 
 	switch txInner := tx.Unwrap().(type) {
-	case TxPropose:
+	case TransferTxPropose:
 		expire := defaultProposalExpire
 		if txInner.Expire != 0 {
 			expire = txInner.Expire

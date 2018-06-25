@@ -42,16 +42,18 @@ func SaveProposal(pp *Proposal) {
 		panic(err)
 	}
 
-	stmt1, err := tx.Prepare("insert into governance_transfer_detail(proposal_id, from_address, to_address, amount, reason) values(?, ?, ?, ?, ?)") 
-	if err != nil {
-		panic(err)
-	}
-	defer stmt1.Close()
+	if pp.Type == "transfer" {
+		stmt1, err := tx.Prepare("insert into governance_transfer_detail(proposal_id, from_address, to_address, amount, reason) values(?, ?, ?, ?, ?)") 
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
 
-	_, err = stmt1.Exec(pp.Id, pp.Detail["from"].(*common.Address).String(), pp.Detail["to"].(*common.Address).String(), pp.Detail["amount"], pp.Detail["reason"])
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		_, err = stmt1.Exec(pp.Id, pp.Detail["from"].(*common.Address).String(), pp.Detail["to"].(*common.Address).String(), pp.Detail["amount"], pp.Detail["reason"])
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
 	}
 }
 
@@ -59,7 +61,7 @@ func GetProposalById(pid string) *Proposal {
 	db := getDb()
 	defer db.Close()
 
-	stmt, err := db.Prepare("select p.type, p.proposer, p.block_height, d.from_address, d.to_address, d.amount, d.reason, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at from governance_proposal p, governance_transfer_detail d where p.id = ?")
+	stmt, err := db.Prepare("select type, proposer, block_height, expire_block_height, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +69,7 @@ func GetProposalById(pid string) *Proposal {
 
 	var ptype, proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt, hash string
 	var blockHeight, expireBlockHeight, resultBlockHeight uint64
-	err = stmt.QueryRow(pid).Scan(&ptype, &proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
+	err = stmt.QueryRow(pid).Scan(&ptype, &proposer, &blockHeight, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -75,28 +77,45 @@ func GetProposalById(pid string) *Proposal {
 		panic(err)
 	}
 
-	prp := common.HexToAddress(proposer)
-	fr := common.HexToAddress(fromAddr)
-	to := common.HexToAddress(toAddr)
+	if ptype == "transfer" {
+		stmt1, err := db.Prepare("select from_address, to_address, amount, reason from governance_transfer_detail where proposal_id = ?")
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
+		err = stmt1.QueryRow(pid).Scan(&fromAddr, &toAddr, &amount, &reason)
+		switch {
+		case err == sql.ErrNoRows:
+			return nil
+		case err != nil:
+			panic(err)
+		}
 
-	return &Proposal{
-		pid,
-		ptype,
-		&prp,
-		blockHeight,
-		expireBlockHeight,
-		createdAt,
-		result,
-		resultMsg,
-		resultBlockHeight,
-		resultAt,
-		map[string]interface{}{
-			"from": &fr,
-			"to": &to,
-			"amount": amount,
-			"reason": reason,
-		},
+		prp := common.HexToAddress(proposer)
+		fr := common.HexToAddress(fromAddr)
+		to := common.HexToAddress(toAddr)
+
+		return &Proposal{
+			pid,
+			ptype,
+			&prp,
+			blockHeight,
+			expireBlockHeight,
+			createdAt,
+			result,
+			resultMsg,
+			resultBlockHeight,
+			resultAt,
+			map[string]interface{}{
+				"from": &fr,
+				"to": &to,
+				"amount": amount,
+				"reason": reason,
+			},
+		}
 	}
+
+	return nil
 }
 
 func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt string) {
@@ -135,7 +154,7 @@ func GetProposals() (proposals []*Proposal) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select p.id, p.type, p.proposer, p.block_height, d.from_address, d.to_address, d.amount, d.reason, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at from governance_proposal p, governance_transfer_detail d")
+	rows, err := db.Query("select p.id, p.type, p.proposer, p.block_height, d.from_address, d.to_address, d.amount, d.reason, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at from governance_proposal p, governance_transfer_detail d where p.id = d.proposal_id")
 	if err != nil {
 		panic(err)
 	}

@@ -415,7 +415,7 @@ func (s *CmtRPCService) QueryDelegator(address common.Address, height uint64) (*
 	return &StakeQueryResult{h, slotDelegates}, nil
 }
 
-type GovernanceProposalArgs struct {
+type GovernanceTransferProposalArgs struct {
 	Nonce        *hexutil.Uint64 `json:"nonce"`
 	From         common.Address  `json:"from"`
 	TransferFrom common.Address  `json:"transferFrom"`
@@ -425,8 +425,8 @@ type GovernanceProposalArgs struct {
 	Expire       uint64          `json:"expire"`
 }
 
-func (s *CmtRPCService) Propose(args GovernanceProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount.ToInt().String(), args.Reason, args.Expire)
+func (s *CmtRPCService) Propose(args GovernanceTransferProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := governance.NewTransferTxPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount.ToInt().String(), args.Reason, args.Expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != err {
