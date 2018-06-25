@@ -30,13 +30,25 @@ func SaveProposal(pp *Proposal) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into governance_proposal(id, proposer, block_height, from_address, to_address, amount, reason, expire_block_height, hash, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into governance_proposal(id, type, proposer, block_height, expire_block_height, hash, created_at) values(?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(pp.Id, pp.Proposer.String(), pp.BlockHeight, pp.From.String(), pp.To.String(), pp.Amount, pp.Reason, pp.ExpireBlockHeight, common.Bytes2Hex(pp.Hash()), pp.CreatedAt)
+	_, err = stmt.Exec(pp.Id, pp.Type, pp.Proposer.String(), pp.BlockHeight, pp.ExpireBlockHeight, common.Bytes2Hex(pp.Hash()), pp.CreatedAt)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+
+	stmt1, err := tx.Prepare("insert into governance_transfer_detail(proposal_id, from_address, to_address, amount, reason) values(?, ?, ?, ?, ?)") 
+	if err != nil {
+		panic(err)
+	}
+	defer stmt1.Close()
+
+	_, err = stmt1.Exec(pp.Id, pp.Detail["from"].(*common.Address).String(), pp.Detail["to"].(*common.Address).String(), pp.Detail["amount"], pp.Detail["reason"])
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -47,15 +59,15 @@ func GetProposalById(pid string) *Proposal {
 	db := getDb()
 	defer db.Close()
 
-	stmt, err := db.Prepare("select proposer, block_height, from_address, to_address, amount, reason, expire_block_height, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
+	stmt, err := db.Prepare("select p.type, p.proposer, p.block_height, d.from_address, d.to_address, d.amount, d.reason, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at from governance_proposal p, governance_transfer_detail d where p.id = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt, hash string
+	var ptype, proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt, hash string
 	var blockHeight, expireBlockHeight, resultBlockHeight uint64
-	err = stmt.QueryRow(pid).Scan(&proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
+	err = stmt.QueryRow(pid).Scan(&ptype, &proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -69,18 +81,21 @@ func GetProposalById(pid string) *Proposal {
 
 	return &Proposal{
 		pid,
+		ptype,
 		&prp,
 		blockHeight,
-		&fr,
-		&to,
-		amount,
-		reason,
 		expireBlockHeight,
 		createdAt,
 		result,
 		resultMsg,
 		resultBlockHeight,
 		resultAt,
+		map[string]interface{}{
+			"from": &fr,
+			"to": &to,
+			"amount": amount,
+			"reason": reason,
+		},
 	}
 }
 
@@ -120,17 +135,17 @@ func GetProposals() (proposals []*Proposal) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select id, proposer, block_height, from_address, to_address, amount, reason, expire_block_height, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal")
+	rows, err := db.Query("select p.id, p.type, p.proposer, p.block_height, d.from_address, d.to_address, d.amount, d.reason, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at from governance_proposal p, governance_transfer_detail d")
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var id, proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt, hash string
+		var id, ptype, proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt, hash string
 		var blockHeight, expireBlockHeight, resultBlockHeight uint64
 
-		err = rows.Scan(&id, &proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
+		err = rows.Scan(&id, &ptype, &proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
 		if err != nil {
 			panic(err)
 		}
@@ -141,18 +156,21 @@ func GetProposals() (proposals []*Proposal) {
 
 		pp := &Proposal{
 			id,
+			ptype,
 			&prp,
 			blockHeight,
-			&fr,
-			&to,
-			amount,
-			reason,
 			expireBlockHeight,
 			createdAt,
 			result,
 			resultMsg,
 			resultBlockHeight,
 			resultAt,
+			map[string]interface{}{
+				"from": &fr,
+				"to": &to,
+				"amount": amount,
+				"reason": reason,
+			},
 		}
 
 		proposals = append(proposals, pp)

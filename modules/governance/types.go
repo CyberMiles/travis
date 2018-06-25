@@ -9,45 +9,39 @@ import (
 
 type Proposal struct {
 	Id           string
+	Type         string
 	Proposer     *common.Address
 	BlockHeight  uint64
-	From         *common.Address
-	To           *common.Address
-	Amount       string
-	Reason       string
 	ExpireBlockHeight uint64
 	CreatedAt    string
 	Result       string
 	ResultMsg    string
 	ResultBlockHeight    uint64
 	ResultAt     string
+	Detail       map[string]interface{}
 }
 
 func (p *Proposal) Hash() []byte {
 	pp, err := json.Marshal(struct {
 		Id           string
+		Type         string
 		Proposer     *common.Address
 		BlockHeight  uint64
-		From         *common.Address
-		To           *common.Address
-		Amount       string
-		Reason       string
 		ExpireBlockHeight uint64
 		Result       string
 		ResultMsg    string
 		ResultBlockHeight    uint64
+		Detail       map[string]interface{}
 	}{
 		p.Id,
+		p.Type,
 		p.Proposer,
 		p.BlockHeight,
-		p.From,
-		p.To,
-		p.Amount,
-		p.Reason,
 		p.ExpireBlockHeight,
 		p.Result,
 		p.ResultMsg,
 		p.ResultBlockHeight,
+		p.Detail,
 	})
 	if err != nil {
 		panic(err)
@@ -57,22 +51,25 @@ func (p *Proposal) Hash() []byte {
 	return hasher.Sum(nil)
 }
 
-func NewProposal(id string, proposer *common.Address, blockHeight uint64, from *common.Address, to *common.Address, amount string, reason string, expireBlockHeight uint64) *Proposal {
+func NewProposal(id string, ptype string, proposer *common.Address, blockHeight uint64, from *common.Address, to *common.Address, amount string, reason string, expireBlockHeight uint64) *Proposal {
 	now := utils.GetNow()
 	return &Proposal {
 		id,
+		ptype,
 		proposer,
 		blockHeight,
-		from,
-		to,
-		amount,
-		reason,
 		expireBlockHeight,
 		now,
 		"",
 		"",
 		0,
 		"",
+		map[string]interface{}{
+			"from": from,
+			"to": to,
+			"amount": amount,
+			"reason": reason,
+		},
 	}
 }
 

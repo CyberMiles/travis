@@ -257,15 +257,15 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	for _, pid := range proposalIds {
 		proposal := gov.GetProposalById(pid)
 		amount := new(big.Int)
-		amount.SetString(proposal.Amount, 10)
+		amount.SetString(proposal.Detail["amount"].(string), 10)
 
 		switch gov.CheckProposal(pid, nil) {
 		case "approved":
-			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.To, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Approved"})
+			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, gov.ProposalReactor{proposal.Id, currentHeight, "Approved"})
 		case "rejected":
-			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.From, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"})
+			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"})
 		default:
-			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.From, amount, gov.ProposalReactor{proposal.Id, currentHeight, "Expired"})
+			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, gov.ProposalReactor{proposal.Id, currentHeight, "Expired"})
 		}
 		utils.PendingProposal.Del(pid)
 	}

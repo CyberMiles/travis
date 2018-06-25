@@ -106,7 +106,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if vote := GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
 			return sdk.NewCheck(0, ""), ErrRepeatedVote()
 		}
-		utils.TravisTxAddrs = append(utils.TravisTxAddrs, proposal.To)
+		utils.TravisTxAddrs = append(utils.TravisTxAddrs, proposal.Detail["to"].(*common.Address))
 	}
 
 	return
@@ -130,6 +130,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		hashJson, _ :=	json.Marshal(hash)
 		pp := NewProposal(
 			string(hashJson[1:len(hashJson)-1]),
+			"transfer",
 			txInner.Proposer,
 			uint64(ctx.BlockHeight()),
 			txInner.From,
@@ -152,7 +153,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		SaveProposal(pp)
-		commons.TransferWithReactor(*pp.From, utils.GovHoldAccount, amount, ProposalReactor{pp.Id, uint64(ctx.BlockHeight()), ""})
+		commons.TransferWithReactor(*pp.Detail["from"].(*common.Address), utils.GovHoldAccount, amount, ProposalReactor{pp.Id, uint64(ctx.BlockHeight()), ""})
 
 		utils.PendingProposal.Add(pp.Id, pp.ExpireBlockHeight)
 
@@ -169,20 +170,20 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		proposal := GetProposalById(txInner.ProposalId)
 		amount := new(big.Int)
-		amount.SetString(proposal.Amount, 10)
+		amount.SetString(proposal.Detail["amount"].(string), 10)
 
 		switch CheckProposal(txInner.ProposalId, &txInner.Voter) {
 		case "approved":
 			// as succeeded proposal only need to add balance to receiver,
 			// so the transfer should always be successful
 			// but we still use the reactor to keep the compatible with the old strategy
-			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.To, amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"})
+			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"})
 			utils.PendingProposal.Del(proposal.Id)
 		case "rejected":
 			// as succeeded proposal only need to refund balance to sender,
 			// so the transfer should always be successful
 			// but we still use the reactor to keep the compatible with the old strategy
-			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.From, amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"})
+			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"})
 			utils.PendingProposal.Del(proposal.Id)
 		}
 	}
