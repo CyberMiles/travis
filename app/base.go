@@ -158,7 +158,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		if !sv.SignedLastBlock {
 			app.AbsentValidators.Add(pubKey, app.WorkingHeight())
 		} else {
-			app.PresentValidators = append(app.PresentValidators, stake.GetCandidateByPubKey(ttypes.PubKeyString(pubKey)).Validator())
+			v := stake.GetCandidateByPubKey(ttypes.PubKeyString(pubKey))
+			if v != nil {
+				app.PresentValidators = append(app.PresentValidators, v.Validator())
+			}
 		}
 	}
 
