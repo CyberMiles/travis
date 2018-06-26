@@ -7,6 +7,10 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
+const TRANSFER_FUND_PROPOSAL = "transfer_fund"
+const CHANGE_PARAM_PROPOSAL = "change_param"
+const DEPLOY_LIBENI_PROPOSAL = "deploy_libeni"
+
 type Proposal struct {
 	Id           string
 	Type         string
@@ -51,11 +55,11 @@ func (p *Proposal) Hash() []byte {
 	return hasher.Sum(nil)
 }
 
-func NewProposal(id string, ptype string, proposer *common.Address, blockHeight uint64, from *common.Address, to *common.Address, amount string, reason string, expireBlockHeight uint64) *Proposal {
+func NewTransferFundProposal(id string, proposer *common.Address, blockHeight uint64, from *common.Address, to *common.Address, amount string, reason string, expireBlockHeight uint64) *Proposal {
 	now := utils.GetNow()
 	return &Proposal {
 		id,
-		ptype,
+		TRANSFER_FUND_PROPOSAL,
 		proposer,
 		blockHeight,
 		expireBlockHeight,
@@ -68,6 +72,27 @@ func NewProposal(id string, ptype string, proposer *common.Address, blockHeight 
 			"from": from,
 			"to": to,
 			"amount": amount,
+			"reason": reason,
+		},
+	}
+}
+
+func NewChangeParamProposal(id string, proposer *common.Address, blockHeight uint64, name, value, reason string, expireBlockHeight uint64) *Proposal {
+	now := utils.GetNow()
+	return &Proposal {
+		id,
+		CHANGE_PARAM_PROPOSAL,
+		proposer,
+		blockHeight,
+		expireBlockHeight,
+		now,
+		"",
+		"",
+		0,
+		"",
+		map[string]interface{}{
+			"name": name,
+			"value": value,
 			"reason": reason,
 		},
 	}

@@ -336,8 +336,11 @@ func initTravisDb() error {
 		create table governance_proposal(id text not null primary key, type text not null, proposer text not null, block_height integer not null, expire_block_height integer not null, hash text not null default '', created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 		create index idx_governance_proposal_hash on governance_proposal(hash);
 
-		create table governance_transfer_detail(proposal_id text not null, from_address text not null, to_address text not null, amount text not null, reason text not null);
-		create index idx_governance_transfer_detail_proposal_id on governance_transfer_detail(proposal_id);
+		create table governance_transfer_fund_detail(proposal_id text not null, from_address text not null, to_address text not null, amount text not null, reason text not null);
+		create index idx_governance_transfer_fund_detail_proposal_id on governance_transfer_fund_detail(proposal_id);
+
+		create table governance_change_param_detail(proposal_id text not null, setting_name text not null, setting_value text not null, reason text not null);
+		create index idx_governance_change_param_detail_proposal_id on governance_change_param_detail(proposal_id);
 
 		create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null,  hash text not null default '', created_at text not null, unique(proposal_id, voter) ON conflict replace);
 		create index idx_governance_vote_voter on governance_vote(voter);

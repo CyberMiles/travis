@@ -45,7 +45,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 	}
 
 	switch txInner := tx.Unwrap().(type) {
-	case TransferTxPropose:
+	case TxTransferFundPropose:
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
@@ -122,15 +122,14 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 	}
 
 	switch txInner := tx.Unwrap().(type) {
-	case TransferTxPropose:
+	case TxTransferFundPropose:
 		expire := defaultProposalExpire
 		if txInner.Expire != 0 {
 			expire = txInner.Expire
 		}
 		hashJson, _ :=	json.Marshal(hash)
-		pp := NewProposal(
+		pp := NewTransferFundProposal(
 			string(hashJson[1:len(hashJson)-1]),
-			"transfer",
 			txInner.Proposer,
 			uint64(ctx.BlockHeight()),
 			txInner.From,

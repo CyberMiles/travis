@@ -42,8 +42,8 @@ func SaveProposal(pp *Proposal) {
 		panic(err)
 	}
 
-	if pp.Type == "transfer" {
-		stmt1, err := tx.Prepare("insert into governance_transfer_detail(proposal_id, from_address, to_address, amount, reason) values(?, ?, ?, ?, ?)") 
+	if pp.Type == TRANSFER_FUND_PROPOSAL {
+		stmt1, err := tx.Prepare("insert into governance_transfer_fund_detail(proposal_id, from_address, to_address, amount, reason) values(?, ?, ?, ?, ?)") 
 		if err != nil {
 			panic(err)
 		}
@@ -77,8 +77,8 @@ func GetProposalById(pid string) *Proposal {
 		panic(err)
 	}
 
-	if ptype == "transfer" {
-		stmt1, err := db.Prepare("select from_address, to_address, amount, reason from governance_transfer_detail where proposal_id = ?")
+	if ptype == TRANSFER_FUND_PROPOSAL {
+		stmt1, err := db.Prepare("select from_address, to_address, amount, reason from governance_transfer_fund_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
@@ -154,7 +154,7 @@ func GetProposals() (proposals []*Proposal) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select p.id, p.type, p.proposer, p.block_height, d.from_address, d.to_address, d.amount, d.reason, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at from governance_proposal p, governance_transfer_detail d where p.id = d.proposal_id")
+	rows, err := db.Query("select p.id, p.type, p.proposer, p.block_height, d.from_address, d.to_address, d.amount, d.reason, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at from governance_proposal p, governance_transfer_fund_detail d where p.id = d.proposal_id")
 	if err != nil {
 		panic(err)
 	}
