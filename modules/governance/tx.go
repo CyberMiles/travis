@@ -61,18 +61,20 @@ type TxChangeParamPropose struct {
 	Name         string            `json:"name"`
 	Value        string            `json:"value"`
 	Reason       string            `json:"reason"`
+	Expire       uint64            `json:"expire"`
 }
 
 func (tx TxChangeParamPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxChangeParamPropose(proposer *common.Address, name string, value string, reason string) sdk.Tx {
+func NewTxChangeParamPropose(proposer *common.Address, name string, value string, reason string, expire uint64) sdk.Tx {
 	return TxChangeParamPropose{
 		proposer,
 		name,
 		value,
 		reason,
+		expire,
 	}.Wrap()
 }
 

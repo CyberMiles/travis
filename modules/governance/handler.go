@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math/big"
 	"strings"
+	"fmt"
 
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/modules/stake"
@@ -74,6 +75,22 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInsufficientBalance()
 		}
 		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
+	case TxChangeParamPropose:
+		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+			return sdk.NewCheck(0, ""), ErrMissingSignature()
+		}
+		validators := stake.GetCandidates().Validators()
+		if validators == nil || validators.Len() == 0 {
+			return sdk.NewCheck(0, ""), ErrInvalidValidator()
+		}
+		for i, v := range validators {
+			if v.OwnerAddress == txInner.Proposer.String() {
+				break
+			}
+			if i + 1 == len(validators) {
+				return sdk.NewCheck(0, ""), ErrInvalidValidator()
+			}
+		}
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
@@ -106,7 +123,9 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if vote := GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
 			return sdk.NewCheck(0, ""), ErrRepeatedVote()
 		}
-		utils.TravisTxAddrs = append(utils.TravisTxAddrs, proposal.Detail["to"].(*common.Address))
+		if proposal.Type == TRANSFER_FUND_PROPOSAL {
+			utils.TravisTxAddrs = append(utils.TravisTxAddrs, proposal.Detail["to"].(*common.Address))
+		}
 	}
 
 	return
@@ -136,7 +155,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			txInner.To,
 			txInner.Amount,
 			txInner.Reason,
-			uint64(ctx.BlockHeight())+expire,
+			uint64(ctx.BlockHeight()) + expire,
 		)
 
 		state := ctx.EthappState()
@@ -158,6 +177,27 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		res.Data = hash
 
+	case TxChangeParamPropose:
+		expire := defaultProposalExpire
+		if txInner.Expire != 0 {
+			expire = txInner.Expire
+		}
+		hashJson, _ := json.Marshal(hash)
+		cp := NewChangeParamProposal(
+			string(hashJson[1:len(hashJson)-1]),
+			txInner.Proposer,
+			uint64(ctx.BlockHeight()),
+			txInner.Name,
+			txInner.Value,
+			txInner.Reason,
+			uint64(ctx.BlockHeight()) + expire,
+		)
+		SaveProposal(cp)
+
+		utils.PendingProposal.Add(cp.Id, cp.ExpireBlockHeight)
+
+		res.Data = hash
+
 	case TxVote:
 		vote := NewVote(
 			txInner.ProposalId,
@@ -168,21 +208,36 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		SaveVote(vote)
 
 		proposal := GetProposalById(txInner.ProposalId)
-		amount := new(big.Int)
-		amount.SetString(proposal.Detail["amount"].(string), 10)
 
-		switch CheckProposal(txInner.ProposalId, &txInner.Voter) {
-		case "approved":
-			// as succeeded proposal only need to add balance to receiver,
-			// so the transfer should always be successful
-			// but we still use the reactor to keep the compatible with the old strategy
-			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"})
-			utils.PendingProposal.Del(proposal.Id)
-		case "rejected":
-			// as succeeded proposal only need to refund balance to sender,
-			// so the transfer should always be successful
-			// but we still use the reactor to keep the compatible with the old strategy
-			commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"})
+		checkResult := CheckProposal(txInner.ProposalId, &txInner.Voter)
+
+		switch proposal.Type {
+		case TRANSFER_FUND_PROPOSAL:
+			amount := new(big.Int)
+			amount.SetString(proposal.Detail["amount"].(string), 10)
+			switch checkResult {
+			case "approved":
+				// as succeeded proposal only need to add balance to receiver,
+				// so the transfer should always be successful
+				// but we still use the reactor to keep the compatible with the old strategy
+				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"})
+			case "rejected":
+				// as succeeded proposal only need to refund balance to sender,
+				// so the transfer should always be successful
+				// but we still use the reactor to keep the compatible with the old strategy
+				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"})
+			}
+		case CHANGE_PARAM_PROPOSAL:
+			switch checkResult {
+			case "approved":
+				fmt.Println("<>-------- approved")
+				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"}.React("success", "")
+			case "rejected":
+				fmt.Println("<>--------- rejected")
+				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"}.React("success", "")
+			}
+		}
+		if checkResult == "approved" || checkResult == "rejected" {
 			utils.PendingProposal.Del(proposal.Id)
 		}
 	}

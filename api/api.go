@@ -442,10 +442,11 @@ type GovernanceChangeParamProposalArgs struct {
 	Name         string          `json:"name"`
 	Value        string          `json:"value"`
 	Reason       string          `json:"reason"`
+	Expire       uint64          `json:"expire"`
 }
 
 func (s *CmtRPCService) ProposeChangeParam(args GovernanceChangeParamProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxChangeParamPropose(&args.From, args.Name, args.Value, args.Reason)
+	tx := governance.NewTxChangeParamPropose(&args.From, args.Name, args.Value, args.Reason, args.Expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != err {

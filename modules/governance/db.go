@@ -42,7 +42,8 @@ func SaveProposal(pp *Proposal) {
 		panic(err)
 	}
 
-	if pp.Type == TRANSFER_FUND_PROPOSAL {
+	switch pp.Type {
+	case TRANSFER_FUND_PROPOSAL:
 		stmt1, err := tx.Prepare("insert into governance_transfer_fund_detail(proposal_id, from_address, to_address, amount, reason) values(?, ?, ?, ?, ?)") 
 		if err != nil {
 			panic(err)
@@ -50,6 +51,18 @@ func SaveProposal(pp *Proposal) {
 		defer stmt1.Close()
 
 		_, err = stmt1.Exec(pp.Id, pp.Detail["from"].(*common.Address).String(), pp.Detail["to"].(*common.Address).String(), pp.Detail["amount"], pp.Detail["reason"])
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+	case CHANGE_PARAM_PROPOSAL:
+		stmt1, err := tx.Prepare("insert into governance_change_param_detail(proposal_id, param_name, param_value,  reason) values(?, ?, ?, ?)") 
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
+
+		_, err = stmt1.Exec(pp.Id, pp.Detail["name"], pp.Detail["value"], pp.Detail["reason"])
 		if err != nil {
 			fmt.Println(err)
 			panic(err)
@@ -67,7 +80,7 @@ func GetProposalById(pid string) *Proposal {
 	}
 	defer stmt.Close()
 
-	var ptype, proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt, hash string
+	var ptype, proposer, createdAt, result, resultMsg, resultAt, hash string
 	var blockHeight, expireBlockHeight, resultBlockHeight uint64
 	err = stmt.QueryRow(pid).Scan(&ptype, &proposer, &blockHeight, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
 	switch {
@@ -77,7 +90,11 @@ func GetProposalById(pid string) *Proposal {
 		panic(err)
 	}
 
-	if ptype == TRANSFER_FUND_PROPOSAL {
+	prp := common.HexToAddress(proposer)
+
+	switch ptype {
+	case TRANSFER_FUND_PROPOSAL:
+		var fromAddr, toAddr, amount, reason string 
 		stmt1, err := db.Prepare("select from_address, to_address, amount, reason from governance_transfer_fund_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
@@ -91,7 +108,6 @@ func GetProposalById(pid string) *Proposal {
 			panic(err)
 		}
 
-		prp := common.HexToAddress(proposer)
 		fr := common.HexToAddress(fromAddr)
 		to := common.HexToAddress(toAddr)
 
@@ -110,6 +126,38 @@ func GetProposalById(pid string) *Proposal {
 				"from": &fr,
 				"to": &to,
 				"amount": amount,
+				"reason": reason,
+			},
+		}
+	case CHANGE_PARAM_PROPOSAL:
+		var name, value, reason string
+		stmt1, err := db.Prepare("select param_name, param_value, reason from governance_change_param_detail where proposal_id = ?")
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
+		err = stmt1.QueryRow(pid).Scan(&name, &value, &reason)
+		switch {
+		case err == sql.ErrNoRows:
+			return nil
+		case err != nil:
+			panic(err)
+		}
+
+		return &Proposal{
+			pid,
+			ptype,
+			&prp,
+			blockHeight,
+			expireBlockHeight,
+			createdAt,
+			result,
+			resultMsg,
+			resultBlockHeight,
+			resultAt,
+			map[string]interface{}{
+				"name": name,
+				"value": value,
 				"reason": reason,
 			},
 		}
