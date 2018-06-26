@@ -27,12 +27,13 @@ install:
 before_script:
   - source ./bin/check-deploy.sh
   - if [[ "$DEPLOY" == "true" ]]; then
-      git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)" ;
+      git tag "$(date +'%Y%m%d%H%M')-${VERSION}" ;
     fi
 
 script:
   - if [[ "$DEPLOY" == "true" ]]; then
       make build ;
+      zip -r build/travis_${VERSION}_linux_amd64.zip build/travis ;
     else
       make docker_image && ./test/integration/test.sh ;
     fi
@@ -58,7 +59,7 @@ after_failure:
     fi
 
 before_deploy:
-  - export RELEASE_PKG_FILE=$(ls build/*)
+  - export RELEASE_PKG_FILE=$(ls build/*.zip)
 
 deploy:
   provider: releases
