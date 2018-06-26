@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"math/big"
 	"strings"
-	"fmt"
 
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/modules/stake"
@@ -230,10 +229,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		case CHANGE_PARAM_PROPOSAL:
 			switch checkResult {
 			case "approved":
-				fmt.Println("<>-------- approved")
 				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"}.React("success", "")
 			case "rejected":
-				fmt.Println("<>--------- rejected")
 				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"}.React("success", "")
 			}
 		}

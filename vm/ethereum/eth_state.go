@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"math/big"
 	"sync"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
@@ -273,13 +272,10 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 		case gov.CHANGE_PARAM_PROPOSAL:
 			switch gov.CheckProposal(pid, nil) {
 			case "approved":
-				fmt.Println("<>----------- reach min  approved")
 				gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 			case "rejected":
-				fmt.Println("<>----------- reach min  rejected")
 				gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
 			default:
-				fmt.Println("<>----------- reach min  expired")
 				gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
 			}
 		}
