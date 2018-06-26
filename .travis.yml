@@ -49,14 +49,14 @@ after_success:
     fi
 
 after_failure:
-  - curl -i "http://localhost:46657/dump_consensus_state"
-  - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t
   - if [[ "$DEPLOY" != "true" ]]; then
       if [[ "$TRAVIS_BRANCH" == "develop" ]]; then
         docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
         BRANCH=$TRAVIS_BRANCH make push_branch_image ;
       fi
     fi
+  - curl -i "http://localhost:46657/dump_consensus_state"
+  - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t
 
 before_deploy:
   - export RELEASE_PKG_FILE=$(ls build/*.zip)
