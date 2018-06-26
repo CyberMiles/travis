@@ -178,7 +178,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	app.EthApp.EndBlock(req)
 
 	// block award
-	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, utils.BlockGasFee, app.AbsentValidators, app.logger).DistributeAll()
+	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, utils.BlockGasFee, app.logger).DistributeAll()
 
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
