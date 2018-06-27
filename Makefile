@@ -1,6 +1,7 @@
 GOTOOLS = github.com/Masterminds/glide
 ENI_LIB?=$(HOME)/.travis/eni/lib
 CGO_LDFLAGS = -L$(ENI_LIB) -Wl,-rpath,$(ENI_LIB)
+CGO_LDFLAGS_ALLOW = "-I.*"
 
 all: get_vendor_deps install print_cybermiles_logo
 
@@ -12,7 +13,7 @@ get_vendor_deps: tools
 
 install:
 	@echo "\n--> Installing the Travis TestNet\n"
-	CGO_LDFLAGS="$(CGO_LDFLAGS)" go install ./cmd/travis
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go install ./cmd/travis
 	@echo "\n\nTravis, the TestNet for CyberMiles (CMT) has successfully installed!"
 
 tools:
