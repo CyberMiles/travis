@@ -1,15 +1,16 @@
 package utils
 
 import (
-	"github.com/ethereum/go-ethereum/common"
+	"reflect"
+	"strconv"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/CyberMiles/travis/types"
 )
 
 type Params struct {
 	HoldAccount      common.Address `json:"hold_account"` // PubKey where all bonded coins are held
 	MaxVals              uint16     `json:"max_vals"`     // maximum number of validators
-	Validators           string     `json:"validators"`   // initial validators definition
 	SelfStakingRatio     string     `json:"self_staking_ratio"`
 	InflationRate        int64      `json:"inflation_rate"`
 	StakeLimit           string     `json:"stake_limit"`
@@ -26,7 +27,6 @@ func defaultParams() *Params {
 	return &Params{
 		HoldAccount:          HoldAccount,
 		MaxVals:              100,
-		Validators:           "",
 		SelfStakingRatio:     "0.1",
 		InflationRate:        8,
 		StakeLimit:           "0.12",
@@ -57,4 +57,27 @@ func UnloadParams() (b []byte) {
 
 func GetParams() *Params {
 	return params
+}
+
+func SetParam(name, value string) {
+	pv := reflect.ValueOf(params).Elem()
+	top := pv.Type()
+	for i := 0; i < pv.NumField(); i++ {
+		fv := pv.Field(i)
+		if top.Field(i).Name == name {
+			switch fv.Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				if iv, err := strconv.ParseInt(value, 10, 64); err == nil {
+					fv.SetInt(iv)
+				}
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				if iv, err := strconv.ParseUint(value, 10, 64); err == nil {
+					fv.SetUint(iv)
+				}
+			case reflect.String:
+				fv.SetString(value)
+			}
+			break
+		}
+	}
 }
