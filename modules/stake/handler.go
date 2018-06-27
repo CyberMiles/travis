@@ -29,8 +29,8 @@ const (
 
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
-	declareCandidacy(TxDeclareCandidacy) error
-	updateCandidacy(TxUpdateCandidacy) error
+    declareCandidacy(TxDeclareCandidacy, *big.Int) error
+	updateCandidacy(TxUpdateCandidacy, *big.Int) error
 	withdrawCandidacy(TxWithdrawCandidacy) error
 	verifyCandidacy(TxVerifyCandidacy) error
 	activateCandidacy(TxActivateCandidacy) error
@@ -100,9 +100,11 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
-		return res, checker.declareCandidacy(txInner)
+		gasFee := utils.CalGasFee(params.DeclareCandidacy, params.GasPrice)
+		return res, checker.declareCandidacy(txInner, gasFee)
 	case TxUpdateCandidacy:
-		return res, checker.updateCandidacy(txInner)
+		gasFee := utils.CalGasFee(params.UpdateCandidacy, params.GasPrice)
+		return res, checker.updateCandidacy(txInner, gasFee)
 	case TxWithdrawCandidacy:
 		return res, checker.withdrawCandidacy(txInner)
 	case TxVerifyCandidacy:
@@ -143,9 +145,21 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 	// Run the transaction
 	switch _tx := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
-		return res, deliverer.declareCandidacy(_tx)
+		gasFee := utils.CalGasFee(utils.GetParams().DeclareCandidacy, utils.GetParams().GasPrice)
+		err := deliverer.declareCandidacy(_tx, gasFee)
+		if err == nil {
+			res.GasUsed = int64(utils.GetParams().DeclareCandidacy)
+			res.GasFee = gasFee
+		}
+		return res, err
 	case TxUpdateCandidacy:
-		return res, deliverer.updateCandidacy(_tx)
+		gasFee := utils.CalGasFee(utils.GetParams().UpdateCandidacy, utils.GetParams().GasPrice)
+		err := deliverer.updateCandidacy(_tx, gasFee)
+		if err == nil {
+			res.GasUsed = int64(utils.GetParams().UpdateCandidacy)
+			res.GasFee = gasFee
+		}
+		return res, err
 	case TxWithdrawCandidacy:
 		return res, deliverer.withdrawCandidacy(_tx)
 	case TxVerifyCandidacy:
@@ -181,7 +195,7 @@ type check struct {
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
-func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
+func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee *big.Int) error {
 	// check to see if the pubkey or address has been registered before
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate != nil {
@@ -201,8 +215,10 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 
 	rr := tx.SelfStakingAmount(c.params.SelfStakingRatio)
 
+	totalCost := new(big.Int).Add(rr, gasFee)
+
 	// check if the delegator has sufficient funds
-	err := checkBalance(c.state, c.sender, rr)
+	err := checkBalance(c.state, c.sender, totalCost)
 	if err != nil {
 		return err
 	}
@@ -210,7 +226,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy) error {
 	return nil
 }
 
-func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
+func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee *big.Int) error {
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
 		return fmt.Errorf("cannot edit non-exsits candidacy")
@@ -226,13 +242,14 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy) error {
 
 		if maxAmount.Cmp(candidate.ParseMaxShares()) > 0 {
 			rechargeAmount := getRechargeAmount(maxAmount, candidate, c.params.SelfStakingRatio)
-			balance, err := commons.GetBalance(c.state, c.sender)
+
+			totalCost := new(big.Int).Add(rechargeAmount, gasFee)
+
+			// check if the delegator has sufficient funds
+			err := checkBalance(c.state, c.sender, totalCost)
+
 			if err != nil {
 				return err
-			}
-
-			if balance.Cmp(rechargeAmount) < 0 {
-				return ErrInsufficientFunds()
 			}
 		}
 	}
@@ -348,7 +365,7 @@ var _ delegatedProofOfStake = deliver{} // enforce interface at compile time
 
 // These functions assume everything has been authenticated,
 // now we just perform action and save
-func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
+func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee *big.Int) error {
 	// create and save the empty candidate
 	pubKey, err := types.GetPubKey(tx.PubKey)
 	if err != nil {
@@ -374,6 +391,14 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy) error {
 
 	// delegate a part of the max staked CMT amount
 	amount := tx.SelfStakingAmount(d.params.SelfStakingRatio)
+	totalCost := big.NewInt(0).Add(amount, gasFee)
+	// check if the delegator has sufficient funds
+	if err := checkBalance(d.state, d.sender, totalCost);  err != nil {
+		return err
+	} else {
+		commons.Transfer(d.sender, utils.HoldAccount, gasFee)
+	}
+
 	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
 	return d.delegate(txDelegate)
 }
@@ -408,7 +433,7 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int6
 	return d.delegate(txDelegate)
 }
 
-func (d deliver) updateCandidacy(tx TxUpdateCandidacy) error {
+func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee *big.Int) error {
 	// create and save the empty candidate
 	candidate := GetCandidateByAddress(d.sender)
 	if candidate == nil {

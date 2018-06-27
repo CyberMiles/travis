@@ -70,6 +70,20 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if balance.Cmp(amount) < 0 {
 			return sdk.NewCheck(0, ""), ErrInsufficientBalance()
 		}
+
+		// Transfer gasFee  -- start
+		balance, err = commons.GetBalance(state, sender)
+		if err != nil {
+			return sdk.NewCheck(0, ""), ErrInvalidParamerter()
+		}
+		params := utils.GetParams()
+		gasFee := utils.CalGasFee(params.GovernancePropose, params.GasPrice)
+
+		if balance.Cmp(gasFee) < 0 {
+			return sdk.NewCheck(0, ""), ErrInsufficientBalance()
+		}
+		// Check gasFee  -- end
+
 		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
@@ -150,6 +164,28 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		SaveProposal(pp)
 		commons.TransferWithReactor(*pp.From, utils.GovHoldAccount, amount, ProposalReactor{pp.Id, uint64(ctx.BlockHeight()), ""})
+
+		// Check gasFee  -- start
+		// get the sender
+		sender, err := getTxSender(ctx)
+		if err != nil {
+			return res, err
+		}
+		balance, err = commons.GetBalance(state, sender)
+		if err != nil {
+			return res, ErrInvalidParamerter()
+		}
+		params := utils.GetParams()
+		gasFee := utils.CalGasFee(params.GovernancePropose, params.GasPrice)
+		res.GasFee = gasFee
+
+		if balance.Cmp(gasFee) < 0 {
+			return res, ErrInsufficientBalance()
+		}
+		res.GasUsed = int64(params.GovernancePropose)
+		// transfer gasFee
+		commons.Transfer(sender, utils.HoldAccount, gasFee)
+		// Check gasFee  -- end
 
 		utils.PendingProposal.Add(pp.Id, pp.ExpireBlockHeight)
 
