@@ -43,7 +43,7 @@ type delegatedProofOfStake interface {
 
 // InitState - set genesis parameters for staking
 func InitState(key string, value interface{}, store state.SimpleDB) error {
-	params := loadParams(store)
+	params := utils.LoadParams(store)
 	switch key {
 	case "self_staking_ratio":
 		ratio, err := strconv.ParseFloat(value.(string), 64)
@@ -64,7 +64,7 @@ func InitState(key string, value interface{}, store state.SimpleDB) error {
 		return errors.ErrUnknownKey(key)
 	}
 
-	saveParams(store, params)
+	utils.SaveParams(store, params)
 	return nil
 }
 
@@ -81,7 +81,7 @@ func setValidator(val types.GenesisValidator, store state.SimpleDB) error {
 		return ErrCandidateExistsAddr()
 	}
 
-	params := loadParams(store)
+	params := utils.LoadParams(store)
 	deliverer := deliver{
 		store:  store,
 		sender: addr,
@@ -113,7 +113,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		return res, err
 	}
 
-	params := loadParams(store)
+	params := utils.LoadParams(store)
 	checker := check{
 		store:  store,
 		sender: sender,
@@ -154,7 +154,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		return
 	}
 
-	params := loadParams(store)
+	params := utils.LoadParams(store)
 	deliverer := deliver{
 		store:  store,
 		sender: sender,
@@ -198,7 +198,7 @@ func getTxSender(ctx types.Context) (sender common.Address, err error) {
 type check struct {
 	store  state.SimpleDB
 	sender common.Address
-	params Params
+	params *utils.Params
 	state  *ethstat.StateDB
 }
 
@@ -362,7 +362,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 type deliver struct {
 	store  state.SimpleDB
 	sender common.Address
-	params Params
+	params *utils.Params
 	state  *ethstat.StateDB
 	height int64
 }
@@ -624,7 +624,7 @@ func (d deliver) doWithdraw(delegation *Delegation, amount *big.Int, candidate *
 }
 
 func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
-	params := loadParams(store)
+	params := utils.LoadParams(store)
 	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
 		// get pubKey candidate
