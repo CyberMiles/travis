@@ -70,7 +70,7 @@ func (v *validator) computeTotalSharesPercentage(redistribute bool) {
 	v.sharesPercentage = new(big.Float).Quo(x, y)
 	v.exceedLimit = false
 
-	stakeLimit, _, err := big.ParseFloat(utils.GetParams().StakeLimit, 10, 2, big.ToNearestAway)
+	stakeLimit, _, err := big.ParseFloat(utils.GetParams().StakeLimit, 10, 3, big.ToNearestAway)
 	if err != nil {
 		panic(err)
 	}
