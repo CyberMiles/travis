@@ -25,9 +25,9 @@ const (
 )
 
 const (
-	Staging = 266
-	TestNet = 267
-	MainNet = 268
+	Staging = 20
+	TestNet = 19
+	MainNet = 18
 )
 
 var (

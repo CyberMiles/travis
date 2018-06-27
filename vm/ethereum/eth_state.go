@@ -106,7 +106,7 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 }
 
 func (es *EthState) EndBlock() {
-	utils.BlockGasFee.Set(es.work.totalUsedGasFee)
+	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, es.work.totalUsedGasFee)
 }
 
 func (es *EthState) ResetWorkState(receiver common.Address) error {

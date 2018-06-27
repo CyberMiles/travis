@@ -9,12 +9,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/CyberMiles/travis/sdk/version"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/tendermint/tmlibs/cli"
 	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/CyberMiles/travis/app"
+	"github.com/CyberMiles/travis/version"
 )
 
 // GetStartCmd - initialize a command as the start command with tick

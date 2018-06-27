@@ -26,6 +26,7 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 	"golang.org/x/crypto/ripemd160"
 	"os"
+	"math/big"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -50,6 +51,8 @@ type StoreApp struct {
 	// height is last committed block, DeliverTx is the next one
 	height int64
 
+	TotalUsedGasFee *big.Int
+
 	logger log.Logger
 }
 
@@ -70,6 +73,7 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 		state:  state,
 		height: state.LatestHeight(),
 		info:   sm.NewChainState(),
+		TotalUsedGasFee: big.NewInt(0),
 		logger: logger.With("module", "app"),
 	}
 	return app, nil
@@ -237,6 +241,9 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 		return abci.ResponseCommit{}
 	}
 
+	// reset store app
+	app.TotalUsedGasFee = big.NewInt(0)
+
 	return abci.ResponseCommit{Data: hash}
 }
 
@@ -246,6 +253,8 @@ func (app *StoreApp) EndBlock(_ abci.RequestEndBlock) (res abci.ResponseEndBlock
 	// TODO: cleanup in case a validator exists multiple times in the list
 	res.ValidatorUpdates = app.pending
 	app.pending = nil
+	// TODO: gasFee
+	// utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, es.work.totalUsedGasFee)
 	return
 }
 

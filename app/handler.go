@@ -88,7 +88,8 @@ func (app BaseApp) deliverHandler(ctx types.Context, store state.SimpleDB, tx *e
 
 	// no error, call ethereum app to add nonce
 	app.EthApp.backend.AddNonce(from)
-
+	// accumulate gasFee
+	app.StoreApp.TotalUsedGasFee.Add(app.StoreApp.TotalUsedGasFee, res.GasFee)
 	return res.ToABCI()
 }
 

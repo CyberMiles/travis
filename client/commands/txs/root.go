@@ -37,7 +37,7 @@ func init() {
 	RootCmd.Flags().String(FlagIn, "", "file with tx in json format")
 	RootCmd.PersistentFlags().String(FlagType, "commit", "type(sync|commit) of broadcast tx to tendermint")
 	RootCmd.PersistentFlags().Int(FlagNonce, -1, "Sequence number for this transaction")
-	RootCmd.PersistentFlags().Int64(FlagVMChainId, 267, "266: staging, 267: testnet, 268: mainnet")
+	RootCmd.PersistentFlags().Int64(FlagVMChainId, 19, "20: staging, 19: testnet, 18: mainnet")
 }
 
 func doRawTx(cmd *cobra.Command, args []string) error {

@@ -13,10 +13,8 @@ import (
 )
 
 const (
-	inflationRate       = 8
 	yearlyBlockNumber   = 365 * 24 * 3600 / 10
 	basicMintableAmount = "1000000000000000000000000000"
-	stakeLimit          = 0.12 // fixme the percentage should be configurable
 )
 
 type validator struct {
@@ -61,7 +59,7 @@ func (v validator) getTotalAwardForValidator(totalAward *big.Int, ac *awardDistr
 
 func (v validator) computeSelfSharesPercentage() *big.Float {
 	x := new(big.Float).SetInt(v.selfDelegator.shares)
-	y := new(big.Float).SetInt(v.totalShares)
+	y := new(big.Float).SetInt(v.shares)
 	result := new(big.Float).Quo(x, y)
 	return result
 }
@@ -72,8 +70,12 @@ func (v *validator) computeTotalSharesPercentage(redistribute bool) {
 	v.sharesPercentage = new(big.Float).Quo(x, y)
 	v.exceedLimit = false
 
-	if !redistribute && v.sharesPercentage.Cmp(big.NewFloat(stakeLimit)) > 0 {
-		v.sharesPercentage = big.NewFloat(stakeLimit)
+	stakeLimit, _, err := big.ParseFloat(utils.GetParams().StakeLimit, 10, 3, big.ToNearestAway)
+	if err != nil {
+		panic(err)
+	}
+	if !redistribute && v.sharesPercentage.Cmp(stakeLimit) > 0 {
+		v.sharesPercentage = stakeLimit
 		v.exceedLimit = true
 	}
 }
@@ -107,15 +109,14 @@ func (d delegator) getAwardForDelegator(totalShares, totalAward *big.Int, ac *aw
 //_______________________________________________________________________
 
 type awardDistributor struct {
-	height           int64
-	validators       Validators
-	transactionFees  *big.Int
-	logger           log.Logger
-	absentValidators *AbsentValidators
+	height          int64
+	validators      Validators
+	transactionFees *big.Int
+	logger          log.Logger
 }
 
-func NewAwardDistributor(height int64, validators Validators, transactionFees *big.Int, absentValidators *AbsentValidators, logger log.Logger) *awardDistributor {
-	return &awardDistributor{height, validators, transactionFees, logger, absentValidators}
+func NewAwardDistributor(height int64, validators Validators, transactionFees *big.Int, logger log.Logger) *awardDistributor {
+	return &awardDistributor{height, validators, transactionFees, logger}
 }
 
 func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
@@ -126,7 +127,7 @@ func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
 	}
 
 	year := ad.height / yearlyBlockNumber
-	pow := big.NewFloat(math.Pow(float64(1+inflationRate/100), float64(year)))
+	pow := big.NewFloat(math.Pow(float64(1+utils.GetParams().InflationRate/100), float64(year)))
 	new(big.Float).Mul(base, pow).Int(amount)
 	ad.logger.Debug("getMintableAmount", "height", ad.height, "year", year, "amount", amount)
 	return
@@ -135,7 +136,7 @@ func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
 func (ad awardDistributor) getBlockAward() (blockAward *big.Int) {
 	ybn := big.NewInt(yearlyBlockNumber)
 	blockAward = new(big.Int)
-	blockAward.Mul(ad.getMintableAmount(), big.NewInt(inflationRate))
+	blockAward.Mul(ad.getMintableAmount(), big.NewInt(utils.GetParams().InflationRate))
 	blockAward.Div(blockAward, big.NewInt(100))
 	blockAward.Div(blockAward, ybn)
 	ad.logger.Debug("getBlockAward", "yearly_block_number", ybn, "total_block_award", blockAward)
@@ -147,22 +148,12 @@ func (ad awardDistributor) DistributeAll() {
 	totalShares := new(big.Int)
 
 	for _, val := range ad.validators {
-		//if ad.isAbsent(val) {
-		//	ad.logger.Debug("The validator is absent, no award", "validator", val.OwnerAddress)
-		//	continue
-		//}
-
 		var validator validator
 		var delegators []delegator
 		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
 		if candidate.Shares == "0" {
 			continue
 		}
-
-		//ad.logger.Debug("height information", "current_height", ad.height, "join_height", candidate.BlockHeight)
-		//if ad.height-candidate.BlockHeight <= 1 {
-		//	continue
-		//}
 
 		shares := candidate.ParseShares()
 		validator.shares = shares
@@ -219,6 +210,8 @@ func (ad *awardDistributor) distribute(val *validator, totalAward *big.Int) (act
 	remainingAward := new(big.Int)
 	remainingAward.Sub(actualTotalAward, valAward)
 
+	ad.logger.Debug("distribute", "totalAward", totalAward, "actualTotalAward", actualTotalAward, "valAward", valAward, "remainingAward", remainingAward, "valSharesPercentage", val.sharesPercentage)
+
 	// distribute to the delegators
 	for _, delegator := range val.delegators {
 		delegator.computeSharesPercentage(val)
@@ -238,9 +231,7 @@ func (ad awardDistributor) getBlockAwardAndTxFees() *big.Int {
 }
 
 func (ad awardDistributor) awardToValidator(v *validator, award *big.Int) {
-	ad.logger.Debug("awardToValidator", "validator_address", v.ownerAddress.String(), "award", award)
-
-	// validator is also a delegator
+	// A validator is also a delegator
 	d := delegator{address: v.ownerAddress}
 	ad.awardToDelegator(d, v, award)
 }
@@ -265,14 +256,4 @@ func (ad awardDistributor) awardToDelegator(d delegator, v *validator, award *bi
 	val.AddShares(award)
 	val.UpdatedAt = now
 	updateCandidate(val)
-}
-
-func (ad awardDistributor) isAbsent(val Validator) bool {
-	for k := range ad.absentValidators.Validators {
-		if k == val.PubKey {
-			return true
-		}
-	}
-
-	return false
 }

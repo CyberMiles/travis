@@ -2,6 +2,7 @@ package sdk
 
 import (
 	abci "github.com/tendermint/abci/types"
+	"math/big"
 )
 
 const (
@@ -54,6 +55,7 @@ type DeliverResult struct {
 	Log     string
 	Diff    []*abci.Validator
 	GasUsed int64 // unused
+	GasFee  *big.Int
 }
 
 func (d DeliverResult) ToABCI() abci.ResponseDeliverTx {
@@ -61,6 +63,7 @@ func (d DeliverResult) ToABCI() abci.ResponseDeliverTx {
 		Data: d.Data,
 		Log:  d.Log,
 		Tags: nil,
+		GasUsed: d.GasUsed,
 	}
 }
 

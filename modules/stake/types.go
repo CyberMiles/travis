@@ -16,23 +16,6 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
-// Params defines the high level settings for staking
-type Params struct {
-	HoldAccount      common.Address `json:"hold_account"` // PubKey where all bonded coins are held
-	MaxVals          uint16         `json:"max_vals"`     // maximum number of validators
-	Validators       string         `json:"validators"`   // initial validators definition
-	SelfStakingRatio string         `json:"self_staking_ratio"`
-}
-
-func defaultParams() Params {
-	return Params{
-		HoldAccount:      utils.HoldAccount,
-		MaxVals:          100,
-		Validators:       "",
-		SelfStakingRatio: "0.1",
-	}
-}
-
 //_________________________________________________________________________
 
 // Candidate defines the total Amount of bond shares and their exchange rate to
@@ -197,7 +180,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	cs.Sort()
 	for i, c := range cs {
 		// truncate the power
-		if i >= int(loadParams(store).MaxVals) {
+		if i >= int(utils.GetParams().MaxVals) {
 			c.VotingPower = 0
 		}
 		updateCandidate(c)

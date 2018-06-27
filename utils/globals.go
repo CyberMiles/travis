@@ -93,6 +93,12 @@ func IsEthTx(tx *types.Transaction) bool {
 		tx.To() != nil
 }
 
+func CalGasFee(gasUsed uint64, gasPrice uint64) *big.Int {
+	gasFee := big.NewInt(int64(0))
+	gasFee = gasFee.Mul(big.NewInt(int64(gasUsed)), big.NewInt(int64(gasPrice)))
+	return gasFee
+}
+
 var (
 	BlockGasFee      *big.Int
 	StateChangeQueue []StateChangeObject
