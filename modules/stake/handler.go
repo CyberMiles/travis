@@ -2,7 +2,6 @@ package stake
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
@@ -43,32 +42,10 @@ type delegatedProofOfStake interface {
 
 // InitState - set genesis parameters for staking
 func InitState(key string, value interface{}, store state.SimpleDB) error {
-	params := utils.LoadParams(store)
-	switch key {
-	case "self_staking_ratio":
-		ratio, err := strconv.ParseFloat(value.(string), 64)
-		if err != nil || ratio <= 0 || ratio >= 1 {
-			return fmt.Errorf("input must be float, Error: %v", err.Error())
-		}
-		params.SelfStakingRatio = value.(string)
-	case "max_vals":
-		i, err := strconv.Atoi(value.(string))
-		if err != nil {
-			return fmt.Errorf("input must be integer, Error: %v", err.Error())
-		}
-
-		params.MaxVals = uint16(i)
-	case "validator":
-		setValidator(value.(types.GenesisValidator), store)
-	default:
-		return errors.ErrUnknownKey(key)
-	}
-
-	utils.SaveParams(store, params)
 	return nil
 }
 
-func setValidator(val types.GenesisValidator, store state.SimpleDB) error {
+func SetValidator(val types.GenesisValidator, store state.SimpleDB) error {
 	if val.Address == "0000000000000000000000000000000000000000" {
 		return ErrBadValidatorAddr()
 	}
@@ -81,7 +58,7 @@ func setValidator(val types.GenesisValidator, store state.SimpleDB) error {
 		return ErrCandidateExistsAddr()
 	}
 
-	params := utils.LoadParams(store)
+	params := utils.GetParams()
 	deliverer := deliver{
 		store:  store,
 		sender: addr,
@@ -113,7 +90,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		return res, err
 	}
 
-	params := utils.LoadParams(store)
+	params := utils.GetParams()
 	checker := check{
 		store:  store,
 		sender: sender,
@@ -154,7 +131,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		return
 	}
 
-	params := utils.LoadParams(store)
+	params := utils.GetParams()
 	deliverer := deliver{
 		store:  store,
 		sender: sender,
@@ -613,7 +590,7 @@ func (d deliver) doWithdraw(delegation *Delegation, amount *big.Int, candidate *
 	now := utils.GetNow()
 
 	// record unstake requests, waiting 7 days
-	performedBlockHeight := d.height + (7 * 24 * 3600 / 10)
+	performedBlockHeight := d.height + int64(utils.GetParams().UnstakeWaitPeriod)
 	// just for test
 	//performedBlockHeight := d.height + 4
 	unstakeRequest := &UnstakeRequest{"", d.sender, candidate.PubKey, d.height, performedBlockHeight, amount.String(), "PENDING", now, now}
@@ -624,7 +601,7 @@ func (d deliver) doWithdraw(delegation *Delegation, amount *big.Int, candidate *
 }
 
 func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
-	params := utils.LoadParams(store)
+	params := utils.GetParams()
 	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
 		// get pubKey candidate

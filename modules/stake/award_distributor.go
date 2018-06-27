@@ -13,10 +13,8 @@ import (
 )
 
 const (
-	inflationRate       = 8
 	yearlyBlockNumber   = 365 * 24 * 3600 / 10
 	basicMintableAmount = "1000000000000000000000000000"
-	stakeLimit          = 0.12 // fixme the percentage should be configurable
 )
 
 type validator struct {
@@ -72,8 +70,12 @@ func (v *validator) computeTotalSharesPercentage(redistribute bool) {
 	v.sharesPercentage = new(big.Float).Quo(x, y)
 	v.exceedLimit = false
 
-	if !redistribute && v.sharesPercentage.Cmp(big.NewFloat(stakeLimit)) > 0 {
-		v.sharesPercentage = big.NewFloat(stakeLimit)
+	stakeLimit, _, err := big.ParseFloat(utils.GetParams().StakeLimit, 10, 2, big.ToNearestAway)
+	if err != nil {
+		panic(err)
+	}
+	if !redistribute && v.sharesPercentage.Cmp(stakeLimit) > 0 {
+		v.sharesPercentage = stakeLimit
 		v.exceedLimit = true
 	}
 }
@@ -125,7 +127,7 @@ func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
 	}
 
 	year := ad.height / yearlyBlockNumber
-	pow := big.NewFloat(math.Pow(float64(1+inflationRate/100), float64(year)))
+	pow := big.NewFloat(math.Pow(float64(1+utils.GetParams().InflationRate/100), float64(year)))
 	new(big.Float).Mul(base, pow).Int(amount)
 	ad.logger.Debug("getMintableAmount", "height", ad.height, "year", year, "amount", amount)
 	return
@@ -134,7 +136,7 @@ func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
 func (ad awardDistributor) getBlockAward() (blockAward *big.Int) {
 	ybn := big.NewInt(yearlyBlockNumber)
 	blockAward = new(big.Int)
-	blockAward.Mul(ad.getMintableAmount(), big.NewInt(inflationRate))
+	blockAward.Mul(ad.getMintableAmount(), big.NewInt(utils.GetParams().InflationRate))
 	blockAward.Div(blockAward, big.NewInt(100))
 	blockAward.Div(blockAward, ybn)
 	ad.logger.Debug("getBlockAward", "yearly_block_number", ybn, "total_block_award", blockAward)

@@ -180,7 +180,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	cs.Sort()
 	for i, c := range cs {
 		// truncate the power
-		if i >= int(utils.LoadParams(store).MaxVals) {
+		if i >= int(utils.GetParams().MaxVals) {
 			c.VotingPower = 0
 		}
 		updateCandidate(c)

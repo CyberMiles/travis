@@ -15,9 +15,6 @@ import (
 	"encoding/json"
 )
 
-// default proposal expiration = block count of 7 days
-const defaultProposalExpire uint64 = 7 * 24 * 60 * 60 / 10
-
 // nolint
 const governanceModuleName = "governance"
 
@@ -123,7 +120,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxPropose:
-		expire := defaultProposalExpire
+		expire := utils.GetParams().ProposalExpirePeriod
 		if txInner.Expire != 0 {
 			expire = txInner.Expire
 		}

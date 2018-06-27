@@ -3,6 +3,7 @@ package app
 import (
 	goerr "errors"
 	"fmt"
+	"strconv"
 	"math/big"
 
 	"github.com/CyberMiles/travis/sdk"
@@ -236,11 +237,35 @@ func (app *BaseApp) InitState(module, key string, value interface{}) error {
 		return fmt.Errorf("unknown base option: %s", key)
 	}
 
-	err := stake.InitState(key, value, state)
-	if err != nil {
-		logger.Error("Invalid genesis option", "err", err)
+	b := state.Get(utils.ParamKey)
+	if b != nil {
+		utils.LoadParams(b)
 	}
-	return err
+	params := utils.GetParams()
+	switch key {
+	case "self_staking_ratio":
+		ratio, err := strconv.ParseFloat(value.(string), 64)
+		if err != nil || ratio <= 0 || ratio >= 1 {
+			return fmt.Errorf("input must be float, Error: %v", err.Error())
+		}
+		params.SelfStakingRatio = value.(string)
+	case "max_vals":
+		i, err := strconv.Atoi(value.(string))
+		if err != nil {
+			return fmt.Errorf("input must be integer, Error: %v", err.Error())
+		}
+
+		params.MaxVals = uint16(i)
+	case "validator":
+		stake.SetValidator(value.(ttypes.GenesisValidator), state)
+	default:
+		return errors.ErrUnknownKey(key)
+	}
+
+	b = utils.UnloadParams()
+	state.Set(utils.ParamKey, b)
+
+	return nil
 }
 
 // Tick - Called every block even if no transaction, process all queues,
