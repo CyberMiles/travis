@@ -26,7 +26,7 @@ imports:
 - name: github.com/edsrzf/mmap-go
   version: 0bce6a6887123b67a60366d2c9fe2dfb74289d2e
 - name: github.com/ethereum/go-ethereum
-  version: 5afd0bd1c7cdc089d9e0d9535af69c277eac389d
+  version: 662d46219b306c58ddda505e3425053f38ddcaa9
   repo: https://github.com/CyberMiles/go-ethereum.git
   subpackages:
   - accounts
