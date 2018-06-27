@@ -150,6 +150,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		return
 	}
 
+	res.GasFee = big.NewInt(0)
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
 		expire := utils.GetParams().ProposalExpirePeriod

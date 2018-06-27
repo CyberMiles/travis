@@ -141,7 +141,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		state:  ctx.EthappState(),
 		height: ctx.BlockHeight(),
 	}
-
+	res.GasFee = big.NewInt(0)
 	// Run the transaction
 	switch _tx := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
