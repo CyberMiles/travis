@@ -27,6 +27,7 @@ import (
 	"golang.org/x/crypto/ripemd160"
 	"os"
 	"math/big"
+	"github.com/CyberMiles/travis/utils"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -253,7 +254,7 @@ func (app *StoreApp) EndBlock(_ abci.RequestEndBlock) (res abci.ResponseEndBlock
 	// TODO: cleanup in case a validator exists multiple times in the list
 	res.ValidatorUpdates = app.pending
 	app.pending = nil
-
+	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, app.TotalUsedGasFee)
 	return
 }
 
