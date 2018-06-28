@@ -29,7 +29,7 @@ const (
 
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
-    declareCandidacy(TxDeclareCandidacy, *big.Int) error
+	declareCandidacy(TxDeclareCandidacy, *big.Int) error
 	updateCandidacy(TxUpdateCandidacy, *big.Int) error
 	withdrawCandidacy(TxWithdrawCandidacy) error
 	verifyCandidacy(TxVerifyCandidacy) error
@@ -393,7 +393,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee *big.Int) error 
 	amount := tx.SelfStakingAmount(d.params.SelfStakingRatio)
 	totalCost := big.NewInt(0).Add(amount, gasFee)
 	// check if the delegator has sufficient funds
-	if err := checkBalance(d.state, d.sender, totalCost);  err != nil {
+	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
 		return err
 	} else {
 		commons.Transfer(d.sender, utils.HoldAccount, gasFee)
@@ -475,7 +475,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee *big.Int) error {
 
 	totalCost := big.NewInt(0).Add(rechargeAmount, gasFee)
 	// check if the delegator has sufficient funds
-	if err := checkBalance(d.state, d.sender, totalCost);  err != nil {
+	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
 		return err
 	} else {
 		commons.Transfer(d.sender, utils.HoldAccount, gasFee)
@@ -627,7 +627,7 @@ func (d deliver) doWithdraw(delegation *Delegation, amount *big.Int, candidate *
 	performedBlockHeight := d.height + int64(utils.GetParams().UnstakeWaitPeriod)
 	// just for test
 	//performedBlockHeight := d.height + 4
-	unstakeRequest := &UnstakeRequest{"", d.sender, candidate.PubKey, d.height, performedBlockHeight, amount.String(), "PENDING", now, now}
+	unstakeRequest := &UnstakeRequest{"", delegation.DelegatorAddress, candidate.PubKey, d.height, performedBlockHeight, amount.String(), "PENDING", now, now}
 	unstakeRequest.Id = common.Bytes2Hex(unstakeRequest.GenId())
 	saveUnstakeRequest(unstakeRequest)
 
