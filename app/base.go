@@ -181,7 +181,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 // EndBlock - ABCI - triggers Tick actions
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.EthApp.EndBlock(req)
-
+	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, app.TotalUsedGasFee)
 	// block award
 	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, utils.BlockGasFee, app.logger).DistributeAll()
 
@@ -226,6 +226,9 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	}
 
 	workingHeight := app.WorkingHeight()
+
+	// reset store app
+	app.TotalUsedGasFee = big.NewInt(0)
 
 	res = app.StoreApp.Commit()
 	dbHash := app.StoreApp.GetDbHash()
