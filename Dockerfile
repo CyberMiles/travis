@@ -11,8 +11,8 @@ FROM golang:1.9 AS build-env
 # libeni
 ENV LIBENI_PATH=/app/lib
 RUN mkdir -p libeni \
-  && wget https://github.com/CyberMiles/libeni/releases/download/v1.1.0/libeni-1.1.0_ubuntu-16.04.tar.gz -P libeni \
-  && tar zxvf libeni/*.tar.gz -C libeni \
+  && wget https://github.com/CyberMiles/libeni/releases/download/v1.2.0/libeni-1.2.0_ubuntu-16.04.tgz -P libeni \
+  && tar zxvf libeni/*.tgz -C libeni \
   && mkdir -p $LIBENI_PATH && cp libeni/*/lib/*.so $LIBENI_PATH
 
 # get travis source code
