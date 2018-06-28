@@ -253,8 +253,7 @@ func (app *StoreApp) EndBlock(_ abci.RequestEndBlock) (res abci.ResponseEndBlock
 	// TODO: cleanup in case a validator exists multiple times in the list
 	res.ValidatorUpdates = app.pending
 	app.pending = nil
-	// TODO: gasFee
-	// utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, es.work.totalUsedGasFee)
+
 	return
 }
 
