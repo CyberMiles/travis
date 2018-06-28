@@ -8,8 +8,8 @@ describe("Transaction Test", function() {
     balance_new = new Array(4)
   let value = 1000, //wei
     gasLimit = 21000,
-    gasPrice = 5, // gwei
-    gas = web3.toBigNumber(web3.toWei(gasLimit * gasPrice, "gwei"))
+    gasPrice = Globals.GasPrice,
+    gas = web3.toBigNumber(gasPrice).times(gasLimit)
 
   beforeEach(function() {
     // balance before

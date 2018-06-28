@@ -3,6 +3,8 @@ package sdk
 import (
 	abci "github.com/tendermint/abci/types"
 	"math/big"
+	"github.com/tendermint/tmlibs/common"
+	"fmt"
 )
 
 const (
@@ -59,11 +61,20 @@ type DeliverResult struct {
 }
 
 func (d DeliverResult) ToABCI() abci.ResponseDeliverTx {
+	fmt.Println("GasFee: ", d.GasFee.Int64())
+	var fee = common.KI64Pair{}
+	if d.GasFee.Cmp(big.NewInt(0)) > 0 {
+		fee = common.KI64Pair{
+			Key: []byte("GasFee"),
+			Value: d.GasFee.Int64(),
+		}
+	}
 	return abci.ResponseDeliverTx{
 		Data: d.Data,
 		Log:  d.Log,
 		Tags: nil,
 		GasUsed: d.GasUsed,
+		Fee:	fee,
 	}
 }
 

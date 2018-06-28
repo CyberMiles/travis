@@ -10,7 +10,7 @@ const transfer = (f, t, v, gasPrice, nonce) => {
     from: f,
     to: t,
     value: v,
-    gasPrice: web3.toWei(gasPrice || 0, "gwei")
+    gasPrice: gasPrice || 0
   }
   if (nonce) payload.nonce = nonce
   let hash = null
@@ -70,7 +70,7 @@ const tokenTransfer = function(f, t, v, gasPrice, nonce) {
   let tokenInstance = tokenContract.at(contractAddress)
   let option = {
     from: f,
-    gasPrice: web3.toWei(gasPrice || 0, "gwei")
+    gasPrice: gasPrice || 0
   }
   if (nonce) option.nonce = nonce
   let hash = null
@@ -276,6 +276,23 @@ const expectTxSuccess = r => {
     .and.to.gt(0)
 }
 
+const gasFee = txType => {
+  let gasPrice = web3.toBigNumber(Globals.GasPrice)
+  let gasLimit = 0
+  switch (txType) {
+    case "declareCandidacy":
+      gasLimit = web3.toBigNumber(Globals.GasLimit.DeclareCandidacy)
+      break
+    case "updateCandidacy":
+      gasLimit = web3.toBigNumber(Globals.GasLimit.UpdateCandidacy)
+      break
+    case "governancePropose":
+      gasLimit = web3.toBigNumber(Globals.GasLimit.GovernancePropose)
+      break
+  }
+  return gasPrice.times(gasLimit)
+}
+
 module.exports = {
   transfer,
   getBalance,
@@ -291,5 +308,6 @@ module.exports = {
   waitMultiple,
   waitBlocks,
   expectTxFail,
-  expectTxSuccess
+  expectTxSuccess,
+  gasFee
 }
