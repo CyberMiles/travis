@@ -20,10 +20,6 @@ import (
 	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
 
-const (
-	MinGasPrice = 2e9 // 2 Gwei
-)
-
 type FromTo struct {
 	from common.Address
 	to   common.Address
@@ -37,7 +33,7 @@ type EthermintApplication struct {
 	// and wrangles other services started by an ethereum node (eg. tx pool)
 	backend *api.Backend // backend ethereum struct
 
-	checkTxState   *state.StateDB
+	checkTxState *state.StateDB
 
 	// an ethereum rpc client we can forward queries to
 	rpcClient *rpc.Client
@@ -289,15 +285,16 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 		from: from,
 		to:   to,
 	}
+	minGasPrice := new(big.Int).SetUint64(utils.GetParams().GasPrice)
 	if _, ok := app.lowPriceTransactions[ft]; ok {
-		if tx.GasPrice().Cmp(big.NewInt(MinGasPrice)) < 0 {
+		if tx.GasPrice().Cmp(minGasPrice) < 0 {
 			// add failed count
 			// this map will keep growing because the nonce check will use it ongoing
 			app.checkFailedCount[from] = app.checkFailedCount[from] + 1
 			return abciTypes.ResponseCheckTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
 		}
 	}
-	if tx.GasPrice().Cmp(big.NewInt(MinGasPrice)) < 0 {
+	if tx.GasPrice().Cmp(minGasPrice) < 0 {
 		app.lowPriceTransactions[ft] = tx
 	}
 

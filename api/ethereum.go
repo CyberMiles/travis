@@ -1,18 +1,22 @@
 package api
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/pkg/errors"
 
-	"bytes"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	ttypes "github.com/tendermint/tendermint/types"
+
+	"github.com/CyberMiles/travis/utils"
 )
+
+const defaultGas = 90000
 
 // SendTxArgs represents the arguments to sumbit a new transaction
 type SendTxArgs struct {
@@ -28,15 +32,12 @@ type SendTxArgs struct {
 // prepareSendTxArgs is a helper function that fills in default values for unspecified tx fields.
 func (args *SendTxArgs) setDefaults(b *Backend) error {
 	if args.Gas == nil {
-		args.Gas = (*hexutil.Big)(big.NewInt(90000))
+		args.Gas = (*hexutil.Big)(big.NewInt(defaultGas))
 	}
 
 	if args.GasPrice == nil {
-		price, err := b.Ethereum().ApiBackend.SuggestPrice(nil)
-		if err != nil {
-			return err
-		}
-		args.GasPrice = (*hexutil.Big)(price)
+		price := utils.GetParams().GasPrice
+		args.GasPrice = (*hexutil.Big)(new(big.Int).SetUint64(price))
 	}
 	if args.Value == nil {
 		args.Value = new(hexutil.Big)
