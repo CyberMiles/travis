@@ -73,7 +73,7 @@ describe("Governance Test", function() {
 
         // check proposal
         let p = Utils.getProposal(proposalId)
-        expect(p.Amount).to.equal(amount)
+        expect(p.Detail.amount).to.equal(amount)
         expect(p.Result).to.be.empty
         let elapse = p.ExpireBlockHeight - p.BlockHeight
         // default to 7 days
@@ -138,7 +138,7 @@ describe("Governance Test", function() {
 
         // check proposal
         let p = Utils.getProposal(proposalId)
-        expect(p.Amount).to.equal(amount)
+        expect(p.Detail.amount).to.equal(amount)
         expect(p.Result).to.be.empty
         let elapse = p.ExpireBlockHeight - p.BlockHeight
         // default to 7 days
@@ -200,7 +200,7 @@ describe("Governance Test", function() {
 
         // check proposal
         let p = Utils.getProposal(proposalId)
-        expect(p.Amount).to.equal(amount)
+        expect(p.Detail.amount).to.equal(amount)
         expect(p.Result).to.be.empty
         let elapse = p.ExpireBlockHeight - p.BlockHeight
         expect(elapse).to.equal(expire)

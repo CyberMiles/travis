@@ -186,6 +186,8 @@ const getProposal = proposalId => {
   if (proposalId === "") return
 
   let r = web3.cmt.governance.queryProposals()
+  logger.debug("getProposal:", r)
+
   expect(r.data.length).to.be.above(0)
   if (r.data.length > 0) {
     proposal = r.data.filter(d => d.Id == proposalId)
