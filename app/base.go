@@ -220,11 +220,17 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	ethAppCommit := app.EthApp.Commit()
 
+	if dirty := utils.CleanParams(); dirty {
+		state := app.Append()
+		state.Set(utils.ParamKey, utils.UnloadParams())
+	}
+
 	workingHeight := app.WorkingHeight()
 
 	res = app.StoreApp.Commit()
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
+
 	return
 }
 
@@ -244,10 +250,7 @@ func (app *BaseApp) InitState(module, key string, value interface{}) error {
 	if key == "validator" {
 		stake.SetValidator(value.(ttypes.GenesisValidator), state)
 	} else {
-		if set := utils.SetParam(key, value.(string)); set {
-			b := utils.UnloadParams()
-			state.Set(utils.ParamKey, b)
-		} else {
+		if set := utils.SetParam(key, value.(string)); !set {
 			return errors.ErrUnknownKey(key)
 		}
 	}

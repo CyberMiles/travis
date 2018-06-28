@@ -43,6 +43,7 @@ var (
 	// Keys for store prefixes
 	ParamKey = []byte{0x01} // key for global parameters
 	params = defaultParams()
+	dirty = false
 )
 
 // load/save the global params
@@ -57,6 +58,12 @@ func UnloadParams() (b []byte) {
 
 func GetParams() *Params {
 	return params
+}
+
+func CleanParams() (before bool) {
+	before = dirty
+	dirty = false
+	return
 }
 
 func SetParam(name, value string) bool {
@@ -77,6 +84,7 @@ func SetParam(name, value string) bool {
 			case reflect.String:
 				fv.SetString(value)
 			}
+			dirty = true
 			return true
 		}
 	}

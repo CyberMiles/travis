@@ -272,6 +272,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 		case gov.CHANGE_PARAM_PROPOSAL:
 			switch gov.CheckProposal(pid, nil) {
 			case "approved":
+				utils.SetParam(proposal.Detail["name"].(string), proposal.Detail["value"].(string))
 				gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 			case "rejected":
 				gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")

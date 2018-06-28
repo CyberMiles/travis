@@ -264,7 +264,6 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			switch checkResult {
 			case "approved":
 				utils.SetParam(proposal.Detail["name"].(string), proposal.Detail["value"].(string))
-				store.Set(utils.ParamKey, utils.UnloadParams())
 				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"}.React("success", "")
 			case "rejected":
 				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"}.React("success", "")
@@ -316,12 +315,12 @@ func CheckProposal(pid string, voter *common.Address) string {
 
 	if approvedPower.Cmp(allPower) >= 0 {
 		// To avoid repeated commit, let's recheck with count of voters - voter
-		if approvedPower.Sub(approvedPower, voterPower).Cmp(allPower) < 0 {
+		if voter == nil || approvedPower.Sub(approvedPower, voterPower).Cmp(allPower) < 0 {
 			return "approved"
 		}
 	} else if rejectedPower.Cmp(allPower) >= 0 {
 		// To avoid repeated commit, let's recheck with count of voters - voter
-		if rejectedPower.Sub(rejectedPower, voterPower).Cmp(allPower) < 0 {
+		if voter == nil || rejectedPower.Sub(rejectedPower, voterPower).Cmp(allPower) < 0 {
 			return "rejected"
 		}
 	}
