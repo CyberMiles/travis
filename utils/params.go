@@ -59,12 +59,12 @@ func GetParams() *Params {
 	return params
 }
 
-func SetParam(name, value string) {
+func SetParam(name, value string) bool {
 	pv := reflect.ValueOf(params).Elem()
 	top := pv.Type()
 	for i := 0; i < pv.NumField(); i++ {
 		fv := pv.Field(i)
-		if top.Field(i).Name == name {
+		if top.Field(i).Tag.Get("json") == name {
 			switch fv.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				if iv, err := strconv.ParseInt(value, 10, 64); err == nil {
@@ -77,7 +77,9 @@ func SetParam(name, value string) {
 			case reflect.String:
 				fv.SetString(value)
 			}
-			break
+			return true
 		}
 	}
+
+	return false
 }

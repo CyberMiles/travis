@@ -3,7 +3,6 @@ package app
 import (
 	goerr "errors"
 	"fmt"
-	"strconv"
 	"math/big"
 
 	"github.com/CyberMiles/travis/sdk"
@@ -54,6 +53,11 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 			proposals[pp.Id] = pp.ExpireBlockHeight
 		}
 		utils.PendingProposal.BatchAdd(proposals)
+	}
+
+	b := store.Append().Get(utils.ParamKey)
+	if b != nil {
+		utils.LoadParams(b)
 	}
 
 	app := &BaseApp{
@@ -237,33 +241,17 @@ func (app *BaseApp) InitState(module, key string, value interface{}) error {
 		return fmt.Errorf("unknown base option: %s", key)
 	}
 
-	b := state.Get(utils.ParamKey)
-	if b != nil {
-		utils.LoadParams(b)
-	}
-	switch key {
-	case "self_staking_ratio":
-		ratio, err := strconv.ParseFloat(value.(string), 64)
-		if err != nil || ratio <= 0 || ratio >= 1 {
-			return fmt.Errorf("input must be float, Error: %v", err.Error())
-		}
-
-		utils.SetParam("SelfStakingRatio", value.(string))
-	case "max_vals":
-		_, err := strconv.Atoi(value.(string))
-		if err != nil {
-			return fmt.Errorf("input must be integer, Error: %v", err.Error())
-		}
-
-		utils.SetParam("MaxVals", value.(string))
-	case "validator":
+	if key == "validator" {
 		stake.SetValidator(value.(ttypes.GenesisValidator), state)
-	default:
-		return errors.ErrUnknownKey(key)
+	} else {
+		if set := utils.SetParam(key, value.(string)); set {
+			b := utils.UnloadParams()
+			state.Set(utils.ParamKey, b)
+		} else {
+			return errors.ErrUnknownKey(key)
+		}
 	}
 
-	b = utils.UnloadParams()
-	state.Set(utils.ParamKey, b)
 
 	return nil
 }

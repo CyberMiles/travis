@@ -263,6 +263,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		case CHANGE_PARAM_PROPOSAL:
 			switch checkResult {
 			case "approved":
+				utils.SetParam(proposal.Detail["name"].(string), proposal.Detail["value"].(string))
+				store.Set(utils.ParamKey, utils.UnloadParams())
 				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"}.React("success", "")
 			case "rejected":
 				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"}.React("success", "")

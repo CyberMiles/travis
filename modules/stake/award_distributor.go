@@ -3,6 +3,7 @@ package stake
 import (
 	"math"
 	"math/big"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tmlibs/log"
@@ -70,10 +71,11 @@ func (v *validator) computeTotalSharesPercentage(redistribute bool) {
 	v.sharesPercentage = new(big.Float).Quo(x, y)
 	v.exceedLimit = false
 
-	stakeLimit, _, err := big.ParseFloat(utils.GetParams().StakeLimit, 10, 3, big.ToNearestAway)
+	slf, err := strconv.ParseFloat(utils.GetParams().StakeLimit, 64)
 	if err != nil {
 		panic(err)
 	}
+	stakeLimit := big.NewFloat(slf)
 	if !redistribute && v.sharesPercentage.Cmp(stakeLimit) > 0 {
 		v.sharesPercentage = stakeLimit
 		v.exceedLimit = true
