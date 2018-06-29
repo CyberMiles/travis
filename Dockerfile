@@ -6,7 +6,7 @@
 # > docker run --rm -v $HOME/.travis:/travis -p 46657:46657 -p 8545:8545 travis node start --home /travis
 
 # build stage
-FROM golang:1.9 AS build-env
+FROM golang:1.9.3 AS build-env
 
 # libeni
 ENV LIBENI_PATH=/app/lib
