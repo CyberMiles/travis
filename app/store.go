@@ -25,8 +25,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
 	"golang.org/x/crypto/ripemd160"
-	"os"
 	"math/big"
+	"os"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -69,12 +69,12 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 	}
 
 	app := &StoreApp{
-		Name:   appName,
-		state:  state,
-		height: state.LatestHeight(),
-		info:   sm.NewChainState(),
+		Name:            appName,
+		state:           state,
+		height:          state.LatestHeight(),
+		info:            sm.NewChainState(),
 		TotalUsedGasFee: big.NewInt(0),
-		logger: logger.With("module", "app"),
+		logger:          logger.With("module", "app"),
 	}
 	return app, nil
 }
@@ -319,7 +319,7 @@ func initTravisDb() error {
 		defer db.Close()
 
 		sqlStmt := `
-		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, created_at text not null, updated_at text not null default '');
+		create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, ranking_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, created_at text not null, updated_at text not null default '');
 		create unique index idx_candidates_pub_key on candidates(pub_key);
 		create index idx_candidates_hash on candidates(hash);
 
