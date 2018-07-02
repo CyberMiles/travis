@@ -2,6 +2,7 @@ package governance
 
 import (
 	"fmt"
+	"strings"
 
 	"database/sql"
 	"github.com/spf13/viper"
@@ -202,24 +203,30 @@ func GetProposals() (proposals []*Proposal) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select p.id, p.type, p.proposer, p.block_height, d.from_address, d.to_address, d.amount, d.reason, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at from governance_proposal p, governance_transfer_fund_detail d where p.id = d.proposal_id")
+	rows, err := db.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
+		case
+		when p.type = 'transfer_fund'
+		then (select printf('%s-+-%s-+-%s-+-%s', from_address, to_address, amount, reason) from governance_transfer_fund_detail where proposal_id = p.id) 
+		when p.type = 'change_param'
+		then (select printf('%s-+-%s-+-%s', param_name, param_value, reason) from governance_change_param_detail where proposal_id = p.id)
+		end as detail
+		from governance_proposal p`)
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var id, ptype, proposer, fromAddr, toAddr, amount, reason, createdAt, result, resultMsg, resultAt, hash string
+		var id, ptype, proposer, createdAt, result, resultMsg, resultAt, hash, detail string
 		var blockHeight, expireBlockHeight, resultBlockHeight uint64
 
-		err = rows.Scan(&id, &ptype, &proposer, &blockHeight, &fromAddr, &toAddr, &amount, &reason, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
+		err = rows.Scan(&id, &ptype, &proposer, &blockHeight, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt, &detail)
 		if err != nil {
 			panic(err)
 		}
 
 		prp := common.HexToAddress(proposer)
-		fr := common.HexToAddress(fromAddr)
-		to := common.HexToAddress(toAddr)
 
 		pp := &Proposal{
 			id,
@@ -232,12 +239,31 @@ func GetProposals() (proposals []*Proposal) {
 			resultMsg,
 			resultBlockHeight,
 			resultAt,
-			map[string]interface{}{
+			nil,
+		}
+
+		d := strings.Split(detail, "-+-")
+
+		switch ptype {
+		case TRANSFER_FUND_PROPOSAL:
+			fromAddr := d[0]
+			toAddr := d[1]
+
+			fr := common.HexToAddress(fromAddr)
+			to := common.HexToAddress(toAddr)
+
+			pp.Detail = map[string]interface{} {
 				"from": &fr,
 				"to": &to,
-				"amount": amount,
-				"reason": reason,
-			},
+				"amount": d[2],
+				"reason": d[3],
+			}
+		case CHANGE_PARAM_PROPOSAL:
+			pp.Detail = map[string]interface{} {
+				"name": d[0],
+				"value": d[1],
+				"reason": d[2],
+			}
 		}
 
 		proposals = append(proposals, pp)
