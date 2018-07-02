@@ -24,15 +24,15 @@ func getDb() *sql.DB {
 func GetCandidateByAddress(address common.Address) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select pub_key, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates where address = ?")
+	stmt, err := db.Prepare("select pub_key, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates where address = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	var pubKey, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-	var votingPower, blockHeight, rank int64
-	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+	var votingPower, blockHeight, rank, rankingPower int64
+	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &rankingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -54,6 +54,7 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 		OwnerAddress: address.String(),
 		Shares:       shares,
 		VotingPower:  votingPower,
+		RankingPower: rankingPower,
 		MaxShares:    maxShares,
 		CompRate:     compRate,
 		Description:  description,
@@ -70,15 +71,15 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 func GetCandidateByPubKey(pubKey string) *Candidate {
 	db := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("select address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates where pub_key = ?")
+	stmt, err := db.Prepare("select address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	var address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-	var votingPower, blockHeight, rank int64
-	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+	var votingPower, blockHeight, rank, rankingPower int64
+	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &rankingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -100,6 +101,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 		OwnerAddress: address,
 		Shares:       shares,
 		VotingPower:  votingPower,
+		RankingPower: rankingPower,
 		MaxShares:    maxShares,
 		CompRate:     compRate,
 		Description:  description,
@@ -117,7 +119,7 @@ func GetCandidates() (candidates Candidates) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates")
+	rows, err := db.Query("select pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates")
 	if err != nil {
 		panic(err)
 	}
@@ -125,8 +127,8 @@ func GetCandidates() (candidates Candidates) {
 
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-		var votingPower, blockHeight, rank int64
-		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+		var votingPower, blockHeight, rank, rankingPower int64
+		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &rankingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -143,6 +145,7 @@ func GetCandidates() (candidates Candidates) {
 			OwnerAddress: address,
 			Shares:       shares,
 			VotingPower:  votingPower,
+			RankingPower: rankingPower,
 			MaxShares:    maxShares,
 			CompRate:     compRate,
 			Description:  description,
@@ -174,7 +177,7 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -185,6 +188,7 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
+		candidate.RankingPower,
 		candidate.MaxShares,
 		candidate.CompRate,
 		candidate.Description.Name,
@@ -215,7 +219,7 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
+	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, ranking_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -225,6 +229,7 @@ func updateCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
+		candidate.RankingPower,
 		candidate.MaxShares,
 		candidate.CompRate,
 		candidate.Description.Name,

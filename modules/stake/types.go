@@ -123,6 +123,13 @@ func (c *Candidate) Hash() []byte {
 	return hasher.Sum(nil)
 }
 
+func (c *Candidate) CalcRankingPower() {
+	delegations := GetDelegationsByPubKey(c.PubKey)
+	for _, d := range delegations {
+		// todo calculate the ranking power of the delegator
+	}
+}
+
 // Validator is one of the top Candidates
 type Validator Candidate
 
@@ -148,13 +155,12 @@ var _ sort.Interface = Candidates{} //enforce the sort interface at compile time
 func (cs Candidates) Len() int      { return len(cs) }
 func (cs Candidates) Swap(i, j int) { cs[i], cs[j] = cs[j], cs[i] }
 func (cs Candidates) Less(i, j int) bool {
-	vp1, vp2 := cs[i].VotingPower, cs[j].VotingPower
-	//pk1, pk2 := cs[i].PubKey.Bytes(), cs[j].PubKey.Bytes()
+	rp1, rp2 := cs[i].VotingPower, cs[j].VotingPower
 	pk1, pk2 := cs[i].PubKey.Address(), cs[j].PubKey.Address()
 
 	//note that all ChainId and App must be the same for a group of candidates
-	if vp1 != vp2 {
-		return vp1 > vp2
+	if rp1 != rp2 {
+		return rp1 > rp2
 	}
 	return bytes.Compare(pk1, pk2) == -1
 }
