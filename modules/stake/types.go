@@ -14,6 +14,7 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/go-crypto"
 	"golang.org/x/crypto/ripemd160"
+	"math"
 )
 
 //_________________________________________________________________________
@@ -125,9 +126,15 @@ func (c *Candidate) Hash() []byte {
 
 func (c *Candidate) CalcRankingPower() {
 	delegations := GetDelegationsByPubKey(c.PubKey)
+	var sum int64
+	sum = 0
 	for _, d := range delegations {
-		// todo calculate the ranking power of the delegator
+		// calculate the ranking power of the delegator
+		v := float64(new(big.Int).Mul(d.Shares(), big.NewInt(1e18)).Int64()) * 10000
+		sum = sum + int64(math.Sqrt(v))
 	}
+
+	c.RankingPower = sum
 }
 
 // Validator is one of the top Candidates
