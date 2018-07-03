@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0-rc.1 
+## v0.1.0-rc.1
 *July 5th, 2018*
 
 ### FEATURES

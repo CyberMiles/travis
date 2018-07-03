@@ -44,7 +44,6 @@ after_failure:
   - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t
 
 before_deploy:
-  - echo "before_deploy"
   - BUILD_TAG=$TRAVIS_TAG make dist
   - export RELEASE_PKG_FILE=$(ls build/dist/*.zip)
 
@@ -56,11 +55,12 @@ deploy:
   skip_cleanup: true
   file_glob: true
   file: "${RELEASE_PKG_FILE}"
-  name: "$TRAVIS_TAG"
+  name: Travis "$TRAVIS_TAG"
   body: https://github.com/CyberMiles/travis/blob/develop/CHANGELOG.md#${TRAVIS_TAG//.}
   on:
     repo: CyberMiles/travis
     tags: true
 
 after_deploy:
-  - echo "after_deploy"
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+  - TAG=$TRAVIS_TAG make push_tag_image ;
