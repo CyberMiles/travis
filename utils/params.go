@@ -10,21 +10,21 @@ import (
 
 type Params struct {
 	HoldAccount      common.Address `json:"hold_account"` // PubKey where all bonded coins are held
-	MaxVals              uint16     `json:"max_vals"`     // maximum number of validators
-	SelfStakingRatio     string     `json:"self_staking_ratio"`
-	InflationRate        int64      `json:"inflation_rate"`
-	StakeLimit           string     `json:"stake_limit"`
-	UnstakeWaitPeriod    uint64      `json:"unstake_wait_period"`
-	ProposalExpirePeriod uint64     `json:"proposal_expire_period"`
+	MaxVals              uint16     `json:"max_vals" type:"uint"`     // maximum number of validators
+	SelfStakingRatio     string     `json:"self_staking_ratio" type:"float"`
+	InflationRate        int64      `json:"inflation_rate" type:"uint"`
+	StakeLimit           string     `json:"stake_limit" type:"float"`
+	UnstakeWaitPeriod    uint64     `json:"unstake_wait_period" type:"uint"`
+	ProposalExpirePeriod uint64     `json:"proposal_expire_period" type:"uint"`
 
-	DeclareCandidacy	uint64		`json:"declare_candidacy"`
-	UpdateCandidacy		uint64		`json:"update_candidacy"`
-	GovernancePropose	uint64		`json:"governance_proposal"`
-	GasPrice			uint64		`json:"gas_price"`
+	DeclareCandidacy     uint64     `json:"declare_candidacy" type:"uint"`
+	UpdateCandidacy      uint64     `json:"update_candidacy" type:"uint"`
+	GovernancePropose    uint64     `json:"governance_proposal" type:"uint"`
+	GasPrice             uint64     `json:"gas_price" type:"uint"`
 }
 
 func defaultParams() *Params {
-	return &Params{
+	return &Params {
 		HoldAccount:          HoldAccount,
 		MaxVals:              100,
 		SelfStakingRatio:     "0.1",
@@ -86,6 +86,36 @@ func SetParam(name, value string) bool {
 			}
 			dirty = true
 			return true
+		}
+	}
+
+	return false
+}
+
+func CheckParamType(name, value string) bool {
+	pv := reflect.ValueOf(params).Elem()
+	top := pv.Type()
+	for i := 0; i < pv.NumField(); i++ {
+		if top.Field(i).Tag.Get("json") == name {
+			switch top.Field(i).Tag.Get("type") {
+			case "int":
+				if _, err := strconv.ParseInt(value, 10, 64); err == nil {
+					return true
+				}
+			case "uint":
+				if _, err := strconv.ParseUint(value, 10, 64); err == nil {
+					return true
+				}
+			case "float":
+				if iv, err := strconv.ParseFloat(value, 64); err == nil {
+					if iv > 0 {
+						return true
+					}
+				}
+			case "string":
+				return true
+			}
+			return false
 		}
 	}
 

@@ -21,7 +21,7 @@ func ErrMissingSignature() error {
 	return errors.WithCode(errMissingSignature, errors.CodeTypeUnauthorized)
 }
 
-func ErrInvalidParamerter() error {
+func ErrInvalidParameter() error {
 	return errors.WithCode(errInvalidParameter, errors.CodeTypeBaseInvalidInput)
 }
 

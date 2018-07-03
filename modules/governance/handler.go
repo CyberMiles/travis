@@ -62,7 +62,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		state := ctx.EthappState()
 		balance, err := commons.GetBalance(state, *txInner.From)
 		if err != nil {
-			return sdk.NewCheck(0, ""), ErrInvalidParamerter()
+			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 
 		amount := big.NewInt(0)
@@ -74,7 +74,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		// Transfer gasFee  -- start
 		balance, err = commons.GetBalance(state, sender)
 		if err != nil {
-			return sdk.NewCheck(0, ""), ErrInvalidParamerter()
+			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 		params := utils.GetParams()
 		gasFee := utils.CalGasFee(params.GovernancePropose, params.GasPrice)
@@ -101,6 +101,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
 		}
+
+		if ! utils.CheckParamType(txInner.Name, txInner.Value) {
+			return sdk.NewCheck(0, ""), ErrInvalidParameter()
+		}
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
@@ -121,7 +125,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 
 		proposal := GetProposalById(txInner.ProposalId)
 		if proposal == nil {
-			return sdk.NewCheck(0, ""), ErrInvalidParamerter()
+			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 		if proposal.ResultBlockHeight != 0 {
 			if proposal.Result == "Approved" {
@@ -172,7 +176,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		state := ctx.EthappState()
 		balance, err := commons.GetBalance(state, *txInner.From)
 		if err != nil {
-			return res, ErrInvalidParamerter()
+			return res, ErrInvalidParameter()
 		}
 
 		amount := big.NewInt(0)
@@ -192,7 +196,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 		balance, err = commons.GetBalance(state, sender)
 		if err != nil {
-			return res, ErrInvalidParamerter()
+			return res, ErrInvalidParameter()
 		}
 		params := utils.GetParams()
 		gasFee := utils.CalGasFee(params.GovernancePropose, params.GasPrice)
