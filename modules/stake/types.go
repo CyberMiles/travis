@@ -162,7 +162,7 @@ var _ sort.Interface = Candidates{} //enforce the sort interface at compile time
 func (cs Candidates) Len() int      { return len(cs) }
 func (cs Candidates) Swap(i, j int) { cs[i], cs[j] = cs[j], cs[i] }
 func (cs Candidates) Less(i, j int) bool {
-	rp1, rp2 := cs[i].VotingPower, cs[j].VotingPower
+	rp1, rp2 := cs[i].RankingPower, cs[j].RankingPower
 	pk1, pk2 := cs[i].PubKey.Address(), cs[j].PubKey.Address()
 
 	//note that all ChainId and App must be the same for a group of candidates
@@ -179,12 +179,14 @@ func (cs Candidates) Sort() {
 
 // update the voting power and save
 func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
-
 	// update voting power
 	for _, c := range cs {
 		shares := c.ParseShares()
+		c.CalcRankingPower()
+
 		if c.Active == "N" {
 			c.VotingPower = 0
+			c.RankingPower = 0
 		} else if big.NewInt(c.VotingPower).Cmp(shares) != 0 {
 			v := new(big.Int)
 			v.Div(shares, big.NewInt(1e18))
@@ -197,6 +199,11 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 		if i >= int(utils.GetParams().MaxVals) {
 			c.VotingPower = 0
 		}
+
+		if i > (int(utils.GetParams().MaxVals) + 5) {
+			c.RankingPower = 0
+		}
+
 		updateCandidate(c)
 	}
 	return cs
@@ -207,7 +214,6 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 // the UpdateVotingPower function which is the only function which
 // is to modify the VotingPower
 func (cs Candidates) Validators() Validators {
-
 	//test if empty
 	if len(cs) == 1 {
 		if cs[0].VotingPower == 0 {

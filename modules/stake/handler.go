@@ -11,6 +11,7 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	ethstat "github.com/ethereum/go-ethereum/core/state"
+	"math"
 	"math/big"
 )
 
@@ -410,12 +411,14 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int6
 		return err
 	}
 
+	rp := int64(math.Sqrt(float64(votingPower * 10000)))
 	now := utils.GetNow()
 	candidate := &Candidate{
 		PubKey:       pubKey,
 		OwnerAddress: d.sender.String(),
 		Shares:       "0",
 		VotingPower:  votingPower,
+		RankingPower: rp,
 		MaxShares:    tx.MaxAmount,
 		CompRate:     tx.CompRate,
 		CreatedAt:    now,
