@@ -455,3 +455,29 @@ func (r *UnstakeRequest) GenId() []byte {
 	hasher.Write(req)
 	return hasher.Sum(nil)
 }
+
+
+func (r *UnstakeRequest) Hash() []byte {
+	req, err := json.Marshal(struct {
+		DelegatorAddress     common.Address
+		PubKey               types.PubKey
+		InitiatedBlockHeight int64
+		PerformedBlockHeight int64
+		Amount               string
+		State				string
+	}{
+		r.DelegatorAddress,
+		r.PubKey,
+		r.InitiatedBlockHeight,
+		r.PerformedBlockHeight,
+		r.Amount,
+		r.State,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+	hasher := ripemd160.New()
+	hasher.Write(req)
+	return hasher.Sum(nil)
+}
