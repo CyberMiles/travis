@@ -23,7 +23,7 @@ describe("Governance Test", function() {
 
     describe("Validator A proposes to move 500 CMTs from account #1 to #2. ", function() {
       it("The proposal TX returns an error. ", function() {
-        tx_result = web3.cmt.governance.propose({
+        tx_result = web3.cmt.governance.proposeRecoverFund({
           from: Globals.Accounts[0],
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
@@ -61,7 +61,7 @@ describe("Governance Test", function() {
       })
       it("Verify that 500 CMTs are removed from account #1 and show up as frozen amount for this account. ", function() {
         let amount = web3.toWei(500, "cmt")
-        tx_result = web3.cmt.governance.propose({
+        tx_result = web3.cmt.governance.proposeRecoverFund({
           from: Globals.Accounts[0],
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
@@ -126,7 +126,7 @@ describe("Governance Test", function() {
       })
       it("Verify that 500 CMTs are removed from account #1 and show up as frozen amount for this account. ", function() {
         let amount = web3.toWei(500, "cmt")
-        tx_result = web3.cmt.governance.propose({
+        tx_result = web3.cmt.governance.proposeRecoverFund({
           from: Globals.Accounts[0],
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
@@ -187,7 +187,7 @@ describe("Governance Test", function() {
       it("Verify that 500 CMTs are removed from account #1 and show up as frozen amount for this account. ", function() {
         let amount = web3.toWei(500, "cmt"),
           expire = 5
-        tx_result = web3.cmt.governance.propose({
+        tx_result = web3.cmt.governance.proposeRecoverFund({
           from: Globals.Accounts[0],
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
