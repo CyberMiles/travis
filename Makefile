@@ -22,20 +22,23 @@ build: get_vendor_deps
 	go build -o build/travis ./cmd/travis
 
 NAME := ywonline/travis
-TAG := $(shell git rev-parse --short=8 HEAD)
-IMAGE := ${NAME}:${TAG}
 LATEST := ${NAME}:latest
+#GIT_COMMIT := $(shell git rev-parse --short=8 HEAD)
+#IMAGE := ${NAME}:${GIT_COMMIT}
 
 docker_image:
-	@docker build -t $(IMAGE) .
-	@docker tag ${IMAGE} ${LATEST}
+	@docker build -t ${LATEST} .
 
-push_branch_image:
-	@docker tag $(IMAGE) ${NAME}:${BRANCH}
-	@docker push ${NAME}:${BRANCH}
+push_tag_image:
+	@docker tag ${LATEST} ${NAME}:${TAG}
+	@docker push ${NAME}:${TAG}
 
 push_image:
-	@docker push $(LATEST)
+	@docker push ${LATEST}
+
+dist:
+	@docker run --rm -e "BUILD_TAG=${BUILD_TAG}" -v "${CURDIR}/scripts":/scripts --entrypoint /bin/sh -t ${LATEST} /scripts/dist.sh
+	@rm -rf build/dist && mkdir -p build/dist && mv -f scripts/*.zip build/dist/
 
 print_cybermiles_logo:
 	@echo "\n\n"
