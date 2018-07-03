@@ -4,7 +4,7 @@ branches:
   only:
   - master
   - develop
-  - tmup
+  - staging
 
 services:
   - docker
@@ -19,56 +19,48 @@ addons:
     - node-6
 
 install:
-  - . $HOME/.nvm/nvm.sh
+  - ". $HOME/.nvm/nvm.sh"
   - nvm install stable
   - nvm use stable
   - npm install
 
-before_script:
-  - source ./bin/check-deploy.sh
-  - if [[ "$DEPLOY" == "true" ]]; then
-      git tag "$(date +'%Y%m%d%H%M')-${VERSION}" ;
-    fi
-
 script:
-  - if [[ "$DEPLOY" == "true" ]]; then
-      make build ;
-      zip -r build/travis_${VERSION}_linux_amd64.zip build/travis ;
-    else
-      make docker_image && ./test/integration/test.sh ;
-    fi
+  - make docker_image && ./test/integration/test.sh
 
 after_success:
-  - if [[ "$DEPLOY" != "true" ]]; then
-      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-      if [[ "$TRAVIS_BRANCH" == "master" ]]; then
-        make push_image ;
-      else
-        BRANCH=$TRAVIS_BRANCH make push_branch_image ;
-      fi
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
+      make push_image ;
+    else
+      TAG=$TRAVIS_BRANCH make push_tag_image ;
     fi
 
 after_failure:
-  - if [[ "$DEPLOY" != "true" ]]; then
-      if [[ "$TRAVIS_BRANCH" == "develop" ]]; then
-        docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-        BRANCH=$TRAVIS_BRANCH make push_branch_image ;
-      fi
+  - if [[ "$TRAVIS_BRANCH" == "develop" ]]; then
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      TAG=$TRAVIS_BRANCH make push_tag_image ;
     fi
   - curl -i "http://localhost:46657/dump_consensus_state"
   - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t
 
 before_deploy:
-  - export RELEASE_PKG_FILE=$(ls build/*.zip)
+  - echo "before_deploy"
+  - BUILD_TAG=$TRAVIS_TAG make dist
+  - export RELEASE_PKG_FILE=$(ls build/dist/*.zip)
 
 deploy:
   provider: releases
-  api_key:
-    secure: R1HkK29Q9/pY1hpxQHrdTcpdfNOYcKVwJ5Q/QULhwpuzQESEzknUE62Uw2OPshEsPKhTbSZ67QdTNUX4z3tSMx+lEm7Aam5b6yBRghpUgIoff6r6qcI1AX0j21XMSGlOGu4zss31XHOS1O+MUEorKmas8DInn2zYXDUoEC2swtdZhyBAlIHQObUhR1s8VAzxvUUp3pkUYtnWgm8gwsKu7oK/8TkErCn1wvc0DXvDzZiquI3pSpYxOuYwaAjQUXBdgO0sW+w789MciLUOk5Bdq/NpzNlFzg/Hq9njrLQTQvp1/SVzq6OzO5yA/E7y463gqOAfVMGTytUsVPVPd3Vh0iuZRKhfv3sFcXILqoc15g1T2XSU+tw/a05zALLfiZ1/hPn3WRaqb8DbzZd92srLqO9vj6ATUTY4M+jmjnhcnyvVFMLQ95CM3S3ddlON9+YmoN2DyTL9Yydf7Yx9uevXcs1RbuoWQZAVr74g7+DdpiPlUyTDA8d2RM1f4ywsL0A0dlIxs9pvyJ6n3HeEx0ZDjPghH6On5z7clB18OZiyqZxJKYd6+VHaDwMVPDYjvF5A+AHQsvgxWG5ysDF3cxA3JvVE+QMCMkvnmVLpXI6ChLsJQ1Fodj5gdOeYZcx8VYTrOyG8bYcL+wM0UR3fGerbAQh9z1WKOZbPUiLSKvUNIbc=
+  overwrite: true
+  api-key:
+    secure: iIaBQLDBPzi95sIt36XaOaSrD7hwB/dUxAfpCeFLoFqdGNsGZhaPp4XfW8UghwqNlUF9spW1Ri8uOMF2Ig3FBTmeL/GELJl8pSJwhjb3Ra3p+kGg5eKyIZMvK1m9uoXBBMlMnjPhS9h0Z8bOpXLiEpQASV6nnJ0KE2N39ff3jBKShWDNWejOAYBTNNJ9N7GF8gh6z/xLwZ82nLWmOYGkwrEA9fH93IzguehmUyD2bbU66un0QrRfUCQ8xruxTENZ9ATz7GqOrqYe0L+IUbmK10VIYlJ1S7PcWvBSY4J4nslLnpFw2m+/3Zt2Cq/xaCLs7bmOlMie0AEbtyGamXxEIlNcIeWeOIyXv0k4yqGm5+IUl2scggDXGmysXCjwbQbLnPbHXo0sYlNMUr4WkH2LlPENT9r4mQGDwOYkrwt0ZlU9n+67IpgTBuBqd//khzmnjdDPleWZyr6fOfjfA8uBGbcO8fANyJOAzoPQQtKp7crzhyt2aVZB2M7JAGsJCr1TUZl9Y2KgAKkCQnpwBAZdntUB0DvodBFqVG61zaH4yY6k+5kiHC+kZ9gSqoh3gMoMlANRqaoIB+3IVf1TXWyVx4dp11RGCBxNmccvA1h+RsI8GXsCPSLYINiQLKWUl3jmNYbmQKK7TyWWl/soCTco6NnyivLp6cxbDi0zqy5xTDc=
   skip_cleanup: true
   file_glob: true
   file: "${RELEASE_PKG_FILE}"
+  name: "$TRAVIS_TAG"
+  body: https://github.com/CyberMiles/travis/blob/develop/CHANGELOG.md#${TRAVIS_TAG//.}
   on:
     repo: CyberMiles/travis
-    branch: develop
-    condition: "$DEPLOY = true"
+    tags: true
+
+after_deploy:
+  - echo "after_deploy"

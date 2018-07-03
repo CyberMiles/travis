@@ -608,7 +608,7 @@ func saveUnstakeRequest(req *UnstakeRequest) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into unstake_requests(id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into unstake_requests(id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -622,6 +622,7 @@ func saveUnstakeRequest(req *UnstakeRequest) {
 		req.PerformedBlockHeight,
 		req.Amount,
 		req.State,
+		common.Bytes2Hex(req.Hash()),
 		req.CreatedAt,
 		req.UpdatedAt,
 	)
@@ -680,7 +681,7 @@ func updateUnstakeRequest(req *UnstakeRequest) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update unstake_requests set delegator_address = ?, pub_key = ?, initiated_block_height = ?, performed_block_height = ?, amount = ?, state = ?, updated_at = ? where id = ?")
+	stmt, err := tx.Prepare("update unstake_requests set delegator_address = ?, pub_key = ?, initiated_block_height = ?, performed_block_height = ?, amount = ?, state = ?, hash=?, updated_at = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -693,6 +694,7 @@ func updateUnstakeRequest(req *UnstakeRequest) {
 		req.PerformedBlockHeight,
 		req.Amount,
 		req.State,
+		common.Bytes2Hex(req.Hash()),
 		req.UpdatedAt,
 		req.Id,
 	)
