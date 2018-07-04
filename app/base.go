@@ -182,8 +182,14 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.EthApp.EndBlock(req)
 	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, app.TotalUsedGasFee)
+
+	var backups stake.Validators
+	for _, bv := range stake.GetBackupValidators() {
+		backups = append(backups, bv.Validator())
+	}
+
 	// block award
-	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, utils.BlockGasFee, app.logger).DistributeAll()
+	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, utils.BlockGasFee, app.logger).Distribute()
 
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
@@ -257,7 +263,6 @@ func (app *BaseApp) InitState(module, key string, value interface{}) error {
 			return errors.ErrUnknownKey(key)
 		}
 	}
-
 
 	return nil
 }

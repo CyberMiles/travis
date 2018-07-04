@@ -130,7 +130,7 @@ func (c *Candidate) CalcRankingPower() {
 	sum = 0
 	for _, d := range delegations {
 		// calculate the ranking power of the delegator
-		v := float64(new(big.Int).Mul(d.Shares(), big.NewInt(1e18)).Int64()) * 10000
+		v := float64(new(big.Int).Div(d.Shares(), big.NewInt(1e18)).Int64()) * 10000
 		sum = sum + int64(math.Sqrt(v))
 	}
 
@@ -198,12 +198,18 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 		// truncate the power
 		if i >= int(utils.GetParams().MaxVals) {
 			c.VotingPower = 0
+
+			if i > (int(utils.GetParams().MaxVals) + 5) {
+				c.RankingPower = 0
+				c.State = "Candidate"
+			} else {
+				c.State = "Backup Validator"
+			}
+		} else {
+			c.State = "Validator"
 		}
 
-		if i > (int(utils.GetParams().MaxVals) + 5) {
-			c.RankingPower = 0
-		}
-
+		c.Rank = int64(i)
 		updateCandidate(c)
 	}
 	return cs
