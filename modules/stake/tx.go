@@ -1,10 +1,12 @@
 package stake
 
 import (
-	"github.com/CyberMiles/travis/sdk"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/CyberMiles/travis/types"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/types"
 )
 
 // Tx
@@ -44,10 +46,10 @@ func init() {
 var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, &TxWithdrawCandidacy{}, TxVerifyCandidacy{}, &TxDelegate{}, &TxWithdraw{}
 
 type TxDeclareCandidacy struct {
-	PubKey    string `json:"pub_key"`
-	MaxAmount string        `json:"max_amount"`
-	CompRate  string        `json:"comp_rate"`
-	Description
+	PubKey      string      `json:"pub_key"`
+	MaxAmount   string      `json:"max_amount"`
+	CompRate    string      `json:"comp_rate"`
+	Description Description `json:"description"`
 }
 
 func (tx TxDeclareCandidacy) ValidateBasic() error {
@@ -76,8 +78,8 @@ func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount, compRate string, desc
 func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxUpdateCandidacy struct {
-	MaxAmount string `json:"max_amount"`
-	Description
+	MaxAmount   string      `json:"max_amount"`
+	Description Description `json:"description"`
 }
 
 func (tx TxUpdateCandidacy) ValidateBasic() error {
