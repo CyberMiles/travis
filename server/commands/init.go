@@ -78,7 +78,7 @@ func initTendermint() {
 		}
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
-			Power:     1000,
+			Power:     "1000",
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
 			CompRate:  "0.5",
 			MaxAmount: 10000,

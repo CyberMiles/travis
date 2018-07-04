@@ -126,7 +126,7 @@ func ensureRoot(conf *TravisConfig) {
 	if !cmn.FileExists(configFilePath) {
 		// override some defaults
 		conf.TMConfig.Consensus.TimeoutCommit = 10000
-		conf.TMConfig.Consensus.MaxBlockSizeTxs = 50000
+		//conf.TMConfig.Consensus.MaxBlockSizeTxs = 50000
 		// write config file
 		tmcfg.WriteConfigFile(configFilePath, &conf.TMConfig)
 		// append vm configs

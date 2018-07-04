@@ -1,10 +1,14 @@
-hash: c29dba4c1dece4393940c44d5b36de52abc694631a4d85760f99bf9b89e9b1fd
-updated: 2018-06-19T09:48:45.286317615+08:00
+hash: c748f2fc4e1dbf691140d859b775737e8ab868213ac8e9caa50cd2f2a80962df
+updated: 2018-07-03T18:31:41.135682532+08:00
 imports:
 - name: github.com/aristanetworks/goarista
   version: 59944ff78bc1de686b0aba1444dfd380f48f03d4
   subpackages:
   - monotime
+- name: github.com/beorn7/perks
+  version: 3a771d992973f24aa725d07868b467d1ddfceafb
+  subpackages:
+  - quantile
 - name: github.com/bgentry/speakeasy
   version: 4aabc24848ce5fd31929f7d1e4ea74d3709c14cd
 - name: github.com/btcsuite/btcd
@@ -92,6 +96,10 @@ imports:
   - log
   - log/level
   - log/term
+  - metrics
+  - metrics/discard
+  - metrics/internal/lv
+  - metrics/prometheus
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-stack/stack
@@ -164,6 +172,10 @@ imports:
   version: ce7b0b5c7b45a81508558cd1dba6bb1e4ddb51bb
 - name: github.com/mattn/go-sqlite3
   version: 6c771bb9887719704b210e87e934f08be014bdb1
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
+  subpackages:
+  - pbutil
 - name: github.com/mitchellh/mapstructure
   version: bb74f1db0675b241733089d5a1faa5dd8b0ef57b
 - name: github.com/pborman/uuid
@@ -174,6 +186,27 @@ imports:
   version: 80ce870644db1b043e8dc2cf836bde5c347e2701
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/prometheus/client_golang
+  version: d6a9817c4afc94d51115e4a30d449056a3fbf547
+  subpackages:
+  - prometheus
+  - prometheus/promhttp
+- name: github.com/prometheus/client_model
+  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
+  subpackages:
+  - go
+- name: github.com/prometheus/common
+  version: 7600349dcfe1abd18d72d3a1770870d9800a7801
+  subpackages:
+  - expfmt
+  - internal/bitbucket.org/ww/goautoneg
+  - model
+- name: github.com/prometheus/procfs
+  version: 40f013a808ec4fa79def444a1a56de4d1727efcb
+  subpackages:
+  - internal/util
+  - nfs
+  - xfs
 - name: github.com/rcrowley/go-metrics
   version: e2704e165165ec55d062f5919b4b29494e9fa790
   subpackages:
@@ -220,26 +253,13 @@ imports:
   - leveldb/storage
   - leveldb/table
   - leveldb/util
-- name: github.com/tendermint/abci
-  version: ebee2fe114020aa49c70bbbae50b7079fc7e7b90
-  subpackages:
-  - client
-  - example/code
-  - example/kvstore
-  - server
-  - types
 - name: github.com/tendermint/ed25519
   version: d8387025d2b9d158cf4efb07e7ebf814bcce2057
   subpackages:
   - edwards25519
   - extra25519
 - name: github.com/tendermint/go-amino
-  version: ed62928576cfcaf887209dc96142cd79cdfff389
-- name: github.com/tendermint/go-crypto
-  version: 915416979bf70efa4bcbf1c6cd5d64c5fff9fc19
-  subpackages:
-  - cmd
-  - keys
+  version: 2106ca61d91029c931fd54968c2bb02dc96b1412
 - name: github.com/tendermint/go-wire
   version: b8470691aa56b059e06dbfced95a4a21a407df81
   repo: https://github.com/CyberMiles/go-wire.git
@@ -248,15 +268,30 @@ imports:
 - name: github.com/tendermint/iavl
   version: fd37a0fa3a7454423233bc3d5ea828f38e0af787
 - name: github.com/tendermint/tendermint
-  version: 27bd1deabe4ba6a2d9b463b8f3e3f1e31b993e61
+  version: dfa9a9a30a666132425b29454e90a472aa579a48
   subpackages:
+  - abci/client
+  - abci/example/code
+  - abci/example/kvstore
+  - abci/types
   - blockchain
   - cmd/tendermint/commands
   - config
   - consensus
   - consensus/types
+  - crypto
+  - crypto/merkle
+  - crypto/tmhash
   - evidence
+  - libs/autofile
+  - libs/cli
+  - libs/cli/flags
+  - libs/clist
+  - libs/common
+  - libs/db
   - libs/events
+  - libs/flowrate
+  - libs/log
   - libs/pubsub
   - libs/pubsub/query
   - lite
@@ -290,17 +325,10 @@ imports:
 - name: github.com/tendermint/tmlibs
   version: 692f1d86a6e2c0efa698fd1e4541b68c74ffaf38
   subpackages:
-  - autofile
   - cli
-  - cli/flags
-  - clist
   - common
   - db
-  - events
-  - flowrate
   - log
-  - logger
-  - merkle
 - name: golang.org/x/crypto
   version: 027cca12c2d63e3d62b670d901e8a2c95854feec
   subpackages:
@@ -327,6 +355,7 @@ imports:
   - http2/hpack
   - idna
   - internal/timeseries
+  - netutil
   - trace
   - websocket
 - name: golang.org/x/sync

@@ -10,6 +10,7 @@ import (
 	travis "github.com/CyberMiles/travis/types"
 	"github.com/tendermint/tendermint/types"
 	cmn "github.com/tendermint/tmlibs/common"
+	"strconv"
 )
 
 //------------------------------------------------------------
@@ -40,7 +41,8 @@ func (genDoc *GenesisDoc) SaveAs(file string) error {
 func (genDoc *GenesisDoc) ValidatorHash() []byte {
 	vals := make([]*types.Validator, len(genDoc.Validators))
 	for i, v := range genDoc.Validators {
-		vals[i] = types.NewValidator(v.PubKey, v.Power)
+		power, _ := strconv.ParseInt(v.Power, 10, 64)
+		vals[i] = types.NewValidator(v.PubKey, power)
 	}
 	vset := types.NewValidatorSet(vals)
 	return vset.Hash()
@@ -67,7 +69,7 @@ func (genDoc *GenesisDoc) ValidateAndComplete() error {
 	}
 
 	for _, v := range genDoc.Validators {
-		if v.Power == 0 {
+		if v.Power == "0" {
 			return errors.Errorf("The genesis file cannot contain validators with no voting power: %v", v)
 		}
 	}

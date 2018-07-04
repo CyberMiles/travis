@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
-	abci "github.com/tendermint/abci/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
