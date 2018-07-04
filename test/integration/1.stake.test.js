@@ -9,6 +9,13 @@ const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
 describe("Stake Test", function() {
+  before(function() {
+    Utils.addFakeValidators()
+  })
+  after(function() {
+    Utils.removeFakeValidators()
+  })
+
   function Amounts(maxAmount) {
     this.max = web3.toWei(maxAmount, "cmt")
     this.self = web3.toWei(maxAmount * Globals.ValMinSelfStakingRatio, "cmt")

@@ -7,6 +7,13 @@ const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
 describe("Governance Test", function() {
+  before(function() {
+    Utils.addFakeValidators()
+  })
+  after(function() {
+    Utils.removeFakeValidators()
+  })
+
   let proposalId = ""
   let balance_old, balance_new, tx_result
 

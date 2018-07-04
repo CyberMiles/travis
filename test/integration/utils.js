@@ -295,6 +295,45 @@ const gasFee = txType => {
   return gasPrice.times(gasLimit)
 }
 
+const addFakeValidators = () => {
+  if (Globals.TestMode == "single") {
+    let result = web3.cmt.stake.validator.list()
+    let valsToAdd = 4 - result.data.length
+
+    if (valsToAdd > 0) {
+      Globals.Accounts.forEach((acc, idx) => {
+        if (idx >= valsToAdd) return
+        let initAmount = 1000,
+          compRate = "0.8"
+        let payload = {
+          from: acc,
+          pubKey: Globals.PubKeys[idx],
+          maxAmount: web3.toWei(initAmount, "cmt"),
+          compRate: compRate
+        }
+        let r = web3.cmt.stake.validator.declare(payload)
+        logger.debug(r)
+        logger.debug(`validator ${acc} added, max_amount: ${initAmount} cmt`)
+      })
+    }
+  }
+}
+
+const removeFakeValidators = () => {
+  if (Globals.TestMode == "single") {
+    let result = web3.cmt.stake.validator.list()
+    result.data.forEach((val, idx) => {
+      // skip the first one
+      if (idx == 0) return
+      // remove all others
+      let acc = val.owner_address
+      let r = web3.cmt.stake.validator.withdraw({ from: acc })
+      logger.debug(r)
+      logger.debug(`validator ${acc} removed`)
+    })
+  }
+}
+
 module.exports = {
   transfer,
   getBalance,
@@ -311,5 +350,7 @@ module.exports = {
   waitBlocks,
   expectTxFail,
   expectTxSuccess,
-  gasFee
+  gasFee,
+  addFakeValidators,
+  removeFakeValidators
 }

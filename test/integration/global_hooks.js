@@ -9,6 +9,12 @@ const Globals = require("./global_vars")
 web3 = new Web3(new Web3.providers.HttpProvider(Settings.Providers.node1))
 if (!web3 || !web3.isConnected()) throw new Error("cannot connect to server. ")
 
+// test mode
+if (web3.net.peerCount == 0) {
+  Globals.TestMode = "single"
+}
+logger.debug("test mode: ", Globals.TestMode)
+
 before("Set default account", function() {
   logger.info(this.test.fullTitle())
   // set default account
@@ -89,50 +95,6 @@ before("Transfer 5000 CMT to A, B, C, D from defaultAccount", function(done) {
   } else {
     logger.debug("fund skipped. ")
     done()
-  }
-})
-
-before("Add some fake validators if it's a single node", function() {
-  logger.info(this.test.fullTitle())
-  if (web3.net.peerCount == 0) {
-    Globals.TestMode = "single"
-
-    let result = web3.cmt.stake.validator.list()
-    let valsToAdd = 4 - result.data.length
-
-    if (valsToAdd > 0) {
-      Globals.Accounts.forEach((acc, idx) => {
-        if (idx >= valsToAdd) return
-        let initAmount = 1000,
-          compRate = "0.8"
-        let payload = {
-          from: acc,
-          pubKey: Globals.PubKeys[idx],
-          maxAmount: web3.toWei(initAmount, "cmt"),
-          compRate: compRate
-        }
-        let r = web3.cmt.stake.validator.declare(payload)
-        Utils.expectTxSuccess(r)
-        logger.debug(`validator ${acc} added, max_amount: ${initAmount} cmt`)
-      })
-    }
-  }
-  logger.debug("test mode: ", Globals.TestMode)
-})
-
-after("Remove fake validators for single node", function() {
-  logger.info(this.test.fullTitle())
-  if (web3.net.peerCount == 0) {
-    let result = web3.cmt.stake.validator.list()
-    result.data.forEach((val, idx) => {
-      // skip the first one
-      if (idx == 0) return
-      // remove all others
-      let acc = val.owner_address
-      let r = web3.cmt.stake.validator.withdraw({ from: acc })
-      Utils.expectTxSuccess(r)
-      logger.debug(`validator ${acc} removed`)
-    })
   }
 })
 
