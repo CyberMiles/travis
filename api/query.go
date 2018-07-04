@@ -7,9 +7,10 @@ import (
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/CyberMiles/travis/sdk/client"
+	"github.com/CyberMiles/travis/types"
 )
 
-func (s *CmtRPCService) getParsed(path string, key []byte, data interface{}, height uint64) (int64, error) {
+func (s *CmtRPCService) getParsedFromJson(path string, key []byte, ptr interface{}, height uint64) (int64, error) {
 	bs, h, err := s.get(path, key, cast.ToInt64(height))
 	if err != nil {
 		return 0, err
@@ -17,7 +18,22 @@ func (s *CmtRPCService) getParsed(path string, key []byte, data interface{}, hei
 	if len(bs) == 0 {
 		return h, client.ErrNoData()
 	}
-	err = json.Unmarshal(bs, data)
+	err = json.Unmarshal(bs, ptr)
+	if err != nil {
+		return 0, err
+	}
+	return h, nil
+}
+
+func (s *CmtRPCService) getParsedFromCdc(path string, key []byte, ptr interface{}, height uint64) (int64, error) {
+	bs, h, err := s.get(path, key, cast.ToInt64(height))
+	if err != nil {
+		return 0, err
+	}
+	if len(bs) == 0 {
+		return h, client.ErrNoData()
+	}
+	err = types.Cdc.UnmarshalBinary(bs, ptr)
 	if err != nil {
 		return 0, err
 	}

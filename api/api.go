@@ -387,7 +387,7 @@ type StakeQueryResult struct {
 func (s *CmtRPCService) QueryValidators(height uint64) (*StakeQueryResult, error) {
 	var candidates stake.Candidates
 	//key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
-	h, err := s.getParsed("/validators", []byte{0}, &candidates, height)
+	h, err := s.getParsedFromJson("/validators", []byte{0}, &candidates, height)
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +397,7 @@ func (s *CmtRPCService) QueryValidators(height uint64) (*StakeQueryResult, error
 
 func (s *CmtRPCService) QueryValidator(address common.Address, height uint64) (*StakeQueryResult, error) {
 	var candidate stake.Candidate
-	h, err := s.getParsed("/validator", []byte(address.Hex()), &candidate, height)
+	h, err := s.getParsedFromJson("/validator", []byte(address.Hex()), &candidate, height)
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +407,7 @@ func (s *CmtRPCService) QueryValidator(address common.Address, height uint64) (*
 
 func (s *CmtRPCService) QueryDelegator(address common.Address, height uint64) (*StakeQueryResult, error) {
 	var slotDelegates []*stake.Delegation
-	h, err := s.getParsed("/delegator", []byte(address.Hex()), &slotDelegates, height)
+	h, err := s.getParsedFromJson("/delegator", []byte(address.Hex()), &slotDelegates, height)
 	if err != nil {
 		return nil, err
 	}
@@ -437,12 +437,12 @@ func (s *CmtRPCService) Propose(args GovernanceTransferFundProposalArgs) (*ctype
 }
 
 type GovernanceChangeParamProposalArgs struct {
-	Nonce        *hexutil.Uint64 `json:"nonce"`
-	From         common.Address  `json:"from"`
-	Name         string          `json:"name"`
-	Value        string          `json:"value"`
-	Reason       string          `json:"reason"`
-	Expire       uint64          `json:"expire"`
+	Nonce  *hexutil.Uint64 `json:"nonce"`
+	From   common.Address  `json:"from"`
+	Name   string          `json:"name"`
+	Value  string          `json:"value"`
+	Reason string          `json:"reason"`
+	Expire uint64          `json:"expire"`
 }
 
 func (s *CmtRPCService) ProposeChangeParam(args GovernanceChangeParamProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -477,10 +477,20 @@ func (s *CmtRPCService) Vote(args GovernanceVoteArgs) (*ctypes.ResultBroadcastTx
 func (s *CmtRPCService) QueryProposals() (*StakeQueryResult, error) {
 	var proposals []*governance.Proposal
 	//key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
-	h, err := s.getParsed("/governance/proposals", []byte{0}, &proposals, 0)
+	h, err := s.getParsedFromJson("/governance/proposals", []byte{0}, &proposals, 0)
 	if err != nil {
 		return nil, err
 	}
 
 	return &StakeQueryResult{h, proposals}, nil
+}
+
+func (s *CmtRPCService) QueryParams() (*StakeQueryResult, error) {
+	var params utils.Params
+	h, err := s.getParsedFromCdc("/key", utils.ParamKey, &params, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StakeQueryResult{h, params}, nil
 }
