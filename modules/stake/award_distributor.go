@@ -152,6 +152,7 @@ func (ad awardDistributor) Distribute() {
 	normalizedBackupValidators, totalBackupsShares := ad.buildValidators(ad.backupValidators)
 	totalAward := new(big.Int)
 	if len(normalizedBackupValidators) > 0 {
+		// todo read the parameter from configuration.
 		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(80))
 		totalAward.Div(totalAward, big.NewInt(100))
 	} else {
@@ -162,6 +163,7 @@ func (ad awardDistributor) Distribute() {
 	// distribute to the backup validators
 	if len(normalizedBackupValidators) > 0 {
 		totalAward = new(big.Int)
+		// todo read the parameter from configuration.
 		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(20))
 		totalAward.Div(totalAward, big.NewInt(100))
 		ad.distributeToValidators(normalizedBackupValidators, totalBackupsShares, totalAward)
@@ -189,6 +191,12 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		// Get all delegators
 		delegations := GetDelegationsByPubKey(candidate.PubKey)
 		for _, delegation := range delegations {
+			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
+			// todo read the parameter from configuration.
+			if delegation.Shares().Cmp(big.NewInt(1e21)) < 0 {
+				continue
+			}
+
 			delegator := delegator{}
 			delegator.address = delegation.DelegatorAddress
 			delegator.shares = delegation.Shares()
