@@ -148,18 +148,24 @@ func (ad awardDistributor) getBlockAward() (blockAward *big.Int) {
 
 func (ad awardDistributor) Distribute() {
 	// distribute to the validators
-	normalizedValidators, totalShares := ad.buildValidators(ad.validators)
+	normalizedValidators, totalValidatorsShares := ad.buildValidators(ad.validators)
+	normalizedBackupValidators, totalBackupsShares := ad.buildValidators(ad.backupValidators)
 	totalAward := new(big.Int)
-	totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(80))
-	totalAward.Div(totalAward, big.NewInt(100))
-	ad.distributeToValidators(normalizedValidators, totalShares, totalAward)
+	if len(normalizedBackupValidators) > 0 {
+		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(80))
+		totalAward.Div(totalAward, big.NewInt(100))
+	} else {
+		totalAward = ad.getBlockAwardAndTxFees()
+	}
+	ad.distributeToValidators(normalizedValidators, totalValidatorsShares, totalAward)
 
 	// distribute to the backup validators
-	normalizedBackupValidators, totalShares := ad.buildValidators(ad.backupValidators)
-	totalAward = new(big.Int)
-	totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(20))
-	totalAward.Div(totalAward, big.NewInt(100))
-	ad.distributeToValidators(normalizedBackupValidators, totalShares, totalAward)
+	if len(normalizedBackupValidators) > 0 {
+		totalAward = new(big.Int)
+		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(20))
+		totalAward.Div(totalAward, big.NewInt(100))
+		ad.distributeToValidators(normalizedBackupValidators, totalBackupsShares, totalAward)
+	}
 }
 
 func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares *big.Int) {
