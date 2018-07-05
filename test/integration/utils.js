@@ -289,7 +289,7 @@ const gasFee = txType => {
       gasLimit = web3.toBigNumber(Globals.GasLimit.UpdateCandidacy)
       break
     case "governancePropose":
-      gasLimit = web3.toBigNumber(Globals.GasLimit.GovernancePropose)
+      gasLimit = web3.toBigNumber(Globals.GasLimit.TransferFundProposal)
       break
   }
   return gasPrice.times(gasLimit)

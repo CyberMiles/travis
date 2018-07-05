@@ -19,7 +19,8 @@ type Params struct {
 
 	DeclareCandidacy     uint64     `json:"declare_candidacy" type:"uint"`
 	UpdateCandidacy      uint64     `json:"update_candidacy" type:"uint"`
-	GovernancePropose    uint64     `json:"governance_proposal" type:"uint"`
+	TransferFundProposal    uint64     `json:"transfer_fund_proposal" type:"uint"`
+	ChangeParamsProposal    uint64     `json:"change_params_proposal" type:"uint"`
 	GasPrice             uint64     `json:"gas_price" type:"uint"`
 }
 
@@ -34,7 +35,8 @@ func defaultParams() *Params {
 		ProposalExpirePeriod: 7 * 24 * 3600 / 10,
 		DeclareCandidacy: 		1e6,
 		UpdateCandidacy: 		1e6,
-		GovernancePropose: 		2e6,
+		TransferFundProposal: 		2e6,
+		ChangeParamsProposal: 		2e6,
 		GasPrice: 				2e9,
 	}
 }

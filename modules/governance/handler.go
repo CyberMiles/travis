@@ -13,6 +13,7 @@ import (
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/ethereum/go-ethereum/common"
 	"encoding/json"
+	ethState "github.com/ethereum/go-ethereum/core/state"
 )
 
 // nolint
@@ -40,6 +41,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 	if err != nil {
 		return
 	}
+	app_state := ctx.EthappState()
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
@@ -59,8 +61,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
-		state := ctx.EthappState()
-		balance, err := commons.GetBalance(state, *txInner.From)
+		balance, err := commons.GetBalance(app_state, *txInner.From)
 		if err != nil {
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
@@ -71,18 +72,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInsufficientBalance()
 		}
 
-		// Transfer gasFee  -- start
-		balance, err = commons.GetBalance(state, sender)
-		if err != nil {
-			return sdk.NewCheck(0, ""), ErrInvalidParameter()
+		// Transfer gasFee
+		if _, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposal); err != nil {
+			return sdk.NewCheck(0, ""), err
 		}
-		params := utils.GetParams()
-		gasFee := utils.CalGasFee(params.GovernancePropose, params.GasPrice)
-
-		if balance.Cmp(gasFee) < 0 {
-			return sdk.NewCheck(0, ""), ErrInsufficientBalance()
-		}
-		// Check gasFee  -- end
 
 		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxChangeParamPropose:
@@ -100,6 +93,11 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if i + 1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
+		}
+
+		// Transfer gasFee
+		if _, err := checkGasFee(app_state, sender, utils.GetParams().ChangeParamsProposal); err != nil {
+			return sdk.NewCheck(0, ""), err
 		}
 
 		if ! utils.CheckParamType(txInner.Name, txInner.Value) {
@@ -150,12 +148,15 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 func DeliverTx(ctx types.Context, store state.SimpleDB,
 	tx sdk.Tx, hash []byte) (res sdk.DeliverResult, err error) {
 
+	res.GasFee = big.NewInt(0)
+
 	_, err = CheckTx(ctx, store, tx)
 	if err != nil {
 		return
 	}
 
-	res.GasFee = big.NewInt(0)
+	app_state := ctx.EthappState()
+
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
 		expire := utils.GetParams().ProposalExpirePeriod
@@ -174,8 +175,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			uint64(ctx.BlockHeight()) + expire,
 		)
 
-		state := ctx.EthappState()
-		balance, err := commons.GetBalance(state, *txInner.From)
+		balance, err := commons.GetBalance(app_state, *txInner.From)
 		if err != nil {
 			return res, ErrInvalidParameter()
 		}
@@ -195,20 +195,17 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if err != nil {
 			return res, err
 		}
-		balance, err = commons.GetBalance(state, sender)
-		if err != nil {
-			return res, ErrInvalidParameter()
-		}
 		params := utils.GetParams()
-		gasFee := utils.CalGasFee(params.GovernancePropose, params.GasPrice)
-		res.GasFee = gasFee
+		gasUsed := params.TransferFundProposal
 
-		if balance.Cmp(gasFee) < 0 {
-			return res, ErrInsufficientBalance()
+		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
+			return res, err
+		} else {
+			res.GasFee = gasFee
+			res.GasUsed = int64(gasUsed)
+			// transfer gasFee
+			commons.Transfer(sender, utils.HoldAccount, gasFee)
 		}
-		res.GasUsed = int64(params.GovernancePropose)
-		// transfer gasFee
-		commons.Transfer(sender, utils.HoldAccount, gasFee)
 		// Check gasFee  -- end
 
 		utils.PendingProposal.Add(pp.Id, pp.ExpireBlockHeight)
@@ -231,6 +228,25 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			uint64(ctx.BlockHeight()) + expire,
 		)
 		SaveProposal(cp)
+
+		// Check gasFee  -- start
+		// get the sender
+		sender, err := getTxSender(ctx)
+		if err != nil {
+			return res, err
+		}
+		params := utils.GetParams()
+		gasUsed := params.ChangeParamsProposal
+
+		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
+			return res, err
+		} else {
+			res.GasFee = gasFee
+			res.GasUsed = int64(gasUsed)
+			// transfer gasFee
+			commons.Transfer(sender, utils.HoldAccount, gasFee)
+		}
+		// Check gasFee  -- end
 
 		utils.PendingProposal.Add(cp.Id, cp.ExpireBlockHeight)
 
@@ -364,4 +380,19 @@ func getTxSender(ctx types.Context) (sender common.Address, err error) {
 		return sender, ErrMissingSignature()
 	}
 	return senders[0], nil
+}
+
+func checkGasFee(state *ethState.StateDB, address common.Address, gas uint64) (*big.Int,  error) {
+	balance, err := commons.GetBalance(state, address)
+	if err != nil {
+		return nil, ErrInvalidParameter()
+	}
+
+	gasFee := utils.CalGasFee(gas, utils.GetParams().GasPrice)
+
+	if balance.Cmp(gasFee) < 0 {
+		return nil, ErrInsufficientBalance()
+	}
+
+	return gasFee, nil
 }
