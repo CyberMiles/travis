@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/tendermint/tmlibs/cli"
+	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/CyberMiles/travis/sdk/client/commands/auto"
 	basecmd "github.com/CyberMiles/travis/server/commands"

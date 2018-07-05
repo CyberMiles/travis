@@ -9,7 +9,7 @@ import (
 
 	travis "github.com/CyberMiles/travis/types"
 	"github.com/tendermint/tendermint/types"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "github.com/tendermint/tendermint/libs/common"
 	"strconv"
 )
 

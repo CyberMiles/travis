@@ -12,7 +12,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
-	tmLog "github.com/tendermint/tmlibs/log"
+	tmLog "github.com/tendermint/tendermint/libs/log"
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/errors"

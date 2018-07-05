@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tmlibs/cli"
+	"github.com/tendermint/tendermint/libs/cli"
 	"path"
 
 	"github.com/CyberMiles/travis/types"
