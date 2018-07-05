@@ -45,10 +45,10 @@ modifyConf()
 
 	cd $dir/config
 	cp $BASE_DIR/config/genesis.json .
-	sed -i '' "s/$TRPCPORT/$trpcport/g" ./config.toml
-	sed -i '' "s/$TP2PPORT/$tp2pport/g" ./config.toml
-	sed -i '' "s/$ERPCPORT/$erpcport/g" ./config.toml
-	sed -i '' "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
+	sed -i "s/$TRPCPORT/$trpcport/g" ./config.toml
+	sed -i "s/$TP2PPORT/$tp2pport/g" ./config.toml
+	sed -i "s/$ERPCPORT/$erpcport/g" ./config.toml
+	sed -i "s/seeds = \"\"/seeds = \"$seeds\"/g" ./config.toml
 }
 
 # kill running travis first

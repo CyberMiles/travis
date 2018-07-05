@@ -135,7 +135,8 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 		if vote := GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
-			return sdk.NewCheck(0, ""), ErrRepeatedVote()
+			// revote is allowed
+			// return sdk.NewCheck(0, ""), ErrRepeatedVote()
 		}
 		if proposal.Type == TRANSFER_FUND_PROPOSAL {
 			utils.TravisTxAddrs = append(utils.TravisTxAddrs, proposal.Detail["to"].(*common.Address))
@@ -236,13 +237,20 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		res.Data = hash
 
 	case TxVote:
-		vote := NewVote(
-			txInner.ProposalId,
-			txInner.Voter,
-			uint64(ctx.BlockHeight()),
-			txInner.Answer,
-		)
-		SaveVote(vote)
+		var vote *Vote
+		if vote = GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
+			vote.Answer = txInner.Answer
+			vote.BlockHeight = uint64(ctx.BlockHeight())
+			UpdateVote(vote)
+		} else {
+			vote = NewVote(
+				txInner.ProposalId,
+				txInner.Voter,
+				uint64(ctx.BlockHeight()),
+				txInner.Answer,
+			)
+			SaveVote(vote)
+		}
 
 		proposal := GetProposalById(txInner.ProposalId)
 

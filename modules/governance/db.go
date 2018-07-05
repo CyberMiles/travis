@@ -335,6 +335,28 @@ func SaveVote(vote *Vote) {
 	}
 }
 
+func UpdateVote(vote *Vote) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("update governance_vote set answer = ?, hash = ? where proposal_id = ? and voter = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(vote.Answer, common.Bytes2Hex(vote.Hash()), vote.ProposalId, vote.Voter.String())
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+}
+
 func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 	db := getDb()
 	defer db.Close()
