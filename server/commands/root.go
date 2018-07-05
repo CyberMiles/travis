@@ -10,9 +10,9 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
-	tmcli "github.com/tendermint/tmlibs/cli"
-	tmflags "github.com/tendermint/tmlibs/cli/flags"
-	"github.com/tendermint/tmlibs/log"
+	tmcli "github.com/tendermint/tendermint/libs/cli"
+	tmflags "github.com/tendermint/tendermint/libs/cli/flags"
+	"github.com/tendermint/tendermint/libs/log"
 
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 )

@@ -21,8 +21,8 @@ COPY --from=build-env /go/src/github.com/CyberMiles/travis/build/travis .
 VOLUME $DATA_ROOT
 
 EXPOSE 8545
-EXPOSE 46656
-EXPOSE 46657
+EXPOSE 26656
+EXPOSE 26657
 
 ENTRYPOINT ["./travis"]
 

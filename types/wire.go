@@ -2,7 +2,7 @@ package types
 
 import (
 	"github.com/tendermint/go-amino"
-	"github.com/tendermint/go-crypto"
+	"github.com/tendermint/tendermint/crypto"
 	"fmt"
 	"encoding/json"
 )
@@ -25,7 +25,8 @@ func GetPubKey(pubKeyStr string) (pk PubKey, err error) {
 		return
 	}
 	jpk := jsonPubKey{
-		"AC26791624DE60",
+		//"AC26791624DE60",
+		"tendermint/PubKeyEd25519",
 		pubKeyStr,
 	}
 	b, err := json.Marshal(jpk)

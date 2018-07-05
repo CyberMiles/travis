@@ -42,7 +42,7 @@ after_failure:
       docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
       TAG=$TRAVIS_BRANCH make push_tag_image ;
     fi
-  - curl -i "http://localhost:46657/dump_consensus_state"
+  - curl -i "http://localhost:26657/dump_consensus_state"
   - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t
 
 before_deploy:

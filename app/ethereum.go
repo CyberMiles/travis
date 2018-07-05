@@ -11,8 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
-	abciTypes "github.com/tendermint/abci/types"
-	tmLog "github.com/tendermint/tmlibs/log"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
+	tmLog "github.com/tendermint/tendermint/libs/log"
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/errors"

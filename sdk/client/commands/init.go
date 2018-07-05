@@ -17,8 +17,8 @@ import (
 
 	"github.com/tendermint/tendermint/lite"
 	"github.com/tendermint/tendermint/lite/files"
-	"github.com/tendermint/tmlibs/cli"
-	cmn "github.com/tendermint/tmlibs/common"
+	"github.com/tendermint/tendermint/libs/cli"
+	cmn "github.com/tendermint/tendermint/libs/common"
 
 	"github.com/tendermint/tendermint/types"
 )

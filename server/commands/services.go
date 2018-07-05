@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	abcitypes "github.com/tendermint/abci/types"
+	abcitypes "github.com/tendermint/tendermint/abci/types"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
@@ -237,6 +237,7 @@ func startTendermint(basecoinApp abcitypes.Application) (*node.Node, error) {
 		papp,
 		node.DefaultGenesisDocProviderFunc(cfg),
 		node.DefaultDBProvider,
+		node.DefaultMetricsProvider,
 		logger.With("module", "node"))
 	if err != nil {
 		return nil, err

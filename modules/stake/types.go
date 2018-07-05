@@ -6,13 +6,13 @@ import (
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
-	abci "github.com/tendermint/abci/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 
 	"encoding/json"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
-	"github.com/tendermint/go-crypto"
+	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
 )
 

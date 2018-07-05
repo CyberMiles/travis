@@ -6,7 +6,7 @@ import (
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/pkg/errors"
 
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "github.com/tendermint/tendermint/libs/common"
 	"strconv"
 )
 

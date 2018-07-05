@@ -9,11 +9,11 @@ import (
 
 	"github.com/CyberMiles/travis/sdk/errors"
 	sm "github.com/CyberMiles/travis/sdk/state"
-	abci "github.com/tendermint/abci/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/iavl"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "github.com/tendermint/tendermint/libs/common"
 	dbm "github.com/tendermint/tmlibs/db"
-	"github.com/tendermint/tmlibs/log"
+	"github.com/tendermint/tendermint/libs/log"
 
 	"database/sql"
 	"encoding/hex"
@@ -23,7 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tmlibs/cli"
+	"github.com/tendermint/tendermint/libs/cli"
 	"golang.org/x/crypto/ripemd160"
 	"os"
 	"math/big"

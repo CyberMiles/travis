@@ -3,7 +3,7 @@ package types
 // GenesisValidator is an initial validator.
 type GenesisValidator struct {
 	PubKey    PubKey `json:"pub_key"`
-	Power     int64  `json:"power"`
+	Power     string  `json:"power"`
 	Name      string `json:"name"`
 	Address   string `json:"address"`
 	CompRate  string `json:"comp_rate"`
