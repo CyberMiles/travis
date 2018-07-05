@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/tmlibs/log"
+	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/types"

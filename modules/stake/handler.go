@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethstat "github.com/ethereum/go-ethereum/core/state"
 	"math/big"
+	"strconv"
 )
 
 // nolint
@@ -74,7 +75,8 @@ func SetValidator(val types.GenesisValidator, store state.SimpleDB) error {
 	}
 
 	tx := TxDeclareCandidacy{types.PubKeyString(val.PubKey), utils.ToWei(val.MaxAmount).String(), val.CompRate, desc}
-	return deliverer.declareGenesisCandidacy(tx, val.Power)
+	power, _ := strconv.ParseInt(val.Power, 10, 64)
+	return deliverer.declareGenesisCandidacy(tx, power)
 }
 
 // CheckTx checks if the tx is properly structured

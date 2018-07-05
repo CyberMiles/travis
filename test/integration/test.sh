@@ -10,7 +10,7 @@ mkdir -p ~/volumes
 git clone https://github.com/CyberMiles/testnet.git ~/volumes/testnet
 
 cd ~/volumes/testnet/travis/scripts
-git checkout tmup
+git checkout tmup22
 yes "" | sudo ./cluster.sh test 6 4
 docker-compose up -d all
 
@@ -34,7 +34,7 @@ docker-compose down
 
 IMG=ywonline/travis
 docker run --rm -v ~/volumes/local:/travis $IMG node init --home=/travis
-docker run --rm -v ~/volumes/local:/travis -d -p 46657:46657 -p 8545:8545 $IMG node start --home=/travis
+docker run --rm -v ~/volumes/local:/travis -d -p 26657:26657 -p 8545:8545 $IMG node start --home=/travis
 sleep 3
 
 cd $BASEDIR

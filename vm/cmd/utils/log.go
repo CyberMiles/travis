@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/log/term"
 
-	tmlog "github.com/tendermint/tmlibs/log"
+	tmlog "github.com/tendermint/tendermint/libs/log"
 )
 
 var glogger *log.GlogHandler

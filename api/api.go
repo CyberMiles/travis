@@ -16,10 +16,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	abci "github.com/tendermint/abci/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	ttypes "github.com/tendermint/tendermint/types"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "github.com/tendermint/tendermint/libs/common"
+
+	tmcmn "github.com/tendermint/tendermint/libs/common"
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
@@ -132,7 +134,7 @@ type RPCTransaction struct {
 	Gas              *hexutil.Big           `json:"gas"`
 	GasPrice         *hexutil.Big           `json:"gasPrice"`
 	Hash             common.Hash            `json:"hash"`
-	CmtHash          cmn.HexBytes           `json:"cmt_hash"`
+	CmtHash          tmcmn.HexBytes           `json:"cmt_hash"`
 	Input            hexutil.Bytes          `json:"input"`
 	CmtInput         interface{}            `json:"cmt_input"`
 	Nonce            hexutil.Uint64         `json:"nonce"`

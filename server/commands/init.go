@@ -14,7 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/tendermint/tendermint/p2p"
 	pv "github.com/tendermint/tendermint/privval"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "github.com/tendermint/tendermint/libs/common"
 
 	"github.com/CyberMiles/travis/types"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
@@ -78,7 +78,7 @@ func initTendermint() {
 		}
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
-			Power:     1000,
+			Power:     "1000",
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
 			CompRate:  "0.5",
 			MaxAmount: 10000,

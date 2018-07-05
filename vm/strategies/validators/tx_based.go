@@ -7,7 +7,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/tendermint/abci/types"
+	"github.com/tendermint/tendermint/abci/types"
 )
 
 // TxBasedValidatorsStrategy represents a strategy to reward validators with CETH
