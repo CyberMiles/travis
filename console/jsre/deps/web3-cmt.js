@@ -11999,9 +11999,9 @@ module.exports = Filter;
  * @date 2015
  */
 
-var utils = require('../utils/utils');
-var config = require('../utils/config');
-var Iban = require('./iban');
+var utils = require("../utils/utils")
+var config = require("../utils/config")
+var Iban = require("./iban")
 
 /**
  * Should the format output to a big number
@@ -12010,29 +12010,33 @@ var Iban = require('./iban');
  * @param {String|Number|BigNumber}
  * @returns {BigNumber} object
  */
-var outputBigNumberFormatter = function (number) {
-    return utils.toBigNumber(number);
-};
+var outputBigNumberFormatter = function(number) {
+  return utils.toBigNumber(number)
+}
 
-var isPredefinedBlockNumber = function (blockNumber) {
-    return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest';
-};
+var isPredefinedBlockNumber = function(blockNumber) {
+  return (
+    blockNumber === "latest" ||
+    blockNumber === "pending" ||
+    blockNumber === "earliest"
+  )
+}
 
-var inputDefaultBlockNumberFormatter = function (blockNumber) {
-    if (blockNumber === undefined) {
-        return config.defaultBlock;
-    }
-    return inputBlockNumberFormatter(blockNumber);
-};
+var inputDefaultBlockNumberFormatter = function(blockNumber) {
+  if (blockNumber === undefined) {
+    return config.defaultBlock
+  }
+  return inputBlockNumberFormatter(blockNumber)
+}
 
-var inputBlockNumberFormatter = function (blockNumber) {
-    if (blockNumber === undefined) {
-        return undefined;
-    } else if (isPredefinedBlockNumber(blockNumber)) {
-        return blockNumber;
-    }
-    return utils.toHex(blockNumber);
-};
+var inputBlockNumberFormatter = function(blockNumber) {
+  if (blockNumber === undefined) {
+    return undefined
+  } else if (isPredefinedBlockNumber(blockNumber)) {
+    return blockNumber
+  }
+  return utils.toHex(blockNumber)
+}
 
 /**
  * Formats the input of a transaction and converts all values to HEX
@@ -12040,27 +12044,29 @@ var inputBlockNumberFormatter = function (blockNumber) {
  * @method inputCallFormatter
  * @param {Object} transaction options
  * @returns object
-*/
-var inputCallFormatter = function (options){
+ */
+var inputCallFormatter = function(options) {
+  options.from = options.from || config.defaultAccount
 
-    options.from = options.from || config.defaultAccount;
+  if (options.from) {
+    options.from = inputAddressFormatter(options.from)
+  }
 
-    if (options.from) {
-        options.from = inputAddressFormatter(options.from);
-    }
+  if (options.to) {
+    // it might be contract creation
+    options.to = inputAddressFormatter(options.to)
+  }
 
-    if (options.to) { // it might be contract creation
-        options.to = inputAddressFormatter(options.to);
-    }
+  ;["gasPrice", "gas", "value", "nonce"]
+    .filter(function(key) {
+      return options[key] !== undefined
+    })
+    .forEach(function(key) {
+      options[key] = utils.fromDecimal(options[key])
+    })
 
-    ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
-        return options[key] !== undefined;
-    }).forEach(function(key){
-        options[key] = utils.fromDecimal(options[key]);
-    });
-
-    return options;
-};
+  return options
+}
 
 /**
  * Formats the input of a transaction and converts all values to HEX
@@ -12068,24 +12074,26 @@ var inputCallFormatter = function (options){
  * @method inputTransactionFormatter
  * @param {Object} transaction options
  * @returns object
-*/
-var inputTransactionFormatter = function (options){
+ */
+var inputTransactionFormatter = function(options) {
+  options.from = options.from || config.defaultAccount
+  options.from = inputAddressFormatter(options.from)
 
-    options.from = options.from || config.defaultAccount;
-    options.from = inputAddressFormatter(options.from);
+  if (options.to) {
+    // it might be contract creation
+    options.to = inputAddressFormatter(options.to)
+  }
 
-    if (options.to) { // it might be contract creation
-        options.to = inputAddressFormatter(options.to);
-    }
+  ;["gasPrice", "gas", "value", "nonce"]
+    .filter(function(key) {
+      return options[key] !== undefined
+    })
+    .forEach(function(key) {
+      options[key] = utils.fromDecimal(options[key])
+    })
 
-    ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
-        return options[key] !== undefined;
-    }).forEach(function(key){
-        options[key] = utils.fromDecimal(options[key]);
-    });
-
-    return options;
-};
+  return options
+}
 
 /**
  * Formats the output of a transaction to its proper values
@@ -12093,18 +12101,17 @@ var inputTransactionFormatter = function (options){
  * @method outputTransactionFormatter
  * @param {Object} tx
  * @returns {Object}
-*/
-var outputTransactionFormatter = function (tx){
-    if(tx.blockNumber !== null)
-        tx.blockNumber = utils.toDecimal(tx.blockNumber);
-    if(tx.transactionIndex !== null)
-        tx.transactionIndex = utils.toDecimal(tx.transactionIndex);
-    tx.nonce = utils.toDecimal(tx.nonce);
-    tx.gas = utils.toDecimal(tx.gas);
-    tx.gasPrice = utils.toBigNumber(tx.gasPrice);
-    tx.value = utils.toBigNumber(tx.value);
-    return tx;
-};
+ */
+var outputTransactionFormatter = function(tx) {
+  if (tx.blockNumber !== null) tx.blockNumber = utils.toDecimal(tx.blockNumber)
+  if (tx.transactionIndex !== null)
+    tx.transactionIndex = utils.toDecimal(tx.transactionIndex)
+  tx.nonce = utils.toDecimal(tx.nonce)
+  tx.gas = utils.toDecimal(tx.gas)
+  tx.gasPrice = utils.toBigNumber(tx.gasPrice)
+  tx.value = utils.toBigNumber(tx.value)
+  return tx
+}
 
 /**
  * Formats the output of a transaction receipt to its proper values
@@ -12112,23 +12119,23 @@ var outputTransactionFormatter = function (tx){
  * @method outputTransactionReceiptFormatter
  * @param {Object} receipt
  * @returns {Object}
-*/
-var outputTransactionReceiptFormatter = function (receipt){
-    if(receipt.blockNumber !== null)
-        receipt.blockNumber = utils.toDecimal(receipt.blockNumber);
-    if(receipt.transactionIndex !== null)
-        receipt.transactionIndex = utils.toDecimal(receipt.transactionIndex);
-    receipt.cumulativeGasUsed = utils.toDecimal(receipt.cumulativeGasUsed);
-    receipt.gasUsed = utils.toDecimal(receipt.gasUsed);
+ */
+var outputTransactionReceiptFormatter = function(receipt) {
+  if (receipt.blockNumber !== null)
+    receipt.blockNumber = utils.toDecimal(receipt.blockNumber)
+  if (receipt.transactionIndex !== null)
+    receipt.transactionIndex = utils.toDecimal(receipt.transactionIndex)
+  receipt.cumulativeGasUsed = utils.toDecimal(receipt.cumulativeGasUsed)
+  receipt.gasUsed = utils.toDecimal(receipt.gasUsed)
 
-    if(utils.isArray(receipt.logs)) {
-        receipt.logs = receipt.logs.map(function(log){
-            return outputLogFormatter(log);
-        });
-    }
+  if (utils.isArray(receipt.logs)) {
+    receipt.logs = receipt.logs.map(function(log) {
+      return outputLogFormatter(log)
+    })
+  }
 
-    return receipt;
-};
+  return receipt
+}
 
 /**
  * Formats the output of a block to its proper values
@@ -12136,29 +12143,26 @@ var outputTransactionReceiptFormatter = function (receipt){
  * @method outputBlockFormatter
  * @param {Object} block
  * @returns {Object}
-*/
+ */
 var outputBlockFormatter = function(block) {
+  // transform to number
+  block.gasLimit = utils.toDecimal(block.gasLimit)
+  block.gasUsed = utils.toDecimal(block.gasUsed)
+  block.size = utils.toDecimal(block.size)
+  block.timestamp = utils.toDecimal(block.timestamp)
+  if (block.number !== null) block.number = utils.toDecimal(block.number)
 
-    // transform to number
-    block.gasLimit = utils.toDecimal(block.gasLimit);
-    block.gasUsed = utils.toDecimal(block.gasUsed);
-    block.size = utils.toDecimal(block.size);
-    block.timestamp = utils.toDecimal(block.timestamp);
-    if(block.number !== null)
-        block.number = utils.toDecimal(block.number);
+  block.difficulty = utils.toBigNumber(block.difficulty)
+  block.totalDifficulty = utils.toBigNumber(block.totalDifficulty)
 
-    block.difficulty = utils.toBigNumber(block.difficulty);
-    block.totalDifficulty = utils.toBigNumber(block.totalDifficulty);
+  if (utils.isArray(block.transactions)) {
+    block.transactions.forEach(function(item) {
+      if (!utils.isString(item)) return outputTransactionFormatter(item)
+    })
+  }
 
-    if (utils.isArray(block.transactions)) {
-        block.transactions.forEach(function(item){
-            if(!utils.isString(item))
-                return outputTransactionFormatter(item);
-        });
-    }
-
-    return block;
-};
+  return block
+}
 
 /**
  * Formats the output of a log
@@ -12166,17 +12170,16 @@ var outputBlockFormatter = function(block) {
  * @method outputLogFormatter
  * @param {Object} log object
  * @returns {Object} log
-*/
+ */
 var outputLogFormatter = function(log) {
-    if(log.blockNumber !== null)
-        log.blockNumber = utils.toDecimal(log.blockNumber);
-    if(log.transactionIndex !== null)
-        log.transactionIndex = utils.toDecimal(log.transactionIndex);
-    if(log.logIndex !== null)
-        log.logIndex = utils.toDecimal(log.logIndex);
+  if (log.blockNumber !== null)
+    log.blockNumber = utils.toDecimal(log.blockNumber)
+  if (log.transactionIndex !== null)
+    log.transactionIndex = utils.toDecimal(log.transactionIndex)
+  if (log.logIndex !== null) log.logIndex = utils.toDecimal(log.logIndex)
 
-    return log;
-};
+  return log
+}
 
 /**
  * Formats the input of a whisper post and converts all values to HEX
@@ -12184,27 +12187,26 @@ var outputLogFormatter = function(log) {
  * @method inputPostFormatter
  * @param {Object} transaction object
  * @returns {Object}
-*/
+ */
 var inputPostFormatter = function(post) {
+  // post.payload = utils.toHex(post.payload);
+  post.ttl = utils.fromDecimal(post.ttl)
+  post.workToProve = utils.fromDecimal(post.workToProve)
+  post.priority = utils.fromDecimal(post.priority)
 
-    // post.payload = utils.toHex(post.payload);
-    post.ttl = utils.fromDecimal(post.ttl);
-    post.workToProve = utils.fromDecimal(post.workToProve);
-    post.priority = utils.fromDecimal(post.priority);
+  // fallback
+  if (!utils.isArray(post.topics)) {
+    post.topics = post.topics ? [post.topics] : []
+  }
 
-    // fallback
-    if (!utils.isArray(post.topics)) {
-        post.topics = post.topics ? [post.topics] : [];
-    }
+  // format the following options
+  post.topics = post.topics.map(function(topic) {
+    // convert only if not hex
+    return topic.indexOf("0x") === 0 ? topic : utils.fromUtf8(topic)
+  })
 
-    // format the following options
-    post.topics = post.topics.map(function(topic){
-        // convert only if not hex
-        return (topic.indexOf('0x') === 0) ? topic : utils.fromUtf8(topic);
-    });
-
-    return post;
-};
+  return post
+}
 
 /**
  * Formats the output of a received post message
@@ -12213,72 +12215,68 @@ var inputPostFormatter = function(post) {
  * @param {Object}
  * @returns {Object}
  */
-var outputPostFormatter = function(post){
+var outputPostFormatter = function(post) {
+  post.expiry = utils.toDecimal(post.expiry)
+  post.sent = utils.toDecimal(post.sent)
+  post.ttl = utils.toDecimal(post.ttl)
+  post.workProved = utils.toDecimal(post.workProved)
+  // post.payloadRaw = post.payload;
+  // post.payload = utils.toAscii(post.payload);
 
-    post.expiry = utils.toDecimal(post.expiry);
-    post.sent = utils.toDecimal(post.sent);
-    post.ttl = utils.toDecimal(post.ttl);
-    post.workProved = utils.toDecimal(post.workProved);
-    // post.payloadRaw = post.payload;
-    // post.payload = utils.toAscii(post.payload);
+  // if (utils.isJson(post.payload)) {
+  //     post.payload = JSON.parse(post.payload);
+  // }
 
-    // if (utils.isJson(post.payload)) {
-    //     post.payload = JSON.parse(post.payload);
-    // }
+  // format the following options
+  if (!post.topics) {
+    post.topics = []
+  }
+  post.topics = post.topics.map(function(topic) {
+    return utils.toAscii(topic)
+  })
 
-    // format the following options
-    if (!post.topics) {
-        post.topics = [];
-    }
-    post.topics = post.topics.map(function(topic){
-        return utils.toAscii(topic);
-    });
+  return post
+}
 
-    return post;
-};
-
-var inputAddressFormatter = function (address) {
-    var iban = new Iban(address);
-    if (iban.isValid() && iban.isDirect()) {
-        return '0x' + iban.address();
-    } else if (utils.isStrictAddress(address)) {
-        return address;
-    } else if (utils.isAddress(address)) {
-        return '0x' + address;
-    }
-    throw new Error('invalid address');
-};
-
+var inputAddressFormatter = function(address) {
+  var iban = new Iban(address)
+  if (iban.isValid() && iban.isDirect()) {
+    return "0x" + iban.address()
+  } else if (utils.isStrictAddress(address)) {
+    return address
+  } else if (utils.isAddress(address)) {
+    return "0x" + address
+  }
+  throw new Error("invalid address")
+}
 
 var outputSyncingFormatter = function(result) {
+  result.startingBlock = utils.toDecimal(result.startingBlock)
+  result.currentBlock = utils.toDecimal(result.currentBlock)
+  result.highestBlock = utils.toDecimal(result.highestBlock)
+  if (result.knownStates) {
+    result.knownStates = utils.toDecimal(result.knownStates)
+    result.pulledStates = utils.toDecimal(result.pulledStates)
+  }
 
-    result.startingBlock = utils.toDecimal(result.startingBlock);
-    result.currentBlock = utils.toDecimal(result.currentBlock);
-    result.highestBlock = utils.toDecimal(result.highestBlock);
-    if (result.knownStates) {
-        result.knownStates = utils.toDecimal(result.knownStates);
-        result.pulledStates = utils.toDecimal(result.pulledStates);
-    }
-
-    return result;
-};
+  return result
+}
 
 module.exports = {
-    inputDefaultBlockNumberFormatter: inputDefaultBlockNumberFormatter,
-    inputBlockNumberFormatter: inputBlockNumberFormatter,
-    inputCallFormatter: inputCallFormatter,
-    inputTransactionFormatter: inputTransactionFormatter,
-    inputAddressFormatter: inputAddressFormatter,
-    inputPostFormatter: inputPostFormatter,
-    outputBigNumberFormatter: outputBigNumberFormatter,
-    outputTransactionFormatter: outputTransactionFormatter,
-    outputTransactionReceiptFormatter: outputTransactionReceiptFormatter,
-    outputBlockFormatter: outputBlockFormatter,
-    outputLogFormatter: outputLogFormatter,
-    outputPostFormatter: outputPostFormatter,
-    outputSyncingFormatter: outputSyncingFormatter
-};
-
+  inputDefaultBlockNumberFormatter: inputDefaultBlockNumberFormatter,
+  inputBlockNumberFormatter: inputBlockNumberFormatter,
+  inputCallFormatter: inputCallFormatter,
+  inputTransactionFormatter: inputTransactionFormatter,
+  inputAddressFormatter: inputAddressFormatter,
+  inputPostFormatter: inputPostFormatter,
+  outputBigNumberFormatter: outputBigNumberFormatter,
+  outputTransactionFormatter: outputTransactionFormatter,
+  outputTransactionReceiptFormatter: outputTransactionReceiptFormatter,
+  outputBlockFormatter: outputBlockFormatter,
+  outputLogFormatter: outputLogFormatter,
+  outputPostFormatter: outputPostFormatter,
+  outputSyncingFormatter: outputSyncingFormatter
+}
 
 },{"../utils/config":60,"../utils/utils":62,"./iban":75}],73:[function(require,module,exports){
 /*
@@ -15014,6 +15012,7 @@ module.exports = XMLHttpRequest;
 },{}],93:[function(require,module,exports){
 var formatters = require("web3/lib/web3/formatters")
 var utils = require("web3/lib/utils/utils")
+var config = require("web3/lib/utils/config")
 
 inputDefaultHeightFormatter = function(height) {
   if (height === undefined) {
@@ -15030,12 +15029,21 @@ inputStakeTxFormatter = function(options) {
     options.to = formatters.inputAddressFormatter(options.to)
   }
 
+  // address format
   ;["validatorAddress", "candidateAddress", "transferFrom", "transferTo"]
     .filter(function(key) {
       return options[key] !== undefined
     })
     .forEach(function(key) {
       options[key] = formatters.inputAddressFormatter(options[key])
+    })
+  // amount format
+  ;["amount", "maxAmount"]
+    .filter(function(key) {
+      return options[key] !== undefined
+    })
+    .forEach(function(key) {
+      options[key] = utils.fromDecimal(options[key])
     })
 
   return options
@@ -15046,7 +15054,7 @@ formatters.inputStakeTxFormatter = inputStakeTxFormatter
 
 module.exports = formatters
 
-},{"web3/lib/utils/utils":62,"web3/lib/web3/formatters":72}],94:[function(require,module,exports){
+},{"web3/lib/utils/config":60,"web3/lib/utils/utils":62,"web3/lib/web3/formatters":72}],94:[function(require,module,exports){
 var XHR2 = require("xhr2")
 var HttpProvider = require("web3/lib/web3/httpprovider")
 var url = require("url")
@@ -15103,15 +15111,11 @@ module.exports = MyHttpProvider
 },{"url":39,"web3/lib/web3/httpprovider":74,"xhr2":92}],95:[function(require,module,exports){
 var Eth = require("web3/lib/web3/methods/eth")
 var Method = require("web3/lib/web3/method")
+var Property = require("web3/lib/web3/property")
 var utils = require("web3/lib/utils/utils")
 var formatters = require("../formatters")
 var Stake = require("./stake.js")
 var Governance = require("./governance.js")
-
-/**
- * @namespace cmt
- * @memberOf web3
- */
 
 // inherit and extend Eth
 var Cmt = function(web3) {
@@ -15123,6 +15127,17 @@ var Cmt = function(web3) {
     method.setRequestManager(self._requestManager)
   })
 
+  properties().forEach(function(p) {
+    p.attachToObject(self)
+    p.setRequestManager(self._requestManager)
+  })
+
+  // isSyncing is not supported
+  this.isSyncing = undefined
+
+  // restore the original defineProperty
+  Object.defineProperty = _defineProperty
+
   this.stake = new Stake(this)
   this.governance = new Governance(this)
 }
@@ -15131,6 +15146,12 @@ Cmt.prototype = Object.create(Eth.prototype)
 Cmt.prototype.constructor = Cmt
 
 var methods = function() {
+  var sendTx = new Method({
+    name: "sendTx",
+    call: "cmt_sendTx",
+    params: 1,
+    inputFormatter: [formatters.inputTransactionFormatter]
+  })
   var sendRawTx = new Method({
     name: "sendRawTx",
     call: "cmt_sendRawTx",
@@ -15152,13 +15173,13 @@ var methods = function() {
 
   var getBlock = new Method({
     name: "getBlock",
-    call: "cmt_getBlock",
+    call: "cmt_getBlockByNumber",
     params: 1
   })
 
   var getTransaction = new Method({
     name: "getTransaction",
-    call: "cmt_getTransaction",
+    call: "cmt_getTransactionByHash",
     params: 1
   })
 
@@ -15168,12 +15189,86 @@ var methods = function() {
     params: 2
   })
 
-  return [sendRawTx, sendTransaction, sendRawTransaction]
+  return [sendTx, sendRawTx, sendTransaction, sendRawTransaction]
+}
+
+var properties = function() {
+  return [
+    new Property({
+      name: "syncing",
+      getter: "cmt_syncing"
+    })
+  ]
+}
+
+// make override properties configurable
+var _defineProperty = Object.defineProperty
+var props = properties().map(function(p) {
+  return p.name
+})
+Object.defineProperty = function(obj, prop, descriptor) {
+  if (obj instanceof Cmt && props.indexOf(prop) > -1) {
+    descriptor.configurable = true
+  }
+  return _defineProperty(obj, prop, descriptor)
 }
 
 module.exports = Cmt
 
-},{"../formatters":93,"./governance.js":96,"./stake.js":97,"web3/lib/utils/utils":62,"web3/lib/web3/method":78,"web3/lib/web3/methods/eth":80}],96:[function(require,module,exports){
+},{"../formatters":93,"./governance.js":97,"./stake.js":99,"web3/lib/utils/utils":62,"web3/lib/web3/method":78,"web3/lib/web3/methods/eth":80,"web3/lib/web3/property":87}],96:[function(require,module,exports){
+var utils = require("web3/lib/utils/utils")
+var Property = require("web3/lib/web3/property")
+var Method = require("web3/lib/web3/method")
+var formatters = require("../formatters")
+
+var Delegator = function(web3) {
+  this._requestManager = web3._requestManager
+
+  var self = this
+  methods().forEach(function(method) {
+    method.attachToObject(self)
+    method.setRequestManager(self._requestManager)
+  })
+
+  properties().forEach(function(p) {
+    p.attachToObject(self)
+    p.setRequestManager(self._requestManager)
+  })
+}
+
+var methods = function() {
+  var accept = new Method({
+    name: "accept",
+    call: "cmt_delegate",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+  var withdraw = new Method({
+    name: "withdraw",
+    call: "cmt_withdraw",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+
+  var query = new Method({
+    name: "query",
+    call: "cmt_queryDelegator",
+    params: 2,
+    inputFormatter: [
+      formatters.inputAddressFormatter,
+      formatters.inputDefaultHeightFormatter
+    ]
+  })
+  return [accept, withdraw, query]
+}
+
+var properties = function() {
+  return []
+}
+
+module.exports = Delegator
+
+},{"../formatters":93,"web3/lib/utils/utils":62,"web3/lib/web3/method":78,"web3/lib/web3/property":87}],97:[function(require,module,exports){
 var utils = require("web3/lib/utils/utils")
 var Property = require("web3/lib/web3/property")
 var Method = require("web3/lib/web3/method")
@@ -15199,9 +15294,15 @@ var Governance = function(web3) {
 }
 
 var methods = function() {
-  var propose = new Method({
-    name: "propose",
+  var proposeRecoverFund = new Method({
+    name: "proposeRecoverFund",
     call: "cmt_propose",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+  var proposeChangeParam = new Method({
+    name: "proposeChangeParam",
+    call: "cmt_proposeChangeParam",
     params: 1,
     inputFormatter: [formatters.inputStakeTxFormatter]
   })
@@ -15211,13 +15312,24 @@ var methods = function() {
     params: 1,
     inputFormatter: [formatters.inputStakeTxFormatter]
   })
-  var queryProposals = new Method({
-    name: "queryProposals",
+  var listProposals = new Method({
+    name: "listProposals",
     call: "cmt_queryProposals",
     params: 0
   })
+  var getParams = new Method({
+    name: "getParams",
+    call: "cmt_queryParams",
+    params: 0
+  })
 
-  return [propose, vote, queryProposals]
+  return [
+    proposeRecoverFund,
+    proposeChangeParam,
+    vote,
+    listProposals,
+    getParams
+  ]
 }
 
 var properties = function() {
@@ -15226,15 +15338,46 @@ var properties = function() {
 
 module.exports = Governance
 
-},{"../formatters":93,"web3/lib/utils/utils":62,"web3/lib/web3/method":78,"web3/lib/web3/property":87}],97:[function(require,module,exports){
+},{"../formatters":93,"web3/lib/utils/utils":62,"web3/lib/web3/method":78,"web3/lib/web3/property":87}],98:[function(require,module,exports){
+var Net = require("web3/lib/web3/methods/net")
+var Property = require("web3/lib/web3/property")
+var utils = require("web3/lib/utils/utils")
+var formatters = require("../formatters")
+
+// inherit and extend Net
+var MyNet = function(web3) {
+  Net.call(this, web3)
+
+  var self = this
+
+  properties().forEach(function(p) {
+    p.attachToObject(self)
+    p.setRequestManager(web3._requestManager)
+  })
+}
+
+MyNet.prototype = Object.create(Net.prototype)
+MyNet.prototype.constructor = Net
+
+var properties = function() {
+  return [
+    new Property({
+      name: "id",
+      getter: "net_version",
+      outputFormatter: utils.toDecimal
+    })
+  ]
+}
+
+module.exports = MyNet
+
+},{"../formatters":93,"web3/lib/utils/utils":62,"web3/lib/web3/methods/net":81,"web3/lib/web3/property":87}],99:[function(require,module,exports){
 var utils = require("web3/lib/utils/utils")
 var Property = require("web3/lib/web3/property")
 var Method = require("web3/lib/web3/method")
 var formatters = require("../formatters")
-
-/**
- * @namespace web3.stake
- */
+var Validator = require("./validator.js")
+var Delegator = require("./delegator.js")
 
 var Stake = function(web3) {
   this._requestManager = web3._requestManager
@@ -15249,101 +15392,13 @@ var Stake = function(web3) {
     p.attachToObject(self)
     p.setRequestManager(self._requestManager)
   })
+
+  this.validator = new Validator(this)
+  this.delegator = new Delegator(this)
 }
 
-/**
- * @typedef {Object} CmtTxReturn
- * @memberof web3.stake
- * @property {Object} result The result object
- */
-
 var methods = function() {
-  /**
-   * Allows a potential validator to declare its candidacy
-   * @method
-   * @memberof web3.stake
-   * @instance
-   * @param declareObject {Object} The declare candidacy object to send.
-   * @param declareObject.from {String} The address for the sending account. Uses the web3.cmt.defaultAccount property, if not specified.
-   * @param declareObject.pubKey {String} The validator node public key.
-   * @return {web3.stake.CmtTxReturn} A return object
-   * @example
-   * var myAccount = "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc"
-   * var pubKey = "3CD6F72704EC4ABEA701D17F3C44893937C3FEDCC934B9EF26B26D58F611D578"
-   * var r = web3.stake.declareCandidacy({from: myAccount, pubKey: pubKey})
-   * console.log(r)
-   */
-  var declareCandidacy = new Method({
-    name: "declareCandidacy",
-    call: "cmt_declareCandidacy",
-    params: 1,
-    inputFormatter: [formatters.inputStakeTxFormatter]
-  })
-  var withdrawCandidacy = new Method({
-    name: "withdrawCandidacy",
-    call: "cmt_withdrawCandidacy",
-    params: 1,
-    inputFormatter: [formatters.inputStakeTxFormatter]
-  })
-  var updateCandidacy = new Method({
-    name: "updateCandidacy",
-    call: "cmt_updateCandidacy",
-    params: 1,
-    inputFormatter: [formatters.inputStakeTxFormatter]
-  })
-  var verifyCandidacy = new Method({
-    name: "verifyCandidacy",
-    call: "cmt_verifyCandidacy",
-    params: 1,
-    inputFormatter: [formatters.inputStakeTxFormatter]
-  })
-  var delegate = new Method({
-    name: "delegate",
-    call: "cmt_delegate",
-    params: 1,
-    inputFormatter: [formatters.inputStakeTxFormatter]
-  })
-  var withdraw = new Method({
-    name: "withdraw",
-    call: "cmt_withdraw",
-    params: 1,
-    inputFormatter: [formatters.inputStakeTxFormatter]
-  })
-  var queryValidators = new Method({
-    name: "queryValidators",
-    call: "cmt_queryValidators",
-    params: 1,
-    inputFormatter: [formatters.inputDefaultHeightFormatter]
-  })
-  var queryValidator = new Method({
-    name: "queryValidator",
-    call: "cmt_queryValidator",
-    params: 2,
-    inputFormatter: [
-      formatters.inputAddressFormatter,
-      formatters.inputDefaultHeightFormatter
-    ]
-  })
-  var queryDelegator = new Method({
-    name: "queryDelegator",
-    call: "cmt_queryDelegator",
-    params: 2,
-    inputFormatter: [
-      formatters.inputAddressFormatter,
-      formatters.inputDefaultHeightFormatter
-    ]
-  })
-  return [
-    declareCandidacy,
-    withdrawCandidacy,
-    updateCandidacy,
-    verifyCandidacy,
-    delegate,
-    withdraw,
-    queryValidators,
-    queryValidator,
-    queryDelegator
-  ]
+  return []
 }
 
 var properties = function() {
@@ -15352,7 +15407,85 @@ var properties = function() {
 
 module.exports = Stake
 
-},{"../formatters":93,"web3/lib/utils/utils":62,"web3/lib/web3/method":78,"web3/lib/web3/property":87}],98:[function(require,module,exports){
+},{"../formatters":93,"./delegator.js":96,"./validator.js":100,"web3/lib/utils/utils":62,"web3/lib/web3/method":78,"web3/lib/web3/property":87}],100:[function(require,module,exports){
+var utils = require("web3/lib/utils/utils")
+var Property = require("web3/lib/web3/property")
+var Method = require("web3/lib/web3/method")
+var formatters = require("../formatters")
+
+var Validator = function(web3) {
+  this._requestManager = web3._requestManager
+
+  var self = this
+  methods().forEach(function(method) {
+    method.attachToObject(self)
+    method.setRequestManager(self._requestManager)
+  })
+
+  properties().forEach(function(p) {
+    p.attachToObject(self)
+    p.setRequestManager(self._requestManager)
+  })
+}
+
+var methods = function() {
+  var declare = new Method({
+    name: "declare",
+    call: "cmt_declareCandidacy",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+  var withdraw = new Method({
+    name: "withdraw",
+    call: "cmt_withdrawCandidacy",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+  var update = new Method({
+    name: "update",
+    call: "cmt_updateCandidacy",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+  var verify = new Method({
+    name: "verify",
+    call: "cmt_verifyCandidacy",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+  var activate = new Method({
+    name: "activate",
+    call: "cmt_activateCandidacy",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+
+  var list = new Method({
+    name: "list",
+    call: "cmt_queryValidators",
+    params: 1,
+    inputFormatter: [formatters.inputDefaultHeightFormatter]
+  })
+  var query = new Method({
+    name: "query",
+    call: "cmt_queryValidator",
+    params: 2,
+    inputFormatter: [
+      formatters.inputAddressFormatter,
+      formatters.inputDefaultHeightFormatter
+    ]
+  })
+
+  return [declare, withdraw, update, verify, activate, list, query]
+}
+
+var properties = function() {
+  return []
+}
+
+module.exports = Validator
+
+},{"../formatters":93,"web3/lib/utils/utils":62,"web3/lib/web3/method":78,"web3/lib/web3/property":87}],101:[function(require,module,exports){
 var BigNumber = require("bignumber.js")
 var utils = require("web3/lib/utils/utils")
 
@@ -15467,16 +15600,17 @@ module.exports = {
   toWei: toWei
 }
 
-},{"bignumber.js":"bignumber.js","web3/lib/utils/utils":62}],99:[function(require,module,exports){
+},{"bignumber.js":"bignumber.js","web3/lib/utils/utils":62}],102:[function(require,module,exports){
 module.exports={
-  "version": "0.0.1"
+  "version": "0.0.2"
 }
 
-},{}],100:[function(require,module,exports){
+},{}],103:[function(require,module,exports){
 var Web3 = require("web3")
 
 var version = require("./version.json")
 var Cmt = require("./methods/cmt.js")
+var Net = require("./methods/net.js")
 var HttpProvider = require("./httpprovider")
 var utils = require("./utils")
 
@@ -15485,6 +15619,8 @@ var MyWeb3 = function(provider) {
 
   this.cmt = new Cmt(this)
   this.cmt.version = version.version
+
+  this.net = new Net(this)
 
   delete this.eth
 }
@@ -15500,7 +15636,7 @@ MyWeb3.prototype.fromWei = utils.fromWei
 
 module.exports = MyWeb3
 
-},{"./httpprovider":94,"./methods/cmt.js":95,"./utils":98,"./version.json":99,"web3":42}],"bignumber.js":[function(require,module,exports){
+},{"./httpprovider":94,"./methods/cmt.js":95,"./methods/net.js":98,"./utils":101,"./version.json":102,"web3":42}],"bignumber.js":[function(require,module,exports){
 /*! bignumber.js v4.1.0 https://github.com/MikeMcl/bignumber.js/LICENCE */
 
 ;(function (globalObj) {
@@ -18246,5 +18382,5 @@ if (typeof window !== "undefined" && typeof window.Web3 === "undefined") {
 
 module.exports = Web3
 
-},{"./web3/web3":100}]},{},["web3-cmt"])
+},{"./web3/web3":103}]},{},["web3-cmt"])
 //# sourceMappingURL=web3-cmt.js.map
