@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 )
@@ -273,7 +272,6 @@ func (ad awardDistributor) awardToValidator(v *validator, award *big.Int) {
 
 func (ad awardDistributor) awardToDelegator(d delegator, v *validator, award *big.Int) {
 	ad.logger.Debug("awardToDelegator", "delegator_address", d.address.String(), "award", award)
-	commons.Transfer(utils.MintAccount, utils.HoldAccount, award)
 	now := utils.GetNow()
 
 	// add doDistribute to stake of the delegator
