@@ -22,6 +22,6 @@ module.exports = {
   GasLimit: {
     DeclareCandidacy: 1e6,
     UpdateCandidacy: 1e6,
-    GovernancePropose: 2e6
+    TransferFundProposal: 2e6
   }
 }

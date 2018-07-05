@@ -14,6 +14,7 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
+	"math"
 )
 
 //_________________________________________________________________________
@@ -31,6 +32,7 @@ type Candidate struct {
 	OwnerAddress string       `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
 	Shares       string       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
 	VotingPower  int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
+	RankingPower int64        `json:"ranking_power"` // Ranking power if pubKey is a considered a validator
 	MaxShares    string       `json:"max_shares"`
 	CompRate     string       `json:"comp_rate"`
 	CreatedAt    string       `json:"created_at"`
@@ -122,6 +124,19 @@ func (c *Candidate) Hash() []byte {
 	return hasher.Sum(nil)
 }
 
+func (c *Candidate) CalcRankingPower() {
+	delegations := GetDelegationsByPubKey(c.PubKey)
+	var sum int64
+	sum = 0
+	for _, d := range delegations {
+		// calculate the ranking power of the delegator
+		v := float64(new(big.Int).Div(d.Shares(), big.NewInt(1e18)).Int64()) * 10000
+		sum = sum + int64(math.Sqrt(v))
+	}
+
+	c.RankingPower = sum
+}
+
 // Validator is one of the top Candidates
 type Validator Candidate
 
@@ -147,13 +162,12 @@ var _ sort.Interface = Candidates{} //enforce the sort interface at compile time
 func (cs Candidates) Len() int      { return len(cs) }
 func (cs Candidates) Swap(i, j int) { cs[i], cs[j] = cs[j], cs[i] }
 func (cs Candidates) Less(i, j int) bool {
-	vp1, vp2 := cs[i].VotingPower, cs[j].VotingPower
-	//pk1, pk2 := cs[i].PubKey.Bytes(), cs[j].PubKey.Bytes()
+	rp1, rp2 := cs[i].RankingPower, cs[j].RankingPower
 	pk1, pk2 := cs[i].PubKey.Address(), cs[j].PubKey.Address()
 
 	//note that all ChainId and App must be the same for a group of candidates
-	if vp1 != vp2 {
-		return vp1 > vp2
+	if rp1 != rp2 {
+		return rp1 > rp2
 	}
 	return bytes.Compare(pk1, pk2) == -1
 }
@@ -165,12 +179,14 @@ func (cs Candidates) Sort() {
 
 // update the voting power and save
 func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
-
 	// update voting power
 	for _, c := range cs {
 		shares := c.ParseShares()
+		c.CalcRankingPower()
+
 		if c.Active == "N" {
 			c.VotingPower = 0
+			c.RankingPower = 0
 		} else if big.NewInt(c.VotingPower).Cmp(shares) != 0 {
 			v := new(big.Int)
 			v.Div(shares, big.NewInt(1e18))
@@ -182,7 +198,18 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 		// truncate the power
 		if i >= int(utils.GetParams().MaxVals) {
 			c.VotingPower = 0
+
+			if i > (int(utils.GetParams().MaxVals) + 5) {
+				c.RankingPower = 0
+				c.State = "Candidate"
+			} else {
+				c.State = "Backup Validator"
+			}
+		} else {
+			c.State = "Validator"
 		}
+
+		c.Rank = int64(i)
 		updateCandidate(c)
 	}
 	return cs
@@ -193,7 +220,6 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 // the UpdateVotingPower function which is the only function which
 // is to modify the VotingPower
 func (cs Candidates) Validators() Validators {
-
 	//test if empty
 	if len(cs) == 1 {
 		if cs[0].VotingPower == 0 {

@@ -7,6 +7,7 @@ import (
 	"github.com/tendermint/tendermint/libs/cli"
 	"path"
 
+	"fmt"
 	"github.com/CyberMiles/travis/types"
 )
 
@@ -21,103 +22,75 @@ func getDb() *sql.DB {
 	return db
 }
 
+func composeQueryClause(cond map[string]interface{}) string {
+	if cond == nil || len(cond) == 0 {
+		return ""
+	}
+
+	clause := ""
+	for k, v := range cond {
+		s := ""
+		switch v.(type) {
+		case string:
+			s = fmt.Sprintf("%s = '%s'", k, v)
+		default:
+			s = fmt.Sprintf("%s = %v", k, v)
+		}
+
+		if len(clause) == 0 {
+			clause = s
+		} else {
+			clause = fmt.Sprintf("%s and %s", clause, s)
+		}
+	}
+
+	if len(clause) != 0 {
+		clause = fmt.Sprintf(" where %s", clause)
+	}
+
+	return clause
+}
+
 func GetCandidateByAddress(address common.Address) *Candidate {
-	db := getDb()
-	defer db.Close()
-	stmt, err := db.Prepare("select pub_key, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates where address = ?")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
-
-	var pubKey, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-	var votingPower, blockHeight, rank int64
-	err = stmt.QueryRow(address.String()).Scan(&pubKey, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
-
-	switch {
-	case err == sql.ErrNoRows:
+	cond := make(map[string]interface{})
+	cond["address"] = address.String()
+	candidates := getCandidatesInternal(cond)
+	if len(candidates) == 0 {
 		return nil
-	case err != nil:
-		panic(err)
-	}
-
-	pk, _ := types.GetPubKey(pubKey)
-	description := Description{
-		Name:     name,
-		Website:  website,
-		Location: location,
-		Profile:  profile,
-		Email:    email,
-	}
-	return &Candidate{
-		PubKey:       pk,
-		OwnerAddress: address.String(),
-		Shares:       shares,
-		VotingPower:  votingPower,
-		MaxShares:    maxShares,
-		CompRate:     compRate,
-		Description:  description,
-		CreatedAt:    createdAt,
-		UpdatedAt:    updatedAt,
-		Verified:     verified,
-		Active:       active,
-		BlockHeight:  blockHeight,
-		Rank:         rank,
-		State:        state,
+	} else {
+		return candidates[0]
 	}
 }
 
 func GetCandidateByPubKey(pubKey string) *Candidate {
-	db := getDb()
-	defer db.Close()
-	stmt, err := db.Prepare("select address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates where pub_key = ?")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
-
-	var address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-	var votingPower, blockHeight, rank int64
-	err = stmt.QueryRow(pubKey).Scan(&address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
-
-	switch {
-	case err == sql.ErrNoRows:
+	cond := make(map[string]interface{})
+	cond["pub_key"] = pubKey
+	candidates := getCandidatesInternal(cond)
+	if len(candidates) == 0 {
 		return nil
-	case err != nil:
-		panic(err)
-	}
-
-	pk, _ := types.GetPubKey(pubKey)
-	description := Description{
-		Name:     name,
-		Website:  website,
-		Location: location,
-		Profile:  profile,
-		Email:    email,
-	}
-	return &Candidate{
-		PubKey:       pk,
-		OwnerAddress: address,
-		Shares:       shares,
-		VotingPower:  votingPower,
-		MaxShares:    maxShares,
-		CompRate:     compRate,
-		Description:  description,
-		Verified:     verified,
-		CreatedAt:    createdAt,
-		UpdatedAt:    updatedAt,
-		Active:       active,
-		BlockHeight:  blockHeight,
-		Rank:         rank,
-		State:        state,
+	} else {
+		return candidates[0]
 	}
 }
 
 func GetCandidates() (candidates Candidates) {
+	cond := make(map[string]interface{})
+	return getCandidatesInternal(cond)
+}
+
+func GetBackupValidators() (candidates Candidates) {
+	cond := make(map[string]interface{})
+	cond["state"] = "Backup Validator"
+	cond["active"] = "Y"
+	return getCandidatesInternal(cond)
+}
+
+func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates")
+	clause := composeQueryClause(cond)
+	rows, err := db.Query("select pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
 	if err != nil {
 		panic(err)
 	}
@@ -125,8 +98,8 @@ func GetCandidates() (candidates Candidates) {
 
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-		var votingPower, blockHeight, rank int64
-		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+		var votingPower, blockHeight, rank, rankingPower int64
+		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &rankingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -143,6 +116,7 @@ func GetCandidates() (candidates Candidates) {
 			OwnerAddress: address,
 			Shares:       shares,
 			VotingPower:  votingPower,
+			RankingPower: rankingPower,
 			MaxShares:    maxShares,
 			CompRate:     compRate,
 			Description:  description,
@@ -174,7 +148,7 @@ func SaveCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -185,6 +159,7 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
+		candidate.RankingPower,
 		candidate.MaxShares,
 		candidate.CompRate,
 		candidate.Description.Name,
@@ -215,7 +190,7 @@ func updateCandidate(candidate *Candidate) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
+	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, ranking_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -225,6 +200,7 @@ func updateCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
+		candidate.RankingPower,
 		candidate.MaxShares,
 		candidate.CompRate,
 		candidate.Description.Name,
@@ -414,108 +390,44 @@ func UpdateDelegation(d *Delegation) {
 	}
 }
 
-func UpdateDelegatorAddress(d *Delegation, originalAddress common.Address) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
-
-	stmt, err := tx.Prepare("update delegations set delegator_address = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(d.DelegatorAddress.String(), d.UpdatedAt, originalAddress.String(), types.PubKeyString(d.PubKey))
-	if err != nil {
-		panic(err)
-	}
-}
-
 func GetDelegation(delegatorAddress common.Address, pubKey types.PubKey) *Delegation {
-	db := getDb()
-	defer db.Close()
-	stmt, err := db.Prepare("select delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations where delegator_address = ? and pub_key = ?")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
-
-	var delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
-	err = stmt.QueryRow(delegatorAddress.String(), types.PubKeyString(pubKey)).Scan(&delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
-
-	switch {
-	case err == sql.ErrNoRows:
+	cond := make(map[string]interface{})
+	cond["delegator_address"] = delegatorAddress.String()
+	cond["pub_key"] = types.PubKeyString(pubKey)
+	delegations := getDelegationsInternal(cond)
+	if len(delegations) == 0 {
 		return nil
-	case err != nil:
-		panic(err)
-	}
-
-	return &Delegation{
-		DelegatorAddress: delegatorAddress,
-		PubKey:           pubKey,
-		DelegateAmount:   delegateAmount,
-		AwardAmount:      awardAmount,
-		WithdrawAmount:   withdrawAmount,
-		SlashAmount:      slashAmount,
-		CreatedAt:        createdAt,
-		UpdatedAt:        updatedAt,
+	} else {
+		return delegations[0]
 	}
 }
 
 func GetDelegationsByPubKey(pubKey types.PubKey) (delegations []*Delegation) {
-	db := getDb()
-	defer db.Close()
-
-	rows, err := db.Query("select delegator_address, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations where pub_key = ?", types.PubKeyString(pubKey))
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var delegatorAddress, delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
-		err = rows.Scan(&delegatorAddress, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
-		if err != nil {
-			panic(err)
-		}
-
-		delegation := &Delegation{
-			DelegatorAddress: common.HexToAddress(delegatorAddress),
-			PubKey:           pubKey,
-			DelegateAmount:   delegateAmount,
-			AwardAmount:      awardAmount,
-			WithdrawAmount:   withdrawAmount,
-			SlashAmount:      slashAmount,
-			CreatedAt:        createdAt,
-			UpdatedAt:        updatedAt,
-		}
-		delegations = append(delegations, delegation)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		panic(err)
-	}
-	return
+	cond := make(map[string]interface{})
+	cond["pub_key"] = types.PubKeyString(pubKey)
+	return getDelegationsInternal(cond)
 }
 
 func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*Delegation) {
+	cond := make(map[string]interface{})
+	cond["delegator_address"] = delegatorAddress.String()
+	return getDelegationsInternal(cond)
+}
+
+func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegation) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations where delegator_address = ?", delegatorAddress.String())
+	clause := composeQueryClause(cond)
+	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations" + clause)
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
-		err = rows.Scan(&pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
+		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
+		err = rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -526,7 +438,7 @@ func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*
 		}
 
 		delegation := &Delegation{
-			DelegatorAddress: delegatorAddress,
+			DelegatorAddress: common.HexToAddress(delegatorAddress),
 			PubKey:           pk,
 			DelegateAmount:   delegateAmount,
 			AwardAmount:      awardAmount,

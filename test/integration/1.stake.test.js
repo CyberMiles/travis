@@ -8,7 +8,7 @@ const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
-describe("Stake Test", function() {
+describe.skip("Stake Test", function() {
   before(function() {
     Utils.addFakeValidators()
   })

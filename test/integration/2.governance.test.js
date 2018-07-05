@@ -99,7 +99,7 @@ describe("Governance Test", function() {
         // check deliver tx tx_result
         expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
         expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.GasLimit.GovernancePropose).toString()
+          web3.toBigNumber(Globals.GasLimit.TransferFundProposal).toString()
         )
       })
       describe("Validators A, B, and C votes for the proposal. The total vote (A+B+C) now exceeds 2/3. ", function() {
@@ -164,7 +164,7 @@ describe("Governance Test", function() {
         // check deliver tx tx_result
         expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
         expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.GasLimit.GovernancePropose).toString()
+          web3.toBigNumber(Globals.GasLimit.TransferFundProposal).toString()
         )
       })
       describe("Validator A votes for the proposal, but defaultAccount, B and C vote against the proposal. The total vote (default+B+C) now exceeds 2/3.", function() {
@@ -225,7 +225,7 @@ describe("Governance Test", function() {
         // check deliver tx tx_result
         expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
         expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.GasLimit.GovernancePropose).toString()
+          web3.toBigNumber(Globals.GasLimit.TransferFundProposal).toString()
         )
       })
 

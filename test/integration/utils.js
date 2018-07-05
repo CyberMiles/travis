@@ -185,8 +185,8 @@ const getProposal = proposalId => {
   expect(proposalId).to.not.be.empty
   if (proposalId === "") return
 
-  let r = web3.cmt.governance.queryProposals()
-  logger.debug("getProposal:", r)
+  let r = web3.cmt.governance.listProposals()
+  logger.debug("listProposals:", r)
 
   expect(r.data.length).to.be.above(0)
   if (r.data.length > 0) {
@@ -289,7 +289,7 @@ const gasFee = txType => {
       gasLimit = web3.toBigNumber(Globals.GasLimit.UpdateCandidacy)
       break
     case "governancePropose":
-      gasLimit = web3.toBigNumber(Globals.GasLimit.GovernancePropose)
+      gasLimit = web3.toBigNumber(Globals.GasLimit.TransferFundProposal)
       break
   }
   return gasPrice.times(gasLimit)
