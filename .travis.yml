@@ -57,7 +57,7 @@ deploy:
   skip_cleanup: true
   file_glob: true
   file: "${RELEASE_PKG_FILE}"
-  name: Travis "$TRAVIS_TAG"
+  name: Travis $TRAVIS_TAG
   body: https://github.com/CyberMiles/travis/blob/develop/CHANGELOG.md#${TRAVIS_TAG//.}
   on:
     repo: CyberMiles/travis
