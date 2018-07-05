@@ -44,7 +44,7 @@ func (app *EthermintApplication) Receiver() common.Address {
 	if app.strategy != nil {
 		return app.strategy.Receiver()
 	}
-	return common.Address{}
+	return utils.HoldAccount
 }
 
 // SetValidators sets new validators on the strategy
