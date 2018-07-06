@@ -71,13 +71,13 @@ func (v *validator) computeTotalSharesPercentage(redistribute bool) {
 	v.sharesPercentage = new(big.Float).Quo(x, y)
 	v.exceedLimit = false
 
-	slf, err := strconv.ParseFloat(utils.GetParams().StakeLimit, 64)
+	slf, err := strconv.ParseFloat(utils.GetParams().ValidatorSizeThreshold, 64)
 	if err != nil {
 		panic(err)
 	}
-	stakeLimit := big.NewFloat(slf)
-	if !redistribute && v.sharesPercentage.Cmp(stakeLimit) > 0 {
-		v.sharesPercentage = stakeLimit
+	threshold := big.NewFloat(slf)
+	if !redistribute && v.sharesPercentage.Cmp(threshold) > 0 {
+		v.sharesPercentage = threshold
 		v.exceedLimit = true
 	}
 }
@@ -152,7 +152,7 @@ func (ad awardDistributor) Distribute() {
 	normalizedBackupValidators, totalBackupsShares := ad.buildValidators(ad.backupValidators)
 	totalAward := new(big.Int)
 	if len(normalizedBackupValidators) > 0 {
-		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(80))
+		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(utils.GetParams().ValidatorsBlockAwardRatio))
 		totalAward.Div(totalAward, big.NewInt(100))
 	} else {
 		totalAward = ad.getBlockAwardAndTxFees()
@@ -162,7 +162,7 @@ func (ad awardDistributor) Distribute() {
 	// distribute to the backup validators
 	if len(normalizedBackupValidators) > 0 {
 		totalAward = new(big.Int)
-		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(20))
+		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(100-utils.GetParams().ValidatorsBlockAwardRatio))
 		totalAward.Div(totalAward, big.NewInt(100))
 		ad.distributeToValidators(normalizedBackupValidators, totalBackupsShares, totalAward)
 	}
@@ -191,6 +191,12 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		// Get all delegators
 		delegations := GetDelegationsByPubKey(candidate.PubKey)
 		for _, delegation := range delegations {
+			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
+			minStakingAmount := new(big.Int).Mul(big.NewInt(utils.GetParams().MinStakingAmount), big.NewInt(1e18))
+			if delegation.Shares().Cmp(minStakingAmount) < 0 {
+				continue
+			}
+
 			delegator := delegator{}
 			delegator.address = delegation.DelegatorAddress
 			delegator.shares = delegation.Shares()

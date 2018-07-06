@@ -10,11 +10,6 @@ import (
 	"github.com/CyberMiles/travis/utils"
 )
 
-const (
-	slashing_ratio    = 0.001 // deduction ratio for the absent validators
-	max_slashes_limit = 12
-)
-
 type Absence struct {
 	count           int16
 	lastBlockHeight int64
@@ -64,11 +59,12 @@ func PunishByzantineValidator(pubKey types.PubKey) (err error) {
 }
 
 func PunishAbsentValidator(pubKey types.PubKey, absence *Absence) (err error) {
-	if absence.GetCount() <= max_slashes_limit {
+	maxSlashingBlocks := utils.GetParams().MaxSlashingBlocks
+	if absence.GetCount() <= maxSlashingBlocks {
 		err = punish(pubKey, "Absent")
 	}
 
-	if absence.GetCount() == max_slashes_limit {
+	if absence.GetCount() == maxSlashingBlocks {
 		err = RemoveAbsentValidator(pubKey)
 	}
 	return
@@ -87,10 +83,11 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 
 	// Get all of the delegators(includes the validator itself)
 	delegations := GetDelegationsByPubKey(v.PubKey)
+	slashingRatio := utils.GetParams().SlashingRatio
 	for _, delegation := range delegations {
 		tmp := new(big.Float)
 		x := new(big.Float).SetInt(delegation.Shares())
-		tmp.Mul(x, big.NewFloat(slashing_ratio))
+		tmp.Mul(x, big.NewFloat(slashingRatio))
 		slash := new(big.Int)
 		tmp.Int(slash)
 		punishDelegator(delegation, common.HexToAddress(v.OwnerAddress), slash)
@@ -98,7 +95,7 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 	}
 
 	// Save punishment history
-	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: slashing_ratio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
+	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: slashingRatio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
 	savePunishHistory(punishHistory)
 
 	return
