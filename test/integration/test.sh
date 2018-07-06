@@ -13,6 +13,7 @@ cd ~/volumes/testnet/travis/scripts
 git checkout tmup22
 yes "" | sudo ./cluster.sh test 6 4
 docker-compose up -d all
+curl http://localhost:26657/status
 
 # web3-cmt
 git clone https://github.com/CyberMiles/web3-cmt.js ~/web3-cmt.js
@@ -36,6 +37,7 @@ IMG=ywonline/travis
 docker run --rm -v ~/volumes/local:/travis $IMG node init --home=/travis
 docker run --rm -v ~/volumes/local:/travis -d -p 26657:26657 -p 8545:8545 $IMG node start --home=/travis
 sleep 3
+curl http://localhost:26657/status
 
 cd $BASEDIR
 yarn test

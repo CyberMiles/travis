@@ -18,10 +18,10 @@ describe.skip("Stake Test", function() {
 
   function Amounts(maxAmount) {
     this.max = web3.toWei(maxAmount, "cmt")
-    this.self = web3.toWei(maxAmount * Globals.ValMinSelfStakingRatio, "cmt")
+    this.self = web3.toWei(maxAmount * Globals.Params.self_staking_ratio, "cmt")
     this.dele1 = web3.toWei(maxAmount * 0.1, "cmt")
     this.dele2 = web3.toWei(
-      maxAmount * (1 - Globals.ValMinSelfStakingRatio - 0.1),
+      maxAmount * (1 - Globals.Params.self_staking_ratio - 0.1),
       "cmt"
     )
     this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")

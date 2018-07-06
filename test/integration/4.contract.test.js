@@ -8,8 +8,11 @@ describe("Contract Test", function() {
   let token_balance_old = new Array(4),
     token_balance_new = new Array(4)
   let tokens = 1,
-    gasPrice = Globals.GasPrice
+    gasPrice
 
+  before(function() {
+    gasPrice = Globals.Params.gas_price
+  })
   before("Transfer 1000 ETH to A, B, C, D from defaultAccount", function(done) {
     logger.info(this.test.fullTitle())
 

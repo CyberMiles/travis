@@ -50,6 +50,12 @@ before("Unlock all accounts", function() {
   })
 })
 
+before("Load system parameters", function() {
+  let params = web3.cmt.governance.getParams()
+  Globals.Params = params.data
+  logger.debug(Globals.Params)
+})
+
 before("Setup a ERC20 Smart contract called ETH", function(done) {
   logger.info(this.test.fullTitle())
   // check if contract already exists
