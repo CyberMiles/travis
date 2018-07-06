@@ -655,6 +655,10 @@ func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
 		}
 
 		delegation := GetDelegation(req.DelegatorAddress, candidate.PubKey)
+		if delegation == nil {
+			continue
+		}
+
 		if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
 			RemoveDelegation(delegation)
 		}
