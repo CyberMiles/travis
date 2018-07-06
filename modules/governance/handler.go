@@ -132,10 +132,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 				return sdk.NewCheck(0, ""), ErrRejectedProposal()
 			}
 		}
-		if vote := GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
-			// revote is allowed
-			// return sdk.NewCheck(0, ""), ErrRepeatedVote()
-		}
 		if proposal.Type == TRANSFER_FUND_PROPOSAL {
 			utils.TravisTxAddrs = append(utils.TravisTxAddrs, proposal.Detail["to"].(*common.Address))
 		}

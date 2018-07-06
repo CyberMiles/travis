@@ -141,7 +141,10 @@ const calcAward = powers => {
   })
   let origin = powers.map(p => p / total)
   let round1 = origin.map(
-    p => (p > Globals.ValSizeLimit ? Globals.ValSizeLimit : p)
+    p =>
+      p > Globals.Params.validator_size_threshold
+        ? Globals.Params.validator_size_threshold
+        : p
   )
 
   let left =
@@ -157,7 +160,11 @@ const calcAward = powers => {
   })
   // console.log(final)
 
-  let result = powers.map((p, idx) => p + final[idx] * Globals.BlockAwards)
+  let blockAwards =
+    (1000000000 * Globals.Params.inflation_rate) /
+    100 /
+    ((365 * 24 * 3600) / 10)
+  let result = powers.map((p, idx) => p + final[idx] * blockAwards)
   // console.log(result)
   return result
 }
@@ -279,17 +286,20 @@ const expectTxSuccess = r => {
 }
 
 const gasFee = txType => {
-  let gasPrice = web3.toBigNumber(Globals.GasPrice)
+  let gasPrice = web3.toBigNumber(Globals.Params.gas_price)
   let gasLimit = 0
   switch (txType) {
     case "declareCandidacy":
-      gasLimit = web3.toBigNumber(Globals.GasLimit.DeclareCandidacy)
+      gasLimit = web3.toBigNumber(Globals.Params.declare_candidacy)
       break
     case "updateCandidacy":
-      gasLimit = web3.toBigNumber(Globals.GasLimit.UpdateCandidacy)
+      gasLimit = web3.toBigNumber(Globals.Params.update_candidacy)
       break
-    case "governancePropose":
-      gasLimit = web3.toBigNumber(Globals.GasLimit.TransferFundProposal)
+    case "proposeTransferFund":
+      gasLimit = web3.toBigNumber(Globals.Params.transfer_fund_proposal)
+      break
+    case "proposeChangeParam":
+      gasLimit = web3.toBigNumber(Globals.Params.change_params_proposal)
       break
   }
   return gasPrice.times(gasLimit)
