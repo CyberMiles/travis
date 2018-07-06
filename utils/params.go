@@ -24,7 +24,7 @@ type Params struct {
 	MinStakingAmount          int64          `json:"min_staking_amount" type:"int"`
 	ValidatorsBlockAwardRatio int64          `json:"validators_block_award_ratio" type:"int"`
 	MaxSlashingBlocks         int16          `json:"max_slashing_blocks" type:"int"`
-	SlashingRatio             float64        `json:"slashing_ratio" type:"float"`
+	SlashingRatio             string         `json:"slashing_ratio" type:"float"`
 }
 
 func defaultParams() *Params {
@@ -44,7 +44,7 @@ func defaultParams() *Params {
 		MinStakingAmount:          1000,
 		ValidatorsBlockAwardRatio: 80,
 		MaxSlashingBlocks:         12,
-		SlashingRatio:             0.001,
+		SlashingRatio:             "0.001",
 	}
 }
 

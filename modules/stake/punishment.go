@@ -83,7 +83,7 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 
 	// Get all of the delegators(includes the validator itself)
 	delegations := GetDelegationsByPubKey(v.PubKey)
-	slashingRatio := utils.GetParams().SlashingRatio
+	slashingRatio := utils.ParseFloat(utils.GetParams().SlashingRatio)
 	for _, delegation := range delegations {
 		tmp := new(big.Float)
 		x := new(big.Float).SetInt(delegation.Shares())
