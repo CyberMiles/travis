@@ -13,6 +13,7 @@ cd ~/volumes/testnet/travis/scripts
 git checkout tmup22
 yes "" | sudo ./cluster.sh test 6 4
 docker-compose up -d all
+sleep 3
 curl http://localhost:26657/status
 
 # web3-cmt
