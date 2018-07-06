@@ -166,6 +166,8 @@ func (ad awardDistributor) Distribute() {
 		totalAward.Div(totalAward, big.NewInt(100))
 		ad.distributeToValidators(normalizedBackupValidators, totalBackupsShares, totalAward)
 	}
+
+	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
 }
 
 func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares *big.Int) {
@@ -265,7 +267,6 @@ func (ad awardDistributor) awardToValidator(v *validator, award *big.Int) {
 
 func (ad awardDistributor) awardToDelegator(d delegator, v *validator, award *big.Int) {
 	ad.logger.Debug("awardToDelegator", "delegator_address", d.address.String(), "award", award)
-	commons.Transfer(utils.MintAccount, utils.HoldAccount, award)
 	now := utils.GetNow()
 
 	// add doDistribute to stake of the delegator
