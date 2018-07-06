@@ -6,19 +6,19 @@ _July 5th, 2018_
 
 ### FEATURES
 
-- Charge gas fee for declareCandidacy, updateCandidacy and propose transactions.
-- Make changes to the system parameters through governance transactions.
+- Gas fee: Charge Validator for declaring candidacy, updating candidate information and proposing transactions. 
+- Governance Transactions: Change system parameters through governance transactions.
 
 ### IMPROVEMENTS
 
 - Update tendermit to v0.20.0.
-- Add more fields to Candidacy(name, email, profile).
-- ChainId: 18: mainnet, 19: testnet, 20: staging.
+- Add Candidate information fields: name, email, profile.
+- Change parameters of ChainId:  18: mainnet, 19: testnet, 20: staging.
 - Add cmt.syncing to get node syncing status.
 
 ### FIXES
 
-- If the max amount of CMTs is decreased, no additional self-staked CMTs should be charged.
-- Fake validators shouldn't get block awards.
-- Block award calculation error.
-- Incorrect delegator address provided while withdrawing candidacy.
+- If the maximum staking amount decreases, Validator self-staked CMTs won't be charged.
+- Correct non-running Validators won’t get block awards.
+- Fix Block Award calculation error.
+- Correct delegator address when a Validator withdraws candidacy.
