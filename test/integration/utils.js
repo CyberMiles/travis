@@ -313,7 +313,7 @@ const addFakeValidators = () => {
     if (valsToAdd > 0) {
       Globals.Accounts.forEach((acc, idx) => {
         if (idx >= valsToAdd) return
-        let initAmount = 1000,
+        let initAmount = 10000,
           compRate = "0.8"
         let payload = {
           from: acc,

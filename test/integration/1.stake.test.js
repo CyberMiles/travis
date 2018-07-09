@@ -9,28 +9,27 @@ const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
 describe.skip("Stake Test", function() {
+  function Amounts(maxAmount) {
+    self_staking_ratio = Globals.Params.self_staking_ratio
+    this.max = web3.toWei(maxAmount, "cmt")
+    this.self = web3.toWei(maxAmount * self_staking_ratio, "cmt")
+    this.dele1 = web3.toWei(maxAmount * 0.1, "cmt")
+    this.dele2 = web3.toWei(maxAmount * (1 - self_staking_ratio - 0.1), "cmt")
+    this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")
+  }
+
+  let compRate = "0.8"
+  let existingValidator = {}
+  let amounts, balance_old, balance_new, tx_result
+
   before(function() {
     Utils.addFakeValidators()
+    amounts = new Amounts(20000) // 20000 cmt
   })
+
   after(function() {
     Utils.removeFakeValidators()
   })
-
-  function Amounts(maxAmount) {
-    this.max = web3.toWei(maxAmount, "cmt")
-    this.self = web3.toWei(maxAmount * Globals.Params.self_staking_ratio, "cmt")
-    this.dele1 = web3.toWei(maxAmount * 0.1, "cmt")
-    this.dele2 = web3.toWei(
-      maxAmount * (1 - Globals.Params.self_staking_ratio - 0.1),
-      "cmt"
-    )
-    this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")
-  }
-  let amounts = new Amounts(2000) // 2000 cmt
-  let compRate = "0.8"
-
-  let existingValidator = {}
-  let balance_old, balance_new, tx_result
 
   before(function() {
     // get existing validator
@@ -42,7 +41,7 @@ describe.skip("Stake Test", function() {
     expect(existingValidator).be.an("object")
 
     if (Globals.TestMode == "single") {
-      amounts = new Amounts(200) // 200 cmt
+      amounts = new Amounts(2000) // 2000 cmt
     }
   })
 
@@ -67,14 +66,9 @@ describe.skip("Stake Test", function() {
       Utils.expectTxFail(tx_result)
     })
 
-    describe(`Declare to be a validator with ${web3.fromWei(
-      amounts.max,
-      "cmt"
-    )} CMTs max and ${compRate * 100}% compRate`, function() {
-      describe(`Account D does not have ${web3.fromWei(
-        amounts.self,
-        "cmt"
-      )} CMTs.`, function() {
+    describe(`Declare to be a validator with 20000 CMTs max and ${compRate *
+      100}% compRate`, function() {
+      describe("Account D does not have enough CMTs.", function() {
         before(function() {
           balance = Utils.getBalance(3)
           Utils.transfer(Globals.Accounts[3], web3.cmt.defaultAccount, balance)
@@ -95,10 +89,7 @@ describe.skip("Stake Test", function() {
         })
       })
 
-      describe(`Account D has over ${web3.fromWei(
-        amounts.self,
-        "cmt"
-      )} CMTs.`, function() {
+      describe("Account D has enough CMTs.", function() {
         before(function(done) {
           let balance = Utils.getBalance(3)
           if (balance.minus(amounts.self) < 0) {
@@ -121,10 +112,7 @@ describe.skip("Stake Test", function() {
           balance_old = Utils.getBalance(3)
         })
 
-        it(`Succeeds, the ${web3.fromWei(
-          amounts.self,
-          "cmt"
-        )} CMTs becomes D's stake after the successful declaration`, function() {
+        it("Succeeds, the 2000 CMTs becomes D's stake after the successful declaration", function() {
           let payload = {
             from: Globals.Accounts[3],
             pubKey: Globals.PubKeys[3],
@@ -142,7 +130,7 @@ describe.skip("Stake Test", function() {
           // check deliver tx tx_result
           expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
           expect(tx_result.deliver_tx.gasUsed).to.eq(
-            web3.toBigNumber(Globals.GasLimit.DeclareCandidacy).toString()
+            web3.toBigNumber(Globals.Params.declare_candidacy).toString()
           )
         })
       })
@@ -181,10 +169,7 @@ describe.skip("Stake Test", function() {
   })
 
   describe("Stake Delegate", function() {
-    describe(`Account B stakes ${web3.fromWei(
-      amounts.dele1,
-      "cmt"
-    )} CMTs for D.`, function() {
+    describe("Account B stakes 2000 CMTs for D.", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(1)
@@ -214,16 +199,14 @@ describe.skip("Stake Test", function() {
             .toNumber()
         ).to.eq(Number(amounts.dele1))
       })
-      it("D is still not a validator", function() {
+      it("D become a backup", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         let power = tx_result.data.voting_power
         expect(power).to.eq(0)
+        //todo ranking power
       })
     })
-    describe(`Account C stakes ${web3.fromWei(
-      amounts.dele2,
-      "cmt"
-    )} CMTs for D.`, function() {
+    describe("Account C stakes 16000 CMTs for D.", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(2)
@@ -306,10 +289,7 @@ describe.skip("Stake Test", function() {
   })
 
   describe("Stake Withdraw", function() {
-    describe(`Account B withdraw ${web3.fromWei(
-      amounts.dele1,
-      "cmt"
-    )} CMTs for D.`, function() {
+    describe("Account B withdraw 2000 CMTs for D.", function() {
       let delegation_before, delegation_after
       before(function() {
         // balance before
@@ -367,7 +347,7 @@ describe.skip("Stake Test", function() {
         // check deliver tx tx_result
         expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
         expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.GasLimit.UpdateCandidacy).toString()
+          web3.toBigNumber(Globals.Params.update_candidacy).toString()
         )
       })
     })
