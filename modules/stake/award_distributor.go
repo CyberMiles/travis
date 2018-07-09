@@ -207,8 +207,11 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 				delegators = append(delegators, delegator)
 			}
 		}
-		validator.delegators = delegators
-		normalizedValidators = append(normalizedValidators, &validator)
+
+		if len(delegators) > 0 {
+			validator.delegators = delegators
+			normalizedValidators = append(normalizedValidators, &validator)
+		}
 	}
 
 	return
