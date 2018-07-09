@@ -22,10 +22,10 @@ type validator struct {
 	shares           *big.Int
 	ownerAddress     common.Address
 	pubKey           types.PubKey
-	delegators       []delegator
+	delegators       []*delegator
 	compRate         float64
 	sharesPercentage *big.Float
-	selfDelegator    delegator
+	selfDelegator    *delegator
 	exceedLimit      bool
 	totalShares      *big.Int
 }
@@ -175,7 +175,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 
 	for _, val := range rawValidators {
 		var validator validator
-		var delegators []delegator
+		var delegators []*delegator
 		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
 		if candidate.Shares == "0" {
 			continue
@@ -187,6 +187,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		validator.pubKey = candidate.PubKey
 		validator.compRate = candidate.ParseCompRate()
 		totalShares.Add(totalShares, shares)
+		skippedShares := big.NewInt(0)
 
 		// Get all delegators
 		delegations := GetDelegationsByPubKey(candidate.PubKey)
@@ -194,6 +195,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
 			minStakingAmount := new(big.Int).Mul(big.NewInt(utils.GetParams().MinStakingAmount), big.NewInt(1e18))
 			if delegation.Shares().Cmp(minStakingAmount) < 0 {
+				skippedShares.Add(skippedShares, delegation.Shares())
 				continue
 			}
 
@@ -202,13 +204,16 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			delegator.shares = delegation.Shares()
 
 			if delegator.address == validator.ownerAddress {
-				validator.selfDelegator = delegator
+				validator.selfDelegator = &delegator
 			} else {
-				delegators = append(delegators, delegator)
+				delegators = append(delegators, &delegator)
 			}
 		}
 
-		if len(delegators) > 0 {
+		totalShares.Sub(totalShares, skippedShares)
+		validator.shares.Sub(validator.shares, skippedShares)
+
+		if validator.selfDelegator != nil {
 			validator.delegators = delegators
 			normalizedValidators = append(normalizedValidators, &validator)
 		}
@@ -271,10 +276,10 @@ func (ad awardDistributor) getBlockAwardAndTxFees() *big.Int {
 func (ad awardDistributor) awardToValidator(v *validator, award *big.Int) {
 	// A validator is also a delegator
 	d := delegator{address: v.ownerAddress}
-	ad.awardToDelegator(d, v, award)
+	ad.awardToDelegator(&d, v, award)
 }
 
-func (ad awardDistributor) awardToDelegator(d delegator, v *validator, award *big.Int) {
+func (ad awardDistributor) awardToDelegator(d *delegator, v *validator, award *big.Int) {
 	ad.logger.Debug("awardToDelegator", "delegator_address", d.address.String(), "award", award)
 	now := utils.GetNow()
 
