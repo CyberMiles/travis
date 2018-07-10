@@ -17,9 +17,9 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	abci "github.com/tendermint/tendermint/abci/types"
+	cmn "github.com/tendermint/tendermint/libs/common"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	ttypes "github.com/tendermint/tendermint/types"
-	cmn "github.com/tendermint/tendermint/libs/common"
 
 	tmcmn "github.com/tendermint/tendermint/libs/common"
 
@@ -134,9 +134,9 @@ type RPCTransaction struct {
 	Gas              *hexutil.Big           `json:"gas"`
 	GasPrice         *hexutil.Big           `json:"gasPrice"`
 	Hash             common.Hash            `json:"hash"`
-	CmtHash          tmcmn.HexBytes           `json:"cmt_hash"`
+	CmtHash          tmcmn.HexBytes         `json:"cmtHash"`
 	Input            hexutil.Bytes          `json:"input"`
-	CmtInput         interface{}            `json:"cmt_input"`
+	CmtInput         interface{}            `json:"cmtInput"`
 	Nonce            hexutil.Uint64         `json:"nonce"`
 	To               *common.Address        `json:"to"`
 	TransactionIndex hexutil.Uint           `json:"transactionIndex"`
@@ -144,7 +144,7 @@ type RPCTransaction struct {
 	V                *hexutil.Big           `json:"v"`
 	R                *hexutil.Big           `json:"r"`
 	S                *hexutil.Big           `json:"s"`
-	TxResult         abci.ResponseDeliverTx `json:"tx_result"`
+	TxResult         abci.ResponseDeliverTx `json:"txResult"`
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC representation.
