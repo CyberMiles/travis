@@ -124,56 +124,81 @@ const getDelegation = (acc_index, pk_index) => {
         withdraw_amount: web3.toBigNumber(data.withdraw_amount),
         slash_amount: web3.toBigNumber(data.slash_amount)
       }
+    delegation.shares = delegation.delegate_amount
+      .plus(delegation.award_amount)
+      .minus(delegation.withdraw_amount)
+      .minus(delegation.slash_amount)
   }
   logger.debug(
     "delegation: --> ",
     `delegate_amount: ${delegation.delegate_amount.toString(10)}`,
     `award_amount: ${delegation.award_amount.toString(10)}`,
     `withdraw_amount: ${delegation.withdraw_amount.toString(10)}`,
-    `slash_amount: ${delegation.slash_amount.toString(10)}`
+    `slash_amount: ${delegation.slash_amount.toString(10)}`,
+    `shares: ${delegation.shares.toString(10)}`
   )
   return delegation
 }
 
-const calcAward = powers => {
-  let total = powers.reduce((s, v) => {
-    return s + v
-  })
-  let origin = powers.map(p => p / total)
-  let round1 = origin.map(
-    p =>
-      p > Globals.Params.validator_size_threshold
-        ? Globals.Params.validator_size_threshold
-        : p
+const getBlockAward = () => {
+  const inflation_rate = Globals.Params.inflation_rate
+
+  let cmts = web3.toWei(web3.toBigNumber(1000000000), "cmt")
+  let blocksYr = (365 * 24 * 3600) / 10
+  let blockAward = cmts.times(inflation_rate).dividedToIntegerBy(blocksYr)
+  return blockAward
+}
+
+const calcAward = shares => {
+  const validator_size_threshold = Number(
+    Globals.Params.validator_size_threshold
   )
+
+  let total = shares.reduce((s, v) => {
+    return s.plus(v)
+  })
+  console.log(total.toString())
+
+  const strip = (x, precision = 10) => parseFloat(x.toFixed(precision))
+  let origin = shares.map(s => strip(s / total))
+  console.log(origin)
+
+  let round1 = origin.map(
+    s => (s > validator_size_threshold ? validator_size_threshold : p)
+  )
+  console.log(round1)
 
   let left =
     1 -
     round1.reduce((s, v) => {
       return s + v
     })
-  let round2 = origin.map(p => left * p)
+  console.log(left)
 
-  const strip = (x, precision = 12) => parseFloat(x.toPrecision(precision))
+  let round2 = origin.map(p => left * p)
+  console.log(round2)
+
   let final = round1.map((p, idx) => {
     return strip(p + round2[idx])
   })
-  // console.log(final)
+  console.log(final)
 
-  let blockAwards =
-    (1000000000 * Globals.Params.inflation_rate) /
-    100 /
-    ((365 * 24 * 3600) / 10)
-  let result = powers.map((p, idx) => p + final[idx] * blockAwards)
-  // console.log(result)
+  let blockAward = getBlockAward()
+  let result = shares.map((s, idx) =>
+    s.plus(blockAward.times(final[idx]).dividedToIntegerBy(1))
+  )
+  console.log(result)
   return result
 }
 
-const calcAwards = (powers, blocks) => {
+const calcAwards = (shares, blocks) => {
+  console.log(shares)
+  shares = shares.map(s => web3.toBigNumber(s))
   for (i = 0; i < blocks; ++i) {
-    powers = calcAward(powers)
+    shares = calcAward(shares)
   }
-  return powers
+  shares.forEach(s => console.log(s.toString()))
+  return shares
 }
 
 const vote = (proposalId, from, answer) => {

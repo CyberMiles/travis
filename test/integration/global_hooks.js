@@ -78,8 +78,8 @@ before("Transfer 50000 CMT to A, B, C, D from defaultAccount", function(done) {
   let balances = Utils.getBalance()
   let arrFund = []
   for (i = 0; i < 4; ++i) {
-    // 2000 cmt should be far enough for the testing
-    if (web3.fromWei(balances[i], "cmt") > 2000) continue
+    // 20000 cmt should be far enough for the testing
+    if (web3.fromWei(balances[i], "cmt") > 20000) continue
 
     let hash = Utils.transfer(
       web3.cmt.defaultAccount,

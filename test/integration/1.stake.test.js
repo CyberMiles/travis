@@ -17,12 +17,16 @@ describe("Stake Test", function() {
     this.dele2 = web3.toWei(maxAmount * (1 - self_staking_ratio - 0.3), "cmt")
     this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")
   }
+
   function calcRP(shares) {
-    let cmt = parseInt(web3.fromWei(shares, "cmt"))
-    let rp = parseInt(Math.sqrt(cmt) * 100)
-    console.log(shares, rp)
+    let rp = 0
+    shares.forEach(s => {
+      let cmt = parseInt(web3.fromWei(s, "cmt"))
+      rp += parseInt(Math.sqrt(cmt) * 100)
+    })
     return rp
   }
+
   let compRate = "0.8"
   let existingValidator = {}
   let amounts, balance_old, balance_new, tx_result
@@ -176,7 +180,10 @@ describe("Stake Test", function() {
           .toNumber()
       ).to.gte(0)
       expect(tx_result.data.state).to.eq("Backup Validator")
-      expect(tx_result.data.ranking_power).to.eq(calcRP(tx_result.data.shares))
+      delegation_after = Utils.getDelegation(3, 3)
+      expect(tx_result.data.ranking_power).to.eq(
+        calcRP([delegation_after.shares])
+      )
     })
   })
 
@@ -216,7 +223,10 @@ describe("Stake Test", function() {
         expect(tx_result.data.voting_power).to.eq(0)
         expect(tx_result.data.state).to.eq("Backup Validator")
         expect(tx_result.data.ranking_power).to.eq(
-          calcRP(tx_result.data.shares)
+          calcRP([
+            Utils.getDelegation(1, 3).shares,
+            Utils.getDelegation(3, 3).shares
+          ])
         )
       })
     })
@@ -254,9 +264,12 @@ describe("Stake Test", function() {
         expect(tx_result.data.voting_power).to.be.above(0)
         expect(tx_result.data.state).to.eq("Validator")
         expect(tx_result.data.ranking_power).to.eq(
-          calcRP(tx_result.data.shares)
+          calcRP([
+            Utils.getDelegation(1, 3).shares,
+            Utils.getDelegation(2, 3).shares,
+            Utils.getDelegation(3, 3).shares
+          ])
         )
-        process.exit(1)
       })
       it("One of the genesis validators now drops off", function() {
         tx_result = web3.cmt.stake.validator.list()
@@ -264,32 +277,30 @@ describe("Stake Test", function() {
         expect(drops.length).to.eq(1)
         expect(drops[0].owner_address).to.not.equal(Globals.Accounts[3])
         expect(drops[0].state).to.eq("Backup Validator")
-        expect(drops[0].ranking_power).to.eq(calcRP(drops[0].shares))
+        expect(drops[0].ranking_power).to.eq(calcRP([drops[0].shares]))
       })
     })
   })
 
-  //todo
   describe.skip("Block awards", function() {
     let blocks = 2,
-      powers_old = [],
-      powers_new = [],
+      shares_old = [],
+      shares_new = [],
       total_awards = 0
     before(function(done) {
-      // get current powers
+      // get current shares
       tx_result = web3.cmt.stake.validator.list()
-      powers_old = tx_result.data.map(d => d.voting_power)
+      shares_old = tx_result.data.map(d => d.shares)
       // calc awards
-      powers_new = Utils.calcAwards(powers_old, blocks)
-      total_awards = powers_new[4] - powers_old[4]
+      shares_new = Utils.calcAwards(shares_old, blocks)
       // wait a few blocks
       Utils.waitBlocks(done, blocks)
     })
     it("check Validator D's current power", function() {
       tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-      let power = tx_result.data.voting_power
+      let power = tx_result.data.shares
       console.log(tx_result.data)
-      // expect(current).to.eq(powers_new[4])
+      // expect(current).to.eq(shares_new[4])
     })
     it("B: total awards * 80% * 0.1", function() {
       let delegation = Utils.getDelegation(1, 3)
