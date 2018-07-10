@@ -109,13 +109,14 @@ func startNode(ctx *cli.Context, stack *ethereum.Node) {
 		}
 		// Listen for wallet event till termination
 		for event := range events {
-			if event.Arrive {
+			if event.Kind == accounts.WalletArrived {
 				if err := event.Wallet.Open(""); err != nil {
 					log.Warn("New wallet appeared, failed to open", "url",
 						event.Wallet.URL(), "err", err)
 				} else {
+					status, _ := event.Wallet.Status()
 					log.Info("New wallet appeared", "url", event.Wallet.URL(),
-						"status", event.Wallet.Status())
+						"status", status)
 					event.Wallet.SelfDerive(accounts.DefaultBaseDerivationPath,
 						stateReader)
 				}

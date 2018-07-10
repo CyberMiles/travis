@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core"
+	//"github.com/ethereum/go-ethereum/core"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/ethereum/go-ethereum/core"
 )
 
 var (
@@ -20,7 +21,10 @@ var (
 
 // listen for txs and forward to tendermint
 func (b *Backend) txBroadcastLoop() {
-	b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
+	//b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
+
+	b.txsCh = make(chan core.NewTxsEvent, 10)
+	b.txsSub = b.ethereum.TxPool().SubscribeNewTxsEvent(b.txsCh)
 
 	for tries := 0; tries < 3; tries++ { // wait a moment for localClient initialized properly
 		time.Sleep(time.Second)
@@ -37,17 +41,25 @@ func (b *Backend) txBroadcastLoop() {
 		waitForServer(b.client)
 	}
 
-	for obj := range b.txSub.Chan() {
-		event := obj.Data.(core.TxPreEvent)
-		result, err := b.BroadcastTxSync(event.Tx)
-		if err != nil {
-			log.Error("Broadcast error", "err", err)
-		} else {
-			if result.Code != uint32(0) {
-				go removeTx(b, event.Tx)
-			} else {
-				// TODO: do something else?
+	for {
+		select {
+		// Handle NewTxsEvent
+		case ev := <- b.txsCh:
+			for _, tx := range ev.Txs {
+				result, err := b.BroadcastTxSync(tx)
+				if err != nil {
+					log.Error("Broadcast error", "err", err)
+				} else {
+					if result.Code != uint32(0) {
+						go removeTx(b, tx)
+					} else {
+						// TODO: do something else?
+					}
+				}
 			}
+			// System stopped
+		case <-b.txsSub.Err():
+			return
 		}
 	}
 }
@@ -97,5 +109,6 @@ func waitForServer(c *rpcClient.HTTP) {
 }
 
 func removeTx(b *Backend, tx *ethTypes.Transaction) {
-	b.Ethereum().TxPool().Remove(tx.Hash())
+	// TODO: add Remove in txPool ???
+	//b.Ethereum().TxPool().Remove(tx.Hash())
 }

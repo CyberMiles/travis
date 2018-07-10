@@ -179,7 +179,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) abciTypes.ResponseEndBlock {
 
 	app.logger.Debug("EndBlock", "height", endBlock.GetHeight()) // nolint: errcheck
-	app.backend.AccumulateRewards(app.strategy)
+	app.backend.AccumulateRewards(app.backend.Ethereum().BlockChain().Config(), app.strategy)
 
 	app.backend.EndBlock()
 
@@ -267,8 +267,13 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 				currentBalance, tx.Cost())}
 	}
 
-	intrGas := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
-	if tx.Gas().Cmp(intrGas) < 0 {
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
+	if err != nil {
+		return abciTypes.ResponseCheckTx{
+			Code: errors.CodeTypeBaseInvalidInput,
+			Log:  err.Error()}
+	}
+	if tx.Gas() < intrGas {
 		return abciTypes.ResponseCheckTx{
 			Code: errors.CodeTypeBaseInvalidInput,
 			Log:  core.ErrIntrinsicGas.Error()}

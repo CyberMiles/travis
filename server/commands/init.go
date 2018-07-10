@@ -98,7 +98,7 @@ func initEthermint() error {
 		ethUtils.Fatalf("genesisJSON err: %v", err)
 	}
 	// override ethermint's chain_id
-	genesis.Config.ChainId = new(big.Int).SetUint64(uint64(config.EMConfig.ChainId))
+	genesis.Config.ChainID = new(big.Int).SetUint64(uint64(config.EMConfig.ChainId))
 
 	ethermintDataDir := emtUtils.MakeDataDir(context)
 

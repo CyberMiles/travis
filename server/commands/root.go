@@ -110,6 +110,7 @@ var (
 		emtUtils.VerbosityFlag,
 		emtUtils.ConfigFileFlag,
 		emtUtils.WithTendermintFlag,
+		ethUtils.GCModeFlag,
 	}
 )
 

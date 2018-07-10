@@ -22,7 +22,7 @@ var (
 
 func main() {
 	config := &params.ChainConfig{
-		ChainId: big.NewInt(15),
+		ChainID: big.NewInt(15),
 		HomesteadBlock: big.NewInt(0),
 		EIP155Block: big.NewInt(0),
 		EIP158Block: big.NewInt(0),
