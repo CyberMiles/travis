@@ -124,7 +124,7 @@ func (app *EthermintApplication) basicCheck(tx *ethTypes.Transaction) (*state.St
 
 	// Check the transaction doesn't exceed the current block limit gas.
 	gasLimit := app.backend.GasLimit()
-	if gasLimit.Cmp(tx.Gas()) < 0 {
+	if gasLimit < tx.Gas() {
 		return nil, common.Address{}, 0,
 			abciTypes.ResponseCheckTx{
 				Code: errors.CodeTypeInternalErr,

@@ -22,7 +22,7 @@ const defaultGas = 90000
 type SendTxArgs struct {
 	From     common.Address  `json:"from"`
 	To       *common.Address `json:"to"`
-	Gas      *hexutil.Big    `json:"gas"`
+	Gas      uint64    			`json:"gas"`
 	GasPrice *hexutil.Big    `json:"gasPrice"`
 	Value    *hexutil.Big    `json:"value"`
 	Data     hexutil.Bytes   `json:"data"`
@@ -31,8 +31,8 @@ type SendTxArgs struct {
 
 // prepareSendTxArgs is a helper function that fills in default values for unspecified tx fields.
 func (args *SendTxArgs) setDefaults(b *Backend) error {
-	if args.Gas == nil {
-		args.Gas = (*hexutil.Big)(big.NewInt(defaultGas))
+	if args.Gas == 0 {
+		args.Gas = uint64(defaultGas)
 	}
 
 	if args.GasPrice == nil {
@@ -51,9 +51,9 @@ func (args *SendTxArgs) setDefaults(b *Backend) error {
 
 func (args *SendTxArgs) toTransaction() *types.Transaction {
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), (*big.Int)(args.Gas), (*big.Int)(args.GasPrice), args.Data)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), args.Gas, (*big.Int)(args.GasPrice), args.Data)
 	}
-	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), (*big.Int)(args.Gas), (*big.Int)(args.GasPrice), args.Data)
+	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), args.Gas, (*big.Int)(args.GasPrice), args.Data)
 }
 
 // creates a transaction for the given argument, sign it and broardcast it to tendermint.

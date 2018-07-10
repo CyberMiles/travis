@@ -60,6 +60,7 @@ type EthermintConfig struct {
 	WSPortFlag        uint   `mapstructure:"wsport"`
 	WSApiFlag         string `mapstructure:"wsapi"`
 	VerbosityFlag     uint   `mapstructure:"verbosity"`
+	GCMode     		  string `mapstructure:"gcmode"`
 }
 
 func DefaultEthermintConfig() EthermintConfig {
@@ -77,6 +78,7 @@ func DefaultEthermintConfig() EthermintConfig {
 		WSPortFlag:        node.DefaultWSPort,
 		WSApiFlag:         "",
 		VerbosityFlag:     3,
+		GCMode:				"full",
 	}
 }
 
@@ -168,5 +170,5 @@ rpcaddr = "{{ .EMConfig.RPCListenAddrFlag }}"
 rpcport = {{ .EMConfig.RPCPortFlag }}
 rpccorsdomain = "{{ .EMConfig.RPCCORSDomainFlag }}"
 ws = {{ .EMConfig.WSEnabledFlag }}
-verbosity = {{ .EMConfig.VerbosityFlag }}
+verbosity = "{{ .EMConfig.VerbosityFlag }}"
 `
