@@ -8,16 +8,21 @@ const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
-describe.skip("Stake Test", function() {
+describe("Stake Test", function() {
   function Amounts(maxAmount) {
     self_staking_ratio = Globals.Params.self_staking_ratio
     this.max = web3.toWei(maxAmount, "cmt")
     this.self = web3.toWei(maxAmount * self_staking_ratio, "cmt")
     this.dele1 = web3.toWei(maxAmount * 0.1, "cmt")
-    this.dele2 = web3.toWei(maxAmount * (1 - self_staking_ratio - 0.1), "cmt")
+    this.dele2 = web3.toWei(maxAmount * (1 - self_staking_ratio - 0.3), "cmt")
     this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")
   }
-
+  function calcRP(shares) {
+    let cmt = parseInt(web3.fromWei(shares, "cmt"))
+    let rp = parseInt(Math.sqrt(cmt) * 100)
+    console.log(shares, rp)
+    return rp
+  }
   let compRate = "0.8"
   let existingValidator = {}
   let amounts, balance_old, balance_new, tx_result
@@ -164,7 +169,14 @@ describe.skip("Stake Test", function() {
       expect(tx_result.data.comp_rate).to.eq(compRate)
       expect(tx_result.data.pub_key.value).to.eq(Globals.PubKeys[3])
       expect(tx_result.data.max_shares).to.eq(amounts.max.toString())
-      expect(tx_result.data.shares).to.eq(amounts.self.toString())
+      expect(
+        web3
+          .toBigNumber(tx_result.data.shares)
+          .minus(amounts.self)
+          .toNumber()
+      ).to.gte(0)
+      expect(tx_result.data.state).to.eq("Backup Validator")
+      expect(tx_result.data.ranking_power).to.eq(calcRP(tx_result.data.shares))
     })
   })
 
@@ -199,14 +211,16 @@ describe.skip("Stake Test", function() {
             .toNumber()
         ).to.eq(Number(amounts.dele1))
       })
-      it("D become a backup", function() {
+      it("D is still a backup", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-        let power = tx_result.data.voting_power
-        expect(power).to.eq(0)
-        //todo ranking power
+        expect(tx_result.data.voting_power).to.eq(0)
+        expect(tx_result.data.state).to.eq("Backup Validator")
+        expect(tx_result.data.ranking_power).to.eq(
+          calcRP(tx_result.data.shares)
+        )
       })
     })
-    describe("Account C stakes 16000 CMTs for D.", function() {
+    describe("Account C stakes 12000 CMTs for D.", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(2)
@@ -237,14 +251,20 @@ describe.skip("Stake Test", function() {
       })
       it("D is now a validator", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-        let power = tx_result.data.voting_power
-        expect(power).to.be.above(0)
+        expect(tx_result.data.voting_power).to.be.above(0)
+        expect(tx_result.data.state).to.eq("Validator")
+        expect(tx_result.data.ranking_power).to.eq(
+          calcRP(tx_result.data.shares)
+        )
+        process.exit(1)
       })
       it("One of the genesis validators now drops off", function() {
         tx_result = web3.cmt.stake.validator.list()
         let drops = tx_result.data.filter(d => d.voting_power == 0)
         expect(drops.length).to.eq(1)
         expect(drops[0].owner_address).to.not.equal(Globals.Accounts[3])
+        expect(drops[0].state).to.eq("Backup Validator")
+        expect(drops[0].ranking_power).to.eq(calcRP(drops[0].shares))
       })
     })
   })
