@@ -15,6 +15,7 @@ import (
 
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/version"
+	"time"
 )
 
 // GetStartCmd - initialize a command as the start command with tick
@@ -59,6 +60,9 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 	// wait forever
 	cmn.TrapSignal(func() {
 		srvs.tmNode.Stop()
+		// TODO: find a better way
+		fmt.Println("sleep 5 seconds waiting for sqlite finish ...")
+		time.Sleep(5 * time.Second)
 	})
 
 	return nil
