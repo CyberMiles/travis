@@ -22,17 +22,21 @@ const defaultGas = 90000
 type SendTxArgs struct {
 	From     common.Address  `json:"from"`
 	To       *common.Address `json:"to"`
-	Gas      uint64    			`json:"gas"`
+	Gas      *hexutil.Uint64 `json:"gas"`
 	GasPrice *hexutil.Big    `json:"gasPrice"`
 	Value    *hexutil.Big    `json:"value"`
-	Data     hexutil.Bytes   `json:"data"`
 	Nonce    *hexutil.Uint64 `json:"nonce"`
+	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
+	// newer name and should be preferred by clients.
+	Data  *hexutil.Bytes `json:"data"`
+	Input *hexutil.Bytes `json:"input"`
 }
 
 // prepareSendTxArgs is a helper function that fills in default values for unspecified tx fields.
 func (args *SendTxArgs) setDefaults(b *Backend) error {
-	if args.Gas == 0 {
-		args.Gas = uint64(defaultGas)
+	if args.Gas == nil {
+		args.Gas = new(hexutil.Uint64)
+		*(*uint64)(args.Gas) = defaultGas
 	}
 
 	if args.GasPrice == nil {
@@ -46,14 +50,35 @@ func (args *SendTxArgs) setDefaults(b *Backend) error {
 		nonce := b.ManagedState().GetNonce(args.From)
 		args.Nonce = (*hexutil.Uint64)(&nonce)
 	}
+	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
+		return errors.New(`Both "data" and "input" are set and not equal. Please use "input" to pass transaction call data.`)
+	}
+	if args.To == nil {
+		// Contract creation
+		var input []byte
+		if args.Data != nil {
+			input = *args.Data
+		} else if args.Input != nil {
+			input = *args.Input
+		}
+		if len(input) == 0 {
+			return errors.New(`contract creation without any data provided`)
+		}
+	}
 	return nil
 }
 
 func (args *SendTxArgs) toTransaction() *types.Transaction {
-	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), args.Gas, (*big.Int)(args.GasPrice), args.Data)
+	var input []byte
+	if args.Data != nil {
+		input = *args.Data
+	} else if args.Input != nil {
+		input = *args.Input
 	}
-	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), args.Gas, (*big.Int)(args.GasPrice), args.Data)
+	if args.To == nil {
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
+	}
+	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
 }
 
 // creates a transaction for the given argument, sign it and broardcast it to tendermint.

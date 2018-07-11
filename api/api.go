@@ -51,15 +51,17 @@ func (s *CmtRPCService) makeTravisTxArgs(tx sdk.Tx, address common.Address, nonc
 		return nil, err
 	}
 
-	zero := big.NewInt(0)
+	zeroUint := hexutil.Uint64(0)
+	zeroBigInt := big.NewInt(0)
 	return &SendTxArgs{
 		address,
 		nil,
-		0,
-		(*hexutil.Big)(zero),
-		(*hexutil.Big)(zero),
-		data,
+		&zeroUint,
+		(*hexutil.Big)(zeroBigInt),
+		(*hexutil.Big)(zeroBigInt),
 		nonce,
+		(*hexutil.Bytes)(&data),
+		nil,
 	}, nil
 }
 
