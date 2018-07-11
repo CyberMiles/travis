@@ -110,7 +110,8 @@ const getDelegation = (acc_index, pk_index) => {
     delegate_amount: web3.toBigNumber(0),
     award_amount: web3.toBigNumber(0),
     withdraw_amount: web3.toBigNumber(0),
-    slash_amount: web3.toBigNumber(0)
+    slash_amount: web3.toBigNumber(0),
+    shares: web3.toBigNumber(0)
   }
   result = web3.cmt.stake.delegator.query(Globals.Accounts[acc_index], 0)
   if (result && result.data) {
@@ -138,67 +139,6 @@ const getDelegation = (acc_index, pk_index) => {
     `shares: ${delegation.shares.toString(10)}`
   )
   return delegation
-}
-
-const getBlockAward = () => {
-  const inflation_rate = Globals.Params.inflation_rate
-
-  let cmts = web3.toWei(web3.toBigNumber(1000000000), "cmt")
-  let blocksYr = (365 * 24 * 3600) / 10
-  let blockAward = cmts.times(inflation_rate).dividedToIntegerBy(blocksYr)
-  return blockAward
-}
-
-const calcAward = shares => {
-  const validator_size_threshold = Number(
-    Globals.Params.validator_size_threshold
-  )
-
-  let total = shares.reduce((s, v) => {
-    return s.plus(v)
-  })
-  console.log(total.toString())
-
-  const strip = (x, precision = 10) => parseFloat(x.toFixed(precision))
-  let origin = shares.map(s => strip(s / total))
-  console.log(origin)
-
-  let round1 = origin.map(
-    s => (s > validator_size_threshold ? validator_size_threshold : p)
-  )
-  console.log(round1)
-
-  let left =
-    1 -
-    round1.reduce((s, v) => {
-      return s + v
-    })
-  console.log(left)
-
-  let round2 = origin.map(p => left * p)
-  console.log(round2)
-
-  let final = round1.map((p, idx) => {
-    return strip(p + round2[idx])
-  })
-  console.log(final)
-
-  let blockAward = getBlockAward()
-  let result = shares.map((s, idx) =>
-    s.plus(blockAward.times(final[idx]).dividedToIntegerBy(1))
-  )
-  console.log(result)
-  return result
-}
-
-const calcAwards = (shares, blocks) => {
-  console.log(shares)
-  shares = shares.map(s => web3.toBigNumber(s))
-  for (i = 0; i < blocks; ++i) {
-    shares = calcAward(shares)
-  }
-  shares.forEach(s => console.log(s.toString()))
-  return shares
 }
 
 const vote = (proposalId, from, answer) => {
@@ -369,6 +309,120 @@ const removeFakeValidators = () => {
   }
 }
 
+const getBlockAward = () => {
+  const inflation_rate = Globals.Params.inflation_rate
+  let cmts = web3.toWei(web3.toBigNumber(1000000000), "cmt")
+  let blocksYr = (365 * 24 * 3600) / 10
+  let blockAward = cmts.times(inflation_rate / 100).dividedToIntegerBy(blocksYr)
+  return blockAward
+}
+
+const calcValAward = (award, vals) => {
+  logger.debug("calcValAward ->")
+  // percentage
+  let shares = vals.map(v => web3.toBigNumber(v.shares))
+  let total = shares.reduce((s, v) => {
+    return s.plus(v)
+  })
+
+  const toFixed = f => Number(parseFloat(f).toFixed(12))
+  let perc0 = shares.map(s => toFixed(s.div(total)))
+  logger.debug(perc0)
+
+  // threshold
+  const validator_size_threshold = Number(
+    Globals.Params.validator_size_threshold
+  )
+  let perc1 = perc0.map(
+    s => (s > validator_size_threshold ? validator_size_threshold : s)
+  )
+  logger.debug(perc1)
+
+  // 1st round with threshold
+  let round1 = vals.map((v, idx) =>
+    award.times(perc1[idx]).dividedToIntegerBy(1)
+  )
+  logger.debug("round1: ", round1.map(r => r.toString(10)))
+
+  // 2nd round for the rest
+  total = round1.reduce((s, v) => {
+    return s.plus(v)
+  })
+  let left = award.minus(total)
+  let round2 = vals.map((v, idx) =>
+    left.times(perc0[idx]).dividedToIntegerBy(1)
+  )
+  logger.debug("round2: ", round2.map(r => r.toString(10)))
+
+  // final
+  vals.forEach((v, idx) => {
+    v.shares = shares[idx]
+      .plus(round1[idx])
+      .plus(round2[idx])
+      .toString(10)
+  })
+  logger.debug("<- calcValAward")
+  return vals
+}
+
+const calcAwards = (nodes, blocks) => {
+  // block award -> validators and backups
+  let blockAward = getBlockAward()
+  let valAward = blockAward,
+    bakAward = 0
+
+  const max_vals = Number(Globals.Params.max_vals)
+  const val_ratio = Number(Globals.Params.validators_block_award_ratio / 100)
+  if (nodes.length > max_vals) {
+    valAward = blockAward.times(val_ratio).dividedToIntegerBy(1)
+    bakAward = blockAward.minus(valAward)
+  }
+
+  // distribute awards
+  let vals = nodes.filter(n => n.state == "Validator")
+  let baks = nodes.filter(n => n.state == "Backup Validator")
+
+  nodes.forEach(v => logger.debug(v.owner_address, v.shares, v.state))
+  for (i = 0; i < blocks; ++i) {
+    logger.debug("validators")
+    vals = calcValAward(valAward, vals)
+    logger.debug("backup validators")
+    if (baks.length > 0) baks = calcValAward(bakAward, baks)
+  }
+  vals.forEach(v => logger.debug(v.owner_address, v.shares))
+  baks.forEach(v => logger.debug(v.owner_address, v.shares))
+  return vals.concat(baks)
+}
+
+const calcDeleAward = (award, comp_rate, shares) => {
+  logger.debug("calcDeleAward ->")
+  let comp = award.times(comp_rate).dividedToIntegerBy(1)
+  let dele = award.minus(comp)
+  logger.debug(award.toString(10), comp.toString(10), dele.toString(10))
+
+  let total = shares.reduce((s, v) => {
+    return s.plus(v)
+  })
+  const toFixed = f => Number(parseFloat(f).toFixed(12))
+  percs = shares.map(s => toFixed(s.div(total)))
+  logger.debug(percs)
+
+  let result = percs.map((p, idx) =>
+    shares[idx].plus(dele.times(p)).dividedToIntegerBy(1)
+  )
+  result[2] = result[2].plus(comp)
+  logger.debug(result.map(r => r.toString(10)))
+  logger.debug("<- calcDeleAward")
+  return result
+}
+
+const calcDeleAwards = (award, comp_rate, shares, blocks) => {
+  for (i = 0; i < blocks; ++i) {
+    shares = calcDeleAward(award, comp_rate, shares)
+  }
+  return shares
+}
+
 module.exports = {
   transfer,
   getBalance,
@@ -377,7 +431,6 @@ module.exports = {
   tokenKill,
   getTokenBalance,
   getDelegation,
-  calcAwards,
   vote,
   getProposal,
   waitInterval,
@@ -387,5 +440,7 @@ module.exports = {
   expectTxSuccess,
   gasFee,
   addFakeValidators,
-  removeFakeValidators
+  removeFakeValidators,
+  calcAwards,
+  calcDeleAwards
 }

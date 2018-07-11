@@ -282,45 +282,92 @@ describe("Stake Test", function() {
     })
   })
 
-  describe.skip("Block awards", function() {
-    let blocks = 2,
-      shares_old = [],
-      shares_new = [],
-      total_awards = 0
+  describe("Block awards", function() {
+    let blocks = 1,
+      vals_expected = [],
+      dele_expected = []
+
     before(function(done) {
-      // get current shares
+      if (Globals.TestMode == "single") {
+        this.skip()
+      }
+      Utils.waitBlocks(done, 1)
+    })
+
+    before(function(done) {
+      if (Globals.TestMode == "single") {
+        this.skip()
+      }
+      // validators
+      const getShares = (vals, acc) => {
+        let v = vals.find(v => v.owner_address == acc)
+        if (v) {
+          return web3.toBigNumber(v.shares)
+        }
+        return web3.toBigNumber(0)
+      }
       tx_result = web3.cmt.stake.validator.list()
-      shares_old = tx_result.data.map(d => d.shares)
-      // calc awards
-      shares_new = Utils.calcAwards(shares_old, blocks)
+      console.log(tx_result)
+      let d0 = getShares(tx_result.data, Globals.Accounts[3])
+      vals_expected = Utils.calcAwards(tx_result.data, blocks)
+      let d1 = getShares(vals_expected, Globals.Accounts[3])
+      // delegators of validator D
+      let award = web3.toBigNumber(d1).minus(d0)
+      dele_expected = Utils.calcDeleAwards(
+        award,
+        compRate,
+        [
+          Utils.getDelegation(1, 3).shares,
+          Utils.getDelegation(2, 3).shares,
+          Utils.getDelegation(3, 3).shares
+        ],
+        blocks
+      )
       // wait a few blocks
       Utils.waitBlocks(done, blocks)
     })
-    it("check Validator D's current power", function() {
-      tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-      let power = tx_result.data.shares
-      console.log(tx_result.data)
-      // expect(current).to.eq(shares_new[4])
+
+    it("check Validators' shares", function() {
+      // validators
+      let vals = {}
+      tx_result = web3.cmt.stake.validator.list()
+      console.log(tx_result)
+      tx_result.data.forEach(r => (vals[r.owner_address] = r.shares))
+      logger.debug(vals)
+
+      vals_expected.forEach(v => {
+        let diff = web3
+          .fromWei(
+            web3
+              .toBigNumber(v.shares)
+              .minus(vals[v.owner_address])
+              .abs(),
+            "gwei"
+          )
+          .toNumber()
+        expect(diff).lt(0.01)
+      })
     })
-    it("B: total awards * 80% * 0.1", function() {
-      let delegation = Utils.getDelegation(1, 3)
-      console.log(delegation)
-      // expect((delegation.awards = total_awards * 0.8 * 0.1))
-    })
-    it("C: total awards * 80% * 0.8", function() {
-      let delegation = Utils.getDelegation(2, 3)
-      console.log(delegation)
-      // expect((delegation.awards = total_awards * 0.8 * 0.8))
-    })
-    it("D: total awards - B - C", function() {
-      let delegation = Utils.getDelegation(3, 3)
-      console.log(delegation)
-      // expect((delegation.awards = total_awards - total_awards * 0.8 * 0.9))
+    it("check Delegators' shares of Validator D", function() {
+      // delegators of validator D
+      dele_expected.forEach((d, idx) => {
+        let dele = Utils.getDelegation(idx + 1, 3).shares
+        let diff = web3
+          .fromWei(
+            web3
+              .toBigNumber(d)
+              .minus(dele)
+              .abs(),
+            "gwei"
+          )
+          .toNumber()
+        expect(diff).lt(0.01)
+      })
     })
   })
 
   describe("Stake Withdraw", function() {
-    describe("Account B withdraw 2000 CMTs for D.", function() {
+    describe("Account B withdraw some CMTs for D.", function() {
       let delegation_before, delegation_after
       before(function() {
         // balance before
@@ -329,10 +376,11 @@ describe("Stake Test", function() {
         delegation_before = Utils.getDelegation(1, 3)
       })
       it("CMTs are moved back to account B(locked)", function() {
+        let withdraw = web3.toBigNumber(amounts.dele1).times(0.2)
         let payload = {
           from: Globals.Accounts[1],
           validatorAddress: Globals.Accounts[3],
-          amount: amounts.dele1
+          amount: withdraw
         }
         tx_result = web3.cmt.stake.delegator.withdraw(payload)
         Utils.expectTxSuccess(tx_result)
@@ -345,7 +393,7 @@ describe("Stake Test", function() {
           delegation_after.withdraw_amount
             .minus(delegation_before.withdraw_amount)
             .toNumber()
-        ).to.eq(Number(amounts.dele1))
+        ).to.eq(Number(withdraw))
       })
     })
   })
