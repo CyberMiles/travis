@@ -258,6 +258,8 @@ func (app *BaseApp) InitState(module, key string, value interface{}) error {
 
 	if key == "validator" {
 		stake.SetValidator(value.(ttypes.GenesisValidator), state)
+	} else if key == "cube_pub_keys" {
+		stake.SetCubePubKeys(value.([]ttypes.GenesisCubePubKey), state)
 	} else {
 		if set := utils.SetParam(key, value.(string)); !set {
 			return errors.ErrUnknownKey(key)

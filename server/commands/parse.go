@@ -63,6 +63,7 @@ func GetOptions(path string) ([]Option, error) {
 	res = append(res, Option{sdk.ModuleNameBase, sdk.ChainKey, genDoc.ChainID})
 	res = append(res, Option{"stake", "max_vals", strconv.Itoa(int(genDoc.MaxVals))})
 	res = append(res, Option{"stake", "self_staking_ratio", genDoc.SelfStakingRatio})
+	res = append(res, Option{"stake", "cube_pub_keys", genDoc.CubePubKeys})
 
 	// set validators
 	for _, val := range validators {

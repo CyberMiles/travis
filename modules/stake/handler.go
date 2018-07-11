@@ -80,6 +80,14 @@ func SetValidator(val types.GenesisValidator, store state.SimpleDB) error {
 	return deliverer.declareGenesisCandidacy(tx, power)
 }
 
+func SetCubePubKeys(val []types.GenesisCubePubKey, store state.SimpleDB) error {
+	for _, pk := range val {
+		fmt.Printf("cube_batch: %s, pub_key: %s\n", pk.CubeBatch, pk.PubKey)
+	}
+
+	return nil
+}
+
 // CheckTx checks if the tx is properly structured
 func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckResult, err error) {
 	err = tx.ValidateBasic()
