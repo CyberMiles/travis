@@ -257,12 +257,12 @@ imports:
 - name: github.com/tendermint/go-amino
   version: 2106ca61d91029c931fd54968c2bb02dc96b1412
 - name: github.com/tendermint/go-wire
-  version: b8470691aa56b059e06dbfced95a4a21a407df81
+  version: fd33313baedb08fffafa3837994d3f02a6587baf
   repo: https://github.com/CyberMiles/go-wire.git
   subpackages:
   - data
 - name: github.com/tendermint/iavl
-  version: fd37a0fa3a7454423233bc3d5ea828f38e0af787
+  version: 35f66e53d9b01e83b30de68b931f54b2477a94c9
 - name: github.com/tendermint/tendermint
   version: dfa9a9a30a666132425b29454e90a472aa579a48
   subpackages:
@@ -318,12 +318,6 @@ imports:
   - state/txindex/null
   - types
   - version
-- name: github.com/tendermint/tmlibs
-  version: 56f44670ebd5a4e99e55f3f7d6f4d360ef5f1973
-  subpackages:
-  - common
-  - db
-  - log
 - name: golang.org/x/crypto
   version: 027cca12c2d63e3d62b670d901e8a2c95854feec
   subpackages:

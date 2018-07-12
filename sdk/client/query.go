@@ -1,17 +1,18 @@
 package client
 
 import (
-	"github.com/pkg/errors"
+	//"github.com/pkg/errors"
 
-	"github.com/tendermint/iavl"
+	//"github.com/tendermint/iavl"
 
 	"github.com/tendermint/tendermint/lite"
 	"github.com/tendermint/tendermint/lite/client"
 	certerr "github.com/tendermint/tendermint/lite/errors"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	//ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
+/*
 // GetWithProof will query the key on the given node, and verify it has
 // a valid proof, as defined by the certifier.
 //
@@ -20,7 +21,7 @@ import (
 // If val is empty, proof should be KeyMissingProof
 func GetWithProof(key []byte, reqHeight int64, node rpcclient.Client,
 	cert lite.Certifier) (
-	val []byte, height int64, proof iavl.KeyProof, err error) {
+	val []byte, height int64, proof *iavl.RangeProof, err error) {
 
 	if reqHeight < 0 {
 		err = errors.Errorf("Height cannot be negative")
@@ -40,7 +41,7 @@ func GetWithProof(key []byte, reqHeight int64, node rpcclient.Client,
 // GetWithProofOptions is useful if you want full access to the ABCIQueryOptions
 func GetWithProofOptions(path string, key []byte, opts rpcclient.ABCIQueryOptions,
 	node rpcclient.Client, cert lite.Certifier) (
-	*ctypes.ResultABCIQuery, iavl.KeyProof, error) {
+	*ctypes.ResultABCIQuery, *iavl.RangeProof, error) {
 
 	_resp, err := node.ABCIQueryWithOptions(path, key, opts)
 	if err != nil {
@@ -93,7 +94,7 @@ func GetWithProofOptions(path string, key []byte, opts rpcclient.ABCIQueryOption
 	}
 	return &ctypes.ResultABCIQuery{resp}, aproof, ErrNoData()
 }
-
+*/
 // GetCertifiedCommit gets the signed header for a given height
 // and certifies it.  Returns error if unable to get a proven header.
 func GetCertifiedCommit(h int64, node rpcclient.Client,

@@ -50,11 +50,11 @@ func (b *Bonsai) Remove(key []byte) (value []byte) {
 	return
 }
 
-func (b *Bonsai) GetWithProof(key []byte) ([]byte, iavl.KeyProof, error) {
+func (b *Bonsai) GetWithProof(key []byte) ([]byte, *iavl.RangeProof, error) {
 	return b.Tree.GetWithProof(key)
 }
 
-func (b *Bonsai) GetVersionedWithProof(key []byte, version int64) ([]byte, iavl.KeyProof, error) {
+func (b *Bonsai) GetVersionedWithProof(key []byte, version int64) ([]byte, *iavl.RangeProof, error) {
 	return b.Tree.GetVersionedWithProof(key, version)
 }
 

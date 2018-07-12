@@ -2,31 +2,32 @@ package app
 
 import (
 	"bytes"
+	"database/sql"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"math/big"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/CyberMiles/travis/sdk/errors"
-	sm "github.com/CyberMiles/travis/sdk/state"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/iavl"
-	cmn "github.com/tendermint/tendermint/libs/common"
-	dbm "github.com/tendermint/tmlibs/db"
-	"github.com/tendermint/tendermint/libs/log"
-
-	"database/sql"
-	"encoding/hex"
-	"encoding/json"
-	"github.com/CyberMiles/travis/modules/governance"
-	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/ethereum/go-ethereum/common"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
 	"golang.org/x/crypto/ripemd160"
-	"math/big"
-	"os"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/iavl"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/cli"
+	cmn "github.com/tendermint/tendermint/libs/common"
+	dbm "github.com/tendermint/tendermint/libs/db"
+	"github.com/tendermint/tendermint/libs/log"
+
+	"github.com/CyberMiles/travis/modules/governance"
+	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/sdk/errors"
+	sm "github.com/CyberMiles/travis/sdk/state"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -187,7 +188,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 				break
 			}
 			resQuery.Value = value
-			resQuery.Proof = proof.Bytes()
+			resQuery.Proof = proof.ComputeRootHash()
 		} else {
 			value := tree.Get(key)
 			resQuery.Value = value
