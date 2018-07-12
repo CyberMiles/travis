@@ -282,7 +282,7 @@ describe("Stake Test", function() {
     })
   })
 
-  describe("Block awards", function() {
+  describe.skip("Block awards", function() {
     let blocks = 1,
       vals_expected = [],
       dele_expected = []
