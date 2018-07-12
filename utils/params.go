@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"reflect"
 	"strconv"
 
@@ -25,6 +26,7 @@ type Params struct {
 	ValidatorsBlockAwardRatio int64          `json:"validators_block_award_ratio" type:"int"`
 	MaxSlashingBlocks         int16          `json:"max_slashing_blocks" type:"int"`
 	SlashingRatio             string         `json:"slashing_ratio" type:"float"`
+	CubePubKeys               string         `json:"cube_pub_keys" type:"json"`
 }
 
 func defaultParams() *Params {
@@ -45,6 +47,7 @@ func defaultParams() *Params {
 		ValidatorsBlockAwardRatio: 80,
 		MaxSlashingBlocks:         12,
 		SlashingRatio:             "0.001",
+		CubePubKeys:               "{}",
 	}
 }
 
@@ -120,6 +123,11 @@ func CheckParamType(name, value string) bool {
 					if iv > 0 {
 						return true
 					}
+				}
+			case "json":
+				var s map[string]interface{}
+				if err := json.Unmarshal([]byte(value), &s); err == nil {
+					return true
 				}
 			case "string":
 				return true
