@@ -52,6 +52,8 @@ const (
 	FlagLocation         = "location"
 	FlagProfile          = "profile"
 	FlagVerified         = "verified"
+	FlagCubeBatch        = "cube-batch"
+	FlagSig              = "sig"
 )
 
 // nolint
@@ -122,6 +124,12 @@ func init() {
 	fsValidatorAddress := flag.NewFlagSet("", flag.ContinueOnError)
 	fsValidatorAddress.String(FlagValidatorAddress, "", "validator address")
 
+	fsCubeBatch := flag.NewFlagSet("", flag.ContinueOnError)
+	fsCubeBatch.String(FlagCubeBatch, "", "cube batch number")
+
+	fsSig := flag.NewFlagSet("", flag.ContinueOnError)
+	fsSig.String(FlagSig, "", "cube signature")
+
 	// add the flags
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCandidate)
@@ -134,6 +142,8 @@ func init() {
 
 	CmdDelegate.Flags().AddFlagSet(fsValidatorAddress)
 	CmdDelegate.Flags().AddFlagSet(fsAmount)
+	CmdDelegate.Flags().AddFlagSet(fsCubeBatch)
+	CmdDelegate.Flags().AddFlagSet(fsSig)
 
 	CmdWithdraw.Flags().AddFlagSet(fsValidatorAddress)
 	CmdWithdraw.Flags().AddFlagSet(fsAmount)
@@ -226,7 +236,17 @@ func cmdDelegate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("please enter validator address using --validator-address")
 	}
 
-	tx := stake.NewTxDelegate(validatorAddress, amount)
+	cubeBatch := viper.GetString(FlagCubeBatch)
+	if cubeBatch == "" {
+		return fmt.Errorf("please enter cube's batch number using --cube-batch")
+	}
+
+	sig := viper.GetString(FlagSig)
+	if sig == "" {
+		return fmt.Errorf("please enter signature using --sig")
+	}
+
+	tx := stake.NewTxDelegate(validatorAddress, amount, cubeBatch, sig)
 	return txcmd.DoTx(tx)
 }
 

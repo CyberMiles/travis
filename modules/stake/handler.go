@@ -3,6 +3,9 @@ package stake
 import (
 	"fmt"
 
+	"crypto"
+	"crypto/rsa"
+	"crypto/sha256"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/errors"
@@ -13,7 +16,9 @@ import (
 	ethstat "github.com/ethereum/go-ethereum/core/state"
 	"math"
 	"math/big"
+	"os"
 	"strconv"
+	"strings"
 )
 
 // nolint
@@ -80,14 +85,6 @@ func SetValidator(val types.GenesisValidator, store state.SimpleDB) error {
 	return deliverer.declareGenesisCandidacy(tx, power)
 }
 
-func SetCubePubKeys(val []types.GenesisCubePubKey, store state.SimpleDB) error {
-	for _, pk := range val {
-		fmt.Printf("cube_batch: %s, pub_key: %s\n", pk.CubeBatch, pk.PubKey)
-	}
-
-	return nil
-}
-
 // CheckTx checks if the tx is properly structured
 func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckResult, err error) {
 	err = tx.ValidateBasic()
@@ -107,6 +104,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		sender: sender,
 		params: params,
 		state:  ctx.EthappState(),
+		nonce:  ctx.GetNonce(),
 	}
 
 	switch txInner := tx.Unwrap().(type) {
@@ -202,6 +200,7 @@ type check struct {
 	sender common.Address
 	params *utils.Params
 	state  *ethstat.StateDB
+	nonce  uint64
 }
 
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
@@ -313,15 +312,16 @@ func (c check) delegate(tx TxDelegate) error {
 		return ErrNoCandidateForAddress()
 	}
 
+	err := VerifyCubeSignature(c.sender, c.nonce, tx.CubeBatch, tx.Sig)
+	if err != nil {
+		return err
+	}
+
 	// check if the delegator has sufficient funds
 	amount, ok := new(big.Int).SetString(tx.Amount, 10)
 	if !ok || amount.Cmp(big.NewInt(0)) < 0 {
 		return ErrBadAmount()
 	}
-
-	//if amount.Cmp(minStakedAmount) < 0 || amount.Cmp(maxStakedAmount) > 0 {
-	//	return ErrInvalidStakedAmount()
-	//}
 
 	err := checkBalance(c.state, c.sender, amount)
 	if err != nil {
@@ -336,6 +336,16 @@ func (c check) delegate(tx TxDelegate) error {
 	}
 
 	return nil
+}
+
+func VerifyCubeSignature(address common.Address, nonce uint64, cubeBatch string, sig string) error {
+	message := fmt.Sprintf("%s|%d", strings.ToLower(address.String()), nonce)
+	hashed := sha256.Sum256([]byte(message))
+	err := rsa.VerifyPKCS1v15(&rsaPrivateKey.PublicKey, crypto.SHA256, hashed[:], []byte(sig))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error from verification: %s\n", err)
+		return err
+	}
 }
 
 func (c check) withdraw(tx TxWithdraw) error {

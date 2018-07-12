@@ -22,6 +22,7 @@ func (app BaseApp) checkHandler(ctx types.Context, store state.SimpleDB, tx *eth
 		return resp
 	}
 	ctx.WithSigners(from)
+	ctx.SetNonce(nonce)
 
 	var travisTx sdk.Tx
 	if err := json.Unmarshal(tx.Data(), &travisTx); err != nil {

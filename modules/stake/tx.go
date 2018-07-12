@@ -147,16 +147,20 @@ func (tx TxActivateCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 type TxDelegate struct {
 	ValidatorAddress common.Address `json:"validator_address"`
 	Amount           string         `json:"amount"`
+	CubeBatch        string         `json:"cube_batch"`
+	Sig              string         `json:"sig"`
 }
 
 func (tx TxDelegate) ValidateBasic() error {
 	return nil
 }
 
-func NewTxDelegate(validatorAddress common.Address, amount string) sdk.Tx {
+func NewTxDelegate(validatorAddress common.Address, amount, cubeBatch, sig string) sdk.Tx {
 	return TxDelegate{
 		ValidatorAddress: validatorAddress,
 		Amount:           amount,
+		CubeBatch:        cubeBatch,
+		Sig:              sig,
 	}.Wrap()
 }
 

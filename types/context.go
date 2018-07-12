@@ -12,18 +12,19 @@ import (
 type nonce int64
 
 type Context struct {
-	id       nonce
-	chain    string
-	height   int64
-	signers  []common.Address
+	id          nonce
+	chain       string
+	height      int64
+	signers     []common.Address
 	ethappState *state.StateDB
+	nonce       uint64
 }
 
 func NewContext(chain string, height int64, ethappState *state.StateDB) Context {
 	return Context{
-		id:       nonce(rand.Int63()),
-		chain:    chain,
-		height:   height,
+		id:          nonce(rand.Int63()),
+		chain:       chain,
+		height:      height,
 		ethappState: ethappState,
 	}
 }
@@ -74,6 +75,14 @@ func (c Context) Reset() Context {
 		chain:  c.chain,
 		height: c.height,
 	}
+}
+
+func (c Context) SetNonce(nonce uint64) {
+	c.nonce = nonce
+}
+
+func (c Context) GetNonce() uint64 {
+	return c.nonce
 }
 
 //////////////////////////////// Sort Interface
