@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.1.0-rc.2
+
+_July 13th, 2018_
+
+### IMPROVEMENTS
+- Modify the governance mechanism: A validator can vote multiple times before the proposal is executed. Only the last vote counts.
+- Update tendermit to v0.22.0.  
+- Improve network security by adding：
+  * Backup Validator test-cases
+  * System parameters test-cases 
+  * Block Award calculation test-cases
+- Fix compatibility issues of 0x0 address.
+
+### FIXES
+
+- Correct Validator and Backup Validator block award calculation errors.
+
 ## v0.1.0-rc.1
 
 _July 5th, 2018_
