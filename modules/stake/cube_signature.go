@@ -16,6 +16,7 @@ import (
 
 func VerifyCubeSignature(address common.Address, nonce uint64, cubeBatch string, sig string) error {
 	message := fmt.Sprintf("%s|%d", strings.ToLower(address.String()), nonce)
+	//fmt.Printf("message: %s\n", message)
 	hashed := sha256.Sum256([]byte(message))
 	publicKeyStr, err := getCubePublicKeyString(cubeBatch)
 	if err != nil {
@@ -29,7 +30,7 @@ func VerifyCubeSignature(address common.Address, nonce uint64, cubeBatch string,
 		return err
 	}
 
-	err = rsa.VerifyPKCS1v15(pk, crypto.SHA256, hashed[:], []byte(sig))
+	err = rsa.VerifyPKCS1v15(pk, crypto.SHA256, hashed[:], common.Hex2Bytes(sig))
 	if err != nil {
 		fmt.Printf("Error occurred while verifying the signature: %s\n", err)
 		return err
