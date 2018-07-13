@@ -85,7 +85,7 @@ func initTendermint() {
 		}}
 		genDoc.CubePubKeys = []types.GenesisCubePubKey{{
 			CubeBatch: "01",
-			PubKey:    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDBUgQIzJZFF1ZoZhL/sYn93UcHSIW1wdCpPEyanGBuqpOWYV9XgPBMW9mACetK3I9338aY8uAGm00Oq+HWa4Uonh6jEjRh/vJf/mOJ/dtxvYv2C9AMTfevEM/j3GZKjnLAuAq9ffxxFibFqUUxq4yKIP4VUzpsA+OvlMcq1DJ3DQ== ying@YingMBP",
+			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCiWpvDnwYFTqgSWPlA3VO8u+Yv\n9r8QGlRaYZFszUZEXUQxquGlFexMSVyFeqYjIokfPOEHHx2voqWgi3FKKlp6dkxw\nApP3T22y7Epqvtr+EfNybRta15snccZy47dY4UcmYxbGWFTaL66tz22pCAbjFrxY\n3IxaPPIjDX+FiXdJWwIDAQAB\n-----END PUBLIC KEY-----",
 		}}
 
 		if err := genDoc.SaveAs(genFile); err != nil {

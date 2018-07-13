@@ -3,9 +3,6 @@ package stake
 import (
 	"fmt"
 
-	"crypto"
-	"crypto/rsa"
-	"crypto/sha256"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/errors"
@@ -16,9 +13,7 @@ import (
 	ethstat "github.com/ethereum/go-ethereum/core/state"
 	"math"
 	"math/big"
-	"os"
 	"strconv"
-	"strings"
 )
 
 // nolint
@@ -307,14 +302,14 @@ func (c check) activateCandidacy(tx TxActivateCandidacy) error {
 }
 
 func (c check) delegate(tx TxDelegate) error {
-	candidate := GetCandidateByAddress(tx.ValidatorAddress)
-	if candidate == nil {
-		return ErrNoCandidateForAddress()
-	}
-
 	err := VerifyCubeSignature(c.sender, c.nonce, tx.CubeBatch, tx.Sig)
 	if err != nil {
 		return err
+	}
+
+	candidate := GetCandidateByAddress(tx.ValidatorAddress)
+	if candidate == nil {
+		return ErrNoCandidateForAddress()
 	}
 
 	// check if the delegator has sufficient funds
@@ -323,7 +318,7 @@ func (c check) delegate(tx TxDelegate) error {
 		return ErrBadAmount()
 	}
 
-	err := checkBalance(c.state, c.sender, amount)
+	err = checkBalance(c.state, c.sender, amount)
 	if err != nil {
 		return err
 	}
@@ -338,17 +333,12 @@ func (c check) delegate(tx TxDelegate) error {
 	return nil
 }
 
-func VerifyCubeSignature(address common.Address, nonce uint64, cubeBatch string, sig string) error {
-	message := fmt.Sprintf("%s|%d", strings.ToLower(address.String()), nonce)
-	hashed := sha256.Sum256([]byte(message))
-	err := rsa.VerifyPKCS1v15(&rsaPrivateKey.PublicKey, crypto.SHA256, hashed[:], []byte(sig))
+func (c check) withdraw(tx TxWithdraw) error {
+	err := VerifyCubeSignature(c.sender, c.nonce, tx.CubeBatch, tx.Sig)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error from verification: %s\n", err)
 		return err
 	}
-}
 
-func (c check) withdraw(tx TxWithdraw) error {
 	// check if has delegated
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
@@ -521,7 +511,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	// Self-staked CMTs will be refunded back to the validator address.
 	delegations := GetDelegationsByPubKey(candidate.PubKey)
 	for _, delegation := range delegations {
-		txWithdraw := TxWithdraw{validatorAddress, delegation.Shares().String()}
+		txWithdraw := TxWithdraw{ValidatorAddress: validatorAddress, Amount: delegation.Shares().String()}
 		d.doWithdraw(delegation, delegation.Shares(), candidate, txWithdraw)
 	}
 
