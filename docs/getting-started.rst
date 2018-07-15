@@ -11,7 +11,7 @@ Use Docker
 ----------------------------
 
 The easiest way to get started is to use our pre-build Docker images. Please make sure that you have 
-`Docker installed <https://docs.docker.com/install/>`
+`Docker installed <https://docs.docker.com/install/>`_
 
 Initialize
 ``````````

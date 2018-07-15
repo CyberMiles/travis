@@ -1,5 +1,5 @@
 ===============
-How to connect to the CyberMiles network
+A Network Node
 ===============
 
 In this document, we will discuss how to connect to the CyberMiles
