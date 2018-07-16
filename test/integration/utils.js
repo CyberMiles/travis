@@ -423,6 +423,20 @@ const calcDeleAwards = (award, comp_rate, shares, blocks) => {
   return shares
 }
 
+const delegatorAccept = (delegator, validator, deleAmount) => {
+  let nonce = web3.cmt.getTransactionCount(delegator)
+
+  let payload = {
+    from: delegator,
+    validatorAddress: validator,
+    amount: deleAmount,
+    cubeBatch: Globals.CubeBatch,
+    sig: web3.cubeSign(delegator, nonce)
+  }
+  let r = web3.cmt.stake.delegator.accept(payload)
+  expectTxSuccess(r)
+}
+
 module.exports = {
   transfer,
   getBalance,
@@ -442,5 +456,6 @@ module.exports = {
   addFakeValidators,
   removeFakeValidators,
   calcAwards,
-  calcDeleAwards
+  calcDeleAwards,
+  delegatorAccept
 }

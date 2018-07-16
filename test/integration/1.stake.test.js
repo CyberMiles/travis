@@ -197,13 +197,11 @@ describe("Stake Test", function() {
       })
 
       it("CMTs are moved from account B", function() {
-        let payload = {
-          from: Globals.Accounts[1],
-          validatorAddress: Globals.Accounts[3],
-          amount: amounts.dele1
-        }
-        tx_result = web3.cmt.stake.delegator.accept(payload)
-        Utils.expectTxSuccess(tx_result)
+        Utils.delegatorAccept(
+          Globals.Accounts[1],
+          Globals.Accounts[3],
+          amounts.dele1
+        )
         // balance after
         balance_new = Utils.getBalance(1)
         expect(balance_new.minus(balance_old).toNumber()).to.equal(
@@ -238,13 +236,11 @@ describe("Stake Test", function() {
         delegation_before = Utils.getDelegation(2, 3)
       })
       it("CMTs are moved from account C", function() {
-        let payload = {
-          from: Globals.Accounts[2],
-          validatorAddress: Globals.Accounts[3],
-          amount: amounts.dele2
-        }
-        tx_result = web3.cmt.stake.delegator.accept(payload)
-        Utils.expectTxSuccess(tx_result)
+        Utils.delegatorAccept(
+          Globals.Accounts[2],
+          Globals.Accounts[3],
+          amounts.dele2
+        )
         // balance after
         balance_new = Utils.getBalance(2)
         expect(balance_new.minus(balance_old).toNumber()).to.equal(

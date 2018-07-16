@@ -8,6 +8,6 @@ module.exports = {
     "lmlbeRtIZLSgIvib9Emndk/W0isuGrJmBDlB+EwbYuY=",
     "GzGGwxzBnEj8RbFFAMgH+QP8bPsyRXrlTknpkt8mo5o="
   ],
-
+  CubeBatch: "01",
   Params: {}
 }
