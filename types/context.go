@@ -77,7 +77,7 @@ func (c Context) Reset() Context {
 	}
 }
 
-func (c Context) SetNonce(nonce uint64) {
+func (c *Context) SetNonce(nonce uint64) {
 	c.nonce = nonce
 }
 
