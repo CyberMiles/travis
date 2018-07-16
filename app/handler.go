@@ -67,6 +67,7 @@ func (app BaseApp) deliverHandler(ctx types.Context, store state.SimpleDB, tx *e
 		return errors.DeliverResult(err)
 	}
 	ctx.WithSigners(from)
+	ctx.SetNonce(tx.Nonce())
 
 	name, err := lookupRoute(travisTx)
 	if err != nil {
