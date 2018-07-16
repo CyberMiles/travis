@@ -344,8 +344,8 @@ type DelegateArgs struct {
 	From             common.Address  `json:"from"`
 	ValidatorAddress common.Address  `json:"validatorAddress"`
 	Amount           hexutil.Big     `json:"amount"`
-	CubeBatch        string         `json:"cube_batch"`
-	Sig              string         `json:"sig"`
+	CubeBatch        string          `json:"cubeBatch"`
+	Sig              string          `json:"sig"`
 }
 
 func (s *CmtRPCService) Delegate(args DelegateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
