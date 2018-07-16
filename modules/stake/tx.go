@@ -170,20 +170,16 @@ func (tx TxDelegate) Wrap() sdk.Tx { return sdk.Tx{tx} }
 type TxWithdraw struct {
 	ValidatorAddress common.Address `json:"validator_address"`
 	Amount           string         `json:"amount"`
-	CubeBatch        string         `json:"cube_batch"`
-	Sig              string         `json:"sig"`
 }
 
 func (tx TxWithdraw) ValidateBasic() error {
 	return nil
 }
 
-func NewTxWithdraw(validatorAddress common.Address, amount, cubeBatch, sig string) sdk.Tx {
+func NewTxWithdraw(validatorAddress common.Address, amount string) sdk.Tx {
 	return TxWithdraw{
 		ValidatorAddress: validatorAddress,
 		Amount:           amount,
-		CubeBatch:        cubeBatch,
-		Sig:              sig,
 	}.Wrap()
 }
 

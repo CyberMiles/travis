@@ -147,8 +147,6 @@ func init() {
 
 	CmdWithdraw.Flags().AddFlagSet(fsValidatorAddress)
 	CmdWithdraw.Flags().AddFlagSet(fsAmount)
-	CmdWithdraw.Flags().AddFlagSet(fsCubeBatch)
-	CmdWithdraw.Flags().AddFlagSet(fsSig)
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
@@ -265,16 +263,6 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("amount must be positive interger")
 	}
 
-	cubeBatch := viper.GetString(FlagCubeBatch)
-	if cubeBatch == "" {
-		return fmt.Errorf("please enter cube's batch number using --cube-batch")
-	}
-
-	sig := viper.GetString(FlagSig)
-	if sig == "" {
-		return fmt.Errorf("please enter signature using --sig")
-	}
-
-	tx := stake.NewTxWithdraw(validatorAddress, amount, cubeBatch, sig)
+	tx := stake.NewTxWithdraw(validatorAddress, amount)
 	return txcmd.DoTx(tx)
 }

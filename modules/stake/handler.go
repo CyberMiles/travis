@@ -334,11 +334,6 @@ func (c check) delegate(tx TxDelegate) error {
 }
 
 func (c check) withdraw(tx TxWithdraw) error {
-	err := VerifyCubeSignature(c.sender, c.nonce, tx.CubeBatch, tx.Sig)
-	if err != nil {
-		return err
-	}
-
 	// check if has delegated
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {

@@ -367,15 +367,13 @@ type WithdrawArgs struct {
 	From             common.Address  `json:"from"`
 	ValidatorAddress common.Address  `json:"validatorAddress"`
 	Amount           hexutil.Big     `json:"amount"`
-	CubeBatch        string         `json:"cube_batch"`
-	Sig              string         `json:"sig"`
 }
 
 func (s *CmtRPCService) Withdraw(args WithdrawArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	if len(args.ValidatorAddress) == 0 {
 		return nil, fmt.Errorf("must provide validator address")
 	}
-	tx := stake.NewTxWithdraw(args.ValidatorAddress, args.Amount.ToInt().String(), args.CubeBatch, args.Sig)
+	tx := stake.NewTxWithdraw(args.ValidatorAddress, args.Amount.ToInt().String())
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
