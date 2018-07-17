@@ -34,10 +34,11 @@ RUN ENI_LIB=$LIBENI_PATH make build
 FROM ubuntu:16.04
 
 WORKDIR /app
+ENV ENI_LIBRARY_PATH=/app/lib
 
 # add the binary
 COPY --from=build-env /go/src/github.com/CyberMiles/travis/build/travis .
-COPY --from=build-env /app/lib/*.so ./lib/
+COPY --from=build-env /app/lib/*.so $ENI_LIBRARY_PATH/
 
 EXPOSE 8545 26656 26657
 
