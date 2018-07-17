@@ -4,3 +4,5 @@ node_modules/
 # misc
 npm-debug.log
 .node-xmlhttprequest*
+
+mochawesome-report/
