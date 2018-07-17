@@ -193,11 +193,11 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		delegations := GetDelegationsByPubKey(candidate.PubKey)
 		for _, delegation := range delegations {
 			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
-			minStakingAmount := new(big.Int).Mul(big.NewInt(utils.GetParams().MinStakingAmount), big.NewInt(1e18))
-			if delegation.Shares().Cmp(minStakingAmount) < 0 {
-				skippedShares.Add(skippedShares, delegation.Shares())
-				continue
-			}
+			//minStakingAmount := new(big.Int).Mul(big.NewInt(utils.GetParams().MinStakingAmount), big.NewInt(1e18))
+			//if delegation.Shares().Cmp(minStakingAmount) < 0 {
+			//	skippedShares.Add(skippedShares, delegation.Shares())
+			//	continue
+			//}
 
 			delegator := delegator{}
 			delegator.address = delegation.DelegatorAddress
