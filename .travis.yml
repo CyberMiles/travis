@@ -38,10 +38,8 @@ after_success:
     fi
 
 after_failure:
-  - if [[ "$TRAVIS_BRANCH" != "master" ]]; then
-      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-      TAG=$TRAVIS_BRANCH make push_tag_image ;
-    fi
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+  - TAG=$TRAVIS_BRANCH make push_tag_image ;
   - curl -i "http://localhost:26657/dump_consensus_state"
   - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t
 
