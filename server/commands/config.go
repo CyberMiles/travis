@@ -92,6 +92,8 @@ func ParseConfig() (*TravisConfig, error) {
 		conf.EMConfig.ChainId = MainNet
 	case "testnet":
 		conf.EMConfig.ChainId = TestNet
+	default:
+		conf.EMConfig.ChainId = PrivateChain
 	}
 
 	err := viper.Unmarshal(&conf)

@@ -19,15 +19,18 @@ import (
 
 //nolint
 const (
+	FlagLogLevel = "log_level"
+	FlagENV      = "env"
+
 	defaultLogLevel = "error"
-	FlagLogLevel    = "log_level"
-	FlagENV         = "env"
+	defaultEnv      = "private"
 )
 
 const (
-	Staging = 20
-	TestNet = 19
-	MainNet = 18
+	Staging      = 20
+	TestNet      = 19
+	MainNet      = 18
+	PrivateChain = 1234
 )
 
 var (
@@ -59,7 +62,7 @@ func preRunSetup(cmd *cobra.Command, args []string) (err error) {
 func SetUpRoot(cmd *cobra.Command) {
 	cmd.PersistentPreRunE = preRunSetup
 	cmd.PersistentFlags().String(FlagLogLevel, defaultLogLevel, "Log level")
-	cmd.PersistentFlags().String(FlagENV, "testnet", "env")
+	cmd.PersistentFlags().String(FlagENV, defaultEnv, "env")
 }
 
 // copied from ethermint
