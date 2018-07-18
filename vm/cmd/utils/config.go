@@ -10,10 +10,11 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
+	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/vm/ethereum"
-	rpcClient "github.com/tendermint/tendermint/rpc/client"
 )
 
 const (
@@ -101,8 +102,8 @@ func SetEthermintNodeConfig(cfg *node.Config) {
 // SetEthermintEthConfig takes a ethereum configuration and applies ethermint specific configuration
 // #unstable
 func SetEthermintEthConfig(cfg *eth.Config) {
-	cfg.MaxPeers = 0
-	cfg.PowFake = true
+	//cfg.MaxPeers = 0
+	cfg.Ethash.PowMode = ethash.ModeFake
 }
 
 // MakeDataDir retrieves the currently requested data directory

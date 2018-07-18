@@ -10,17 +10,27 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
-	tmcli "github.com/tendermint/tmlibs/cli"
-	tmflags "github.com/tendermint/tmlibs/cli/flags"
-	"github.com/tendermint/tmlibs/log"
+	tmcli "github.com/tendermint/tendermint/libs/cli"
+	tmflags "github.com/tendermint/tendermint/libs/cli/flags"
+	"github.com/tendermint/tendermint/libs/log"
 
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 )
 
 //nolint
 const (
+	FlagLogLevel = "log_level"
+	FlagENV      = "env"
+
 	defaultLogLevel = "error"
-	FlagLogLevel    = "log_level"
+	defaultEnv      = "private"
+)
+
+const (
+	Staging      = 20
+	TestNet      = 19
+	MainNet      = 18
+	PrivateChain = 1234
 )
 
 var (
@@ -52,6 +62,7 @@ func preRunSetup(cmd *cobra.Command, args []string) (err error) {
 func SetUpRoot(cmd *cobra.Command) {
 	cmd.PersistentPreRunE = preRunSetup
 	cmd.PersistentFlags().String(FlagLogLevel, defaultLogLevel, "Log level")
+	cmd.PersistentFlags().String(FlagENV, defaultEnv, "env")
 }
 
 // copied from ethermint
@@ -86,6 +97,7 @@ var (
 		ethUtils.RPCPortFlag,
 		ethUtils.RPCCORSDomainFlag,
 		ethUtils.RPCApiFlag,
+		ethUtils.RPCVirtualHostsFlag,
 		ethUtils.IPCDisabledFlag,
 		ethUtils.WSEnabledFlag,
 		ethUtils.WSListenAddrFlag,
@@ -102,6 +114,7 @@ var (
 		emtUtils.VerbosityFlag,
 		emtUtils.ConfigFileFlag,
 		emtUtils.WithTendermintFlag,
+		ethUtils.GCModeFlag,
 	}
 )
 
@@ -122,7 +135,7 @@ func setupEmtContext() error {
 	context = cli.NewContext(a, set, nil)
 
 	context.GlobalSet(ethUtils.DataDirFlag.Name, config.BaseConfig.RootDir)
-	context.GlobalSet(ethUtils.NetworkIdFlag.Name, strconv.Itoa(int(config.EMConfig.EthChainId)))
+	context.GlobalSet(ethUtils.NetworkIdFlag.Name, strconv.Itoa(int(config.EMConfig.ChainId)))
 	context.GlobalSet(emtUtils.VerbosityFlag.Name, strconv.Itoa(int(config.EMConfig.VerbosityFlag)))
 
 	context.GlobalSet(emtUtils.TendermintAddrFlag.Name, config.TMConfig.RPC.ListenAddress)
@@ -132,6 +145,7 @@ func setupEmtContext() error {
 
 	context.GlobalSet(ethUtils.RPCEnabledFlag.Name, strconv.FormatBool(config.EMConfig.RPCEnabledFlag))
 	context.GlobalSet(ethUtils.RPCApiFlag.Name, config.EMConfig.RPCApiFlag)
+	context.GlobalSet(ethUtils.RPCVirtualHostsFlag.Name, config.EMConfig.RPCVirtualHostsFlag)
 
 	context.GlobalSet(ethUtils.RPCListenAddrFlag.Name, config.EMConfig.RPCListenAddrFlag)
 	context.GlobalSet(ethUtils.RPCPortFlag.Name, strconv.Itoa(int(config.EMConfig.RPCPortFlag)))

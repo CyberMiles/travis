@@ -4,29 +4,31 @@ package stake
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/errors"
+	"github.com/CyberMiles/travis/sdk/errors"
 )
 
 var (
 	errCandidateEmpty     = fmt.Errorf("Cannot bond to an empty candidate")
-	errBadBondingDenom    = fmt.Errorf("Invalid coin denomination")
-	errBadBondingAmount   = fmt.Errorf("Amount must be > 0")
+	errBadAmount          = fmt.Errorf("Amount must be > 0")
 	errNoBondingAcct      = fmt.Errorf("No bond account for this (address, validator) pair")
 	errCommissionNegative = fmt.Errorf("Commission must be positive")
 	errCommissionHuge     = fmt.Errorf("Commission cannot be more than 100%")
 
-	errBadValidatorAddr      = fmt.Errorf("Validator does not exist for that address")
-	errCandidateExistsAddr   = fmt.Errorf("Candidate already exist, cannot re-declare candidacy")
-	errMissingSignature      = fmt.Errorf("Missing signature")
-	errBondNotNominated      = fmt.Errorf("Cannot bond to non-nominated account")
-	errNoCandidateForAddress = fmt.Errorf("Validator does not exist for that address")
-	errNoDelegatorForAddress = fmt.Errorf("Delegator does not contain validator bond")
-	errInsufficientFunds     = fmt.Errorf("Insufficient bond shares")
-	errBadRemoveValidator    = fmt.Errorf("Error removing validator")
-	errFullSlot              = fmt.Errorf("Slot is full")
-	errBadSlot               = fmt.Errorf("Slot does not exist")
-	errCancelledSlot       	 = fmt.Errorf("Slot was cancelled already")
-	errBadSlotDelegate       = fmt.Errorf("Slot delegate does not exist")
+	errBadValidatorAddr                = fmt.Errorf("Validator does not exist for that address")
+	errCandidateExistsAddr             = fmt.Errorf("Candidate already exist, cannot re-declare candidacy")
+	errMissingSignature                = fmt.Errorf("Missing signature")
+	errBondNotNominated                = fmt.Errorf("Cannot bond to non-nominated account")
+	errNoCandidateForAddress           = fmt.Errorf("Validator does not exist for that address")
+	errNoDelegatorForAddress           = fmt.Errorf("Delegator does not contain validator bond")
+	errInsufficientFunds               = fmt.Errorf("Insufficient bond shares")
+	errBadRemoveValidator              = fmt.Errorf("Error removing validator")
+	errCandidateVerificationDisallowed = fmt.Errorf("verification disallowed")
+	errCandidateVerifiedAlready        = fmt.Errorf("candidate has been verified already")
+	errReachMaxAmount                  = fmt.Errorf("validator has reached its declared max amount CMTs to be staked")
+	errDelegationNotExists             = fmt.Errorf("no corresponding delegation exists")
+	errInvalidWithdrawalAmount         = fmt.Errorf("invalid withdrawal amount")
+	errCandidateWithdrawalDisallowed   = fmt.Errorf("candidate can't withdraw the self-staking funds")
+	errInvalidCubeSignature            = fmt.Errorf("invalid cube signature")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
@@ -46,28 +48,39 @@ func ErrBondNotNominated() error {
 func ErrNoCandidateForAddress() error {
 	return errors.WithCode(errNoCandidateForAddress, errors.CodeTypeBaseUnknownAddress)
 }
-func ErrNoDelegatorForAddress() error {
-	return errors.WithCode(errNoDelegatorForAddress, errors.CodeTypeBaseInvalidInput)
-}
+
 func ErrInsufficientFunds() error {
 	return errors.WithCode(errInsufficientFunds, errors.CodeTypeBaseInvalidInput)
 }
-func ErrBadRemoveValidator() error {
-	return errors.WithCode(errBadRemoveValidator, errors.CodeTypeInternalErr)
+
+func ErrBadAmount() error {
+	return errors.WithCode(errBadAmount, errors.CodeTypeBaseInvalidOutput)
 }
 
-func ErrFullSlot() error {
-	return errors.WithCode(errFullSlot, errors.CodeTypeBaseInvalidInput)
+func ErrVerificationDisallowed() error {
+	return errors.WithCode(errCandidateVerificationDisallowed, errors.CodeTypeBaseInvalidOutput)
 }
 
-func ErrBadSlot() error {
-	return errors.WithCode(errBadSlot, errors.CodeTypeBaseInvalidInput)
+func ErrReachMaxAmount() error {
+	return errors.WithCode(errReachMaxAmount, errors.CodeTypeBaseInvalidOutput)
 }
 
-func ErrCancelledSlot() error {
-	return errors.WithCode(errCancelledSlot, errors.CodeTypeBaseInvalidInput)
+func ErrVerifiedAlready() error {
+	return errors.WithCode(errCandidateVerifiedAlready, errors.CodeTypeBaseInvalidOutput)
 }
 
-func ErrBadSlotDelegate() error {
-	return errors.WithCode(errBadSlotDelegate, errors.CodeTypeBaseInvalidInput)
+func ErrDelegationNotExists() error {
+	return errors.WithCode(errDelegationNotExists, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrInvalidWithdrawalAmount() error {
+	return errors.WithCode(errInvalidWithdrawalAmount, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrCandidateWithdrawalDisallowed() error {
+	return errors.WithCode(errCandidateWithdrawalDisallowed, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrInvalidCubeSignature() error {
+	return errors.WithCode(errInvalidCubeSignature, errors.CodeTypeBaseInvalidOutput)
 }

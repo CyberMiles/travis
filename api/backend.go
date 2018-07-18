@@ -1,8 +1,6 @@
 package api
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -12,12 +10,14 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
-	abciTypes "github.com/tendermint/abci/types"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
 	tmn "github.com/tendermint/tendermint/node"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/CyberMiles/travis/vm/ethereum"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 //----------------------------------------------------------------------
@@ -32,7 +32,9 @@ type Backend struct {
 	ethConfig *eth.Config
 
 	// txBroadcastLoop subscription
-	txSub *event.TypeMuxSubscription
+	//txSub *event.TypeMuxSubscription
+	txsCh  chan core.NewTxsEvent
+	txsSub event.Subscription
 
 	// EthState
 	es *ethereum.EthState
@@ -44,6 +46,9 @@ type Backend struct {
 
 	// travis chain id
 	chainID string
+
+	// moved from txpool.pendingState
+	managedState *state.ManagedState
 }
 
 // NewBackend creates a new Backend
@@ -77,13 +82,31 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 		es:        es,
 		client:    client,
 	}
+	ethBackend.ResetState()
 	return ethBackend, nil
+}
+
+func (b *Backend) ResetState() (*state.ManagedState, error) {
+	currentState, err := b.Ethereum().BlockChain().State()
+	if err != nil {
+		return nil, err
+	}
+	b.managedState = state.ManageState(currentState)
+	return b.managedState, nil
+}
+
+func (b *Backend) ManagedState() *state.ManagedState {
+	return b.managedState
 }
 
 // Ethereum returns the underlying the ethereum object.
 // #stable
 func (b *Backend) Ethereum() *eth.Ethereum {
 	return b.ethereum
+}
+
+func (b *Backend) DeliverTxState() *state.StateDB {
+	return b.es.GetEthState()
 }
 
 // Config returns the eth.Config.
@@ -97,6 +120,19 @@ func (b *Backend) SetTMNode(tmNode *tmn.Node) {
 	b.localClient = rpcClient.NewLocal(tmNode)
 }
 
+func (b *Backend) PeerCount() int {
+	var net *ctypes.ResultNetInfo
+	if b.localClient != nil {
+		net, _ = b.localClient.NetInfo()
+	} else if b.client != nil {
+		net, _ = b.client.NetInfo()
+	}
+	if net != nil {
+		return len(net.Peers)
+	}
+	return 0
+}
+
 //----------------------------------------------------------------------
 // Handle block processing
 
@@ -108,8 +144,8 @@ func (b *Backend) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDeliverT
 
 // AccumulateRewards accumulates the rewards based on the given strategy
 // #unstable
-func (b *Backend) AccumulateRewards(strategy *emtTypes.Strategy) {
-	b.es.AccumulateRewards(strategy)
+func (b *Backend) AccumulateRewards(config *params.ChainConfig, strategy *emtTypes.Strategy) {
+	b.es.AccumulateRewards(config, strategy)
 }
 
 // Commit finalises the current block
@@ -130,15 +166,20 @@ func (b *Backend) InitEthState(receiver common.Address) error {
 
 // UpdateHeaderWithTimeInfo uses the tendermint header to update the ethereum header
 // #unstable
-func (b *Backend) UpdateHeaderWithTimeInfo(tmHeader *abciTypes.Header) {
-	b.es.UpdateHeaderWithTimeInfo(b.ethereum.ApiBackend.ChainConfig(), uint64(tmHeader.Time),
+func (b *Backend) UpdateHeaderWithTimeInfo(tmHeader abciTypes.Header) {
+	b.es.UpdateHeaderWithTimeInfo(b.ethereum.APIBackend.ChainConfig(), uint64(tmHeader.Time),
 		uint64(tmHeader.GetNumTxs()))
 }
 
 // GasLimit returns the maximum gas per block
 // #unstable
-func (b *Backend) GasLimit() big.Int {
-	return b.es.GasLimit()
+func (b *Backend) GasLimit() uint64 {
+	return b.es.GasLimit().Gas()
+}
+
+// called by travis tx only in deliver_tx
+func (b *Backend) AddNonce(addr common.Address) {
+	b.es.AddNonce(addr)
 }
 
 //----------------------------------------------------------------------
@@ -147,13 +188,14 @@ func (b *Backend) GasLimit() big.Int {
 // APIs returns the collection of RPC services the ethereum package offers.
 // #stable - 0.4.0
 func (b *Backend) APIs() []rpc.API {
+	nonceLock := new(AddrLocker)
 	apis := b.Ethereum().APIs()
 	// append cmt and stake api
 	apis = append(apis, []rpc.API{
 		{
 			Namespace: "cmt",
 			Version:   "1.0",
-			Service:   NewCmtRPCService(b),
+			Service:   NewCmtRPCService(b, nonceLock),
 			Public:    true,
 		},
 	}...)
@@ -161,7 +203,7 @@ func (b *Backend) APIs() []rpc.API {
 	retApis := []rpc.API{}
 	for _, v := range apis {
 		if v.Namespace == "net" {
-			v.Service = NewNetRPCService(b.ethConfig.NetworkId)
+			v.Service = NewNetRPCService(b)
 		}
 		if v.Namespace == "miner" {
 			continue
@@ -186,7 +228,7 @@ func (b *Backend) Start(_ *p2p.Server) error {
 // Ethereum protocol.
 // #stable
 func (b *Backend) Stop() error {
-	b.txSub.Unsubscribe()
+	b.txsSub.Unsubscribe()
 	b.ethereum.Stop() // nolint: errcheck
 	return nil
 }
@@ -212,6 +254,6 @@ func (NullBlockProcessor) ValidateBody(*ethTypes.Block) error { return nil }
 // ValidateState does not validate anything
 // #unstable
 func (NullBlockProcessor) ValidateState(block, parent *ethTypes.Block, state *state.StateDB,
-	receipts ethTypes.Receipts, usedGas *big.Int) error {
+	receipts ethTypes.Receipts, usedGas uint64) error {
 	return nil
 }

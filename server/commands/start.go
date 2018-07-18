@@ -9,23 +9,21 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	sdk "github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/tendermint/tmlibs/cli"
-	cmn "github.com/tendermint/tmlibs/common"
+	"github.com/ethereum/go-ethereum/eth"
+	"github.com/tendermint/tendermint/libs/cli"
+	cmn "github.com/tendermint/tendermint/libs/common"
 
 	"github.com/CyberMiles/travis/app"
-	"github.com/CyberMiles/travis/genesis"
-	ethapp "github.com/CyberMiles/travis/vm/app"
-	"github.com/ethereum/go-ethereum/eth"
+	"github.com/CyberMiles/travis/version"
+	"time"
 )
 
-// GetTickStartCmd - initialize a command as the start command with tick
-func GetTickStartCmd(tick sdk.Ticker) *cobra.Command {
+// GetStartCmd - initialize a command as the start command with tick
+func GetStartCmd() *cobra.Command {
 	startCmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start this full node",
-		RunE:  tickStartCmd(tick),
+		RunE:  startCmd(),
 	}
 	return startCmd
 }
@@ -33,14 +31,8 @@ func GetTickStartCmd(tick sdk.Ticker) *cobra.Command {
 // nolint TODO: move to config file
 const EyesCacheSize = 10000
 
-var (
-	// Handler - use a global to store the handler, so we can set it in main.
-	// TODO: figure out a cleaner way to register plugins
-	Handler sdk.Handler
-)
-
 //returns the start command which uses the tick
-func tickStartCmd(clock sdk.Ticker) func(cmd *cobra.Command, args []string) error {
+func startCmd() func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		rootDir := viper.GetString(cli.HomeFlag)
 
@@ -68,23 +60,26 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 	// wait forever
 	cmn.TrapSignal(func() {
 		srvs.tmNode.Stop()
+		// TODO: find a better way
+		fmt.Println("sleep 5 seconds waiting for sqlite finish ...")
+		time.Sleep(5 * time.Second)
 	})
 
 	return nil
 }
 
-func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.EthermintApplication, ethereum *eth.Ethereum) (*app.BaseApp, error) {
-	basecoinApp, err := app.NewBaseApp(storeApp, ethApp, nil, ethereum)
+func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *app.EthermintApplication, ethereum *eth.Ethereum) (*app.BaseApp, error) {
+	travisApp, err := app.NewBaseApp(storeApp, ethApp, ethereum)
 	if err != nil {
 		return nil, err
 	}
 	// if chain_id has not been set yet, load the genesis.
 	// else, assume it's been loaded
-	if basecoinApp.GetChainID() == "" {
+	if travisApp.GetChainID() == "" {
 		// If genesis file exists, set key-value options
-		genesisFile := path.Join(rootDir, "genesis.json")
+		genesisFile := path.Join(rootDir, DefaultConfig().TMConfig.GenesisFile())
 		if _, err := os.Stat(genesisFile); err == nil {
-			err = genesis.Load(basecoinApp, genesisFile)
+			err = Load(travisApp, genesisFile)
 			if err != nil {
 				return nil, errors.Errorf("Error in LoadGenesis: %v\n", err)
 			}
@@ -93,8 +88,8 @@ func createBaseCoinApp(rootDir string, storeApp *app.StoreApp, ethApp *ethapp.Et
 		}
 	}
 
-	chainID := basecoinApp.GetChainID()
+	chainID := travisApp.GetChainID()
 	logger.Info("Starting Travis", "chain_id", chainID)
 
-	return basecoinApp, nil
+	return travisApp, nil
 }

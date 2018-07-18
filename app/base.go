@@ -1,36 +1,36 @@
 package app
 
 import (
-	"bytes"
 	goerr "errors"
 	"fmt"
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/errors"
-	"github.com/cosmos/cosmos-sdk/stack"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
-	abci "github.com/tendermint/abci/types"
-
-	"github.com/CyberMiles/travis/modules/stake"
-	ethapp "github.com/CyberMiles/travis/vm/app"
-	"github.com/CyberMiles/travis/utils"
+	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/errors"
+	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/ethereum/go-ethereum/common"
-	ttypes	"github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/modules"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
+	abci "github.com/tendermint/tendermint/abci/types"
+
+	"bytes"
+	"github.com/CyberMiles/travis/modules/governance"
+	"github.com/CyberMiles/travis/modules/stake"
+	ttypes "github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
+	"github.com/tendermint/tendermint/crypto"
+	"golang.org/x/crypto/ripemd160"
 )
 
 // BaseApp - The ABCI application
 type BaseApp struct {
 	*StoreApp
-	handler                	modules.Handler
-	clock                  	sdk.Ticker
-	EthApp                 	*ethapp.EthermintApplication
-	checkedTx              	map[common.Hash]*types.Transaction
-	AbsentValidatorPubKeys 	[][]byte
-	ethereum    		    *eth.Ethereum
+	EthApp              *EthermintApplication
+	checkedTx           map[common.Hash]*types.Transaction
+	ethereum            *eth.Ethereum
+	AbsentValidators    *stake.AbsentValidators
+	ByzantineValidators []abci.Evidence
+	PresentValidators   stake.Validators
 }
 
 const (
@@ -38,207 +38,254 @@ const (
 )
 
 var (
-	blockAward, _ = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
-	_ abci.Application = &BaseApp{}
+	blockAward, _                  = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
+	_             abci.Application = &BaseApp{}
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
 // which it binds to the proper abci calls
-func NewBaseApp(store *StoreApp, ethApp *ethapp.EthermintApplication, clock sdk.Ticker, ethereum *eth.Ethereum) (*BaseApp, error) {
+func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Ethereum) (*BaseApp, error) {
+	// init pending proposals
+	pendingProposals := governance.GetPendingProposals()
+	if len(pendingProposals) > 0 {
+		proposals := make(map[string]uint64)
+		for _, pp := range pendingProposals {
+			proposals[pp.Id] = pp.ExpireBlockHeight
+		}
+		utils.PendingProposal.BatchAdd(proposals)
+	}
+
+	b := store.Append().Get(utils.ParamKey)
+	if b != nil {
+		utils.LoadParams(b)
+	}
+
 	app := &BaseApp{
-		StoreApp:               store,
-		handler:                modules.Handler{},
-		clock:                  clock,
-		EthApp:                 ethApp,
-		checkedTx:              make(map[common.Hash]*types.Transaction),
-		AbsentValidatorPubKeys: [][]byte{},
-		ethereum:               ethereum,
+		StoreApp:         store,
+		EthApp:           ethApp,
+		checkedTx:        make(map[common.Hash]*types.Transaction),
+		ethereum:         ethereum,
+		AbsentValidators: stake.NewAbsentValidators(),
 	}
 
 	return app, nil
 }
 
+// InitChain - ABCI
+func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+	return
+}
+
+// Info implements abci.Application. It returns the height and hash,
+// as well as the abci name and version.
+//
+// The height is the block that holds the transactions, not the apphash itself.
+func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
+	ethInfoRes := app.EthApp.Info(req)
+
+	if big.NewInt(ethInfoRes.LastBlockHeight).Cmp(bigZero) == 0 {
+		return ethInfoRes
+	}
+
+	travisInfoRes := app.StoreApp.Info(req)
+
+	travisInfoRes.LastBlockAppHash = finalAppHash(ethInfoRes.LastBlockAppHash, travisInfoRes.LastBlockAppHash, app.StoreApp.GetDbHash(), travisInfoRes.LastBlockHeight, nil)
+	return travisInfoRes
+}
+
 // DeliverTx - ABCI
 func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
-	app.logger.Debug("DeliverTx")
+	tx, err := decodeTx(txBytes)
+	if err != nil {
+		app.logger.Error("DeliverTx: Received invalid transaction", "err", err)
+		return errors.DeliverResult(err)
+	}
 
-	ok, tx := isTravisTx(txBytes)
-	if !ok {
-		ok, tx, err := isEthTx(txBytes)
-		if !ok {
-			app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
-			return errors.DeliverResult(err)
-		}
-
+	if utils.IsEthTx(tx) {
 		if checkedTx, ok := app.checkedTx[tx.Hash()]; ok {
 			tx = checkedTx
 		} else {
 			// force cache from of tx
-			// TODO: Get chainID from config
-			if _, err := types.Sender(types.NewEIP155Signer(big.NewInt(111)), tx); err != nil {
+			networkId := big.NewInt(int64(app.ethereum.NetVersion()))
+			signer := types.NewEIP155Signer(networkId)
+
+			if _, err := types.Sender(signer, tx); err != nil {
 				app.logger.Debug("DeliverTx: Received invalid transaction", "tx", tx, "err", err)
 				return errors.DeliverResult(err)
 			}
 		}
 		resp := app.EthApp.DeliverTx(tx)
-		app.logger.Debug("ethermint DeliverTx response: %v\n", resp)
+		app.logger.Debug("EthApp DeliverTx response", "resp", resp)
 		return resp
 	}
 
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
-	res, err := app.handler.DeliverTx(ctx, app.Append(), tx)
-	if err != nil {
-		return errors.DeliverResult(err)
-	}
-	app.AddValChange(res.Diff)
-	return res.ToABCI()
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.EthApp.DeliverTxState())
+	return app.deliverHandler(ctx, app.Append(), tx)
 }
 
 // CheckTx - ABCI
 func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
-	app.logger.Debug("CheckTx")
+	tx, err := decodeTx(txBytes)
+	if err != nil {
+		app.logger.Error("CheckTx: Received invalid transaction", "err", err)
+		return errors.CheckResult(err)
+	}
 
-	ok, tx := isTravisTx(txBytes)
-	if !ok {
-		ok, tx, err := isEthTx(txBytes)
-		if !ok {
-			app.logger.Debug("CheckTx: Received invalid transaction", "tx", tx, "err", err)
-			return errors.CheckResult(err)
-		}
-
+	if utils.IsEthTx(tx) {
 		resp := app.EthApp.CheckTx(tx)
-		app.logger.Debug("ethermint CheckTx response: %v\n", resp)
+		app.logger.Debug("EthApp CheckTx response", "resp", resp)
 		if resp.IsErr() {
-			return errors.CheckResult(goerr.New(resp.Error()))
+			return errors.CheckResult(goerr.New(resp.String()))
 		}
 		app.checkedTx[tx.Hash()] = tx
 		return sdk.NewCheck(0, "").ToABCI()
 	}
 
-	app.logger.Info("CheckTx: Receivted valid transaction", "tx", tx)
+	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.ethereum)
-	res, err := app.handler.CheckTx(ctx, app.Check(), tx)
-	if err != nil {
-		return errors.CheckResult(err)
-	}
-	return res.ToABCI()
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.EthApp.checkTxState)
+	return app.checkHandler(ctx, app.Check(), tx)
 }
 
 // BeginBlock - ABCI
-func (app *BaseApp) BeginBlock(beginBlock abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	app.logger.Debug("BeginBlock")
+func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	app.EthApp.BeginBlock(req)
+	app.PresentValidators = app.PresentValidators[:0]
 
-	resp := app.EthApp.BeginBlock(beginBlock)
-	app.logger.Debug("ethermint BeginBlock response: %v\n", resp)
+	// handle the absent validators
+	for _, sv := range req.Validators {
+		var pk crypto.PubKeyEd25519
+		copy(pk[:], sv.Validator.PubKey.Data)
 
-	app.AbsentValidatorPubKeys = [][]byte{}
-	evidences := beginBlock.ByzantineValidators
-	for _, evidence := range evidences {
-		app.AbsentValidatorPubKeys = append(app.AbsentValidatorPubKeys, evidence.GetPubKey())
+		pubKey := ttypes.PubKey{pk}
+		if !sv.SignedLastBlock {
+			app.AbsentValidators.Add(pubKey, app.WorkingHeight())
+		} else {
+			v := stake.GetCandidateByPubKey(ttypes.PubKeyString(pubKey))
+			if v != nil {
+				app.PresentValidators = append(app.PresentValidators, v.Validator())
+			}
+		}
 	}
+
+	app.AbsentValidators.Clear(app.WorkingHeight())
+
+	app.logger.Info("BeginBlock", "absent_validators", app.AbsentValidators)
+	app.ByzantineValidators = req.ByzantineValidators
+
 	return abci.ResponseBeginBlock{}
 }
 
 // EndBlock - ABCI - triggers Tick actions
-func (app *BaseApp) EndBlock(endBlock abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-	app.logger.Debug("EndBlock")
+func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+	app.EthApp.EndBlock(req)
+	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, app.TotalUsedGasFee)
 
-	//resp, _ := app.client.EndBlockSync(endBlock)
-	resp := app.EthApp.EndBlock(endBlock)
-	app.logger.Debug("ethermint EndBlock response: %v\n", resp)
-
-	// execute tick if present
-	if app.clock != nil {
-		ctx := stack.NewContext(
-			app.GetChainID(),
-			app.WorkingHeight(),
-			app.Logger().With("call", "tick"),
-		)
-
-		diff, err := app.clock.Tick(ctx, app.Append())
-		if err != nil {
-			panic(err)
-		}
-		app.AddValChange(diff)
+	var backups stake.Validators
+	for _, bv := range stake.GetBackupValidators() {
+		backups = append(backups, bv.Validator())
 	}
 
 	// block award
-	// fixme exclude absent validators
-	var validatorPubKeys [][]byte
-	ratioMap := stake.CalValidatorsStakeRatio(app.Append(), validatorPubKeys)
-	for k, v := range ratioMap {
-		awardAmount := big.NewInt(0)
-		intv := int64(1000 * v)
-		awardAmount.Mul(blockAward, big.NewInt(intv))
-		awardAmount.Div(awardAmount, big.NewInt(1000))
-		utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
-			From: stake.DefaultHoldAccount, To: common.HexToAddress(k), Amount: awardAmount})
+	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, utils.BlockGasFee, app.logger).Distribute()
+
+	// punish Byzantine validators
+	if len(app.ByzantineValidators) > 0 {
+		for _, bv := range app.ByzantineValidators {
+			pk, err := ttypes.GetPubKey(string(bv.Validator.PubKey.Data))
+			if err != nil {
+				continue
+			}
+
+			stake.PunishByzantineValidator(pk)
+			app.ByzantineValidators = app.ByzantineValidators[:0]
+		}
 	}
 
-	// todo send StateChangeQueue to VM
+	// punish the absent validators
+	for k, v := range app.AbsentValidators.Validators {
+		stake.PunishAbsentValidator(k, v)
+	}
 
-	return app.StoreApp.EndBlock(endBlock)
+	// execute tick if present
+	diff, err := tick(app.Append())
+	if err != nil {
+		panic(err)
+	}
+	app.AddValChange(diff)
+
+	// handle the pending unstake requests
+	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
+
+	return app.StoreApp.EndBlock(req)
 }
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
-	app.logger.Debug("Commit")
-
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
-	app.EthApp.Commit()
-	//var hash = resp.Data
-	//app.logger.Debug("ethermint Commit response, %v, hash: %v\n", resp, hash.String())
+	ethAppCommit := app.EthApp.Commit()
 
-	resp := app.StoreApp.Commit()
-	return resp
+	if dirty := utils.CleanParams(); dirty {
+		state := app.Append()
+		state.Set(utils.ParamKey, utils.UnloadParams())
+	}
+
+	workingHeight := app.WorkingHeight()
+
+	// reset store app
+	app.TotalUsedGasFee = big.NewInt(0)
+
+	res = app.StoreApp.Commit()
+	dbHash := app.StoreApp.GetDbHash()
+	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
+
+	return
 }
 
-func (app *BaseApp) InitState(module, key, value string) error {
+func (app *BaseApp) InitState(module, key string, value interface{}) error {
 	state := app.Append()
 	logger := app.Logger().With("module", module, "key", key)
 
 	if module == sdk.ModuleNameBase {
 		if key == sdk.ChainKey {
-			app.info.SetChainID(state, value)
+			app.info.SetChainID(state, value.(string))
 			return nil
 		}
 		logger.Error("Invalid genesis option")
 		return fmt.Errorf("unknown base option: %s", key)
 	}
 
-	err := stake.InitState(key, value, state)
-	if err != nil {
-		logger.Error("Invalid genesis option", "err", err)
+	if key == "validator" {
+		stake.SetValidator(value.(ttypes.GenesisValidator), state)
+	} else {
+		if set := utils.SetParam(key, value.(string)); !set {
+			return errors.ErrUnknownKey(key)
+		}
 	}
-	return err
+
+	return nil
 }
 
-// rlp decode an ethereum transaction
-func decodeEthTx(txBytes []byte) (*types.Transaction, error) {
-	tx := new(types.Transaction)
-	rlpStream := rlp.NewStream(bytes.NewBuffer(txBytes), 0)
-	if err := tx.DecodeRLP(rlpStream); err != nil {
-		return nil, err
-	}
-	return tx, nil
+// Tick - Called every block even if no transaction, process all queues,
+// validator rewards, and calculate the validator set difference
+func tick(store state.SimpleDB) (change []abci.Validator, err error) {
+	change, err = stake.UpdateValidatorSet(store)
+	return
 }
 
-func isTravisTx(txBytes []byte) (bool, sdk.Tx) {
-	tx, err := sdk.LoadTx(txBytes)
-	if err != nil {
-		return false, sdk.Tx{}
-	}
+func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, workingHeight int64, store *state.SimpleDB) []byte {
 
-	return true, tx
-}
+	hasher := ripemd160.New()
+	buf := new(bytes.Buffer)
+	buf.Write(ethCommitHash)
+	buf.Write(travisCommitHash)
+	buf.Write(dbHash)
+	hasher.Write(buf.Bytes())
+	hash := hasher.Sum(nil)
 
-func isEthTx(txBytes []byte) (bool, *types.Transaction, error) {
-	// try to decode with ethereum
-	tx, err := decodeEthTx(txBytes)
-	if err != nil {
-		return false, nil, err
+	if store != nil {
+		// TODO: save to DB
 	}
-	return true, tx, nil
+	return hash
 }

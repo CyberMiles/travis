@@ -13,7 +13,7 @@ var (
 	// #stable - 0.4.0
 	TendermintAddrFlag = cli.StringFlag{
 		Name:  "tendermint_addr",
-		Value: "tcp://localhost:46657",
+		Value: "tcp://localhost:26657",
 		Usage: "This is the address that ethermint will use to connect to the tendermint core node. Please provide a port.",
 	}
 
@@ -21,7 +21,7 @@ var (
 	// #stable - 0.4.0
 	ABCIAddrFlag = cli.StringFlag{
 		Name:  "abci_laddr",
-		Value: "tcp://0.0.0.0:46658",
+		Value: "tcp://0.0.0.0:26658",
 		Usage: "This is the address that the ABCI server will use to listen to incoming connection from tendermint core.",
 	}
 

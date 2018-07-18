@@ -1,19 +1,29 @@
 package version
 
-const Maj = "0"
-const Min = "1"
-const Fix = "0"
+import (
+	"fmt"
+)
+
+const Major = "0"
+const Minor = "1"
+const Patch = "0"
+const Label = "rc.2"
 
 var (
 	// Version is the current version of Travis
-	// Must be a string because scripts like dist.sh read this file.
-	Version = "0.1.0"
+	Version string
 
 	// GitCommit is set with --ldflags "-X main.gitCommit=$(git rev-parse --short HEAD)"
 	GitCommit string
 )
 
 func init() {
+	Version = fmt.Sprintf("%s.%s.%s", Major, Minor, Patch)
+
+	if Label != "" {
+		Version += "-" + Label
+	}
+
 	if GitCommit != "" {
 		Version += "-" + GitCommit
 	}

@@ -1,14 +1,11 @@
 package commands
 
 import (
+	"fmt"
+	"github.com/CyberMiles/travis/sdk/client/commands"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/cosmos/cosmos-sdk/client/commands"
-	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/tendermint/go-wire/data"
-	"github.com/tendermint/go-wire"
-	"fmt"
 	"os"
 )
 
@@ -20,7 +17,7 @@ The stake/query/validator is to query the current stake status of the validator.
 The stake/query/delegator is to query the current stake status of a delegator. Not signed.
 
 * Delegator address
- */
+*/
 
 //nolint
 var (
@@ -41,127 +38,57 @@ var (
 		RunE:  cmdQueryDelegator,
 		Short: "Query the current stake status of a delegator",
 	}
-
-	CmdQuerySlot = &cobra.Command{
-		Use:   "slot",
-		RunE:  cmdQuerySlot,
-		Short: "Query the current status of a slot",
-	}
-
-	CmdQuerySlots = &cobra.Command{
-		Use:   "slots",
-		RunE:  cmdQuerySlots,
-		Short: "Query all open and close slots for staking",
-	}
 )
 
 func init() {
 	//Add Flags
-	fsPk := flag.NewFlagSet("", flag.ContinueOnError)
-	fsPk.String(FlagPubKey, "", "PubKey of the validator-candidate")
 	fsAddr := flag.NewFlagSet("", flag.ContinueOnError)
-	fsAddr.String(FlagAddress, "", "Hex Address")
-	fsSlot := flag.NewFlagSet("", flag.ContinueOnError)
-	fsSlot.String(FlagSlotId, "", "Slot ID")
+	fsAddr.String(FlagAddress, "", "account address")
 
 	CmdQueryValidator.Flags().AddFlagSet(fsAddr)
 	CmdQueryDelegator.Flags().AddFlagSet(fsAddr)
-	CmdQuerySlot.Flags().AddFlagSet(fsSlot)
 }
 
 func cmdQueryValidators(cmd *cobra.Command, args []string) error {
-
-	var candidates stake.Candidates
-
-	err := GetParsed("/validators", []byte{0}, &candidates)
+	b, err := Get("/validators", []byte{0})
 	if err != nil {
 		return err
 	}
-
-	return Foutput(candidates)
+	return Foutput(b)
 }
 
 func cmdQueryValidator(cmd *cobra.Command, args []string) error {
-	var candidate stake.Candidate
-
 	address := viper.GetString(FlagAddress)
 	if address == "" {
 		return fmt.Errorf("please enter validator address using --address")
 	}
 
-	err := GetParsed("/validator", []byte(address), &candidate)
+	b, err := Get("/validator", []byte(address))
 	if err != nil {
 		return err
 	}
-
-	return Foutput(candidate)
+	return Foutput(b)
 }
 
 func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
-	var slotDelegates []*stake.SlotDelegate
 	address := viper.GetString(FlagAddress)
-
-	err := GetParsed("/delegator", []byte(address), &slotDelegates)
+	b, err := Get("/delegator", []byte(address))
 	if err != nil {
 		return err
 	}
-
-	return Foutput(slotDelegates)
+	return Foutput(b)
 }
 
-func cmdQuerySlot(cmd *cobra.Command, args []string) error {
-	var slot stake.Slot
-	slotId := viper.GetString(FlagSlotId)
-	if slotId == "" {
-		return fmt.Errorf("please enter slot ID using --slot-id")
-	}
-
-	err := GetParsed("/slot", []byte(slotId), &slot)
-	if err != nil {
-		return err
-	}
-
-	return Foutput(slot)
-}
-
-func cmdQuerySlots(cmd *cobra.Command, args []string) error {
-	var slots []*stake.Slot
-
-	err := GetParsed("/slots", []byte{0}, &slots)
-	if err != nil {
-		return err
-	}
-
-	return Foutput(slots)
-}
-
-func Get(path string, params []byte) (data.Bytes, error) {
+func Get(path string, params []byte) ([]byte, error) {
 	node := commands.GetNode()
 	resp, err := node.ABCIQuery(path, params)
 	if resp == nil {
 		return nil, err
 	}
-	return data.Bytes(resp.Response.Value), err
+	return resp.Response.Value, err
 }
 
-func GetParsed(path string, params []byte, data interface{}) error {
-	bs, err := Get(path, params)
-	if err != nil {
-		return err
-	}
-
-	err = wire.ReadBinaryBytes(bs, data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func Foutput(v interface{}) error {
-	blob, err := data.ToJSON(v)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(os.Stdout, "%s\n", blob)
-	return nil
+func Foutput(b []byte) error {
+	_, err := fmt.Fprintf(os.Stdout, "%s\n", b)
+	return err
 }

@@ -1,32 +1,30 @@
 package: github.com/CyberMiles/travis
 import:
-- package: github.com/gorilla/websocket
+- package: github.com/prometheus/client_golang
+  version: v0.8.0
+- package: github.com/prometheus/client_model
+  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
+- package: github.com/prometheus/common
+  version: e4aa40a9169a88835b849a6efb71e05dc04b88f0
+- package: github.com/prometheus/procfs
+  version: 54d17b57dd7d4a3aa092476596b3f8a933bde349
+- package: github.com/prometheus/prometheus
+  version: v2.0.0
+  
 - package: github.com/pkg/errors
   version: ^0.8.0
 - package: github.com/spf13/cobra
 - package: github.com/spf13/pflag
 - package: github.com/spf13/viper
-- package: github.com/tendermint/abci
-  version:  0.9.x
-  subpackages:
-  - server
-  - types
-- package: github.com/cosmos/cosmos-sdk
-  version: be92f16b52cdeaba6dddaa62e0a8d1eed9e9640e
 - package: github.com/tendermint/iavl
-  version: v0.5.0
-- package: github.com/tendermint/go-crypto
-  version: remove_ledger
-  subpackages:
-  - cmd
-  - keys
+  version: ~0.9.2
 - package: github.com/tendermint/go-wire
   version: master
   repo: https://github.com/CyberMiles/go-wire.git
   subpackages:
   - data
 - package: github.com/tendermint/tendermint
-  version: v0.15.0
+  version: v0.22.0
   subpackages:
   - config
   - node
@@ -36,26 +34,16 @@ import:
   - rpc/lib/client
   - rpc/lib/types
   - types
-- package: github.com/tendermint/tmlibs
-  version: 0.6.x
-  subpackages:
-  - cli
-  - cli/flags
-  - common
-  - events
-  - log
-  - logger
-- package: github.com/gorilla/mux
-  version: ^1.5.0
 - package: github.com/ethereum/go-ethereum
-  version: travis
+#  version: f1.8.12
   repo: https://github.com/CyberMiles/go-ethereum.git
+  version: 047167a1acaf134de0a29ec3f9a2af835eb0b372
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
 - package: github.com/mattn/go-sqlite3
   version: v1.6.0
-- package: github.com/satori/go.uuid
-  version: master
+- package: github.com/tendermint/go-amino
+  version: ~0.10.1
 testImport:
 - package: github.com/stretchr/testify
   subpackages:

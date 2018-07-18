@@ -7,16 +7,19 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	sdk "github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 )
 
 // nolint
 const (
-	FlagName    = "name"
-	FlagNoSign  = "no-sign"
-	FlagIn      = "in"
-	FlagPrepare = "prepare"
-	FlagAddress = "address"
+	FlagName      = "name"
+	FlagNoSign    = "no-sign"
+	FlagIn        = "in"
+	FlagPrepare   = "prepare"
+	FlagAddress   = "address"
+	FlagType      = "type"
+	FlagNonce     = "nonce"
+	FlagVMChainId = "vm-chain-id"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -32,6 +35,9 @@ func init() {
 	RootCmd.PersistentFlags().Bool(FlagNoSign, false, "don't add a signature")
 	RootCmd.PersistentFlags().String(FlagPrepare, "", "file to store prepared tx")
 	RootCmd.Flags().String(FlagIn, "", "file with tx in json format")
+	RootCmd.PersistentFlags().String(FlagType, "commit", "type(sync|commit) of broadcast tx to tendermint")
+	RootCmd.PersistentFlags().Int(FlagNonce, -1, "Sequence number for this transaction")
+	RootCmd.PersistentFlags().Int64(FlagVMChainId, 19, "20: staging, 19: testnet, 18: mainnet")
 }
 
 func doRawTx(cmd *cobra.Command, args []string) error {
@@ -47,19 +53,25 @@ func doRawTx(cmd *cobra.Command, args []string) error {
 		return errors.WithStack(err)
 	}
 
-	// sign it
-	err = SignTx(tx)
-	if err != nil {
-		return err
+	commit := viper.GetString(FlagType)
+	if commit == "commit" {
+		// otherwise, post it and display response
+		bres, err := PrepareOrPostTx(tx)
+		if err != nil {
+			return err
+		}
+		if bres == nil {
+			return nil // successful prep, nothing left to do
+		}
+		return OutputTx(bres) // print response of the post
+	} else {
+		bres, err := PrepareOrPostTxSync(tx)
+		if err != nil {
+			return err
+		}
+		if bres == nil {
+			return nil // successful prep, nothing left to do
+		}
+		return OutputTxSync(bres) // print response of the post
 	}
-
-	// otherwise, post it and display response
-	bres, err := PrepareOrPostTx(tx)
-	if err != nil {
-		return err
-	}
-	if bres == nil {
-		return nil // successful prep, nothing left to do
-	}
-	return OutputTx(bres) // print response of the post
 }

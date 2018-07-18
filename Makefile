@@ -1,4 +1,7 @@
 GOTOOLS = github.com/Masterminds/glide
+ENI_LIB?=$(HOME)/.travis/eni/lib
+CGO_LDFLAGS = -L$(ENI_LIB) -Wl,-rpath,$(ENI_LIB)
+CGO_LDFLAGS_ALLOW = "-I.*"
 
 all: get_vendor_deps install print_cybermiles_logo
 
@@ -10,7 +13,7 @@ get_vendor_deps: tools
 
 install:
 	@echo "\n--> Installing the Travis TestNet\n"
-	go install ./cmd/travis
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go install ./cmd/travis
 	@echo "\n\nTravis, the TestNet for CyberMiles (CMT) has successfully installed!"
 
 tools:
@@ -19,15 +22,26 @@ tools:
 	@echo "--> Tools installed successfully"
 
 build: get_vendor_deps
-	go build -o build/travis ./cmd/travis
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" go build -o build/travis ./cmd/travis
 
-IMAGE := ywonline/travis
+NAME := ywonline/travis
+LATEST := ${NAME}:latest
+#GIT_COMMIT := $(shell git rev-parse --short=8 HEAD)
+#IMAGE := ${NAME}:${GIT_COMMIT}
 
 docker_image:
-	docker build -t $(IMAGE) .
+	@docker build -t ${LATEST} .
+
+push_tag_image:
+	@docker tag ${LATEST} ${NAME}:${TAG}
+	@docker push ${NAME}:${TAG}
 
 push_image:
-	docker push $(IMAGE)
+	@docker push ${LATEST}
+
+dist:
+	@docker run --rm -e "BUILD_TAG=${BUILD_TAG}" -v "${CURDIR}/scripts":/scripts --entrypoint /bin/sh -t ${LATEST} /scripts/dist.sh
+	@rm -rf build/dist && mkdir -p build/dist && mv -f scripts/*.zip build/dist/
 
 print_cybermiles_logo:
 	@echo "\n\n"

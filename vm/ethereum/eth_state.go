@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"bytes"
 	"math/big"
 	"sync"
 
@@ -12,15 +13,16 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth"
 	//"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
 
-	abciTypes "github.com/tendermint/abci/types"
-
-	emtTypes "github.com/CyberMiles/travis/vm/types"
+	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/errors"
+	gov "github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/core/types"
+	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
 
 //----------------------------------------------------------------------
@@ -64,17 +66,25 @@ func (es *EthState) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDelive
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
-	chainConfig := es.ethereum.ApiBackend.ChainConfig()
+	chainConfig := es.ethereum.APIBackend.ChainConfig()
 	blockHash := common.Hash{}
 	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx)
 }
 
-// Accumulate validator rewards.
-func (es *EthState) AccumulateRewards(strategy *emtTypes.Strategy) {
+// called by travis tx only in deliver_tx
+func (es *EthState) AddNonce(addr common.Address) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
-	es.work.accumulateRewards(strategy)
+	es.work.state.SetNonce(addr, es.work.state.GetNonce(addr)+1)
+}
+
+// Accumulate validator rewards.
+func (es *EthState) AccumulateRewards(config *params.ChainConfig, strategy *emtTypes.Strategy) {
+	es.mtx.Lock()
+	defer es.mtx.Unlock()
+
+	es.work.accumulateRewards(config, strategy)
 }
 
 // Commit and reset the work.
@@ -96,7 +106,7 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 }
 
 func (es *EthState) EndBlock() {
-	utils.BlockGasFee.Set(es.work.totalUsedGasFee)
+	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, es.work.totalUsedGasFee)
 }
 
 func (es *EthState) ResetWorkState(receiver common.Address) error {
@@ -118,17 +128,23 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 	ethHeader := newBlockHeader(receiver, currentBlock)
 
 	es.work = workState{
-		header:       ethHeader,
-		parent:       currentBlock,
-		state:        state,
-		stakedTxIndex: 0,
-		txIndex:      0,
-		totalUsedGas: big.NewInt(0),
+		header:          ethHeader,
+		parent:          currentBlock,
+		state:           state,
+		travisTxIndex:   0,
+		txIndex:         0,
+		totalUsedGas:    new(uint64),
 		totalUsedGasFee: big.NewInt(0),
-		gp:           new(core.GasPool).AddGas(ethHeader.GasLimit),
+		gp:              new(core.GasPool).AddGas(ethHeader.GasLimit),
 	}
 	utils.BlockGasFee = big.NewInt(0)
+	utils.StateChangeQueue = make([]utils.StateChangeObject, 0)
+	utils.TravisTxAddrs = make([]*common.Address, 0)
 	return nil
+}
+
+func (es *EthState) GetEthState() *state.StateDB {
+	return es.work.state
 }
 
 func (es *EthState) UpdateHeaderWithTimeInfo(
@@ -140,8 +156,8 @@ func (es *EthState) UpdateHeaderWithTimeInfo(
 	es.work.updateHeaderWithTimeInfo(config, parentTime, numTx)
 }
 
-func (es *EthState) GasLimit() big.Int {
-	return big.Int(*es.work.gp)
+func (es *EthState) GasLimit() *core.GasPool {
+	return es.work.gp
 }
 
 //----------------------------------------------------------------------
@@ -167,26 +183,26 @@ func (es *EthState) Pending() (*ethTypes.Block, *state.StateDB) {
 // The work struct handles block processing.
 // It's updated with each DeliverTx and reset on Commit.
 type workState struct {
-	header *ethTypes.Header
-	parent *ethTypes.Block
-	state  *state.StateDB
-	stakedTxIndex int //coped StateChangeObject index in the queue
+	header        *ethTypes.Header
+	parent        *ethTypes.Block
+	state         *state.StateDB
+	travisTxIndex int //coped StateChangeObject index in the queue
 
 	txIndex      int
 	transactions []*ethTypes.Transaction
 	receipts     ethTypes.Receipts
 	allLogs      []*ethTypes.Log
 
-	totalUsedGas *big.Int
+	totalUsedGas    *uint64
 	totalUsedGasFee *big.Int
-	gp           *core.GasPool
+	gp              *core.GasPool
 }
 
 // nolint: unparam
-func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
+func (ws *workState) accumulateRewards(config *params.ChainConfig, strategy *emtTypes.Strategy) {
 
-	ethash.AccumulateRewards(ws.state, ws.header, []*ethTypes.Header{})
-	ws.header.GasUsed = ws.totalUsedGas
+	ethash.AccumulateRewards(config, ws.state, ws.header, []*ethTypes.Header{})
+	ws.header.GasUsed = *ws.totalUsedGas
 }
 
 // Runs ApplyTransaction against the ethereum blockchain, fetches any logs,
@@ -197,18 +213,8 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 
 	delete(utils.NonceCheckedTx, tx.Hash())
 
-	// Iterate to sub balance of staker from state
-	// ws.stakedTxIndex used for record coped index of every staker
-	for i := ws.stakedTxIndex; i < len(utils.StateChangeQueue); i++ {
-		scObj := utils.StateChangeQueue[i]
-		if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount) >= 0 {
-			ws.state.SubBalance(scObj.From, scObj.Amount)
-			if len(scObj.To.Bytes()) != 0 {
-				ws.state.AddBalance(scObj.To, scObj.Amount)
-			}
-		}
-	}
-	ws.stakedTxIndex = len(utils.StateChangeQueue)
+	ws.handleStateChangeQueue()
+	ws.travisTxIndex = len(utils.StateChangeQueue)
 
 	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
 	receipt, usedGas, err := core.ApplyTransaction(
@@ -226,7 +232,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
 	}
 
-	usedGasFee := big.NewInt(0).Mul(usedGas, tx.GasPrice())
+	usedGasFee := big.NewInt(0).Mul(new(big.Int).SetUint64(usedGas), tx.GasPrice())
 	ws.totalUsedGasFee.Add(ws.totalUsedGasFee, usedGasFee)
 
 	logs := ws.state.GetLogs(tx.Hash())
@@ -245,9 +251,43 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 // the ethereum blockchain. The application root hash is the hash of the
 // ethereum block.
 func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (common.Hash, error) {
+	currentHeight := ws.header.Number.Uint64()
+
+	proposalIds := utils.PendingProposal.ReachMin(currentHeight)
+	for _, pid := range proposalIds {
+		proposal := gov.GetProposalById(pid)
+
+		switch proposal.Type {
+		case gov.TRANSFER_FUND_PROPOSAL:
+			amount := new(big.Int)
+			amount.SetString(proposal.Detail["amount"].(string), 10)
+			switch gov.CheckProposal(pid, nil) {
+			case "approved":
+				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, gov.ProposalReactor{proposal.Id, currentHeight, "Approved"})
+			case "rejected":
+				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"})
+			default:
+				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, gov.ProposalReactor{proposal.Id, currentHeight, "Expired"})
+			}
+		case gov.CHANGE_PARAM_PROPOSAL:
+			switch gov.CheckProposal(pid, nil) {
+			case "approved":
+				utils.SetParam(proposal.Detail["name"].(string), proposal.Detail["value"].(string))
+				gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
+			case "rejected":
+				gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
+			default:
+				gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
+			}
+		}
+
+		utils.PendingProposal.Del(pid)
+	}
+
+	ws.handleStateChangeQueue()
 
 	// Commit ethereum state and update the header.
-	hashArray, err := ws.state.CommitTo(db.NewBatch(), false) // XXX: ugh hardforks
+	hashArray, err := ws.state.Commit(false) // XXX: ugh hardforks
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -270,6 +310,36 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 		return common.Hash{}, err
 	}
 	return blockHash, err
+}
+
+func (ws *workState) handleStateChangeQueue() {
+	// Iterate to add/sub balance from state
+	// ws.travisTxIndex used for recording handled index of queue
+	for i := ws.travisTxIndex; i < len(utils.StateChangeQueue); i++ {
+		scObj := utils.StateChangeQueue[i]
+		if bytes.Compare(scObj.From.Bytes(), utils.MintAccount.Bytes()) == 0 {
+			if bytes.Compare(scObj.To.Bytes(), utils.MintAccount.Bytes()) != 0 {
+				ws.state.AddBalance(scObj.To, scObj.Amount)
+				if scObj.Reactor != nil {
+					scObj.Reactor.React("success", "")
+				}
+			}
+		} else {
+			if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount) >= 0 {
+				ws.state.SubBalance(scObj.From, scObj.Amount)
+				if bytes.Compare(scObj.To.Bytes(), utils.MintAccount.Bytes()) != 0 {
+					ws.state.AddBalance(scObj.To, scObj.Amount)
+				}
+				if scObj.Reactor != nil {
+					scObj.Reactor.React("success", "")
+				}
+			} else {
+				if scObj.Reactor != nil {
+					scObj.Reactor.React("fail", "Insufficient balance")
+				}
+			}
+		}
+	}
 }
 
 func (ws *workState) updateHeaderWithTimeInfo(
@@ -296,17 +366,16 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 		Number:     prevBlock.Number().Add(prevBlock.Number(), big.NewInt(1)),
 		ParentHash: prevBlock.Hash(),
 		//GasLimit:   core.CalcGasLimit(prevBlock),
-		GasLimit:   calcGasLimit(prevBlock),
-		Coinbase:   receiver,
+		GasLimit: calcGasLimit(prevBlock),
+		Coinbase: receiver,
 	}
 }
 
 // CalcGasLimit computes the gas limit of the next block after parent.
 // The result may be modified by the caller.
 // This is miner strategy, not consensus protocol.
-func calcGasLimit(parent *types.Block) *big.Int {
+func calcGasLimit(parent *types.Block) uint64 {
 	// 0xF00000000 = 64424509440
-	gl := big.NewInt(64424509440)
-
+	var  gl uint64 = 64424509440
 	return gl
 }

@@ -13,15 +13,14 @@ import (
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	abcitypes "github.com/tendermint/abci/types"
+	abcitypes "github.com/tendermint/tendermint/abci/types"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
-	"github.com/tendermint/tendermint/types"
+	pv "github.com/tendermint/tendermint/privval"
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/app"
-	abciApp "github.com/CyberMiles/travis/vm/app"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	"github.com/CyberMiles/travis/vm/ethereum"
 )
@@ -49,7 +48,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 	}
 
 	// Create the ABCI app
-	ethApp, err := abciApp.NewEthermintApplication(backend, rpcClient, nil)
+	ethApp, err := app.NewEthermintApplication(backend, rpcClient, nil)
 	if err != nil {
 		log.Warn(err.Error())
 		os.Exit(1)
@@ -110,13 +109,14 @@ func startNode(ctx *cli.Context, stack *ethereum.Node) {
 		}
 		// Listen for wallet event till termination
 		for event := range events {
-			if event.Arrive {
+			if event.Kind == accounts.WalletArrived {
 				if err := event.Wallet.Open(""); err != nil {
 					log.Warn("New wallet appeared, failed to open", "url",
 						event.Wallet.URL(), "err", err)
 				} else {
+					status, _ := event.Wallet.Status()
 					log.Info("New wallet appeared", "url", event.Wallet.URL(),
-						"status", event.Wallet.Status())
+						"status", status)
 					event.Wallet.SelfDerive(accounts.DefaultBaseDerivationPath,
 						stateReader)
 				}
@@ -234,10 +234,11 @@ func startTendermint(basecoinApp abcitypes.Application) (*node.Node, error) {
 
 	// Create & start tendermint node
 	n, err := node.NewNode(cfg,
-		types.LoadOrGenPrivValidatorFS(cfg.PrivValidatorFile()),
+		pv.LoadOrGenFilePV(cfg.PrivValidatorFile()),
 		papp,
 		node.DefaultGenesisDocProviderFunc(cfg),
 		node.DefaultDBProvider,
+		node.DefaultMetricsProvider,
 		logger.With("module", "node"))
 	if err != nil {
 		return nil, err

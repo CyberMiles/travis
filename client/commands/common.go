@@ -13,12 +13,12 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/lite"
-	"github.com/tendermint/tmlibs/cli"
-	cmn "github.com/tendermint/tmlibs/common"
+	"github.com/tendermint/tendermint/libs/cli"
+	cmn "github.com/tendermint/tendermint/libs/common"
 
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 
-	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/CyberMiles/travis/sdk/client"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -70,15 +70,6 @@ func GetTrustedProvider() lite.Provider {
 // provider based on configuration.
 func GetProviders() (trusted lite.Provider, source lite.Provider) {
 	return GetTrustedProvider(), GetSourceProvider()
-}
-
-// GetCertifier constructs a dynamic certifier from the config info
-func GetCertifier() (*lite.Inquiring, error) {
-	// load up the latest store....
-	trust := GetTrustedProvider()
-	source := GetSourceProvider()
-	chainID := GetChainID()
-	return client.GetCertifier(chainID, trust, source)
 }
 
 // ParseActor parses an address of form:

@@ -2,27 +2,33 @@ package txs
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/bgentry/speakeasy"
-	isatty "github.com/mattn/go-isatty"
+	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	wire "github.com/tendermint/go-wire"
-	"github.com/tendermint/go-wire/data"
-
+	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/client/commands"
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rlp"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
-	sdk "github.com/cosmos/cosmos-sdk"
-	"github.com/cosmos/cosmos-sdk/client/commands"
-	"github.com/CyberMiles/travis/modules/auth"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/CyberMiles/travis/commons"
 	ttypes "github.com/CyberMiles/travis/types"
 )
 
@@ -52,48 +58,117 @@ func GetSigner() common.Address {
 // eg. if you already set the middleware layers in your code, or want to
 // output in another format.
 func DoTx(tx sdk.Tx) (err error) {
-	tx, err = Middleware.Wrap(tx)
+	address := viper.GetString(FlagAddress)
+	from := common.HexToAddress(address)
+
+	prompt := fmt.Sprintf("Please enter passphrase for %s: ", address)
+	passphrase, err := getPassword(prompt)
 	if err != nil {
 		return err
 	}
 
-	err = SignTx(tx)
+	txBytes, err := wrapAndSign(tx, from, passphrase)
 	if err != nil {
 		return err
 	}
+	commit := viper.GetString(FlagType)
+	if commit == "commit" {
+		bres, err := broadcastTxCommit(txBytes)
+		if err != nil {
+			return err
+		}
+		if bres == nil {
+			return nil // successful prep, nothing left to do
+		}
+		return OutputTx(bres) // print response of the post
 
-	bres, err := PrepareOrPostTx(tx)
-	if err != nil {
-		return err
+	} else {
+		bres, err := broadcastTxSync(txBytes)
+		if err != nil {
+			return err
+		}
+		if bres == nil {
+			return nil // successful prep, nothing left to do
+		}
+		return OutputTxSync(bres) // print response of the post
 	}
-	if bres == nil {
-		return nil // successful prep, nothing left to do
-	}
-	return OutputTx(bres) // print response of the post
-
 }
 
-func SignTx(tx sdk.Tx) error {
-	// validate tx client-side
-	err := tx.ValidateBasic()
+func wrapAndSign(tx sdk.Tx, from common.Address, passphrase string) (hexutil.Bytes, error) {
+	data, err := json.Marshal(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// abort early if we don't want to sign
-	if viper.GetBool(FlagNoSign) {
-		return nil
+	ethTx := types.NewContractCreation(
+		getNonce(from),
+		big.NewInt(0),
+		0,
+		big.NewInt(0),
+		data,
+	)
+
+	am, _, _ := commons.MakeAccountManager()
+	_, err = commons.UnlockAccount(am, from, passphrase, nil)
+	if err != nil {
+		return nil, err
 	}
 
-	address := viper.GetString(FlagAddress)
+	account := accounts.Account{Address: from}
+	wallet, err := am.Find(account)
+	signed, err := wallet.SignTx(account, ethTx, big.NewInt(viper.GetInt64(FlagVMChainId)))
+	if err != nil {
+		return nil, err
+	}
 
-	if sign, ok := tx.Unwrap().(ttypes.Signable); ok {
-		if address == "" {
-			return errors.New("--address is required to sign tx")
+	encodedTx, err := rlp.EncodeToBytes(signed)
+	if err != nil {
+		return nil, err
+	}
+
+	return encodedTx, nil
+}
+
+func getNonce(addr common.Address) uint64 {
+	//add the nonce tx layer to the tx
+	input := viper.GetInt(FlagNonce)
+
+	if input >= 0 {
+		return uint64(input)
+	}
+
+	var nonce uint64
+	//get nonce
+	client, err := ethclient.Dial(getEthUrl())
+	if err != nil {
+		fmt.Errorf(err.Error())
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		nonce, err = client.NonceAt(ctx, addr, nil)
+		if err != nil {
+			fmt.Errorf(err.Error())
 		}
-		err = signTx(sign, address)
 	}
-	return err
+	return nonce
+}
+
+func getEthUrl() string {
+	node := viper.GetString(commands.NodeFlag)
+	u, _ := url.Parse(node)
+	return fmt.Sprintf("http://%s:%d", u.Hostname(), 8545)
+}
+
+func broadcastTxSync(packet []byte) (*ctypes.ResultBroadcastTx, error) {
+	// post the bytes
+	node := commands.GetNode()
+	return node.BroadcastTxSync(packet)
+}
+
+func broadcastTxCommit(packet []byte) (*ctypes.ResultBroadcastTxCommit, error) {
+	// post the bytes
+	node := commands.GetNode()
+	return node.BroadcastTxCommit(packet)
 }
 
 // PrepareOrPostTx checks the flags to decide to prepare the tx for future
@@ -114,6 +189,30 @@ func PrepareOrPostTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
 	return PostTx(tx)
 }
 
+func PrepareOrPostTxSync(tx sdk.Tx) (*ctypes.ResultBroadcastTx, error) {
+	wrote, err := PrepareTx(tx)
+	// error in prep
+	if err != nil {
+		return nil, err
+	}
+	// successfully wrote the tx!
+	if wrote {
+		return nil, nil
+	}
+	// or try to post it
+	return PostTxSync(tx)
+}
+
+// PostTx does all work once we construct a proper struct
+// it validates the data, signs if needed, transforms to bytes,
+// and posts to the node.
+func PostTxSync(tx sdk.Tx) (*ctypes.ResultBroadcastTx, error) {
+	packet, _ := ttypes.Cdc.MarshalBinary(tx)
+	// post the bytes
+	node := commands.GetNode()
+	return node.BroadcastTxSync(packet)
+}
+
 // PrepareTx checks for FlagPrepare and if set, write the tx as json
 // to the specified location for later multi-sig.  Returns true if it
 // handled the tx (no futher work required), false if it did nothing
@@ -124,7 +223,7 @@ func PrepareTx(tx sdk.Tx) (bool, error) {
 		return false, nil
 	}
 
-	js, err := data.ToJSON(tx)
+	js, err := json.Marshal(tx)
 	if err != nil {
 		return false, err
 	}
@@ -139,7 +238,7 @@ func PrepareTx(tx sdk.Tx) (bool, error) {
 // it validates the data, signs if needed, transforms to bytes,
 // and posts to the node.
 func PostTx(tx sdk.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
-	packet := wire.BinaryBytes(tx)
+	packet, _ := ttypes.Cdc.MarshalBinary(tx)
 	// post the bytes
 	node := commands.GetNode()
 	return node.BroadcastTxCommit(packet)
@@ -161,13 +260,13 @@ func OutputTx(res *ctypes.ResultBroadcastTxCommit) error {
 	return nil
 }
 
-func signTx(tx ttypes.Signable, address string) error {
-	prompt := fmt.Sprintf("Please enter passphrase for %s: ", address)
-	pass, err := getPassword(prompt)
+func OutputTxSync(res *ctypes.ResultBroadcastTx) error {
+	js, err := json.MarshalIndent(res, "", "  ")
 	if err != nil {
 		return err
 	}
-	return auth.Sign(tx, address, pass)
+	fmt.Println(string(js))
+	return nil
 }
 
 // if we read from non-tty, we just need to init the buffer reader once,

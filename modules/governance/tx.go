@@ -1,7 +1,7 @@
 package governance
 
 import (
-	"github.com/cosmos/cosmos-sdk"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -12,43 +12,73 @@ import (
 // make sure to use the name of the handler as the prefix in the tx type,
 // so it gets routed properly
 const (
-	ByteTxPropose      = 0xA1
-	ByteTxVote         = 0xA2
-	TypeTxPropose      = governanceModuleName + "/propose"
+	ByteTxTransferFundPropose      = 0xA1
+	ByteTxChangeParamPropose       = 0xA2
+	ByteTxDeployLibEniPropose      = 0xA3
+	ByteTxVote                     = 0xA4
+	TypeTxTransferFundPropose      = governanceModuleName + "/propose/transfer_fund"
+	TypeTxChangeParamPropose       = governanceModuleName + "/propose/change_param"
 	TypeTxVote         = governanceModuleName + "/vote"
 )
 
 func init() {
-	sdk.TxMapper.RegisterImplementation(TxPropose{}, TypeTxPropose, ByteTxPropose)
+	sdk.TxMapper.RegisterImplementation(TxTransferFundPropose{}, TypeTxTransferFundPropose, ByteTxTransferFundPropose)
+	sdk.TxMapper.RegisterImplementation(TxChangeParamPropose{}, TypeTxChangeParamPropose, ByteTxChangeParamPropose)
 	sdk.TxMapper.RegisterImplementation(TxVote{}, TypeTxVote, ByteTxVote)
 }
 
 //Verify interface at compile time
-var _, _ sdk.TxInner = &TxPropose{}, &TxVote{}
+var _, _, _ sdk.TxInner = &TxTransferFundPropose{}, &TxChangeParamPropose{}, &TxVote{}
 
-type TxPropose struct {
-	Proposer     common.Address   `json:"proposer"`
-	From         common.Address   `json:"from"`
-	To           common.Address   `json:"to"`
-	Amount       string           `json:"amount"`
-	Reason       string           `json:"reason"`
+type TxTransferFundPropose struct {
+	Proposer     *common.Address   `json:"proposer"`
+	From         *common.Address   `json:"from"`
+	To           *common.Address   `json:"to"`
+	Amount       string            `json:"amount"`
+	Reason       string            `json:"reason"`
+	Expire       uint64	           `json:"expire"`
 }
 
-func (tx TxPropose) ValidateBasic() error {
+func (tx TxTransferFundPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxPropose(proposer common.Address, fromAddr common.Address, toAddr common.Address, amount string, reason string) sdk.Tx {
-	return TxPropose{
+func NewTxTransferFundPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string, expire uint64) sdk.Tx {
+	return TxTransferFundPropose{
 		proposer,
 		fromAddr,
 		toAddr,
 		amount,
 		reason,
+		expire,
 	}.Wrap()
 }
 
-func (tx TxPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
+func (tx TxTransferFundPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
+type TxChangeParamPropose struct {
+	Proposer     *common.Address   `json:"proposer"`
+	Name         string            `json:"name"`
+	Value        string            `json:"value"`
+	Reason       string            `json:"reason"`
+	Expire       uint64            `json:"expire"`
+}
+
+func (tx TxChangeParamPropose) ValidateBasic() error {
+	return nil
+}
+
+func NewTxChangeParamPropose(proposer *common.Address, name string, value string, reason string, expire uint64) sdk.Tx {
+	return TxChangeParamPropose{
+		proposer,
+		name,
+		value,
+		reason,
+		expire,
+	}.Wrap()
+}
+
+func (tx TxChangeParamPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxVote struct {
 	ProposalId       string            `json:"proposal_id"`

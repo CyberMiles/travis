@@ -8,30 +8,9 @@ import (
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/core"
-)
 
-// defaultGenesisBlob is the JSON representation of the default
-// genesis file in $GOPATH/src/github.com/tendermint/ethermint/setup/genesis.json
-// nolint=lll
-var defaultGenesisBlob = []byte(`
-{
-    "config": {
-        "chainId": 15,
-        "homesteadBlock": 0,
-        "eip155Block": 0,
-        "eip158Block": 0
-    },
-    "nonce": "0xdeadbeefdeadbeef",
-    "timestamp": "0x00",
-    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "difficulty": "0x40",
-    "gasLimit": "0xF00000000",
-    "alloc": {
-        "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc": { "balance": "10000000000000000000000000000000000" },
-	    "0x77beb894fc9b0ed41231e51f128a347043960a9d": { "balance": "10000000000000000000000000000000000" }
-    }
-}`)
+	gen "github.com/CyberMiles/travis/misc/genesis"
+)
 
 var blankGenesis = new(core.Genesis)
 
@@ -43,7 +22,12 @@ var errBlankGenesis = errors.New("could not parse a valid/non-blank Genesis")
 // it will open that path and if it encounters an error that doesn't
 // satisfy os.IsNotExist, it returns that error.
 func ParseGenesisOrDefault(genesisPath string) (*core.Genesis, error) {
-	var genesisBlob = defaultGenesisBlob[:]
+	//var genesisBlob = defaultGenesisBlob[:]
+	genesisBlob, err := gen.DevGenesisBlock().MarshalJSON()
+	//genesisBlob, err := gen.SimulateGenesisBlock().MarshalJSON();
+	if err != nil {
+		return nil, err
+	}
 	if len(genesisPath) > 0 {
 		blob, err := ioutil.ReadFile(genesisPath)
 		if err != nil && !os.IsNotExist(err) {

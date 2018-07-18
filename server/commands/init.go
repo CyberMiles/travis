@@ -12,9 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/tendermint/tendermint/types"
-	cmn "github.com/tendermint/tmlibs/common"
+	cmn "github.com/tendermint/tendermint/libs/common"
+	"github.com/tendermint/tendermint/p2p"
+	pv "github.com/tendermint/tendermint/privval"
 
+	"github.com/CyberMiles/travis/types"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 )
 
@@ -42,14 +44,26 @@ func initFiles(cmd *cobra.Command, args []string) error {
 func initTendermint() {
 	// private validator
 	privValFile := config.TMConfig.PrivValidatorFile()
-	var privValidator *types.PrivValidatorFS
+	var privValidator *pv.FilePV
 	if cmn.FileExists(privValFile) {
-		privValidator = types.LoadPrivValidatorFS(privValFile)
+		privValidator = pv.LoadFilePV(privValFile)
 		logger.Info("Found private validator", "path", privValFile)
 	} else {
-		privValidator = types.GenPrivValidatorFS(privValFile)
+		dir := filepath.Dir(privValFile)
+		os.Mkdir(dir, os.ModePerm)
+		privValidator = pv.GenFilePV(privValFile)
 		privValidator.Save()
 		logger.Info("Genetated private validator", "path", privValFile)
+	}
+
+	nodeKeyFile := config.TMConfig.NodeKeyFile()
+	if cmn.FileExists(nodeKeyFile) {
+		logger.Info("Found node key", "path", nodeKeyFile)
+	} else {
+		if _, err := p2p.LoadOrGenNodeKey(nodeKeyFile); err != nil {
+			panic(err)
+		}
+		logger.Info("Generated node key", "path", nodeKeyFile)
 	}
 
 	// genesis file
@@ -57,12 +71,21 @@ func initTendermint() {
 	if cmn.FileExists(genFile) {
 		logger.Info("Found genesis file", "path", genFile)
 	} else {
-		genDoc := types.GenesisDoc{
-			ChainID: viper.GetString(FlagChainID),
+		genDoc := GenesisDoc{
+			ChainID:          viper.GetString(FlagChainID),
+			MaxVals:          4,
+			SelfStakingRatio: "0.1",
 		}
 		genDoc.Validators = []types.GenesisValidator{{
-			PubKey: privValidator.GetPubKey(),
-			Power:  10,
+			PubKey:    types.PubKey{privValidator.GetPubKey()},
+			Power:     "10000",
+			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
+			CompRate:  "0.5",
+			MaxAmount: 100000,
+		}}
+		genDoc.CubePubKeys = []types.GenesisCubePubKey{{
+			CubeBatch: "01",
+			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCiWpvDnwYFTqgSWPlA3VO8u+Yv\n9r8QGlRaYZFszUZEXUQxquGlFexMSVyFeqYjIokfPOEHHx2voqWgi3FKKlp6dkxw\nApP3T22y7Epqvtr+EfNybRta15snccZy47dY4UcmYxbGWFTaL66tz22pCAbjFrxY\n3IxaPPIjDX+FiXdJWwIDAQAB\n-----END PUBLIC KEY-----",
 		}}
 
 		if err := genDoc.SaveAs(genFile); err != nil {
@@ -79,7 +102,7 @@ func initEthermint() error {
 		ethUtils.Fatalf("genesisJSON err: %v", err)
 	}
 	// override ethermint's chain_id
-	genesis.Config.ChainId = new(big.Int).SetUint64(uint64(config.EMConfig.EthChainId))
+	genesis.Config.ChainID = new(big.Int).SetUint64(uint64(config.EMConfig.ChainId))
 
 	ethermintDataDir := emtUtils.MakeDataDir(context)
 
