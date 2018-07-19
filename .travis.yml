@@ -58,4 +58,4 @@ deploy:
 
 after_script:
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-  - TAG=$TRAVIS_TAG make push_tag_image ;
+  - TAG=$TRAVIS_BRANCH make push_tag_image ;
