@@ -1,5 +1,5 @@
-hash: 8ce50cd45315a34d3ef84afba36c75851e372af4e3ac047fd003b0da47017c55
-updated: 2018-07-11T12:06:38.177938913+08:00
+hash: f3d1e8d87d10d86941a36399eb1e45c062fa34215d1f2384ac2825dd7e4ec7c6
+updated: 2018-07-19T16:55:52.81880589+08:00
 imports:
 - name: github.com/aristanetworks/goarista
   version: 2c5933638c5ef1bc320b01486100788c81d57b99
@@ -30,7 +30,7 @@ imports:
   subpackages:
   - sys/windows
 - name: github.com/ethereum/go-ethereum
-  version: b4ff4266b457bdcf82d01766a2d9b3ef55699392
+  version: 047167a1acaf134de0a29ec3f9a2af835eb0b372
   repo: https://github.com/CyberMiles/go-ethereum.git
   subpackages:
   - accounts
