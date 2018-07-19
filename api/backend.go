@@ -61,7 +61,7 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 
 	// eth.New takes a ServiceContext for the EventMux, the AccountManager,
 	// and some basic functions around the DataDir.
-	ethereum, err := eth.New(ctx, ethConfig, es)
+	ethereum, err := eth.New(ctx, ethConfig)
 	if err != nil {
 		return nil, err
 	}
