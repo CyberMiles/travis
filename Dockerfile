@@ -1,29 +1,45 @@
+# build docker image
+# > docker build -t travis .
+# initialize:
+# > docker run --rm -v $HOME/.travis:/travis travis node init --home /travis
+# node start:
+# > docker run --rm -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 travis node start --home /travis
+
 # build stage
-FROM golang:1.9-alpine3.6 AS build-env
+FROM ywonline/travis-build AS build-env
 
-RUN apk add --no-cache bash build-base curl jq git linux-headers
+# libeni
+ENV LIBENI_PATH=/app/lib
+RUN mkdir -p libeni \
+  && wget https://github.com/CyberMiles/libeni/releases/download/v1.2.0/libeni-1.2.0_ubuntu-16.04.tgz -P libeni \
+  && tar zxvf libeni/*.tgz -C libeni \
+  && mkdir -p $LIBENI_PATH && cp libeni/*/lib/*.so $LIBENI_PATH
 
+# get travis source code
 WORKDIR /go/src/github.com/CyberMiles/travis
+# copy travis source code from local
 ADD . .
 
-RUN make build
+# get travis source code from github, develop branch by default.
+# you may use a build argument to target a specific branch/tag, for example:
+# > docker build -t travis --build-arg branch=develop .
+# comment ADD statement above and uncomment two statements below:
+# ARG branch=develop
+# RUN git clone -b $branch https://github.com/CyberMiles/travis.git --recursive --depth 1 .
+
+# build travis
+RUN ENI_LIB=$LIBENI_PATH make build
 
 # final stage
-FROM alpine:3.6
-
-ENV DATA_ROOT /travis
+FROM ubuntu:16.04
 
 WORKDIR /app
+ENV ENI_LIBRARY_PATH=/app/lib
 
-# Now just add the binary
+# add the binary
 COPY --from=build-env /go/src/github.com/CyberMiles/travis/build/travis .
+COPY --from=build-env /app/lib/*.so $ENI_LIBRARY_PATH/
 
-VOLUME $DATA_ROOT
-
-EXPOSE 8545
-EXPOSE 26656
-EXPOSE 26657
+EXPOSE 8545 26656 26657
 
 ENTRYPOINT ["./travis"]
-
-CMD ["node", "start", "--home", "/travis"]
