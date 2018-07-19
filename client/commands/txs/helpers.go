@@ -103,7 +103,7 @@ func wrapAndSign(tx sdk.Tx, from common.Address, passphrase string) (hexutil.Byt
 	ethTx := types.NewContractCreation(
 		getNonce(from),
 		big.NewInt(0),
-		big.NewInt(0),
+		0,
 		big.NewInt(0),
 		data,
 	)

@@ -88,7 +88,7 @@ func IsEthTx(tx *types.Transaction) bool {
 	zero := big.NewInt(0)
 	return tx.Data() == nil ||
 		tx.GasPrice().Cmp(zero) != 0 ||
-		tx.Gas().Cmp(zero) != 0 ||
+		tx.Gas() != 0 ||
 		tx.Value().Cmp(zero) != 0 ||
 		tx.To() != nil
 }
