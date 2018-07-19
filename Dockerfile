@@ -3,10 +3,10 @@
 # initialize:
 # > docker run --rm -v $HOME/.travis:/travis travis node init --home /travis
 # node start:
-# > docker run --rm -v $HOME/.travis:/travis -p 46657:46657 -p 8545:8545 travis node start --home /travis
+# > docker run --rm -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 travis node start --home /travis
 
 # build stage
-FROM golang:1.9.3 AS build-env
+FROM ywonline/travis-build AS build-env
 
 # libeni
 ENV LIBENI_PATH=/app/lib
