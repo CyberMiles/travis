@@ -157,6 +157,9 @@ describe("Stake Test", function() {
       Utils.expectTxSuccess(tx_result)
       // check validator's status
       tx_result = web3.cmt.stake.validator.list()
+      tx_result.data.forEach(
+        d => (d.owner_address = d.owner_address.toLowerCase())
+      )
       expect(tx_result.data).to.containSubset([
         { owner_address: Globals.Accounts[3], verified: "Y" }
       ])
@@ -168,7 +171,9 @@ describe("Stake Test", function() {
       tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
       // check validator's information
       logger.debug(tx_result.data)
-      expect(tx_result.data.owner_address).to.eq(Globals.Accounts[3])
+      expect(tx_result.data.owner_address.toLowerCase()).to.eq(
+        Globals.Accounts[3]
+      )
       expect(tx_result.data.verified).to.eq("Y")
       expect(tx_result.data.comp_rate).to.eq(compRate)
       expect(tx_result.data.pub_key.value).to.eq(Globals.PubKeys[3])
@@ -271,7 +276,9 @@ describe("Stake Test", function() {
         tx_result = web3.cmt.stake.validator.list()
         let drops = tx_result.data.filter(d => d.voting_power == 0)
         expect(drops.length).to.eq(1)
-        expect(drops[0].owner_address).to.not.equal(Globals.Accounts[3])
+        expect(drops[0].owner_address.toLowerCase()).to.not.equal(
+          Globals.Accounts[3]
+        )
         expect(drops[0].state).to.eq("Backup Validator")
         expect(drops[0].ranking_power).to.eq(calcRP([drops[0].shares]))
       })
@@ -459,7 +466,9 @@ describe("Stake Test", function() {
       Utils.expectTxSuccess(tx_result)
       // check validators, no Globals.Accounts[3]
       tx_result = web3.cmt.stake.validator.list()
-      logger.debug(tx_result.data)
+      tx_result.data.forEach(
+        d => (d.owner_address = d.owner_address.toLowerCase())
+      )
       expect(tx_result.data).to.not.containSubset([
         { owner_address: Globals.Accounts[3] }
       ])

@@ -1,5 +1,16 @@
 package: github.com/CyberMiles/travis
 import:
+- package: github.com/prometheus/client_golang
+  version: v0.8.0
+- package: github.com/prometheus/client_model
+  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
+- package: github.com/prometheus/common
+  version: e4aa40a9169a88835b849a6efb71e05dc04b88f0
+- package: github.com/prometheus/procfs
+  version: 54d17b57dd7d4a3aa092476596b3f8a933bde349
+- package: github.com/prometheus/prometheus
+  version: v2.0.0
+  
 - package: github.com/pkg/errors
   version: ^0.8.0
 - package: github.com/spf13/cobra
@@ -24,8 +35,9 @@ import:
   - rpc/lib/types
   - types
 - package: github.com/ethereum/go-ethereum
-  version: c5d5fbb3ae0d24644ddf0dddc91e3dea9e3e3917
+#  version: f1.8.12
   repo: https://github.com/CyberMiles/go-ethereum.git
+  version: 047167a1acaf134de0a29ec3f9a2af835eb0b372
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
 - package: github.com/mattn/go-sqlite3

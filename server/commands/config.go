@@ -46,37 +46,41 @@ func DefaultBaseConfig() BaseConfig {
 }
 
 type EthermintConfig struct {
-	ChainId           uint   `mapstructure:"chainid"`
-	RootDir           string `mapstructure:"home"`
-	ABCIAddr          string `mapstructure:"abci_laddr"`
-	ABCIProtocol      string `mapstructure:"abci_protocol"`
-	RPCEnabledFlag    bool   `mapstructure:"rpc"`
-	RPCListenAddrFlag string `mapstructure:"rpcaddr"`
-	RPCPortFlag       uint   `mapstructure:"rpcport"`
-	RPCCORSDomainFlag string `mapstructure:"rpccorsdomain"`
-	RPCApiFlag        string `mapstructure:"rpcapi"`
-	WSEnabledFlag     bool   `mapstructure:"ws"`
-	WSListenAddrFlag  string `mapstructure:"wsaddr"`
-	WSPortFlag        uint   `mapstructure:"wsport"`
-	WSApiFlag         string `mapstructure:"wsapi"`
-	VerbosityFlag     uint   `mapstructure:"verbosity"`
+	ChainId             uint   `mapstructure:"chainid"`
+	RootDir             string `mapstructure:"home"`
+	ABCIAddr            string `mapstructure:"abci_laddr"`
+	ABCIProtocol        string `mapstructure:"abci_protocol"`
+	RPCEnabledFlag      bool   `mapstructure:"rpc"`
+	RPCListenAddrFlag   string `mapstructure:"rpcaddr"`
+	RPCPortFlag         uint   `mapstructure:"rpcport"`
+	RPCCORSDomainFlag   string `mapstructure:"rpccorsdomain"`
+	RPCApiFlag          string `mapstructure:"rpcapi"`
+	RPCVirtualHostsFlag string `mapstructure:"rpcvhosts"`
+	WSEnabledFlag       bool   `mapstructure:"ws"`
+	WSListenAddrFlag    string `mapstructure:"wsaddr"`
+	WSPortFlag          uint   `mapstructure:"wsport"`
+	WSApiFlag           string `mapstructure:"wsapi"`
+	VerbosityFlag       uint   `mapstructure:"verbosity"`
+	GCMode              string `mapstructure:"gcmode"`
 }
 
 func DefaultEthermintConfig() EthermintConfig {
 	return EthermintConfig{
-		ChainId:           TestNet,
-		ABCIAddr:          "tcp://0.0.0.0:8848",
-		ABCIProtocol:      "socket",
-		RPCEnabledFlag:    true,
-		RPCListenAddrFlag: "0.0.0.0",
-		RPCPortFlag:       node.DefaultHTTPPort,
-		RPCCORSDomainFlag: "*",
-		RPCApiFlag:        "cmt,eth,net,web3,personal,admin",
-		WSEnabledFlag:     false,
-		WSListenAddrFlag:  node.DefaultWSHost,
-		WSPortFlag:        node.DefaultWSPort,
-		WSApiFlag:         "",
-		VerbosityFlag:     3,
+		ChainId:             TestNet,
+		ABCIAddr:            "tcp://0.0.0.0:8848",
+		ABCIProtocol:        "socket",
+		RPCEnabledFlag:      true,
+		RPCListenAddrFlag:   "0.0.0.0",
+		RPCPortFlag:         node.DefaultHTTPPort,
+		RPCCORSDomainFlag:   "*",
+		RPCApiFlag:          "cmt,eth,net,web3,personal,admin",
+		RPCVirtualHostsFlag: "localhost",
+		WSEnabledFlag:       false,
+		WSListenAddrFlag:    node.DefaultWSHost,
+		WSPortFlag:          node.DefaultWSPort,
+		WSApiFlag:           "",
+		VerbosityFlag:       3,
+		GCMode:              "full",
 	}
 }
 
@@ -167,6 +171,7 @@ rpcapi = "{{ .EMConfig.RPCApiFlag }}"
 rpcaddr = "{{ .EMConfig.RPCListenAddrFlag }}"
 rpcport = {{ .EMConfig.RPCPortFlag }}
 rpccorsdomain = "{{ .EMConfig.RPCCORSDomainFlag }}"
+rpcvhosts = "{{ .EMConfig.RPCVirtualHostsFlag }}"
 ws = {{ .EMConfig.WSEnabledFlag }}
-verbosity = {{ .EMConfig.VerbosityFlag }}
+verbosity = "{{ .EMConfig.VerbosityFlag }}"
 `

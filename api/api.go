@@ -51,15 +51,17 @@ func (s *CmtRPCService) makeTravisTxArgs(tx sdk.Tx, address common.Address, nonc
 		return nil, err
 	}
 
-	zero := big.NewInt(0)
+	zeroUint := hexutil.Uint64(0)
+	zeroBigInt := big.NewInt(0)
 	return &SendTxArgs{
 		address,
 		nil,
-		(*hexutil.Big)(zero),
-		(*hexutil.Big)(zero),
-		(*hexutil.Big)(zero),
-		data,
+		&zeroUint,
+		(*hexutil.Big)(zeroBigInt),
+		(*hexutil.Big)(zeroBigInt),
 		nonce,
+		(*hexutil.Bytes)(&data),
+		nil,
 	}, nil
 }
 
@@ -169,7 +171,7 @@ func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
 	return &RPCTransaction{
 		BlockNumber:      (*hexutil.Big)(big.NewInt(res.Height)),
 		From:             from,
-		Gas:              (*hexutil.Big)(tx.Gas()),
+		Gas:              (*hexutil.Big)(new(big.Int).SetUint64(tx.Gas())),
 		GasPrice:         (*hexutil.Big)(tx.GasPrice()),
 		Hash:             tx.Hash(),
 		CmtHash:          res.Hash,

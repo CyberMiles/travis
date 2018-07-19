@@ -1,8 +1,6 @@
 package api
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -19,6 +17,7 @@ import (
 
 	"github.com/CyberMiles/travis/vm/ethereum"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 //----------------------------------------------------------------------
@@ -33,7 +32,9 @@ type Backend struct {
 	ethConfig *eth.Config
 
 	// txBroadcastLoop subscription
-	txSub *event.TypeMuxSubscription
+	//txSub *event.TypeMuxSubscription
+	txsCh  chan core.NewTxsEvent
+	txsSub event.Subscription
 
 	// EthState
 	es *ethereum.EthState
@@ -143,8 +144,8 @@ func (b *Backend) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDeliverT
 
 // AccumulateRewards accumulates the rewards based on the given strategy
 // #unstable
-func (b *Backend) AccumulateRewards(strategy *emtTypes.Strategy) {
-	b.es.AccumulateRewards(strategy)
+func (b *Backend) AccumulateRewards(config *params.ChainConfig, strategy *emtTypes.Strategy) {
+	b.es.AccumulateRewards(config, strategy)
 }
 
 // Commit finalises the current block
@@ -166,14 +167,14 @@ func (b *Backend) InitEthState(receiver common.Address) error {
 // UpdateHeaderWithTimeInfo uses the tendermint header to update the ethereum header
 // #unstable
 func (b *Backend) UpdateHeaderWithTimeInfo(tmHeader abciTypes.Header) {
-	b.es.UpdateHeaderWithTimeInfo(b.ethereum.ApiBackend.ChainConfig(), uint64(tmHeader.Time),
+	b.es.UpdateHeaderWithTimeInfo(b.ethereum.APIBackend.ChainConfig(), uint64(tmHeader.Time),
 		uint64(tmHeader.GetNumTxs()))
 }
 
 // GasLimit returns the maximum gas per block
 // #unstable
-func (b *Backend) GasLimit() big.Int {
-	return b.es.GasLimit()
+func (b *Backend) GasLimit() uint64 {
+	return b.es.GasLimit().Gas()
 }
 
 // called by travis tx only in deliver_tx
@@ -227,7 +228,7 @@ func (b *Backend) Start(_ *p2p.Server) error {
 // Ethereum protocol.
 // #stable
 func (b *Backend) Stop() error {
-	b.txSub.Unsubscribe()
+	b.txsSub.Unsubscribe()
 	b.ethereum.Stop() // nolint: errcheck
 	return nil
 }
@@ -253,6 +254,6 @@ func (NullBlockProcessor) ValidateBody(*ethTypes.Block) error { return nil }
 // ValidateState does not validate anything
 // #unstable
 func (NullBlockProcessor) ValidateState(block, parent *ethTypes.Block, state *state.StateDB,
-	receipts ethTypes.Receipts, usedGas *big.Int) error {
+	receipts ethTypes.Receipts, usedGas uint64) error {
 	return nil
 }

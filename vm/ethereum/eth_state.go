@@ -66,7 +66,7 @@ func (es *EthState) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDelive
 	defer es.mtx.Unlock()
 
 	blockchain := es.ethereum.BlockChain()
-	chainConfig := es.ethereum.ApiBackend.ChainConfig()
+	chainConfig := es.ethereum.APIBackend.ChainConfig()
 	blockHash := common.Hash{}
 	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx)
 }
@@ -80,11 +80,11 @@ func (es *EthState) AddNonce(addr common.Address) {
 }
 
 // Accumulate validator rewards.
-func (es *EthState) AccumulateRewards(strategy *emtTypes.Strategy) {
+func (es *EthState) AccumulateRewards(config *params.ChainConfig, strategy *emtTypes.Strategy) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
-	es.work.accumulateRewards(strategy)
+	es.work.accumulateRewards(config, strategy)
 }
 
 // Commit and reset the work.
@@ -133,7 +133,7 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 		state:           state,
 		travisTxIndex:   0,
 		txIndex:         0,
-		totalUsedGas:    big.NewInt(0),
+		totalUsedGas:    new(uint64),
 		totalUsedGasFee: big.NewInt(0),
 		gp:              new(core.GasPool).AddGas(ethHeader.GasLimit),
 	}
@@ -156,8 +156,8 @@ func (es *EthState) UpdateHeaderWithTimeInfo(
 	es.work.updateHeaderWithTimeInfo(config, parentTime, numTx)
 }
 
-func (es *EthState) GasLimit() big.Int {
-	return big.Int(*es.work.gp)
+func (es *EthState) GasLimit() *core.GasPool {
+	return es.work.gp
 }
 
 //----------------------------------------------------------------------
@@ -193,16 +193,16 @@ type workState struct {
 	receipts     ethTypes.Receipts
 	allLogs      []*ethTypes.Log
 
-	totalUsedGas    *big.Int
+	totalUsedGas    *uint64
 	totalUsedGasFee *big.Int
 	gp              *core.GasPool
 }
 
 // nolint: unparam
-func (ws *workState) accumulateRewards(strategy *emtTypes.Strategy) {
+func (ws *workState) accumulateRewards(config *params.ChainConfig, strategy *emtTypes.Strategy) {
 
-	ethash.AccumulateRewards(ws.state, ws.header, []*ethTypes.Header{})
-	ws.header.GasUsed = ws.totalUsedGas
+	ethash.AccumulateRewards(config, ws.state, ws.header, []*ethTypes.Header{})
+	ws.header.GasUsed = *ws.totalUsedGas
 }
 
 // Runs ApplyTransaction against the ethereum blockchain, fetches any logs,
@@ -232,7 +232,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
 	}
 
-	usedGasFee := big.NewInt(0).Mul(usedGas, tx.GasPrice())
+	usedGasFee := big.NewInt(0).Mul(new(big.Int).SetUint64(usedGas), tx.GasPrice())
 	ws.totalUsedGasFee.Add(ws.totalUsedGasFee, usedGasFee)
 
 	logs := ws.state.GetLogs(tx.Hash())
@@ -287,7 +287,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	ws.handleStateChangeQueue()
 
 	// Commit ethereum state and update the header.
-	hashArray, err := ws.state.CommitTo(db, false) // XXX: ugh hardforks
+	hashArray, err := ws.state.Commit(false) // XXX: ugh hardforks
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -374,9 +374,8 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 // CalcGasLimit computes the gas limit of the next block after parent.
 // The result may be modified by the caller.
 // This is miner strategy, not consensus protocol.
-func calcGasLimit(parent *types.Block) *big.Int {
+func calcGasLimit(parent *types.Block) uint64 {
 	// 0xF00000000 = 64424509440
-	gl := big.NewInt(64424509440)
-
+	var  gl uint64 = 64424509440
 	return gl
 }
