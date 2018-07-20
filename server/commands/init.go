@@ -20,8 +20,18 @@ import (
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 )
 
-var (
+const (
 	FlagChainID = "chain-id"
+	FlagENV     = "env"
+
+	defaultEnv = "private"
+)
+
+const (
+	Staging      = 20
+	TestNet      = 19
+	MainNet      = 18
+	PrivateChain = 1234
 )
 
 var InitCmd = GetInitCmd()
@@ -33,6 +43,7 @@ func GetInitCmd() *cobra.Command {
 		RunE:  initFiles,
 	}
 	initCmd.Flags().String(FlagChainID, "local", "Chain ID")
+	initCmd.Flags().String(FlagENV, defaultEnv, "Environment (mainnet|staging|testnet|private)")
 	return initCmd
 }
 
