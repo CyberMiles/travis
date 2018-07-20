@@ -20,6 +20,13 @@ addons:
     - node-5
     - node-6
 
+before_install:
+    - echo Checking whether $TRAVIS_COMMIT_RANGE changed only docs
+    - git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE '(\.md|^(docs)/)' || {
+        echo "Only docs were updated, stopping build process."
+        exit
+      }
+
 install:
   - ". $HOME/.nvm/nvm.sh"
   - nvm install stable
