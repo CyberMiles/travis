@@ -2,7 +2,7 @@
 Getting Started
 ===============
 
-In this document, we will discuss how to create a single node CyberMiles blockchain running on your computer. 
+In this document, we will discuss how to create and run a single node CyberMiles blockchain on your computer. 
 It allows you to connect and test basic features such as coin transactions, staking and unstaking for validators, 
 governance, and smart contracts.
 
@@ -20,7 +20,7 @@ Let’s initialize a docker image for the Travis build first.
 
 .. code:: bash
 
-  docker run --rm -v ~/volumes/local:/travis ywonline/travis:staging node init --home /travis
+  docker run --rm -v ~/volumes/local:/travis ywonline/travis node init --home /travis
 
 The node’s data directory is ``~/volumes/local`` on the local computer. 
 
@@ -31,7 +31,7 @@ Now you can start the CyberMiles Travis node in docker.
 
 .. code:: bash
 
-  docker run --name travis -v ~/volumes/local:/travis -t -p 26657:26657 -p 8545:8545 ywonline/travis:staging node start --home /travis
+  docker run --name travis -v ~/volumes/local:/travis -t -p 26657:26657 -p 8545:8545 ywonline/travis node start --home /travis
 
 At this point, you can Ctrl-C to exit to the terminal and travis will remain running in the background. 
 You can check the CyberMiles Travis node’s logs at anytime via the following docker command.
@@ -59,7 +59,7 @@ You can connect to the local CyberMiles node by attaching an instance of the Tra
   172.17.0.2
 
   # Use the IP address from above to connect
-  docker run --rm -it ywonline/travis:staging attach http://172.17.0.2:8545
+  docker run --rm -it ywonline/travis attach http://172.17.0.2:8545
 
 It opens the web3-cmt JavaScript console to interact with the virtual machine. The example below shows how to unlock the
 coinbase account so that you have coins to spend.
@@ -91,13 +91,15 @@ The easiest way to get GO 1.10 is through the GVM. Below are the commands on a L
 
 .. code:: bash
 
-  bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
-  source $HOME/.gvm/scripts/gvm
-  gvm install go1.10.3 -B
-  gvm use go1.10.3 --default
+  $ bash < <(curl -s -S -Lhttps://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+  $ vim ~/.bash_profile
+  inset into the bash profile: [[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
+  log out and log in
+  $ gvm version
+  output should look like: Go Version Manager v1.0.22 installed at /home/myuser/.gvm
+  $ gvm install go1.10.3
+  $ gvm use go1.10.3
 
-You should include the last command ``gvm use go1.10.3 --default`` in your startup script (e.g. ``.bash_profile``) 
-so that it runs every time you log in.
 
 Build
 `````
@@ -108,7 +110,7 @@ First we need to checkout the correct branch of Travis from Github:
 
   go get github.com/CyberMiles/travis
   cd $GOPATH/src/github.com/CyberMiles/travis
-  git checkout staging
+  git checkout master
 
 Next, we need to build libENI and put it into the default Travis data directory ``~/.travis/``.
 
