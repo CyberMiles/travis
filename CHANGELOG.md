@@ -17,12 +17,12 @@ Lity is a superset of Solidity with ourstanding flexibility, performance and sec
 
 For more information, visit https://www.litylang.org/
 
-### Improvements：
+### IMPROVEMENTS
 1. Compatible with Ethereum: Upgrade go-ethereum to version 1.8.12 
 2. Improve security: Staking in CMT cube requires signing by address. 
 3. Complete the Governance and Staking mechanism Documentation: http://travis.readthedocs.io/
 
-### Fixes：
+### FIXES
 Fixed some small bugs.
 
 ## v0.1.0-rc.2
