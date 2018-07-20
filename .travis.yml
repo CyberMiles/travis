@@ -6,6 +6,7 @@ branches:
   - develop
   - staging
   - tmup
+  - lity
   - /^v.*$/
 
 services:
@@ -13,19 +14,20 @@ services:
 
 addons:
   hosts:
-    - node-1
-    - node-2
-    - node-3
-    - node-4
-    - node-5
-    - node-6
+  - node-1
+  - node-2
+  - node-3
+  - node-4
+  - node-5
+  - node-6
 
 before_install:
-    - echo Checking whether $TRAVIS_COMMIT_RANGE changed only docs
-    - git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE '(\.md|^(docs)/)' || {
-        echo "Only docs were updated, stopping build process."
-        exit
-      }
+  - echo Checking whether $TRAVIS_COMMIT_RANGE changed only docs
+  - |
+    git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE '(\.md$|^(docs)/)' || {
+      echo "Only docs were updated, stopping build process."
+      exit
+    }
 
 install:
   - ". $HOME/.nvm/nvm.sh"
