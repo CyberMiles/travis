@@ -91,9 +91,9 @@ The easiest way to get GO 1.10 is through the GVM. Below are the commands on a L
 
 .. code:: bash
 
-  $ bash < <(curl -s -S -Lhttps://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+  $ bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
   $ vim ~/.bash_profile
-  inset into the bash profile: [[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
+  inset into the bash profile: source "$HOME/.bashrc"
   log out and log in
   $ gvm version
   output should look like: Go Version Manager v1.0.22 installed at /home/myuser/.gvm
@@ -108,7 +108,7 @@ First we need to checkout the correct branch of Travis from Github:
 
 .. code:: bash
 
-  go get github.com/CyberMiles/travis
+  go get github.com/CyberMiles/travis (ignore if an error occur)
   cd $GOPATH/src/github.com/CyberMiles/travis
   git checkout master
 
