@@ -28,17 +28,3 @@ cd $BASEDIR
 yarn install
 yarn link "web3-cmt"
 yarn test
-
-
-# single node test
-cd ~/volumes/testnet/travis/scripts
-docker-compose down
-
-IMG=ywonline/travis
-docker run --rm -v ~/volumes/local:/travis $IMG node init --home=/travis
-docker run --rm -v ~/volumes/local:/travis -d -p 26657:26657 -p 8545:8545 $IMG node start --home=/travis
-sleep 3
-curl http://localhost:26657/status
-
-cd $BASEDIR
-yarn test
