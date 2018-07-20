@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.1.0-rc.3
+
+_July 20th, 2018_
+
+### FEATURES
+We hit a big milestone this week.
+
+Lity is a new programming language for developing smart contract on Cybermiles blockchain. It consists of a dynamically extensible language, a compiler, and a virtual machine runtime. 
+
+Lity is a superset of Solidity with ourstanding flexibility, performance and security - The dApp developers would love these upgrades. 
+
+- The libENI dynamic VM extension allows native functions to be added to the virtual machine on the fly, without stopping, forking or upgrading the blockchain. 
+- The ERC checker not only checks but also automagically fixes common security bugs in smart contracts. 
+- The upcoming Lity Rules Engine allows formal business rules to be embedded in smart contracts. 
+
+For more information, visit https://www.litylang.org/
+
+### Improvements：
+1. Compatible with Ethereum: Upgrade go-ethereum to version 1.8.12 
+2. Improve security: Staking in CMT cube requires signing by address. 
+3. Complete the Governance and Staking mechanism Documentation: http://travis.readthedocs.io/
+
+### Fixes：
+Fixed some small bugs.
+
 ## v0.1.0-rc.2
 
 _July 13th, 2018_
