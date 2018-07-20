@@ -14,6 +14,7 @@
     "config": "^1.26.1",
     "ethereumjs-tx": "^1.3.1",
     "ethereumjs-wallet": "^0.6.0",
-    "mocha": "^3.4.2"
+    "mocha": "^3.4.2",
+    "web3-cmt": "^0.0.2-rc"
   }
 }

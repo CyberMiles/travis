@@ -2,6 +2,7 @@ GOTOOLS = github.com/Masterminds/glide
 ENI_LIB?=$(HOME)/.travis/eni/lib
 CGO_LDFLAGS = -L$(ENI_LIB) -Wl,-rpath,$(ENI_LIB)
 CGO_LDFLAGS_ALLOW = "-I.*"
+UNAME = $(shell uname)
 
 all: get_vendor_deps install print_cybermiles_logo
 
@@ -13,7 +14,12 @@ get_vendor_deps: tools
 
 install:
 	@echo "\n--> Installing the Travis TestNet\n"
+ifeq ($(UNAME), Linux)
 	CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go install ./cmd/travis
+endif
+ifeq ($(UNAME), Darwin)
+	go install ./cmd/travis
+endif
 	@echo "\n\nTravis, the TestNet for CyberMiles (CMT) has successfully installed!"
 
 tools:
@@ -22,7 +28,12 @@ tools:
 	@echo "--> Tools installed successfully"
 
 build: get_vendor_deps
+ifeq ($(UNAME), Linux)
 	CGO_LDFLAGS="$(CGO_LDFLAGS)" go build -o build/travis ./cmd/travis
+endif
+ifeq ($(UNAME), Darwin)
+	go build -o build/travis ./cmd/travis
+endif
 
 NAME := ywonline/travis
 LATEST := ${NAME}:latest

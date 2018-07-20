@@ -22,7 +22,7 @@ ADD . .
 
 # get travis source code from github, develop branch by default.
 # you may use a build argument to target a specific branch/tag, for example:
-# > docker build -t travis --build-arg branch=lity .
+# > docker build -t travis --build-arg branch=develop .
 # comment ADD statement above and uncomment two statements below:
 # ARG branch=develop
 # RUN git clone -b $branch https://github.com/CyberMiles/travis.git --recursive --depth 1 .

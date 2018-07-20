@@ -14,12 +14,20 @@ services:
 
 addons:
   hosts:
-    - node-1
-    - node-2
-    - node-3
-    - node-4
-    - node-5
-    - node-6
+  - node-1
+  - node-2
+  - node-3
+  - node-4
+  - node-5
+  - node-6
+
+before_install:
+  - echo Checking whether $TRAVIS_COMMIT_RANGE changed only docs
+  - |
+    git diff --name-only $TRAVIS_COMMIT_RANGE | grep -qvE '(\.md$|^(docs)/)' || {
+      echo "Only docs were updated, stopping build process."
+      exit
+    }
 
 install:
   - ". $HOME/.nvm/nvm.sh"
@@ -31,18 +39,13 @@ script:
   - BRANCH=$TRAVIS_BRANCH make docker_image && ./test/integration/test.sh
 
 after_success:
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
   - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
       make push_image ;
-    else
-      TAG=$TRAVIS_BRANCH make push_tag_image ;
     fi
 
 after_failure:
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-  - TAG=$TRAVIS_BRANCH make push_tag_image ;
   - curl -i "http://localhost:26657/dump_consensus_state"
-  - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t
+  - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t --tail 100
 
 before_deploy:
   - BUILD_TAG=$TRAVIS_TAG make dist
@@ -62,6 +65,6 @@ deploy:
     repo: CyberMiles/travis
     tags: true
 
-after_deploy:
+after_script:
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-  - TAG=$TRAVIS_TAG make push_tag_image ;
+  - TAG=$TRAVIS_BRANCH make push_tag_image ;

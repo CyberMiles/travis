@@ -10,7 +10,7 @@ mkdir -p ~/volumes
 git clone https://github.com/CyberMiles/testnet.git ~/volumes/testnet
 
 cd ~/volumes/testnet/travis/scripts
-git checkout tmup22
+git checkout master
 yes "" | sudo ./cluster.sh test 6 4
 docker-compose up -d all
 sleep 3
