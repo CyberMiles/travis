@@ -81,7 +81,7 @@ coinbase account so that you have coins to spend.
 Build from source
 ----------------------------
 
-Currently, we only support source builds for CentOS and Ubuntu linux distributions.
+Currently, we only support source builds for CentOS 7 and Ubuntu 16.04 linux distributions.
 
 Prerequisite
 ````````````
