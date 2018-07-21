@@ -22,9 +22,9 @@ type Params struct {
 	TransferFundProposal      uint64         `json:"transfer_fund_proposal" type:"uint"`
 	ChangeParamsProposal      uint64         `json:"change_params_proposal" type:"uint"`
 	GasPrice                  uint64         `json:"gas_price" type:"uint"`
-	MinStakingAmount          int64          `json:"min_staking_amount" type:"int"`
-	ValidatorsBlockAwardRatio int64          `json:"validators_block_award_ratio" type:"int"`
-	MaxSlashingBlocks         int16          `json:"max_slashing_blocks" type:"int"`
+	MinStakingAmount          int64          `json:"min_staking_amount" type:"uint"`
+	ValidatorsBlockAwardRatio int64          `json:"validators_block_award_ratio" type:"uint"`
+	MaxSlashingBlocks         int16          `json:"max_slashing_blocks" type:"uint"`
 	SlashingRatio             string         `json:"slashing_ratio" type:"float"`
 	CubePubKeys               string         `json:"cube_pub_keys" type:"json"`
 }
