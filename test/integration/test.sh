@@ -28,3 +28,7 @@ cd $BASEDIR
 yarn install
 yarn link "web3-cmt"
 yarn test
+
+# cleanup
+cd ~/volumes/testnet/travis/scripts
+docker-compose down
