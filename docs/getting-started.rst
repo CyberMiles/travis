@@ -95,6 +95,7 @@ The easiest way to get GO 1.10 is through the GVM. Below are the commands on a L
   $ vim ~/.bash_profile
   inset into the bash profile: source "$HOME/.bashrc"
   log out and log in
+  $ sudo apt-get install bison
   $ gvm version
   output should look like: Go Version Manager v1.0.22 installed at /home/myuser/.gvm
   $ gvm install go1.10.3
