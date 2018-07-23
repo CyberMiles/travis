@@ -1,7 +1,5 @@
 # Join Travis TestNet (for Docker and Travis built from source)
 
-In this document, we will discuss how to connect to the CyberMiles TestNet and the production MainNet. 
-
 ## Prerequisite
 For Docker: It's assumed that you have [setup docker](https://docs.docker.com/engine/installation/).
 
@@ -68,10 +66,3 @@ To access the TestNet type the following in a seperte terminal console:
 ```bash
 $ travis attach http://localhost:8545
 ```
-
-Connect to mainnet
-----------------------------
-
-This section will be completed when the mainnet launches in Q3 2018.
-
-
