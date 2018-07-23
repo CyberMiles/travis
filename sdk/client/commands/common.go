@@ -4,12 +4,12 @@ Package commands contains any general setup/helpers valid for all subcommands
 package commands
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/lite"
-	"github.com/tendermint/tendermint/libs/cli"
-
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/CyberMiles/travis/sdk/client"
@@ -21,14 +21,16 @@ var (
 )
 
 const (
-	ChainFlag = "chain-id"
-	NodeFlag  = "node"
+	ChainFlag   = "chain-id"
+	NodeFlag    = "node"
+	CliHomeFlag = "cli-home"
 )
 
 // AddBasicFlags adds --node and --chain-id, which we need for everything
 func AddBasicFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().String(ChainFlag, "", "Chain ID of tendermint node")
 	cmd.PersistentFlags().String(NodeFlag, "", "<host>:<port> to tendermint rpc interface for this chain")
+	cmd.PersistentFlags().String(CliHomeFlag, os.ExpandEnv("$HOME/.travis-cli"), "directory for cli")
 }
 
 // GetChainID reads ChainID from the flags
@@ -53,7 +55,7 @@ func GetSourceProvider() lite.Provider {
 // GetTrustedProvider returns a reference to a local store with cache
 func GetTrustedProvider() lite.Provider {
 	if trustedProv == nil {
-		rootDir := viper.GetString(cli.HomeFlag)
+		rootDir := viper.GetString(CliHomeFlag)
 		trustedProv = client.GetLocalProvider(rootDir)
 	}
 	return trustedProv
