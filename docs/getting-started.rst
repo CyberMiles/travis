@@ -20,7 +20,6 @@ Let’s initialize a docker image for the Travis build first.
 
 .. code:: bash
 
-  sudo rm -rf ~/volumes/local
   docker run --rm -v ~/volumes/local:/travis ywonline/travis node init --home /travis
 
 The node’s data directory is ``~/volumes/local`` on the local computer. 
