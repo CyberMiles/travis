@@ -8,6 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
+const CommitSeconds = 10
+
 type StateChangeObject struct {
 	From   common.Address
 	To     common.Address
@@ -21,30 +23,30 @@ type StateChangeReactor interface {
 }
 
 type pendingProposal struct {
-	proposals            map[string]uint64
-	minExpireBlockHeight uint64
+	proposals            map[string]int64
+	minExpire            int64
 	minHeightMappedPid   []string
 }
 
-func (p *pendingProposal) BatchAdd(proposals map[string]uint64) {
+func (p *pendingProposal) BatchAdd(proposals map[string]int64) {
 	p.proposals = proposals
 	p.update()
 }
 
-func (p *pendingProposal) Add(pid string, expireBlockHeight uint64) {
-	p.proposals[pid] = expireBlockHeight
-	if p.minExpireBlockHeight > expireBlockHeight {
+func (p *pendingProposal) Add(pid string, expire int64) {
+	p.proposals[pid] = expire
+	if p.minExpire > expire {
 		p.minHeightMappedPid = []string{pid}
-		p.minExpireBlockHeight = expireBlockHeight
-	} else if p.minExpireBlockHeight == expireBlockHeight {
+		p.minExpire = expire
+	} else if p.minExpire == expire {
 		p.minHeightMappedPid = append(p.minHeightMappedPid, pid)
 	}
 }
 
 func (p *pendingProposal) Del(pid string) {
-	expireBlockHeight := p.proposals[pid]
+	expire := p.proposals[pid]
 	delete(p.proposals, pid)
-	if p.minExpireBlockHeight == expireBlockHeight {
+	if p.minExpire == expire {
 		if len(p.minHeightMappedPid) == 1 {
 			p.update()
 		} else {
@@ -59,29 +61,44 @@ func (p *pendingProposal) Del(pid string) {
 }
 
 func (p *pendingProposal) update() {
-	min := uint64(math.MaxUint64)
+	min := int64(math.MaxInt64)
 
-	for pid, bh := range p.proposals {
-		if min > bh {
-			min = bh
+	for pid, ts := range p.proposals {
+		if min > ts {
+			min = ts
 			p.minHeightMappedPid = []string{pid}
-		} else if min == bh {
+		} else if min == ts {
 			p.minHeightMappedPid = append(p.minHeightMappedPid, pid)
 		}
 	}
-	p.minExpireBlockHeight = min
+	p.minExpire = min
 }
 
-func (p *pendingProposal) ReachMin(blockHeight uint64) (pids []string) {
-	if p.minExpireBlockHeight == blockHeight {
+func (p *pendingProposal) ReachMin(timestamp int64) (pids []string) {
+	if shouldBePacked(p.minExpire, timestamp) {
 		pids = p.minHeightMappedPid
 
 		for _, pid := range pids {
 			delete(p.proposals, pid)
 		}
+
+		for pid, ts := range p.proposals {
+			if shouldBePacked(ts, timestamp) {
+				delete(p.proposals, pid)
+				pids = append(pids, pid)
+			}
+		}
+
 		p.update()
 	}
 	return
+}
+
+func shouldBePacked(timestamp, lastTs int64) bool {
+	if timestamp < lastTs || timestamp - lastTs < CommitSeconds {
+		return true
+	}
+	return false
 }
 
 func IsEthTx(tx *types.Transaction) bool {
@@ -108,8 +125,8 @@ var (
 	TravisTxAddrs   []*common.Address
 	NonceCheckedTx  map[common.Hash]bool = make(map[common.Hash]bool)
 	PendingProposal                      = &pendingProposal{
-		make(map[string]uint64),
-		math.MaxUint64,
+		make(map[string]int64),
+		math.MaxInt64,
 		nil,
 	}
 	MintAccount    = common.HexToAddress("0000000000000000000000000000000000000000")

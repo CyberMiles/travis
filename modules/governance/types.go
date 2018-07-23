@@ -16,7 +16,7 @@ type Proposal struct {
 	Type         string
 	Proposer     *common.Address
 	BlockHeight  uint64
-	ExpireBlockHeight uint64
+	Expire       int64
 	CreatedAt    string
 	Result       string
 	ResultMsg    string
@@ -31,7 +31,7 @@ func (p *Proposal) Hash() []byte {
 		Type         string
 		Proposer     *common.Address
 		BlockHeight  uint64
-		ExpireBlockHeight uint64
+		Expire       int64
 		Result       string
 		ResultMsg    string
 		ResultBlockHeight    uint64
@@ -41,7 +41,7 @@ func (p *Proposal) Hash() []byte {
 		p.Type,
 		p.Proposer,
 		p.BlockHeight,
-		p.ExpireBlockHeight,
+		p.Expire,
 		p.Result,
 		p.ResultMsg,
 		p.ResultBlockHeight,
@@ -55,14 +55,14 @@ func (p *Proposal) Hash() []byte {
 	return hasher.Sum(nil)
 }
 
-func NewTransferFundProposal(id string, proposer *common.Address, blockHeight uint64, from *common.Address, to *common.Address, amount string, reason string, expireBlockHeight uint64) *Proposal {
+func NewTransferFundProposal(id string, proposer *common.Address, blockHeight uint64, from *common.Address, to *common.Address, amount string, reason string, expire int64) *Proposal {
 	now := utils.GetNow()
 	return &Proposal {
 		id,
 		TRANSFER_FUND_PROPOSAL,
 		proposer,
 		blockHeight,
-		expireBlockHeight,
+		expire,
 		now,
 		"",
 		"",
@@ -77,14 +77,14 @@ func NewTransferFundProposal(id string, proposer *common.Address, blockHeight ui
 	}
 }
 
-func NewChangeParamProposal(id string, proposer *common.Address, blockHeight uint64, name, value, reason string, expireBlockHeight uint64) *Proposal {
+func NewChangeParamProposal(id string, proposer *common.Address, blockHeight uint64, name, value, reason string, expire int64) *Proposal {
 	now := utils.GetNow()
 	return &Proposal {
 		id,
 		CHANGE_PARAM_PROPOSAL,
 		proposer,
 		blockHeight,
-		expireBlockHeight,
+		expire,
 		now,
 		"",
 		"",

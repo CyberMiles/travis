@@ -10,6 +10,7 @@ import (
 var (
 	errMissingSignature      = fmt.Errorf("Missing signature")
 	errInvalidParameter      = fmt.Errorf("Invalid parameter")
+	errInvalidExpire         = fmt.Errorf("Invalid expire time")
 	errRepeatedVote          = fmt.Errorf("Repeated vote")
 	errInvalidValidator      = fmt.Errorf("Invalid validator")
 	errInsufficientBalance   = fmt.Errorf("Insufficient balance")
@@ -23,6 +24,10 @@ func ErrMissingSignature() error {
 
 func ErrInvalidParameter() error {
 	return errors.WithCode(errInvalidParameter, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrInvalidExpire() error {
+	return errors.WithCode(errInvalidExpire, errors.CodeTypeBaseInvalidInput)
 }
 
 func ErrRepeatedVote() error {

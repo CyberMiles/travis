@@ -31,6 +31,7 @@ type BaseApp struct {
 	AbsentValidators    *stake.AbsentValidators
 	ByzantineValidators []abci.Evidence
 	PresentValidators   stake.Validators
+	blockTime           int64
 }
 
 const (
@@ -48,9 +49,9 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 	// init pending proposals
 	pendingProposals := governance.GetPendingProposals()
 	if len(pendingProposals) > 0 {
-		proposals := make(map[string]uint64)
+		proposals := make(map[string]int64)
 		for _, pp := range pendingProposals {
-			proposals[pp.Id] = pp.ExpireBlockHeight
+			proposals[pp.Id] = pp.Expire
 		}
 		utils.PendingProposal.BatchAdd(proposals)
 	}
@@ -121,7 +122,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) abci.ResponseDeliverTx {
 
 	app.logger.Info("DeliverTx: Received valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.EthApp.DeliverTxState())
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.blockTime, app.EthApp.DeliverTxState())
 	return app.deliverHandler(ctx, app.Append(), tx)
 }
 
@@ -145,12 +146,13 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 
 	app.logger.Info("CheckTx: Received valid transaction", "tx", tx)
 
-	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.EthApp.checkTxState)
+	ctx := ttypes.NewContext(app.GetChainID(), app.WorkingHeight(), app.blockTime, app.EthApp.checkTxState)
 	return app.checkHandler(ctx, app.Check(), tx)
 }
 
 // BeginBlock - ABCI
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	app.blockTime = req.GetHeader().Time
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
 

@@ -428,7 +428,7 @@ type GovernanceTransferFundProposalArgs struct {
 	TransferTo   common.Address  `json:"transferTo"`
 	Amount       hexutil.Big     `json:"amount"`
 	Reason       string          `json:"reason"`
-	Expire       uint64          `json:"expire"`
+	Expire       int64           `json:"expire"`
 }
 
 func (s *CmtRPCService) Propose(args GovernanceTransferFundProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -448,7 +448,7 @@ type GovernanceChangeParamProposalArgs struct {
 	Name   string          `json:"name"`
 	Value  string          `json:"value"`
 	Reason string          `json:"reason"`
-	Expire uint64          `json:"expire"`
+	Expire int64           `json:"expire"`
 }
 
 func (s *CmtRPCService) ProposeChangeParam(args GovernanceChangeParamProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {

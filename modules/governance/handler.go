@@ -66,6 +66,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 
+		if ctx.BlockTime() > txInner.Expire {
+			return sdk.NewCheck(0, ""), ErrInvalidExpire()
+		}
+
 		amount := big.NewInt(0)
 		amount.SetString(txInner.Amount, 10)
 		if balance.Cmp(amount) < 0 {
@@ -93,6 +97,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if i + 1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
+		}
+
+		if ctx.BlockTime() > txInner.Expire {
+			return sdk.NewCheck(0, ""), ErrInvalidExpire()
 		}
 
 		// Transfer gasFee
@@ -155,7 +163,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
-		expire := utils.GetParams().ProposalExpirePeriod
+		expire := ctx.BlockTime() + utils.GetParams().ProposalExpirePeriod
 		if txInner.Expire != 0 {
 			expire = txInner.Expire
 		}
@@ -168,7 +176,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			txInner.To,
 			txInner.Amount,
 			txInner.Reason,
-			uint64(ctx.BlockHeight()) + expire,
+			expire,
 		)
 
 		balance, err := commons.GetBalance(app_state, *txInner.From)
@@ -204,12 +212,12 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 		// Check gasFee  -- end
 
-		utils.PendingProposal.Add(pp.Id, pp.ExpireBlockHeight)
+		utils.PendingProposal.Add(pp.Id, pp.Expire)
 
 		res.Data = hash
 
 	case TxChangeParamPropose:
-		expire := utils.GetParams().ProposalExpirePeriod
+		expire := ctx.BlockTime() + utils.GetParams().ProposalExpirePeriod
 		if txInner.Expire != 0 {
 			expire = txInner.Expire
 		}
@@ -221,7 +229,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			txInner.Name,
 			txInner.Value,
 			txInner.Reason,
-			uint64(ctx.BlockHeight()) + expire,
+			expire,
 		)
 		SaveProposal(cp)
 
@@ -244,7 +252,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 		// Check gasFee  -- end
 
-		utils.PendingProposal.Add(cp.Id, cp.ExpireBlockHeight)
+		utils.PendingProposal.Add(cp.Id, cp.Expire)
 
 		res.Data = hash
 
