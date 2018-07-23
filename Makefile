@@ -29,7 +29,7 @@ tools:
 
 build: get_vendor_deps
 ifeq ($(UNAME), Linux)
-	CGO_LDFLAGS="$(CGO_LDFLAGS)" go build -o build/travis ./cmd/travis
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go build -o build/travis ./cmd/travis
 endif
 ifeq ($(UNAME), Darwin)
 	go build -o build/travis ./cmd/travis
