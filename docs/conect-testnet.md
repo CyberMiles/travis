@@ -5,7 +5,7 @@ In this document, we will discuss how to connect to the CyberMiles TestNet and t
 ## Prerequisite
 For Docker: It's assumed that you have [setup docker](https://docs.docker.com/engine/installation/).
 
-For Travis built from source: It's assumed that you have [installed Travis via source builds](http://travis.readthedocs.io/en/latest/getting-started.html#use-docker). (Stop before you connect you a local node)
+For Travis built from source: It's assumed that you have [installed Travis via source builds](http://travis.readthedocs.io/en/latest/getting-started.html#use-docker). (Stop before you connect to a local node)
 
 ## Docker Image (for Docker)
 Docker image for Travis is stored on [Docker Hub](https://hub.docker.com/r/ywonline/travis/tags/). TestNet environment is using the [`lastest`](https://github.com/cybermiles/travis/tree/staging) branch which can be pulled automatically from Travis:
@@ -68,3 +68,7 @@ To access the TestNet type the following in a seperte terminal console:
 ```bash
 $ travis attach http://localhost:8545
 ```
+
+#Connect to MainNet
+
+This section will be completed when the mainnet launches in Q3 2018.
