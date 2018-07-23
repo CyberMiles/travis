@@ -15,10 +15,10 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/tendermint/lite"
-	"github.com/tendermint/tendermint/lite/files"
 	"github.com/tendermint/tendermint/libs/cli"
 	cmn "github.com/tendermint/tendermint/libs/common"
+	"github.com/tendermint/tendermint/lite"
+	"github.com/tendermint/tendermint/lite/files"
 
 	"github.com/tendermint/tendermint/types"
 )
@@ -58,7 +58,7 @@ func init() {
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
-	root := viper.GetString(cli.HomeFlag)
+	root := viper.GetString(CliHomeFlag)
 	if viper.GetBool("force-reset") {
 		resetRoot(root, true)
 	}
@@ -97,7 +97,7 @@ func doInit(cmd *cobra.Command, root string) error {
 }
 
 func runResetAll(cmd *cobra.Command, args []string) error {
-	root := viper.GetString(cli.HomeFlag)
+	root := viper.GetString(CliHomeFlag)
 	resetRoot(root, false)
 	return nil
 }
@@ -132,7 +132,7 @@ func RequireInit(run Runable) Runable {
 		}
 
 		// first check if we were Init'ed and if not, return an error
-		root := viper.GetString(cli.HomeFlag)
+		root := viper.GetString(CliHomeFlag)
 		init, err := WasInited(root)
 		if err != nil {
 			return err
@@ -260,7 +260,7 @@ func initConfigFile(cmd *cobra.Command) error {
 	setConfig(flags, cli.OutputFlag, &cfg.Output)
 	setConfig(flags, cli.EncodingFlag, &cfg.Encoding)
 
-	out, err := os.Create(filepath.Join(viper.GetString(cli.HomeFlag), ConfigFile))
+	out, err := os.Create(filepath.Join(viper.GetString(CliHomeFlag), ConfigFile))
 	if err != nil {
 		return errors.WithStack(err)
 	}

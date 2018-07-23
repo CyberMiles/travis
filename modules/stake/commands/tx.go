@@ -2,17 +2,18 @@ package commands
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	txcmd "github.com/CyberMiles/travis/client/commands/txs"
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/CyberMiles/travis/modules/stake"
+	txcmd "github.com/CyberMiles/travis/sdk/client/commands/txs"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"math/big"
 )
 
 /*

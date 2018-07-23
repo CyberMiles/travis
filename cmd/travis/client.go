@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	txcmd "github.com/CyberMiles/travis/client/commands/txs"
 	stakecmd "github.com/CyberMiles/travis/modules/stake/commands"
 	"github.com/CyberMiles/travis/sdk/client/commands"
 	"github.com/CyberMiles/travis/sdk/client/commands/query"
+	txcmd "github.com/CyberMiles/travis/sdk/client/commands/txs"
 )
 
 // clientCmd is the entry point for this binary
@@ -28,8 +28,7 @@ func prepareClientCommands() {
 	)
 
 	// set up the middleware
-	txcmd.Middleware = txcmd.Wrappers{
-	}
+	txcmd.Middleware = txcmd.Wrappers{}
 	txcmd.Middleware.Register(txcmd.RootCmd.PersistentFlags())
 
 	txcmd.RootCmd.AddCommand(
