@@ -137,9 +137,12 @@ describe("Governance Test", function() {
         let p = Utils.getProposal(proposalId)
         expect(p.Detail.amount).to.equal(amount)
         expect(p.Result).to.be.empty
-        let elapse = p.ExpireBlockHeight - p.BlockHeight
+
         // default to 7 days
-        expect(elapse).to.equal(Globals.Params.proposal_expire_period)
+        let now = Math.floor(new Date() / 1000)
+        let elapse = p.Expire - now
+        logger.debug(now, p.Expire, Globals.Params.proposal_expire_period)
+        expect(Math.abs(elapse - Globals.Params.proposal_expire_period)).lt(10)
 
         // balance after
         balance_new = Utils.getBalance()
@@ -202,9 +205,12 @@ describe("Governance Test", function() {
         let p = Utils.getProposal(proposalId)
         expect(p.Detail.amount).to.equal(amount)
         expect(p.Result).to.be.empty
-        let elapse = p.ExpireBlockHeight - p.BlockHeight
+
         // default to 7 days
-        expect(elapse).to.equal(Globals.Params.proposal_expire_period)
+        let now = Math.floor(new Date() / 1000)
+        let elapse = p.Expire - now
+        logger.debug(now, p.Expire, Globals.Params.proposal_expire_period)
+        expect(Math.abs(elapse - Globals.Params.proposal_expire_period)).lt(10)
 
         // balance after
         balance_new = Utils.getBalance()
@@ -247,8 +253,10 @@ describe("Governance Test", function() {
         balance_old = Utils.getBalance()
       })
       it("Verify that 500 CMTs are removed from account #1 and show up as frozen amount for this account. ", function() {
-        let amount = web3.toWei(500, "cmt"),
-          expire = 5
+        let amount = web3.toWei(500, "cmt")
+        let now = Math.floor(new Date() / 1000)
+        let expire = now + 5 * 10 // about 5 blocks
+
         tx_result = web3.cmt.governance.proposeRecoverFund({
           from: Globals.Accounts[0],
           transferFrom: Globals.Accounts[1],
@@ -264,8 +272,7 @@ describe("Governance Test", function() {
         let p = Utils.getProposal(proposalId)
         expect(p.Detail.amount).to.equal(amount)
         expect(p.Result).to.be.empty
-        let elapse = p.ExpireBlockHeight - p.BlockHeight
-        expect(elapse).to.equal(expire)
+        expect(p.Expire).to.equal(expire)
 
         // balance after
         balance_new = Utils.getBalance()
