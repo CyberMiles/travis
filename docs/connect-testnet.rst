@@ -40,7 +40,7 @@ Start the Node and Join Travis TestNet (for Docker)
 First change your name from default name "local"
 ::
 
-  $ vim ~/.tavis/config/config.toml
+  $ vim ~/.travis/config/config.toml
   # moniker = "<your_custom_name>"
   # here you can change your name
 
