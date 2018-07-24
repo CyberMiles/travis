@@ -66,7 +66,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 
-		if ctx.BlockTime() > txInner.Expire {
+		if ctx.BlockTime() > txInner.Expire && txInner.Expire > 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidExpire()
 		}
 
@@ -99,7 +99,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
-		if ctx.BlockTime() > txInner.Expire {
+		if ctx.BlockTime() > txInner.Expire && txInner.Expire > 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidExpire()
 		}
 
