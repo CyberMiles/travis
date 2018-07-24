@@ -36,14 +36,14 @@ type TxTransferFundPropose struct {
 	To           *common.Address   `json:"to"`
 	Amount       string            `json:"amount"`
 	Reason       string            `json:"reason"`
-	Expire       int64             `json:"expire"`
+	Expire       *int64            `json:"expire"`
 }
 
 func (tx TxTransferFundPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxTransferFundPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string, expire int64) sdk.Tx {
+func NewTxTransferFundPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string, expire *int64) sdk.Tx {
 	return TxTransferFundPropose{
 		proposer,
 		fromAddr,
@@ -61,14 +61,14 @@ type TxChangeParamPropose struct {
 	Name         string            `json:"name"`
 	Value        string            `json:"value"`
 	Reason       string            `json:"reason"`
-	Expire       int64             `json:"expire"`
+	Expire       *int64            `json:"expire"`
 }
 
 func (tx TxChangeParamPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxChangeParamPropose(proposer *common.Address, name string, value string, reason string, expire int64) sdk.Tx {
+func NewTxChangeParamPropose(proposer *common.Address, name string, value string, reason string, expire *int64) sdk.Tx {
 	return TxChangeParamPropose{
 		proposer,
 		name,

@@ -66,7 +66,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 
-		if ctx.BlockTime() > txInner.Expire && txInner.Expire > 0 {
+		if txInner.Expire != nil && ctx.BlockTime() > *txInner.Expire {
 			return sdk.NewCheck(0, ""), ErrInvalidExpire()
 		}
 
@@ -99,7 +99,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
-		if ctx.BlockTime() > txInner.Expire && txInner.Expire > 0 {
+		if txInner.Expire != nil && ctx.BlockTime() > *txInner.Expire {
 			return sdk.NewCheck(0, ""), ErrInvalidExpire()
 		}
 
@@ -164,8 +164,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
 		expire := ctx.BlockTime() + utils.GetParams().ProposalExpirePeriod
-		if txInner.Expire != 0 {
-			expire = txInner.Expire
+		if txInner.Expire != nil {
+			expire = *txInner.Expire
 		}
 		hashJson, _ :=	json.Marshal(hash)
 		pp := NewTransferFundProposal(
@@ -218,8 +218,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	case TxChangeParamPropose:
 		expire := ctx.BlockTime() + utils.GetParams().ProposalExpirePeriod
-		if txInner.Expire != 0 {
-			expire = txInner.Expire
+		if txInner.Expire != nil {
+			expire = *txInner.Expire
 		}
 		hashJson, _ := json.Marshal(hash)
 		cp := NewChangeParamProposal(
