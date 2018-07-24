@@ -59,10 +59,10 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 
 	// wait forever
 	cmn.TrapSignal(func() {
-		srvs.tmNode.Stop()
 		// TODO: find a better way
 		fmt.Println("sleep 5 seconds waiting for sqlite finish ...")
 		time.Sleep(5 * time.Second)
+		srvs.tmNode.Stop()
 	})
 
 	return nil
