@@ -128,6 +128,7 @@ Now, we can build and install Travis binary. It will populate additional configu
 
   cd $GOPATH/src/github.com/CyberMiles/travis
   make all
+  sudo rm -rf .travis
 
 If the system cannot find glide at the last step, make sure that you have ``$GOPATH/bin`` under the ``$PATH`` variable.
 
