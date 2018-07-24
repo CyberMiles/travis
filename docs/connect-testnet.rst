@@ -28,7 +28,7 @@ Checkout the Travis TestNet config from our `Github repo <https://github.com/Cyb
 ::
 
   $ cd
-  $ sudo rm -rf .travis
+  $ sudo rm -rf $HOME/.travis
   $ git clone https://github.com/CyberMiles/testnet.git
   $ cd testnet/travis
   $ git pull
