@@ -39,6 +39,7 @@ install:
 
 script:
   - make docker_image && ./test/integration/test.sh
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
 
 after_success:
   - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
@@ -68,5 +69,4 @@ deploy:
     tags: true
 
 after_script:
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
   - TAG=$TRAVIS_BRANCH make push_tag_image ;
