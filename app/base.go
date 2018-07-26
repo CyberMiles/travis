@@ -152,6 +152,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 
 // BeginBlock - ABCI
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	app.BlockEnd = false
 	app.blockTime = req.GetHeader().Time
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
@@ -220,6 +221,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	// handle the pending unstake requests
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
+	app.BlockEnd = true
 
 	return app.StoreApp.EndBlock(req)
 }

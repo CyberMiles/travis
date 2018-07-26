@@ -59,10 +59,15 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 
 	// wait forever
 	cmn.TrapSignal(func() {
-		// TODO: find a better way
-		fmt.Println("sleep 5 seconds waiting for sqlite finish ...")
-		time.Sleep(5 * time.Second)
-		srvs.tmNode.Stop()
+		for {
+			if storeApp.BlockEnd {
+				srvs.tmNode.Stop()
+				break
+			} else {
+				fmt.Println("Wait 500 milliseconds until the commit is completed")
+				time.Sleep(500 * time.Microsecond)
+			}
+		}
 	})
 
 	return nil

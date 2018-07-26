@@ -55,6 +55,8 @@ type StoreApp struct {
 	TotalUsedGasFee *big.Int
 
 	logger log.Logger
+
+	BlockEnd            bool
 }
 
 // NewStoreApp creates a data store to handle queries
