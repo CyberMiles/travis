@@ -21,6 +21,7 @@ func init() {
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
+		return
 		log.Fatal("Can't get the os info, for now we only support: \n", SUPPORT_OS)
 	}
 	rs := strings.Split(out.String(), "\n")
