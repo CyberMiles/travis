@@ -44,7 +44,11 @@ func init() {
 		for _, vs := range versions {
 			if strings.Index(vs, "^") == 0 {
 				vMj := vs[1:strings.Index(vs, ".")]
-				dvMj := GOOSVERS[0:strings.Index(GOOSVERS, ".")]
+				idx := strings.Index(GOOSVERS, ".")
+				dvMj := GOOSVERS
+				if idx != -1 {
+					dvMj = GOOSVERS[0:idx]
+				}
 				if vMj == dvMj {
 					return
 				}
