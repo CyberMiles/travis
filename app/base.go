@@ -221,7 +221,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	// handle the pending unstake requests
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
-	app.BlockEnd = true
 
 	return app.StoreApp.EndBlock(req)
 }
@@ -243,6 +242,8 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	res = app.StoreApp.Commit()
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
+
+	app.BlockEnd = true
 
 	return
 }
