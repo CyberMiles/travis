@@ -43,11 +43,13 @@ func init() {
 	if versions := SUPPORT_OS[GOOSDIST]; versions != nil {
 		for _, vs := range versions {
 			if strings.Index(vs, "^") == 0 {
-				vMj := vs[1:strings.Index(vs, ".")]
-				idx := strings.Index(GOOSVERS, ".")
+				vMj := vs[1:]
+				if idx := strings.Index(vMj, "."); idx != -1 {
+					vMj = vMj[0:idx]
+				}
 				dvMj := GOOSVERS
-				if idx != -1 {
-					dvMj = GOOSVERS[0:idx]
+				if idx := strings.Index(dvMj, "."); idx != -1 {
+					dvMj = dvMj[0:idx]
 				}
 				if vMj == dvMj {
 					return
