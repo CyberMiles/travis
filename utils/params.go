@@ -21,6 +21,7 @@ type Params struct {
 	UpdateCandidacy           uint64         `json:"update_candidacy" type:"uint"`
 	TransferFundProposal      uint64         `json:"transfer_fund_proposal" type:"uint"`
 	ChangeParamsProposal      uint64         `json:"change_params_proposal" type:"uint"`
+	DeployLibEniProposal      uint64         `json:"deploy_libeni_proposal" type:"uint"`
 	GasPrice                  uint64         `json:"gas_price" type:"uint"`
 	MinStakingAmount          int64          `json:"min_staking_amount" type:"uint"`
 	ValidatorsBlockAwardRatio int64          `json:"validators_block_award_ratio" type:"uint"`
@@ -42,6 +43,7 @@ func defaultParams() *Params {
 		UpdateCandidacy:           1e6,
 		TransferFundProposal:      2e6,
 		ChangeParamsProposal:      2e6,
+		DeployLibEniProposal:      2e6,
 		GasPrice:                  2e9,
 		MinStakingAmount:          1000,
 		ValidatorsBlockAwardRatio: 80,

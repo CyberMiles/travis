@@ -98,6 +98,30 @@ func NewChangeParamProposal(id string, proposer *common.Address, blockHeight uin
 	}
 }
 
+func NewDeployLibEniProposal(id string, proposer *common.Address, blockHeight uint64, name, version, fileurl, md5, reason, status string, expire int64) *Proposal {
+	now := utils.GetNow()
+	return &Proposal {
+		id,
+		DEPLOY_LIBENI_PROPOSAL,
+		proposer,
+		blockHeight,
+		expire,
+		now,
+		"",
+		"",
+		0,
+		"",
+		map[string]interface{}{
+			"name": name,
+			"version": version,
+			"fileurl": fileurl,
+			"md5": md5,
+			"reason": reason,
+			"status": status,
+		},
+	}
+}
+
 type Vote struct {
 	ProposalId     string
 	Voter          common.Address

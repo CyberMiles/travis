@@ -68,6 +68,18 @@ func SaveProposal(pp *Proposal) {
 			fmt.Println(err)
 			panic(err)
 		}
+	case DEPLOY_LIBENI_PROPOSAL:
+		stmt1, err := tx.Prepare("insert into governance_deploy_libeni_detail(proposal_id, name, version, fileurl, md5, reason, status) values(?, ?, ?, ?, ?, ?, ?)")
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
+
+		_, err = stmt1.Exec(pp.Id, pp.Detail["name"], pp.Detail["version"], pp.Detail["fileurl"], pp.Detail["md5"], pp.Detail["reason"], pp.Detail["status"])
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
 	}
 }
 
@@ -162,6 +174,41 @@ func GetProposalById(pid string) *Proposal {
 				"reason": reason,
 			},
 		}
+	case DEPLOY_LIBENI_PROPOSAL:
+		var name, version, fileurl, md5, reason, status string
+		stmt1, err := db.Prepare("select name, version, fileurl, md5, reason, status from governance_deploy_libeni_detail where proposal_id = ?")
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
+		err = stmt1.QueryRow(pid).Scan(&name, &version, &fileurl, &md5, &reason, &status)
+		switch {
+		case err == sql.ErrNoRows:
+			return nil
+		case err != nil:
+			panic(err)
+		}
+
+		return &Proposal {
+			pid,
+			ptype,
+			&prp,
+			blockHeight,
+			int64(expire),
+			createdAt,
+			result,
+			resultMsg,
+			resultBlockHeight,
+			resultAt,
+			map[string]interface{}{
+				"name": name,
+				"version": version,
+				"fileurl": fileurl,
+				"md5": md5,
+				"reason": reason,
+				"status": status,
+			},
+		}
 	}
 
 	return nil
@@ -199,6 +246,28 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 	}
 }
 
+func UpdateDeployLibEniStatus(pid, status string) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("update governance_deploy_libeni_detail set status = ? where proposal_id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(status, pid)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+}
+
 func GetProposals() (proposals []*Proposal) {
 	db := getDb()
 	defer db.Close()
@@ -209,6 +278,8 @@ func GetProposals() (proposals []*Proposal) {
 		then (select printf('%s-+-%s-+-%s-+-%s', from_address, to_address, amount, reason) from governance_transfer_fund_detail where proposal_id = p.id) 
 		when p.type = 'change_param'
 		then (select printf('%s-+-%s-+-%s', param_name, param_value, reason) from governance_change_param_detail where proposal_id = p.id)
+		when p.type = 'deploy_libeni'
+		then (select printf('%s-+-%s-+-%s-+-%s', name, version, fileurl, md5, reason, status) from governance_deploy_libeni_detail where proposal_id = p.id)
 		end as detail
 		from governance_proposal p`)
 	if err != nil {
@@ -264,6 +335,15 @@ func GetProposals() (proposals []*Proposal) {
 				"value": d[1],
 				"reason": d[2],
 			}
+		case DEPLOY_LIBENI_PROPOSAL:
+			pp.Detail = map[string]interface{} {
+				"name": d[0],
+				"version": d[1],
+				"fileurl": d[2],
+				"md5": d[3],
+				"reason": d[4],
+				"status": d[5],
+			}
 		}
 
 		proposals = append(proposals, pp)
@@ -281,7 +361,7 @@ func GetPendingProposals() (proposals []*Proposal) {
 	db := getDb()
 	defer db.Close()
 
-	rows, err := db.Query("select id, expire from governance_proposal where result = ''")
+	rows, err := db.Query("select id, expire from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and d.status != 'deployed'))")
 	if err != nil {
 		panic(err)
 	}
