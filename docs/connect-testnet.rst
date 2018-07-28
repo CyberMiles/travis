@@ -11,7 +11,7 @@ Docker
 
 Prerequisite
 ------------
-For Docker: It's assumed that you have `setup docker <https://docs.docker.com/engine/installation/>`_.
+Please `setup docker <https://docs.docker.com/engine/installation/>`_.
 
 Docker Image
 ------------
@@ -25,8 +25,7 @@ Note: Configuration and data will be stored at /travis directory in the containe
 
 Getting Travis TestNet Config
 -----------------------------
-
-Checkout the Travis TestNet config from our `Github repo <https://github.com/CyberMiles/testnet>`_. Place the config files in the $HOME/.travis directory:
+Checkout the Travis TestNet config from our `Github repo <https://github.com/CyberMiles/testnet>`_. Place the config files in the ``$HOME/.travis`` directory:
 
 ::
 
@@ -39,8 +38,8 @@ Checkout the Travis TestNet config from our `Github repo <https://github.com/Cyb
 
 Start the Node and Join Travis TestNet
 --------------------------------------
+First change your name from default name ``local``
 
-First change your name from default name "local"
 ::
 
   $ vim ~/.travis/config/config.toml
@@ -53,7 +52,7 @@ Run the docker Travis application:
 
   $ docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 -t ywonline/travis node start --home /travis
 
-Now your node is syncing with TestNet, the output will look like:
+Now your node is syncing with TestNet, the output will look like the following. Wait until it completely syncs.
 
 ::
 
@@ -62,9 +61,7 @@ Now your node is syncing with TestNet, the output will look like:
   I[07-20|03:13:26.443] Executed block                               module=state height=3364 validTxs=0 invalidTxs=0
   I[07-20|03:13:26.443] Updates to validators                        module=state updates="[{\"address\":\"\",\"pub_key\":\"VPsUJ1Eb73tYPFhNjo/8YIWY9oxbnXyW+BDQsTSci2s=\",\"power\":27065},{\"address\":\"\",\"pub_key\":\"8k17vhQf+IcrmxBiftyccq6AAHAwcVmEr8GCHdTUnv4=\",\"power\":27048},{\"address\":\"\",\"pub_key\":\"PoDmSVZ/qUOEuiM38CtZvm2XuNmExR0JkXMM9P9UhLU=\",\"power\":27048},{\"address\":\"\",\"pub_key\":\"2Tl5oI35/+tljgDKzypt44rD1vjVHaWJFTBdVLsmcL4=\",\"power\":27048}]"
 
-To access the TestNet type the following in a seperte terminal console:
-
-first get your IP address then use your IP address to connect to the TestNet
+To access the TestNet type the following in a seperte terminal console to get your IP address then use your IP address to connect to the TestNet.
 
 ::
 
@@ -72,18 +69,18 @@ first get your IP address then use your IP address to connect to the TestNet
   172.17.0.2:8545
   $ docker run --rm -it ywonline/travis attach http://172.17.0.2:8545
 
+Now, you should see the web3-cmt JavaScript console, you can now jump to the "Test transactions" section to send test transactions.
 
 Build from source
 =================
 
 Prerequisite
 ------------
-For Travis built from source: It's assumed that you have `installed Travis via source builds <http://travis.readthedocs.io/en/latest/getting-started.html#build-from-source>`_. (Stop before you connect to a local node)
+Please `install Travis via source builds <http://travis.readthedocs.io/en/latest/getting-started.html#build-from-source>`_. (STOP before you connect to a local node)
 
 Getting Travis TestNet Config
 -----------------------------
-
-Checkout the Travis TestNet config from our `Github repo <https://github.com/CyberMiles/testnet>`_. Place the config files in the $HOME/.travis directory:
+Checkout the Travis TestNet config from our `Github repo <https://github.com/CyberMiles/testnet>`_. Place the config files in the ``$HOME/.travis`` directory:
 
 ::
 
@@ -96,24 +93,33 @@ Checkout the Travis TestNet config from our `Github repo <https://github.com/Cyb
 
 Start the Node and Join Travis TestNet
 --------------------------------------
-
 Run the Travis application:
 
 ::
 
   $ travis node start --home ~/.travis
 
-To access the TestNet type the following in a seperte terminal console:
+Now your node is syncing with TestNet, the output will look like the following. Wait until it completely syncs.
+
+::
+
+  INFO [07-20|03:13:26.229] Imported new chain segment               blocks=1 txs=0 mgas=0.000 elapsed=1.002ms   mgasps=0.000    number=3363 hash=4884c0…212e75 cache=2.22mB
+  I[07-20|03:13:26.241] Committed state                              module=state height=3363 txs=0 appHash=3E0C01B22217A46676897FCF2B91DB7398B34262
+  I[07-20|03:13:26.443] Executed block                               module=state height=3364 validTxs=0 invalidTxs=0
+  I[07-20|03:13:26.443] Updates to validators                        module=state updates="[{\"address\":\"\",\"pub_key\":\"VPsUJ1Eb73tYPFhNjo/8YIWY9oxbnXyW+BDQsTSci2s=\",\"power\":27065},{\"address\":\"\",\"pub_key\":\"8k17vhQf+IcrmxBiftyccq6AAHAwcVmEr8GCHdTUnv4=\",\"power\":27048},{\"address\":\"\",\"pub_key\":\"PoDmSVZ/qUOEuiM38CtZvm2XuNmExR0JkXMM9P9UhLU=\",\"power\":27048},{\"address\":\"\",\"pub_key\":\"2Tl5oI35/+tljgDKzypt44rD1vjVHaWJFTBdVLsmcL4=\",\"power\":27048}]"
+
+To access the TestNet, type the following in a seperte terminal console:
 
 ::
 
   $ travis attach http://localhost:8545
 
+You should now the see the web3-cmt JavaScript console and can now test some transactions.
 
 Test transactions
 =================
 
-
+In this section, we will use the ``travis`` client's web3-cmt JavaScript console to send some transactions and verify that the system is set up properly.
 
 Create and fund a test account
 -------------------------------
@@ -164,7 +170,7 @@ After 10 seconds, you can check the balance of the receiving account as follows.
 Fee free transactions
 ---------------------
 
-On CyberMiles blockchain, we have made most transactions (except for heavy users or spammers) fee-free. You can try it like this in GETH console.
+On CyberMiles blockchain, we have made most transactions (except for heavy users or spammers) fee-free. You can try it like this in ``travis`` client console.
 
 ::
 
