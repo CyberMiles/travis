@@ -1,17 +1,20 @@
-=====
-A Network Node (for Docker and Travis built from source)
-=====
+======================
+Deploy a Testnet Node
+======================
 
-In this document, we will discuss how to connect to the CyberMiles TestNet and the production MainNet. 
+In this document, we will discuss how to connect to the CyberMiles Travis Testnet. We will cover both Docker and "build from source" scenarios. If you are new to CyberMiles, deploying a Docker node is probably easier.
+
+While we highly recommend you to run your own Travis node, you can also ask for direct access to one of the nodes maintained by the CyberMiles Foundation. Send an email to travis@cybermiles.io to apply for access credentials. You still need the ``travis`` client either from Docker or source to access the node.
+
+Docker
+======
 
 Prerequisite
-=====
+------------
 For Docker: It's assumed that you have `setup docker <https://docs.docker.com/engine/installation/>`_.
 
-For Travis built from source: It's assumed that you have `installed Travis via source builds <http://travis.readthedocs.io/en/latest/getting-started.html#use-docker>`_. (Stop before you connect to a local node)
-
-Docker Image (for Docker)
-=====
+Docker Image
+------------
 Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/ywonline/travis/tags/>`_. TestNet environment is using the `'lastest' <https://github.com/cybermiles/travis/tree/staging>`_ branch which can be pulled automatically from Travis:
 
 ::
@@ -20,8 +23,8 @@ Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/ywonl
 
 Note: Configuration and data will be stored at /travis directory in the container. The directory will also be exposed as a volume. The ports 8545, 26656 and 26657 will be exposed for connection.
 
-Getting Travis TestNet Config (for both)
-=====
+Getting Travis TestNet Config
+-----------------------------
 
 Checkout the Travis TestNet config from our `Github repo <https://github.com/CyberMiles/testnet>`_. Place the config files in the $HOME/.travis directory:
 
@@ -34,8 +37,8 @@ Checkout the Travis TestNet config from our `Github repo <https://github.com/Cyb
   $ git pull
   $ cp -r init $HOME/.travis
 
-Start the Node and Join Travis TestNet (for Docker)
-=====
+Start the Node and Join Travis TestNet
+--------------------------------------
 
 First change your name from default name "local"
 ::
@@ -69,8 +72,30 @@ first get your IP address then use your IP address to connect to the TestNet
   172.17.0.2:8545
   $ docker run --rm -it ywonline/travis attach http://172.17.0.2:8545
 
-Start the Node and Join Travis TestNet (for Travis built from source)
-=====
+
+Build from source
+=================
+
+Prerequisite
+------------
+For Travis built from source: It's assumed that you have `installed Travis via source builds <http://travis.readthedocs.io/en/latest/getting-started.html#build-from-source>`_. (Stop before you connect to a local node)
+
+Getting Travis TestNet Config
+-----------------------------
+
+Checkout the Travis TestNet config from our `Github repo <https://github.com/CyberMiles/testnet>`_. Place the config files in the $HOME/.travis directory:
+
+::
+
+  $ cd
+  $ sudo rm -rf $HOME/.travis
+  $ git clone https://github.com/CyberMiles/testnet.git
+  $ cd testnet/travis
+  $ git pull
+  $ cp -r init $HOME/.travis
+
+Start the Node and Join Travis TestNet
+--------------------------------------
 
 Run the Travis application:
 
@@ -84,8 +109,72 @@ To access the TestNet type the following in a seperte terminal console:
 
   $ travis attach http://localhost:8545
 
-=====
-Connect to MainNet
-=====
 
-This section will be completed when the mainnet launches in Q3 2018.
+Test transactions
+=================
+
+
+
+Create and fund a test account
+-------------------------------
+
+Once you attach the ``travis`` to the node as above, you can create a new account on the TestNet.
+
+::
+
+  Welcome to the Geth JavaScript console!
+  > personal.newAccount()
+  ...
+
+Now you have created TWO accounts ``0x1234FROM`` and ``0x1234DEST`` on the Travis TestNet. It is time to get some test CMTs. Please go visit the website below, and ask for 1000 testnet CMTs for account ``0x1234FROM``. We will also send 1000 TEST tokens, issued by the TEST smart contract, to the account. 
+
+http://travis-faucet.cybermiles.io
+ 
+
+Test transactions
+-----------------
+
+You can test transactions between your two accounts.
+
+::
+
+  > personal.unlockAccount("0x1234FROM","password")
+  true
+  ...
+  > eth.sendTransaction({from:"0x1234FROM", to:"0x1234DEST",value:1000})
+  ...
+  >eth.getBalance("0x1234DEST")
+  ...
+  
+You can also test smart contract transactions for the TEST token as below.
+
+::
+
+  > abi = [{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"INITIAL_SUPPLY","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"unpause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"paused","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_subtractedValue","type":"uint256"}],"name":"decreaseApproval","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"pause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_addedValue","type":"uint256"}],"name":"increaseApproval","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[],"name":"Pause","type":"event"},{"anonymous":false,"inputs":[],"name":"Unpause","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"previousOwner","type":"address"},{"indexed":true,"name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}]
+  > tokenContract = web3.eth.contract(abi)
+  > tokenInstance = tokenContract.at("0xb6b29ef90120bec597939e0eda6b8a9164f75deb")
+  > tokenInstance.transfer.sendTransaction("0x1234DEST", 1000, {from: "0x1234FROM"})
+
+After 10 seconds, you can check the balance of the receiving account as follows.
+
+::
+
+  > tokenInstance.balanceOf.call("0x1234DEST")
+
+Fee free transactions
+---------------------
+
+On CyberMiles blockchain, we have made most transactions (except for heavy users or spammers) fee-free. You can try it like this in GETH console.
+
+::
+
+  > eth.sendTransaction({from:"0x1234FROM", to:"0x1234DEST",value:1000,gasPrice:0})
+  ...
+
+To try a fee-free smart contract-based token transaction, use the following in the ``travis`` client console.
+
+::
+
+  > tokenInstance.transfer.sendTransaction("0x1234DEST", 1000, {from: "0x1234FROM", gasPrice: 0})
+
+
