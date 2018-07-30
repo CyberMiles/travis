@@ -99,11 +99,20 @@ func GetBackupValidators() (candidates Candidates) {
 }
 
 func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
 	clause := composeQueryClause(cond)
-	rows, err := db.Query("select pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
+	rows, err := tx.Query("select pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
 	if err != nil {
 		panic(err)
 	}
@@ -349,9 +358,18 @@ func RemoveDelegator(delegator *Delegator) {
 }
 
 func GetDelegator(address string) *Delegator {
-	db := getDb()
-	defer db.Close()
-	stmt, err := db.Prepare("select address, created_at from delegators where address = ?")
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
+	stmt, err := tx.Prepare("select address, created_at from delegators where address = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -470,11 +488,20 @@ func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*
 }
 
 func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegation) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
 	clause := composeQueryClause(cond)
-	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations" + clause)
+	rows, err := tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations" + clause)
 	if err != nil {
 		panic(err)
 	}

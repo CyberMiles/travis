@@ -89,10 +89,19 @@ func SaveProposal(pp *Proposal) {
 }
 
 func GetProposalById(pid string) *Proposal {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	stmt, err := db.Prepare("select type, proposer, block_height, expire, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
+	stmt, err := tx.Prepare("select type, proposer, block_height, expire, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -113,7 +122,7 @@ func GetProposalById(pid string) *Proposal {
 	switch ptype {
 	case TRANSFER_FUND_PROPOSAL:
 		var fromAddr, toAddr, amount, reason string 
-		stmt1, err := db.Prepare("select from_address, to_address, amount, reason from governance_transfer_fund_detail where proposal_id = ?")
+		stmt1, err := tx.Prepare("select from_address, to_address, amount, reason from governance_transfer_fund_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
@@ -149,7 +158,7 @@ func GetProposalById(pid string) *Proposal {
 		}
 	case CHANGE_PARAM_PROPOSAL:
 		var name, value, reason string
-		stmt1, err := db.Prepare("select param_name, param_value, reason from governance_change_param_detail where proposal_id = ?")
+		stmt1, err := tx.Prepare("select param_name, param_value, reason from governance_change_param_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
@@ -221,10 +230,19 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 }
 
 func GetProposals() (proposals []*Proposal) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	rows, err := db.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
+	rows, err := tx.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
 		case
 		when p.type = 'transfer_fund'
 		then (select printf('%s-+-%s-+-%s-+-%s', from_address, to_address, amount, reason) from governance_transfer_fund_detail where proposal_id = p.id) 
@@ -299,10 +317,19 @@ func GetProposals() (proposals []*Proposal) {
 }
 
 func GetPendingProposals() (proposals []*Proposal) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	rows, err := db.Query("select id, expire from governance_proposal where result = ''")
+	rows, err := tx.Query("select id, expire from governance_proposal where result = ''")
 	if err != nil {
 		panic(err)
 	}
@@ -387,10 +414,19 @@ func UpdateVote(vote *Vote) {
 }
 
 func GetVoteByPidAndVoter(pid string, voter string) *Vote {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	stmt, err := db.Prepare("select answer, block_height, hash, created_at from governance_vote where proposal_id = ? and voter = ?")
+	stmt, err := tx.Prepare("select answer, block_height, hash, created_at from governance_vote where proposal_id = ? and voter = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -416,10 +452,19 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 }
 
 func GetVotesByPid(pid string) (votes []*Vote) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	stmt, err := db.Prepare("select voter, answer, block_height, hash, created_at from governance_vote where proposal_id = ?")
+	stmt, err := tx.Prepare("select voter, answer, block_height, hash, created_at from governance_vote where proposal_id = ?")
 	if err != nil {
 		panic(err)
 	}
