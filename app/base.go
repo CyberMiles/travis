@@ -20,6 +20,7 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
+	"database/sql"
 )
 
 // BaseApp - The ABCI application
@@ -32,6 +33,8 @@ type BaseApp struct {
 	ByzantineValidators []abci.Evidence
 	PresentValidators   stake.Validators
 	blockTime           int64
+	db *sql.DB
+	deliverSqlTx *sql.Tx
 }
 
 const (
@@ -163,12 +166,14 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		// TODO: wrapper error
 		panic(err)
 	}
-	globalTx, err := db.Begin()
+	app.db = db
+	deliverSqlTx, err := app.db.Begin()
 	if err != nil {
 		// TODO: wrapper error
 		panic(err)
 	}
-	stake.SetDeliverSqlTx(globalTx)
+	app.deliverSqlTx = deliverSqlTx
+	stake.SetDeliverSqlTx(deliverSqlTx)
 	// init end
 
 	// handle the absent validators
@@ -242,7 +247,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	ethAppCommit := app.EthApp.Commit()
-
+	if len(ethAppCommit.Data) == 0 {
+		return abci.ResponseCommit{}
+	}
 	if dirty := utils.CleanParams(); dirty {
 		state := app.Append()
 		state.Set(utils.ParamKey, utils.UnloadParams())
@@ -261,6 +268,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 			panic(err)
 		}
 		stake.ResetDeliverSqlTx()
+		app.db.Close()
 	}
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
