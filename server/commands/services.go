@@ -16,8 +16,8 @@ import (
 	abcitypes "github.com/tendermint/tendermint/abci/types"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/node"
-	"github.com/tendermint/tendermint/proxy"
 	pv "github.com/tendermint/tendermint/privval"
+	"github.com/tendermint/tendermint/proxy"
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/app"
@@ -28,6 +28,7 @@ import (
 type Services struct {
 	backend *api.Backend
 	tmNode  *node.Node
+	emNode  *ethereum.Node
 }
 
 func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
@@ -70,7 +71,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 	}
 	backend.SetTMNode(tmNode)
 
-	return &Services{backend, tmNode}, nil
+	return &Services{backend, tmNode, emNode}, nil
 }
 
 // startNode copies the logic from go-ethereum

@@ -59,6 +59,7 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 	// wait forever
 	cmn.TrapSignal(func() {
 		srvs.tmNode.Stop()
+		srvs.emNode.Stop()
 		//for {
 		//	if storeApp.BlockEnd {
 		//		srvs.tmNode.Stop()
