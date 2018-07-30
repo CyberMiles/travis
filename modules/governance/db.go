@@ -11,6 +11,19 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+var (
+	deliverSqlTx *sql.Tx
+)
+
+func SetDeliverSqlTx(tx *sql.Tx) {
+	deliverSqlTx = tx
+}
+
+
+func ResetDeliverSqlTx() {
+	deliverSqlTx = nil
+}
+
 func getDb() *sql.DB {
 	rootDir := viper.GetString(cli.HomeFlag)
 	dbPath := path.Join(rootDir, "data", "travis.db")
@@ -23,13 +36,17 @@ func getDb() *sql.DB {
 }
 
 func SaveProposal(pp *Proposal) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into governance_proposal(id, type, proposer, block_height, expire, hash, created_at) values(?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
@@ -173,13 +190,17 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 		return
 	}
 
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("update governance_proposal set result = ?, result_msg = ?, result_block_height = ?, result_at = ?, hash = ? where id = ?")
 	if err != nil {
@@ -314,13 +335,17 @@ func GetPendingProposals() (proposals []*Proposal) {
 
 
 func SaveVote(vote *Vote) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into governance_vote(proposal_id, voter, block_height, answer, hash, created_at) values(?, ?, ?, ?, ?, ?)")
 	if err != nil {
@@ -336,13 +361,17 @@ func SaveVote(vote *Vote) {
 }
 
 func UpdateVote(vote *Vote) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("update governance_vote set answer = ?, hash = ? where proposal_id = ? and voter = ?")
 	if err != nil {

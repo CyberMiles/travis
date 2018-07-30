@@ -174,6 +174,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 	app.deliverSqlTx = deliverSqlTx
 	stake.SetDeliverSqlTx(deliverSqlTx)
+	governance.SetDeliverSqlTx(deliverSqlTx)
 	// init end
 
 	// handle the absent validators
@@ -261,13 +262,14 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.TotalUsedGasFee = big.NewInt(0)
 
 	res = app.StoreApp.Commit()
-	if sqlTx := stake.GetDeliverSqlTx(); sqlTx != nil {
-		err := sqlTx.Commit()
+	if app.deliverSqlTx != nil {
+		err := app.deliverSqlTx.Commit()
 		if err != nil {
 			// TODO: wrapper error
 			panic(err)
 		}
 		stake.ResetDeliverSqlTx()
+		governance.ResetDeliverSqlTx()
 		app.db.Close()
 	}
 	dbHash := app.StoreApp.GetDbHash()

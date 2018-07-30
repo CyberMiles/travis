@@ -15,14 +15,9 @@ var (
 	deliverSqlTx *sql.Tx
 )
 
-func GetDeliverSqlTx() *sql.Tx  {
-	return deliverSqlTx
-}
-
 func SetDeliverSqlTx(tx *sql.Tx) {
 	deliverSqlTx = tx
 }
-
 
 func ResetDeliverSqlTx() {
 	deliverSqlTx = nil
