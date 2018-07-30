@@ -15,7 +15,6 @@ import (
 
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/version"
-	"time"
 )
 
 // GetStartCmd - initialize a command as the start command with tick
@@ -59,15 +58,16 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 
 	// wait forever
 	cmn.TrapSignal(func() {
-		for {
-			if storeApp.BlockEnd {
-				srvs.tmNode.Stop()
-				break
-			} else {
-				fmt.Println("Wait 500 milliseconds until the commit is completed")
-				time.Sleep(500 * time.Microsecond)
-			}
-		}
+		srvs.tmNode.Stop()
+		//for {
+		//	if storeApp.BlockEnd {
+		//		srvs.tmNode.Stop()
+		//		break
+		//	} else {
+		//		fmt.Println("Wait 500 milliseconds until the commit is completed")
+		//		time.Sleep(500 * time.Microsecond)
+		//	}
+		//}
 	})
 
 	return nil

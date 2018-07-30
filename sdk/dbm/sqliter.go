@@ -67,3 +67,4 @@ func InitSqliteDB(dbPath string)  error {
 func (sqliter *Sqliter) ExecBatch(query string, args ...interface{}) (error) {
 	return nil
 }
+

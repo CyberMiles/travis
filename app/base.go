@@ -157,6 +157,20 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
 
+	// init deliver sql tx for statke
+	db, err := app.sqliter.GetDB()
+	if err != nil {
+		// TODO: wrapper error
+		panic(err)
+	}
+	globalTx, err := db.Begin()
+	if err != nil {
+		// TODO: wrapper error
+		panic(err)
+	}
+	stake.SetDeliverSqlTx(globalTx)
+	// init end
+
 	// handle the absent validators
 	for _, sv := range req.Validators {
 		var pk crypto.PubKeyEd25519
@@ -240,6 +254,14 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.TotalUsedGasFee = big.NewInt(0)
 
 	res = app.StoreApp.Commit()
+	if sqlTx := stake.GetDeliverSqlTx(); sqlTx != nil {
+		err := sqlTx.Commit()
+		if err != nil {
+			// TODO: wrapper error
+			panic(err)
+		}
+		stake.ResetDeliverSqlTx()
+	}
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
 
@@ -289,8 +311,8 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 	hasher.Write(buf.Bytes())
 	hash := hasher.Sum(nil)
 
-	if store != nil {
-		// TODO: save to DB
-	}
+	//if store != nil {
+	//	// TODO: save to DB
+	//}
 	return hash
 }
