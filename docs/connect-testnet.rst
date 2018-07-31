@@ -66,7 +66,7 @@ To access the TestNet type the following in a seperte terminal console to get yo
 ::
 
   $ docker inspect -f '{{ .NetworkSettings.IPAddress }}' travis
-  172.17.0.2:8545
+  172.17.0.2
   $ docker run --rm -it ywonline/travis attach http://172.17.0.2:8545
 
 Now, you should see the web3-cmt JavaScript console, you can now jump to the "Test transactions" section to send test transactions.
@@ -108,7 +108,7 @@ Now your node is syncing with TestNet, the output will look like the following. 
   I[07-20|03:13:26.443] Executed block                               module=state height=3364 validTxs=0 invalidTxs=0
   I[07-20|03:13:26.443] Updates to validators                        module=state updates="[{\"address\":\"\",\"pub_key\":\"VPsUJ1Eb73tYPFhNjo/8YIWY9oxbnXyW+BDQsTSci2s=\",\"power\":27065},{\"address\":\"\",\"pub_key\":\"8k17vhQf+IcrmxBiftyccq6AAHAwcVmEr8GCHdTUnv4=\",\"power\":27048},{\"address\":\"\",\"pub_key\":\"PoDmSVZ/qUOEuiM38CtZvm2XuNmExR0JkXMM9P9UhLU=\",\"power\":27048},{\"address\":\"\",\"pub_key\":\"2Tl5oI35/+tljgDKzypt44rD1vjVHaWJFTBdVLsmcL4=\",\"power\":27048}]"
 
-To access the TestNet, type the following in a seperte terminal console:
+To access the TestNet, type the following in a seperte terminal console (make sure that the seperate console also has travis environment):
 
 ::
 
