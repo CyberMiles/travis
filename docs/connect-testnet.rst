@@ -147,9 +147,9 @@ You can test transactions between your two accounts.
   > personal.unlockAccount("0x1234FROM","password")
   true
   ...
-  > eth.sendTransaction({from:"0x1234FROM", to:"0x1234DEST",value:1000})
+  > cmt.sendTransaction({from:"0x1234FROM", to:"0x1234DEST",value:1000})
   ...
-  >eth.getBalance("0x1234DEST")
+  > cmt.getBalance("0x1234DEST")
   ...
   
 You can also test smart contract transactions for the TEST token as below.
