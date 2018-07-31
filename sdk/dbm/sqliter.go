@@ -8,6 +8,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"database/sql"
 	"strings"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // SQLite helper functions
@@ -51,7 +52,10 @@ func (s *sqliter) GetDB() (*sql.DB, error) {
 
 func (s *sqliter) CloseDB() {
 	if s.db != nil {
-		s.db.Close()
+		if err := s.db.Close(); err != nil {
+			log.Warn("Failed to close sqlite db: " + s.dbPath)
+		}
+		log.Info("Sqlite db closed sucessfully！")
 		s.db = nil
 	}
 }

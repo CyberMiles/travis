@@ -15,6 +15,7 @@ import (
 
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/version"
+	"github.com/CyberMiles/travis/sdk/dbm"
 )
 
 // GetStartCmd - initialize a command as the start command with tick
@@ -34,6 +35,10 @@ const EyesCacheSize = 10000
 func startCmd() func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		rootDir := viper.GetString(cli.HomeFlag)
+
+		if err := dbm.InitSqliter(path.Join(rootDir, "data", "travis.db")); err != nil {
+			return err
+		}
 
 		cmdName := cmd.Root().Name()
 		appName := fmt.Sprintf("%s v%v", cmdName, version.Version)
@@ -60,6 +65,7 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 	cmn.TrapSignal(func() {
 		srvs.tmNode.Stop()
 		srvs.emNode.Stop()
+		dbm.Sqliter.CloseDB()
 		//for {
 		//	if storeApp.BlockEnd {
 		//		srvs.tmNode.Stop()

@@ -66,11 +66,6 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 		return nil, err
 	}
 
-	rootDir := viper.GetString(cli.HomeFlag)
-	if err := dbm.InitSqliter(path.Join(rootDir, "data", "travis.db")); err != nil {
-		return nil, err
-	}
-
 	app := &StoreApp{
 		Name:            appName,
 		state:           state,
