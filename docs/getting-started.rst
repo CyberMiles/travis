@@ -99,7 +99,7 @@ The easiest way to get GO 1.10 is through the GVM. Below are the commands on a L
   $ gvm version
   output should look like: Go Version Manager v1.0.22 installed at /home/myuser/.gvm
   $ gvm install go1.10.3
-  $ gvm use go1.10.3
+  $ gvm use go1.10.3 --default
 
 
 Build
@@ -128,7 +128,7 @@ Now, we can build and install Travis binary. It will populate additional configu
 
   cd $GOPATH/src/github.com/CyberMiles/travis
   make all
-  sudo rm -rf .travis
+  sudo rm -rf ~/.travis
 
 If the system cannot find glide at the last step, make sure that you have ``$GOPATH/bin`` under the ``$PATH`` variable.
 
