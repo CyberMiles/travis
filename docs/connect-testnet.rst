@@ -119,7 +119,7 @@ You should now the see the web3-cmt JavaScript console and can now test some tra
 Test transactions
 =================
 
-In this section, we will use the ``travis`` client's web3-cmt JavaScript console to send some transactions and verify that the system is set up properly.
+In this section, we will use the ``travis`` client's web3-cmt JavaScript console to send some transactions and verify that the system is set up properly. You can't test transactions untill you are completely in sync with the testnet. It might take hours to sync.
 
 Create and fund a test account
 -------------------------------
