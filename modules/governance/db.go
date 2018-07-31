@@ -11,6 +11,19 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+var (
+	deliverSqlTx *sql.Tx
+)
+
+func SetDeliverSqlTx(tx *sql.Tx) {
+	deliverSqlTx = tx
+}
+
+
+func ResetDeliverSqlTx() {
+	deliverSqlTx = nil
+}
+
 func getDb() *sql.DB {
 	rootDir := viper.GetString(cli.HomeFlag)
 	dbPath := path.Join(rootDir, "data", "travis.db")
@@ -23,13 +36,17 @@ func getDb() *sql.DB {
 }
 
 func SaveProposal(pp *Proposal) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into governance_proposal(id, type, proposer, block_height, expire, hash, created_at) values(?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
@@ -84,10 +101,19 @@ func SaveProposal(pp *Proposal) {
 }
 
 func GetProposalById(pid string) *Proposal {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	stmt, err := db.Prepare("select type, proposer, block_height, expire, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
+	stmt, err := tx.Prepare("select type, proposer, block_height, expire, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -108,7 +134,7 @@ func GetProposalById(pid string) *Proposal {
 	switch ptype {
 	case TRANSFER_FUND_PROPOSAL:
 		var fromAddr, toAddr, amount, reason string 
-		stmt1, err := db.Prepare("select from_address, to_address, amount, reason from governance_transfer_fund_detail where proposal_id = ?")
+		stmt1, err := tx.Prepare("select from_address, to_address, amount, reason from governance_transfer_fund_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
@@ -144,7 +170,7 @@ func GetProposalById(pid string) *Proposal {
 		}
 	case CHANGE_PARAM_PROPOSAL:
 		var name, value, reason string
-		stmt1, err := db.Prepare("select param_name, param_value, reason from governance_change_param_detail where proposal_id = ?")
+		stmt1, err := tx.Prepare("select param_name, param_value, reason from governance_change_param_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
@@ -176,7 +202,7 @@ func GetProposalById(pid string) *Proposal {
 		}
 	case DEPLOY_LIBENI_PROPOSAL:
 		var name, version, fileurl, md5, reason, status string
-		stmt1, err := db.Prepare("select name, version, fileurl, md5, reason, status from governance_deploy_libeni_detail where proposal_id = ?")
+		stmt1, err := tx.Prepare("select name, version, fileurl, md5, reason, status from governance_deploy_libeni_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
@@ -220,13 +246,17 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 		return
 	}
 
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("update governance_proposal set result = ?, result_msg = ?, result_block_height = ?, result_at = ?, hash = ? where id = ?")
 	if err != nil {
@@ -247,13 +277,17 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 }
 
 func UpdateDeployLibEniStatus(pid, status string) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("update governance_deploy_libeni_detail set status = ? where proposal_id = ?")
 	if err != nil {
@@ -269,10 +303,19 @@ func UpdateDeployLibEniStatus(pid, status string) {
 }
 
 func GetProposals() (proposals []*Proposal) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	rows, err := db.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
+	rows, err := tx.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
 		case
 		when p.type = 'transfer_fund'
 		then (select printf('%s-+-%s-+-%s-+-%s', from_address, to_address, amount, reason) from governance_transfer_fund_detail where proposal_id = p.id) 
@@ -358,10 +401,19 @@ func GetProposals() (proposals []*Proposal) {
 }
 
 func GetPendingProposals() (proposals []*Proposal) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	rows, err := db.Query("select id, expire from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and d.status != 'deployed'))")
+	rows, err := tx.Query("select id, expire from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and d.status != 'deployed'))")
 	if err != nil {
 		panic(err)
 	}
@@ -394,13 +446,17 @@ func GetPendingProposals() (proposals []*Proposal) {
 
 
 func SaveVote(vote *Vote) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into governance_vote(proposal_id, voter, block_height, answer, hash, created_at) values(?, ?, ?, ?, ?, ?)")
 	if err != nil {
@@ -416,13 +472,17 @@ func SaveVote(vote *Vote) {
 }
 
 func UpdateVote(vote *Vote) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("update governance_vote set answer = ?, hash = ? where proposal_id = ? and voter = ?")
 	if err != nil {
@@ -438,10 +498,19 @@ func UpdateVote(vote *Vote) {
 }
 
 func GetVoteByPidAndVoter(pid string, voter string) *Vote {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	stmt, err := db.Prepare("select answer, block_height, hash, created_at from governance_vote where proposal_id = ? and voter = ?")
+	stmt, err := tx.Prepare("select answer, block_height, hash, created_at from governance_vote where proposal_id = ? and voter = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -467,10 +536,19 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 }
 
 func GetVotesByPid(pid string) (votes []*Vote) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
-	stmt, err := db.Prepare("select voter, answer, block_height, hash, created_at from governance_vote where proposal_id = ?")
+	stmt, err := tx.Prepare("select voter, answer, block_height, hash, created_at from governance_vote where proposal_id = ?")
 	if err != nil {
 		panic(err)
 	}

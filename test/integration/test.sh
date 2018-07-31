@@ -19,7 +19,7 @@ curl http://localhost:26657/status
 # web3-cmt
 git clone https://github.com/CyberMiles/web3-cmt.js ~/web3-cmt.js
 cd ~/web3-cmt.js
-git checkout dev
+git checkout master
 yarn install
 yarn link
 

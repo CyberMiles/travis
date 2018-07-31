@@ -18,7 +18,7 @@ ifeq ($(UNAME), Linux)
 	CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go install ./cmd/travis
 endif
 ifeq ($(UNAME), Darwin)
-	go install ./cmd/travis
+	CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go install ./cmd/travis
 endif
 	@echo "\n\nTravis, the TestNet for CyberMiles (CMT) has successfully installed!"
 
@@ -32,7 +32,7 @@ ifeq ($(UNAME), Linux)
 	CGO_LDFLAGS="$(CGO_LDFLAGS)" CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go build -o build/travis ./cmd/travis
 endif
 ifeq ($(UNAME), Darwin)
-	go build -o build/travis ./cmd/travis
+	CGO_LDFLAGS_ALLOW="$(CGO_LDFLAGS_ALLOW)" go build -o build/travis ./cmd/travis
 endif
 
 NAME := ywonline/travis

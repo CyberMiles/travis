@@ -20,6 +20,7 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
+	"database/sql"
 )
 
 // BaseApp - The ABCI application
@@ -32,6 +33,8 @@ type BaseApp struct {
 	ByzantineValidators []abci.Evidence
 	PresentValidators   stake.Validators
 	blockTime           int64
+	db *sql.DB
+	deliverSqlTx *sql.Tx
 }
 
 const (
@@ -157,6 +160,23 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
 
+	// init deliver sql tx for statke
+	db, err := app.sqliter.GetDB()
+	if err != nil {
+		// TODO: wrapper error
+		panic(err)
+	}
+	app.db = db
+	deliverSqlTx, err := app.db.Begin()
+	if err != nil {
+		// TODO: wrapper error
+		panic(err)
+	}
+	app.deliverSqlTx = deliverSqlTx
+	stake.SetDeliverSqlTx(deliverSqlTx)
+	governance.SetDeliverSqlTx(deliverSqlTx)
+	// init end
+
 	// handle the absent validators
 	for _, sv := range req.Validators {
 		var pk crypto.PubKeyEd25519
@@ -228,7 +248,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	ethAppCommit := app.EthApp.Commit()
-
+	if len(ethAppCommit.Data) == 0 {
+		return abci.ResponseCommit{}
+	}
 	if dirty := utils.CleanParams(); dirty {
 		state := app.Append()
 		state.Set(utils.ParamKey, utils.UnloadParams())
@@ -240,6 +262,16 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.TotalUsedGasFee = big.NewInt(0)
 
 	res = app.StoreApp.Commit()
+	if app.deliverSqlTx != nil {
+		err := app.deliverSqlTx.Commit()
+		if err != nil {
+			// TODO: wrapper error
+			panic(err)
+		}
+		stake.ResetDeliverSqlTx()
+		governance.ResetDeliverSqlTx()
+		app.db.Close()
+	}
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
 
@@ -289,8 +321,8 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 	hasher.Write(buf.Bytes())
 	hash := hasher.Sum(nil)
 
-	if store != nil {
-		// TODO: save to DB
-	}
+	//if store != nil {
+	//	// TODO: save to DB
+	//}
 	return hash
 }

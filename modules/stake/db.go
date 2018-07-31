@@ -11,6 +11,19 @@ import (
 	"github.com/CyberMiles/travis/types"
 )
 
+var (
+	deliverSqlTx *sql.Tx
+)
+
+func SetDeliverSqlTx(tx *sql.Tx) {
+	deliverSqlTx = tx
+}
+
+func ResetDeliverSqlTx() {
+	deliverSqlTx = nil
+}
+
+
 func getDb() *sql.DB {
 	rootDir := viper.GetString(cli.HomeFlag)
 	stakeDbPath := path.Join(rootDir, "data", "travis.db")
@@ -86,11 +99,20 @@ func GetBackupValidators() (candidates Candidates) {
 }
 
 func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
 	clause := composeQueryClause(cond)
-	rows, err := db.Query("select pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
+	rows, err := tx.Query("select pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
 	if err != nil {
 		panic(err)
 	}
@@ -140,18 +162,23 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 }
 
 func SaveCandidate(candidate *Candidate) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
@@ -182,18 +209,23 @@ func SaveCandidate(candidate *Candidate) {
 }
 
 func updateCandidate(candidate *Candidate) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, ranking_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
@@ -222,18 +254,23 @@ func updateCandidate(candidate *Candidate) {
 }
 
 func removeCandidate(candidate *Candidate) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("delete from candidates where address = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(candidate.OwnerAddress)
@@ -243,18 +280,23 @@ func removeCandidate(candidate *Candidate) {
 }
 
 func cleanCandidates() {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("delete from candidates where shares = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec("0")
@@ -264,18 +306,23 @@ func cleanCandidates() {
 }
 
 func SaveDelegator(delegator *Delegator) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into delegators(address, created_at) values(?, ?)")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(delegator.Address.String(), delegator.CreatedAt)
@@ -285,18 +332,23 @@ func SaveDelegator(delegator *Delegator) {
 }
 
 func RemoveDelegator(delegator *Delegator) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("delete from delegators where address = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(delegator.Address.String())
@@ -306,9 +358,18 @@ func RemoveDelegator(delegator *Delegator) {
 }
 
 func GetDelegator(address string) *Delegator {
-	db := getDb()
-	defer db.Close()
-	stmt, err := db.Prepare("select address, created_at from delegators where address = ?")
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
+	stmt, err := tx.Prepare("select address, created_at from delegators where address = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -328,18 +389,23 @@ func GetDelegator(address string) *Delegator {
 }
 
 func SaveDelegation(d *Delegation) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, hash, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
@@ -349,18 +415,23 @@ func SaveDelegation(d *Delegation) {
 }
 
 func RemoveDelegation(delegation *Delegation) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("delete from delegations where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(delegation.DelegatorAddress.String(), types.PubKeyString(delegation.PubKey))
@@ -370,20 +441,22 @@ func RemoveDelegation(delegation *Delegation) {
 }
 
 func UpdateDelegation(d *Delegation) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
-
 	stmt, err := tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, hash = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
-
 	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
@@ -415,11 +488,20 @@ func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*
 }
 
 func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegation) {
-	db := getDb()
-	defer db.Close()
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
+	}
 
 	clause := composeQueryClause(cond)
-	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations" + clause)
+	rows, err := tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations" + clause)
 	if err != nil {
 		panic(err)
 	}
@@ -458,20 +540,22 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 }
 
 func saveDelegateHistory(delegateHistory *DelegateHistory) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
-
 	stmt, err := tx.Prepare("insert into delegate_history(delegator_address, pub_key, amount, op_code, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
-
 	_, err = stmt.Exec(
 		delegateHistory.DelegatorAddress.String(),
 		types.PubKeyString(delegateHistory.PubKey),
@@ -485,13 +569,17 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 }
 
 func savePunishHistory(punishHistory *PunishHistory) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
 
 	stmt, err := tx.Prepare("insert into punish_history(pub_key, slashing_ratio, slash_amount, reason, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
@@ -512,14 +600,17 @@ func savePunishHistory(punishHistory *PunishHistory) {
 }
 
 func saveUnstakeRequest(req *UnstakeRequest) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
-
 	stmt, err := tx.Prepare("insert into unstake_requests(id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
@@ -585,14 +676,17 @@ func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 }
 
 func updateUnstakeRequest(req *UnstakeRequest) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
+	var tx = deliverSqlTx
+	var err error
+	if tx == nil {
+		db := getDb()
+		defer db.Close()
+		tx, err = db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 	}
-	defer tx.Commit()
-
 	stmt, err := tx.Prepare("update unstake_requests set delegator_address = ?, pub_key = ?, initiated_block_height = ?, performed_block_height = ?, amount = ?, state = ?, hash=?, updated_at = ? where id = ?")
 	if err != nil {
 		panic(err)
