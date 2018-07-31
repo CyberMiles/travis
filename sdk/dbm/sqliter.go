@@ -7,64 +7,63 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"database/sql"
+	"strings"
 )
 
 // SQLite helper functions
-type Sqliter struct{
+type sqliter struct{
 	dbPath string
+	db *sql.DB
 }
 
-func NewSqliter(dbPath string) *Sqliter {
-	if err := InitSqliteDB(dbPath);  err != nil {
-		panic(err)
-	}
-	return &Sqliter{
-		dbPath: dbPath,
-	}
-}
+var Sqliter = &sqliter{}
 
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-func (sqliter *Sqliter) Exec(query string, args ...interface{}) (sql.Result, error) {
-	db, err := sql.Open("sqlite3", sqliter.dbPath)
-	if err != nil {
-		return nil, errors.ErrInternal("Initializing stake database: " + err.Error())
+func InitSqliter(dbPath string) error {
+	if strings.Compare(dbPath, "") != 0 {
+		errors.ErrInternal("The sqlite database has been initialized.")
 	}
-	defer db.Close()
-	return db.Exec(query, args...)
-}
-
-func (sqliter *Sqliter) GetDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", sqliter.dbPath)
-	if err != nil {
-		return nil, errors.ErrInternal("Initializing stake database: " + err.Error())
+	if err := initSqliteDB(dbPath);  err != nil {
+		return err
 	}
-	return db, nil
-}
-
-func (sqliter *Sqliter) CloseDB(db *sql.DB) {
-	if db != nil {
-		db.Close()
-	}
-}
-
-
-func InitSqliteDB(dbPath string)  error {
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		// dbPath does not exist
-		if db, err := sql.Open("sqlite3", dbPath); err != nil {
-			return err
-		} else {
-			db.Close()
-		}
-
-	}
+	Sqliter.dbPath = dbPath
 	return nil
 }
 
-// Exec executes a query without returning any rows.
-// The args are for any placeholder parameters in the query.
-func (sqliter *Sqliter) ExecBatch(query string, args ...interface{}) (error) {
+func (s *sqliter) GetDB() (*sql.DB, error) {
+	if strings.Compare(s.dbPath, "")  == 0 {
+		return nil, errors.ErrInternal("Sqlite database path is not set.")
+	}
+	if s.db != nil {
+		if s.db.Stats().OpenConnections > 0 {
+			return s.db, nil
+		}
+	}
+	db, err := sql.Open("sqlite3", s.dbPath)
+	if err != nil {
+		return nil, errors.ErrInternal("Open database: " + err.Error())
+	}
+	if db.Ping(); err != nil {
+		return nil, errors.ErrInternal("Open database: " + err.Error())
+	}
+	s.db = db
+	return db, nil
+}
+
+func (s *sqliter) CloseDB() {
+	if s.db != nil {
+		s.db.Close()
+		s.db = nil
+	}
+}
+
+
+func initSqliteDB(dbPath string) error {
+	// dbPath does not exist
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		if _, err := os.Create(dbPath); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

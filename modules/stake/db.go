@@ -3,12 +3,10 @@ package stake
 import (
 	"database/sql"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
-	"path"
 
 	"fmt"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/sdk/dbm"
 )
 
 var (
@@ -25,10 +23,7 @@ func ResetDeliverSqlTx() {
 
 
 func getDb() *sql.DB {
-	rootDir := viper.GetString(cli.HomeFlag)
-	stakeDbPath := path.Join(rootDir, "data", "travis.db")
-
-	db, err := sql.Open("sqlite3", stakeDbPath)
+	db, err := dbm.Sqliter.GetDB()
 	if err != nil {
 		panic(err)
 	}
@@ -103,7 +98,6 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -166,7 +160,6 @@ func SaveCandidate(candidate *Candidate) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -213,7 +206,6 @@ func updateCandidate(candidate *Candidate) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -258,7 +250,6 @@ func removeCandidate(candidate *Candidate) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -284,7 +275,6 @@ func cleanCandidates() {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -310,7 +300,6 @@ func SaveDelegator(delegator *Delegator) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -336,7 +325,6 @@ func RemoveDelegator(delegator *Delegator) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -362,7 +350,6 @@ func GetDelegator(address string) *Delegator {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -393,7 +380,6 @@ func SaveDelegation(d *Delegation) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -419,7 +405,6 @@ func RemoveDelegation(delegation *Delegation) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -445,7 +430,6 @@ func UpdateDelegation(d *Delegation) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -492,7 +476,6 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -544,7 +527,6 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -573,7 +555,6 @@ func savePunishHistory(punishHistory *PunishHistory) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -604,7 +585,6 @@ func saveUnstakeRequest(req *UnstakeRequest) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -636,7 +616,6 @@ func saveUnstakeRequest(req *UnstakeRequest) {
 
 func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 	db := getDb()
-	defer db.Close()
 
 	rows, err := db.Query("select id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, created_at, updated_at from unstake_requests where state = ? and performed_block_height <= ?", "PENDING", height)
 	if err != nil {
@@ -680,7 +659,6 @@ func updateUnstakeRequest(req *UnstakeRequest) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)

@@ -5,10 +5,8 @@ import (
 	"strings"
 
 	"database/sql"
-	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
-	"path"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/CyberMiles/travis/sdk/dbm"
 )
 
 var (
@@ -25,10 +23,7 @@ func ResetDeliverSqlTx() {
 }
 
 func getDb() *sql.DB {
-	rootDir := viper.GetString(cli.HomeFlag)
-	dbPath := path.Join(rootDir, "data", "travis.db")
-
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := dbm.Sqliter.GetDB()
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +35,6 @@ func SaveProposal(pp *Proposal) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -105,7 +99,6 @@ func GetProposalById(pid string) *Proposal {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -250,7 +243,6 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -281,7 +273,6 @@ func UpdateDeployLibEniStatus(pid, status string) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -405,7 +396,6 @@ func GetPendingProposals() (proposals []*Proposal) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -450,7 +440,6 @@ func SaveVote(vote *Vote) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -476,7 +465,6 @@ func UpdateVote(vote *Vote) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -502,7 +490,6 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)
@@ -540,7 +527,6 @@ func GetVotesByPid(pid string) (votes []*Vote) {
 	var err error
 	if tx == nil {
 		db := getDb()
-		defer db.Close()
 		tx, err = db.Begin()
 		if err != nil {
 			panic(err)

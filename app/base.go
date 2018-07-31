@@ -8,6 +8,8 @@ import (
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/sdk/dbm"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
@@ -33,7 +35,6 @@ type BaseApp struct {
 	ByzantineValidators []abci.Evidence
 	PresentValidators   stake.Validators
 	blockTime           int64
-	db *sql.DB
 	deliverSqlTx *sql.Tx
 }
 
@@ -161,13 +162,12 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.PresentValidators = app.PresentValidators[:0]
 
 	// init deliver sql tx for statke
-	db, err := app.sqliter.GetDB()
+	db, err := dbm.Sqliter.GetDB()
 	if err != nil {
 		// TODO: wrapper error
 		panic(err)
 	}
-	app.db = db
-	deliverSqlTx, err := app.db.Begin()
+	deliverSqlTx, err := db.Begin()
 	if err != nil {
 		// TODO: wrapper error
 		panic(err)
@@ -249,6 +249,16 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	ethAppCommit := app.EthApp.Commit()
 	if len(ethAppCommit.Data) == 0 {
+		// Rollback transaction
+		if app.deliverSqlTx != nil {
+			err := app.deliverSqlTx.Rollback()
+			if err != nil {
+				// TODO: wrapper error
+				panic(err)
+			}
+			stake.ResetDeliverSqlTx()
+			governance.ResetDeliverSqlTx()
+		}
 		return abci.ResponseCommit{}
 	}
 	if dirty := utils.CleanParams(); dirty {
@@ -263,6 +273,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	res = app.StoreApp.Commit()
 	if app.deliverSqlTx != nil {
+		// Commit transaction
 		err := app.deliverSqlTx.Commit()
 		if err != nil {
 			// TODO: wrapper error
@@ -270,7 +281,6 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		}
 		stake.ResetDeliverSqlTx()
 		governance.ResetDeliverSqlTx()
-		app.db.Close()
 	}
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)

@@ -56,8 +56,6 @@ type StoreApp struct {
 
 	logger log.Logger
 
-	sqliter *dbm.Sqliter
-
 	BlockEnd            bool
 }
 
@@ -69,9 +67,9 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 	}
 
 	rootDir := viper.GetString(cli.HomeFlag)
-	dbPath := path.Join(rootDir, "data", "travis.db")
-
-	sqliter := dbm.NewSqliter(dbPath)
+	if err := dbm.InitSqliter(path.Join(rootDir, "data", "travis.db")); err != nil {
+		return nil, err
+	}
 
 	app := &StoreApp{
 		Name:            appName,
@@ -80,7 +78,6 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 		info:            sm.NewChainState(),
 		TotalUsedGasFee: big.NewInt(0),
 		logger:          logger.With("module", "app"),
-		sqliter:		 sqliter,
 	}
 	return app, nil
 }
@@ -127,12 +124,6 @@ func (app *StoreApp) CommittedHeight() int64 {
 func (app *StoreApp) WorkingHeight() int64 {
 	return app.height + 1
 }
-
-// WorkingHeight gets the current block we are writing
-func (app *StoreApp) GetSqliter() *dbm.Sqliter {
-	return app.sqliter
-}
-
 
 // Info implements abci.Application. It returns the height and hash,
 // as well as the abci name and version.
@@ -331,9 +322,7 @@ func getDb() *sql.DB {
 }
 
 func (app *StoreApp) GetDbHash() []byte {
-	db, _ := app.sqliter.GetDB()
-	defer app.sqliter.CloseDB(db)
-
+	db, _ := dbm.Sqliter.GetDB()
 	tables := []string{"candidates", "delegations", "governance_proposal", "governance_vote", "unstake_requests"}
 	hashes := make([]byte, len(tables))
 	for _, table := range tables {
