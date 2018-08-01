@@ -313,7 +313,7 @@ func GetProposals() (proposals []*Proposal) {
 		when p.type = 'change_param'
 		then (select printf('%s-+-%s-+-%s', param_name, param_value, reason) from governance_change_param_detail where proposal_id = p.id)
 		when p.type = 'deploy_libeni'
-		then (select printf('%s-+-%s-+-%s-+-%s', name, version, fileurl, md5, reason, status) from governance_deploy_libeni_detail where proposal_id = p.id)
+		then (select printf('%s-+-%s-+-%s-+-%s-+-%s-+-%s', name, version, fileurl, md5, reason, status) from governance_deploy_libeni_detail where proposal_id = p.id)
 		end as detail
 		from governance_proposal p`)
 	if err != nil {

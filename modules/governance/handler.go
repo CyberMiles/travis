@@ -131,6 +131,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
+		if strings.Trim(txInner.Name, " ") == "" || strings.Trim(txInner.Version, " ") == "" {
+			return sdk.NewCheck(0, ""), ErrInsufficientParameters()
+		}
+
 		if txInner.Expire != nil && ctx.BlockTime() > *txInner.Expire {
 			return sdk.NewCheck(0, ""), ErrInvalidExpire()
 		}
