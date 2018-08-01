@@ -13,6 +13,7 @@ var (
 	deliverSqlTx *sql.Tx
 )
 
+
 func SetDeliverSqlTx(tx *sql.Tx) {
 	deliverSqlTx = tx
 }
@@ -30,19 +31,51 @@ func getDb() *sql.DB {
 	return db
 }
 
-func SaveProposal(pp *Proposal) {
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
+
+type SqlTxWrapper struct {
+	tx *sql.Tx
+	withBlock bool
+}
+
+func getSqlTxWrapper() *SqlTxWrapper{
+	var wrapper = &SqlTxWrapper{
+		tx: deliverSqlTx,
+		withBlock: true,
+	}
+	if wrapper.tx == nil {
 		db := getDb()
-		tx, err = db.Begin()
+		tx, err := db.Begin()
 		if err != nil {
 			panic(err)
 		}
-		defer tx.Commit()
+		wrapper.tx = tx
+		wrapper.withBlock = false
 	}
+	return wrapper
+}
 
-	stmt, err := tx.Prepare("insert into governance_proposal(id, type, proposer, block_height, expire, hash, created_at) values(?, ?, ?, ?, ?, ?, ?)")
+func (wrapper *SqlTxWrapper) Commit() {
+	if !wrapper.withBlock {
+		if err := wrapper.tx.Commit(); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (wrapper *SqlTxWrapper) Rollback() {
+	if !wrapper.withBlock {
+		if err := wrapper.tx.Rollback(); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func SaveProposal(pp *Proposal) {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+
+	stmt, err := txWrapper.tx.Prepare("insert into governance_proposal(id, type, proposer, block_height, expire, hash, created_at) values(?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -56,7 +89,7 @@ func SaveProposal(pp *Proposal) {
 
 	switch pp.Type {
 	case TRANSFER_FUND_PROPOSAL:
-		stmt1, err := tx.Prepare("insert into governance_transfer_fund_detail(proposal_id, from_address, to_address, amount, reason) values(?, ?, ?, ?, ?)") 
+		stmt1, err := txWrapper.tx.Prepare("insert into governance_transfer_fund_detail(proposal_id, from_address, to_address, amount, reason) values(?, ?, ?, ?, ?)")
 		if err != nil {
 			panic(err)
 		}
@@ -68,7 +101,7 @@ func SaveProposal(pp *Proposal) {
 			panic(err)
 		}
 	case CHANGE_PARAM_PROPOSAL:
-		stmt1, err := tx.Prepare("insert into governance_change_param_detail(proposal_id, param_name, param_value,  reason) values(?, ?, ?, ?)") 
+		stmt1, err := txWrapper.tx.Prepare("insert into governance_change_param_detail(proposal_id, param_name, param_value,  reason) values(?, ?, ?, ?)")
 		if err != nil {
 			panic(err)
 		}
@@ -80,7 +113,7 @@ func SaveProposal(pp *Proposal) {
 			panic(err)
 		}
 	case DEPLOY_LIBENI_PROPOSAL:
-		stmt1, err := tx.Prepare("insert into governance_deploy_libeni_detail(proposal_id, name, version, fileurl, md5, reason, status) values(?, ?, ?, ?, ?, ?, ?)")
+		stmt1, err := txWrapper.tx.Prepare("insert into governance_deploy_libeni_detail(proposal_id, name, version, fileurl, md5, reason, status) values(?, ?, ?, ?, ?, ?, ?)")
 		if err != nil {
 			panic(err)
 		}
@@ -95,18 +128,10 @@ func SaveProposal(pp *Proposal) {
 }
 
 func GetProposalById(pid string) *Proposal {
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
-		db := getDb()
-		tx, err = db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		defer tx.Commit()
-	}
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("select type, proposer, block_height, expire, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
+	stmt, err := txWrapper.tx.Prepare("select type, proposer, block_height, expire, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -127,7 +152,7 @@ func GetProposalById(pid string) *Proposal {
 	switch ptype {
 	case TRANSFER_FUND_PROPOSAL:
 		var fromAddr, toAddr, amount, reason string 
-		stmt1, err := tx.Prepare("select from_address, to_address, amount, reason from governance_transfer_fund_detail where proposal_id = ?")
+		stmt1, err := txWrapper.tx.Prepare("select from_address, to_address, amount, reason from governance_transfer_fund_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
@@ -163,7 +188,7 @@ func GetProposalById(pid string) *Proposal {
 		}
 	case CHANGE_PARAM_PROPOSAL:
 		var name, value, reason string
-		stmt1, err := tx.Prepare("select param_name, param_value, reason from governance_change_param_detail where proposal_id = ?")
+		stmt1, err := txWrapper.tx.Prepare("select param_name, param_value, reason from governance_change_param_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
@@ -195,7 +220,7 @@ func GetProposalById(pid string) *Proposal {
 		}
 	case DEPLOY_LIBENI_PROPOSAL:
 		var name, version, fileurl, md5, reason, status string
-		stmt1, err := tx.Prepare("select name, version, fileurl, md5, reason, status from governance_deploy_libeni_detail where proposal_id = ?")
+		stmt1, err := txWrapper.tx.Prepare("select name, version, fileurl, md5, reason, status from governance_deploy_libeni_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
@@ -239,18 +264,10 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 		return
 	}
 
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
-		db := getDb()
-		tx, err = db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		defer tx.Commit()
-	}
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("update governance_proposal set result = ?, result_msg = ?, result_block_height = ?, result_at = ?, hash = ? where id = ?")
+	stmt, err := txWrapper.tx.Prepare("update governance_proposal set result = ?, result_msg = ?, result_block_height = ?, result_at = ?, hash = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -269,18 +286,10 @@ func UpdateProposalResult(pid, result, msg string, blockHeight uint64, resultAt 
 }
 
 func UpdateDeployLibEniStatus(pid, status string) {
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
-		db := getDb()
-		tx, err = db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		defer tx.Commit()
-	}
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("update governance_deploy_libeni_detail set status = ? where proposal_id = ?")
+	stmt, err := txWrapper.tx.Prepare("update governance_deploy_libeni_detail set status = ? where proposal_id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -294,19 +303,10 @@ func UpdateDeployLibEniStatus(pid, status string) {
 }
 
 func GetProposals() (proposals []*Proposal) {
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
-		db := getDb()
-		defer db.Close()
-		tx, err = db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		defer tx.Commit()
-	}
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	rows, err := tx.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
+	rows, err := txWrapper.tx.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
 		case
 		when p.type = 'transfer_fund'
 		then (select printf('%s-+-%s-+-%s-+-%s', from_address, to_address, amount, reason) from governance_transfer_fund_detail where proposal_id = p.id) 
@@ -392,18 +392,10 @@ func GetProposals() (proposals []*Proposal) {
 }
 
 func GetPendingProposals() (proposals []*Proposal) {
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
-		db := getDb()
-		tx, err = db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		defer tx.Commit()
-	}
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	rows, err := tx.Query("select id, expire from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and d.status != 'deployed'))")
+	rows, err := txWrapper.tx.Query("select id, expire from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and d.status != 'deployed'))")
 	if err != nil {
 		panic(err)
 	}
@@ -436,18 +428,10 @@ func GetPendingProposals() (proposals []*Proposal) {
 
 
 func SaveVote(vote *Vote) {
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
-		db := getDb()
-		tx, err = db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		defer tx.Commit()
-	}
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("insert into governance_vote(proposal_id, voter, block_height, answer, hash, created_at) values(?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into governance_vote(proposal_id, voter, block_height, answer, hash, created_at) values(?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -461,18 +445,10 @@ func SaveVote(vote *Vote) {
 }
 
 func UpdateVote(vote *Vote) {
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
-		db := getDb()
-		tx, err = db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		defer tx.Commit()
-	}
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("update governance_vote set answer = ?, hash = ? where proposal_id = ? and voter = ?")
+	stmt, err := txWrapper.tx.Prepare("update governance_vote set answer = ?, hash = ? where proposal_id = ? and voter = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -486,18 +462,10 @@ func UpdateVote(vote *Vote) {
 }
 
 func GetVoteByPidAndVoter(pid string, voter string) *Vote {
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
-		db := getDb()
-		tx, err = db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		defer tx.Commit()
-	}
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("select answer, block_height, hash, created_at from governance_vote where proposal_id = ? and voter = ?")
+	stmt, err := txWrapper.tx.Prepare("select answer, block_height, hash, created_at from governance_vote where proposal_id = ? and voter = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -523,18 +491,10 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 }
 
 func GetVotesByPid(pid string) (votes []*Vote) {
-	var tx = deliverSqlTx
-	var err error
-	if tx == nil {
-		db := getDb()
-		tx, err = db.Begin()
-		if err != nil {
-			panic(err)
-		}
-		defer tx.Commit()
-	}
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("select voter, answer, block_height, hash, created_at from governance_vote where proposal_id = ?")
+	stmt, err := txWrapper.tx.Prepare("select voter, answer, block_height, hash, created_at from governance_vote where proposal_id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -565,8 +525,7 @@ func GetVotesByPid(pid string) (votes []*Vote) {
 		votes = append(votes, vote)
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err = rows.Err(); err != nil {
 		panic(err)
 	}
 
