@@ -431,7 +431,7 @@ type GovernanceTransferFundProposalArgs struct {
 	Expire       *int64          `json:"expire"`
 }
 
-func (s *CmtRPCService) Propose(args GovernanceTransferFundProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+func (s *CmtRPCService) ProposeTransferFund(args GovernanceTransferFundProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	tx := governance.NewTxTransferFundPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount.ToInt().String(), args.Reason, args.Expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -467,14 +467,14 @@ type GovernanceDeployLibEniProposalArgs struct {
 	From    common.Address  `json:"from"`
 	Name    string          `json:"name"`
 	Version string          `json:"version"`
-	Fileurl string          `json:"fileurl"`
+	FileUrl string          `json:"fileUrl"`
 	Md5     string          `json:"md5"`
 	Reason  string          `json:"reason"`
 	Expire  *int64          `json:"expire"`
 }
 
 func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxDeployLibEniPropose(&args.From, args.Name, args.Version, args.Fileurl, args.Md5, args.Reason, args.Expire)
+	tx := governance.NewTxDeployLibEniPropose(&args.From, args.Name, args.Version, args.FileUrl, args.Md5, args.Reason, args.Expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
