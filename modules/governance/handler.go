@@ -69,8 +69,16 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 
-		if txInner.Expire != nil && ctx.BlockTime() > *txInner.Expire {
-			return sdk.NewCheck(0, ""), ErrInvalidExpire()
+		if txInner.ExpireTimestamp != nil && txInner.ExpireBlockHeight != nil {
+			return sdk.NewCheck(0, ""), ErrExceedsExpiration()
+		}
+
+		if txInner.ExpireTimestamp != nil && ctx.BlockTime() > *txInner.ExpireTimestamp {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireTimestamp()
+		}
+
+		if txInner.ExpireBlockHeight != nil && ctx.BlockHeight() >= *txInner.ExpireBlockHeight {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
 		amount := big.NewInt(0)
@@ -102,8 +110,16 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
-		if txInner.Expire != nil && ctx.BlockTime() > *txInner.Expire {
-			return sdk.NewCheck(0, ""), ErrInvalidExpire()
+		if txInner.ExpireTimestamp != nil && txInner.ExpireBlockHeight != nil {
+			return sdk.NewCheck(0, ""), ErrExceedsExpiration()
+		}
+
+		if txInner.ExpireTimestamp != nil && ctx.BlockTime() > *txInner.ExpireTimestamp {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireTimestamp()
+		}
+
+		if txInner.ExpireBlockHeight != nil && ctx.BlockHeight() >= *txInner.ExpireBlockHeight {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
 		// Transfer gasFee
@@ -135,8 +151,16 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInsufficientParameters()
 		}
 
-		if txInner.Expire != nil && ctx.BlockTime() > *txInner.Expire {
-			return sdk.NewCheck(0, ""), ErrInvalidExpire()
+		if txInner.ExpireTimestamp != nil && txInner.ExpireBlockHeight != nil {
+			return sdk.NewCheck(0, ""), ErrExceedsExpiration()
+		}
+
+		if txInner.ExpireTimestamp != nil && ctx.BlockTime() > *txInner.ExpireTimestamp {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireTimestamp()
+		}
+
+		if txInner.ExpireBlockHeight != nil && ctx.BlockHeight() >= *txInner.ExpireBlockHeight {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
 		// Transfer gasFee
@@ -215,20 +239,25 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
-		expire := ctx.BlockTime() + utils.GetParams().ProposalExpirePeriod
-		if txInner.Expire != nil {
-			expire = *txInner.Expire
+		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
+		var expireTimestamp int64
+		if txInner.ExpireTimestamp != nil {
+			expireTimestamp = *txInner.ExpireTimestamp
+			expireBlockHeight = 0
+		} else if txInner.ExpireBlockHeight != nil {
+			expireBlockHeight = *txInner.ExpireBlockHeight
 		}
 		hashJson, _ :=	json.Marshal(hash)
 		pp := NewTransferFundProposal(
 			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
-			uint64(ctx.BlockHeight()),
+			ctx.BlockHeight(),
 			txInner.From,
 			txInner.To,
 			txInner.Amount,
 			txInner.Reason,
-			expire,
+			expireTimestamp,
+			expireBlockHeight,
 		)
 
 		balance, err := commons.GetBalance(app_state, *txInner.From)
@@ -243,7 +272,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		SaveProposal(pp)
-		commons.TransferWithReactor(*pp.Detail["from"].(*common.Address), utils.GovHoldAccount, amount, ProposalReactor{pp.Id, uint64(ctx.BlockHeight()), ""})
+		commons.TransferWithReactor(*pp.Detail["from"].(*common.Address), utils.GovHoldAccount, amount, ProposalReactor{pp.Id, ctx.BlockHeight(), ""})
 
 		// Check gasFee  -- start
 		// get the sender
@@ -264,24 +293,29 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 		// Check gasFee  -- end
 
-		utils.PendingProposal.Add(pp.Id, pp.Expire)
+		utils.PendingProposal.Add(pp.Id, pp.ExpireTimestamp, pp.ExpireBlockHeight)
 
 		res.Data = hash
 
 	case TxChangeParamPropose:
-		expire := ctx.BlockTime() + utils.GetParams().ProposalExpirePeriod
-		if txInner.Expire != nil {
-			expire = *txInner.Expire
+		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
+		var expireTimestamp int64
+		if txInner.ExpireTimestamp != nil {
+			expireTimestamp = *txInner.ExpireTimestamp
+			expireBlockHeight = 0
+		} else if txInner.ExpireBlockHeight != nil {
+			expireBlockHeight = *txInner.ExpireBlockHeight
 		}
 		hashJson, _ := json.Marshal(hash)
 		cp := NewChangeParamProposal(
 			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
-			uint64(ctx.BlockHeight()),
+			ctx.BlockHeight(),
 			txInner.Name,
 			txInner.Value,
 			txInner.Reason,
-			expire,
+			expireTimestamp,
+			expireBlockHeight,
 		)
 		SaveProposal(cp)
 
@@ -304,27 +338,32 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 		// Check gasFee  -- end
 
-		utils.PendingProposal.Add(cp.Id, cp.Expire)
+		utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
 
 		res.Data = hash
 
 	case TxDeployLibEniPropose:
-		expire := ctx.BlockTime() + utils.GetParams().ProposalExpirePeriod
-		if txInner.Expire != nil {
-			expire = *txInner.Expire
+		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
+		var expireTimestamp int64
+		if txInner.ExpireTimestamp != nil {
+			expireTimestamp = *txInner.ExpireTimestamp
+			expireBlockHeight = 0
+		} else if txInner.ExpireBlockHeight != nil {
+			expireBlockHeight = *txInner.ExpireBlockHeight
 		}
 		hashJson, _ := json.Marshal(hash)
 		dp := NewDeployLibEniProposal(
 			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
-			uint64(ctx.BlockHeight()),
+			ctx.BlockHeight(),
 			txInner.Name,
 			txInner.Version,
 			txInner.Fileurl,
 			txInner.Md5,
 			txInner.Reason,
 			"init",
-			expire,
+			expireTimestamp,
+			expireBlockHeight,
 		)
 		SaveProposal(dp)
 
@@ -347,7 +386,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 		// Check gasFee  -- end
 
-		utils.PendingProposal.Add(dp.Id, dp.Expire)
+		utils.PendingProposal.Add(dp.Id, dp.ExpireTimestamp, dp.ExpireBlockHeight)
 
 		res.Data = hash
 
@@ -367,13 +406,13 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		var vote *Vote
 		if vote = GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
 			vote.Answer = txInner.Answer
-			vote.BlockHeight = uint64(ctx.BlockHeight())
+			vote.BlockHeight = ctx.BlockHeight()
 			UpdateVote(vote)
 		} else {
 			vote = NewVote(
 				txInner.ProposalId,
 				txInner.Voter,
-				uint64(ctx.BlockHeight()),
+				ctx.BlockHeight(),
 				txInner.Answer,
 			)
 			SaveVote(vote)
@@ -392,12 +431,12 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 				// as succeeded proposal only need to add balance to receiver,
 				// so the transfer should always be successful
 				// but we still use the reactor to keep the compatible with the old strategy
-				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"})
+				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"})
 			case "rejected":
 				// as succeeded proposal only need to refund balance to sender,
 				// so the transfer should always be successful
 				// but we still use the reactor to keep the compatible with the old strategy
-				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"})
+				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"})
 			}
 			if checkResult == "approved" || checkResult == "rejected" {
 				utils.PendingProposal.Del(proposal.Id)
@@ -406,9 +445,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			switch checkResult {
 			case "approved":
 				utils.SetParam(proposal.Detail["name"].(string), proposal.Detail["value"].(string))
-				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"}.React("success", "")
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
 			case "rejected":
-				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"}.React("success", "")
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
 			}
 			if checkResult == "approved" || checkResult == "rejected" {
 				utils.PendingProposal.Del(proposal.Id)
@@ -427,9 +466,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 					go DownloadLibEni(proposal, 5, result)
 				}
-				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"}.React("success", "")
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
 			case "rejected":
-				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"}.React("success", "")
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
 				DestroyLibEni(proposal)
 			}
 		}
@@ -490,7 +529,7 @@ func CheckProposal(pid string, voter *common.Address) string {
 
 type ProposalReactor struct {
 	ProposalId  string
-	BlockHeight uint64
+	BlockHeight int64
 	Result      string
 }
 

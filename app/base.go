@@ -53,11 +53,17 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 	// init pending proposals
 	pendingProposals := governance.GetPendingProposals()
 	if len(pendingProposals) > 0 {
-		proposals := make(map[string]int64)
+		proposalsTS := make(map[string]int64)
+		proposalsBH := make(map[string]int64)
 		for _, pp := range pendingProposals {
-			proposals[pp.Id] = pp.Expire
+			if pp.ExpireTimestamp > 0 {
+				proposalsTS[pp.Id] = pp.ExpireTimestamp
+			} else {
+				proposalsBH[pp.Id] = pp.ExpireBlockHeight
+			}
 		}
-		utils.PendingProposal.BatchAdd(proposals)
+		utils.PendingProposal.BatchAddTS(proposalsTS)
+		utils.PendingProposal.BatchAddBH(proposalsBH)
 	}
 
 	b := store.Append().Get(utils.ParamKey)

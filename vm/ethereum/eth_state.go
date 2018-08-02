@@ -251,9 +251,9 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 // the ethereum blockchain. The application root hash is the hash of the
 // ethereum block.
 func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (common.Hash, error) {
-	currentHeight := ws.header.Number.Uint64()
+	currentHeight := ws.header.Number.Int64()
 
-	proposalIds := utils.PendingProposal.ReachMin(ws.parent.Time().Int64())
+	proposalIds := utils.PendingProposal.ReachMin(ws.parent.Time().Int64(), currentHeight)
 	for _, pid := range proposalIds {
 		proposal := gov.GetProposalById(pid)
 

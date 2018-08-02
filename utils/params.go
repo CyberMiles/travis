@@ -16,7 +16,7 @@ type Params struct {
 	InflationRate             int64          `json:"inflation_rate" type:"uint"`
 	ValidatorSizeThreshold    string         `json:"validator_size_threshold" type:"float"`
 	UnstakeWaitingPeriod      uint64         `json:"unstake_waiting_period" type:"uint"`
-	ProposalExpirePeriod      int64          `json:"proposal_expire_period" type:"uint"`
+	ProposalExpirePeriod      uint64         `json:"proposal_expire_period" type:"uint"`
 	DeclareCandidacy          uint64         `json:"declare_candidacy" type:"uint"`
 	UpdateCandidacy           uint64         `json:"update_candidacy" type:"uint"`
 	TransferFundProposal      uint64         `json:"transfer_fund_proposal" type:"uint"`
@@ -37,8 +37,8 @@ func defaultParams() *Params {
 		SelfStakingRatio:          "0.1",
 		InflationRate:             8,
 		ValidatorSizeThreshold:    "0.12",
-		UnstakeWaitingPeriod:      7 * 24 * 3600 / 10,
-		ProposalExpirePeriod:      7 * 24 * 3600,
+		UnstakeWaitingPeriod:      7 * 24 * 3600 / CommitSeconds,
+		ProposalExpirePeriod:      7 * 24 * 3600 / CommitSeconds,
 		DeclareCandidacy:          1e6,
 		UpdateCandidacy:           1e6,
 		TransferFundProposal:      2e6,
