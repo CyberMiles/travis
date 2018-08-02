@@ -18,12 +18,14 @@ const (
 	ByteTxVote                     = 0xA4
 	TypeTxTransferFundPropose      = governanceModuleName + "/propose/transfer_fund"
 	TypeTxChangeParamPropose       = governanceModuleName + "/propose/change_param"
+	TypeTxDeployLibEniPropose      = governanceModuleName + "/propose/deploy_libeni"
 	TypeTxVote         = governanceModuleName + "/vote"
 )
 
 func init() {
 	sdk.TxMapper.RegisterImplementation(TxTransferFundPropose{}, TypeTxTransferFundPropose, ByteTxTransferFundPropose)
 	sdk.TxMapper.RegisterImplementation(TxChangeParamPropose{}, TypeTxChangeParamPropose, ByteTxChangeParamPropose)
+	sdk.TxMapper.RegisterImplementation(TxDeployLibEniPropose{}, TypeTxDeployLibEniPropose, ByteTxDeployLibEniPropose)
 	sdk.TxMapper.RegisterImplementation(TxVote{}, TypeTxVote, ByteTxVote)
 }
 
@@ -36,14 +38,14 @@ type TxTransferFundPropose struct {
 	To           *common.Address   `json:"to"`
 	Amount       string            `json:"amount"`
 	Reason       string            `json:"reason"`
-	Expire       uint64	           `json:"expire"`
+	Expire       *int64            `json:"expire"`
 }
 
 func (tx TxTransferFundPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxTransferFundPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string, expire uint64) sdk.Tx {
+func NewTxTransferFundPropose(proposer *common.Address, fromAddr *common.Address, toAddr *common.Address, amount string, reason string, expire *int64) sdk.Tx {
 	return TxTransferFundPropose{
 		proposer,
 		fromAddr,
@@ -61,14 +63,14 @@ type TxChangeParamPropose struct {
 	Name         string            `json:"name"`
 	Value        string            `json:"value"`
 	Reason       string            `json:"reason"`
-	Expire       uint64            `json:"expire"`
+	Expire       *int64            `json:"expire"`
 }
 
 func (tx TxChangeParamPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxChangeParamPropose(proposer *common.Address, name string, value string, reason string, expire uint64) sdk.Tx {
+func NewTxChangeParamPropose(proposer *common.Address, name string, value string, reason string, expire *int64) sdk.Tx {
 	return TxChangeParamPropose{
 		proposer,
 		name,
@@ -79,6 +81,34 @@ func NewTxChangeParamPropose(proposer *common.Address, name string, value string
 }
 
 func (tx TxChangeParamPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
+type TxDeployLibEniPropose struct {
+	Proposer      *common.Address   `json:"proposer"`
+	Name          string            `json:"name"`
+	Version       string            `json:"version"`
+	Fileurl       string            `json:"fileurl"`
+	Md5           string            `json:"md5"`
+	Reason        string            `json:"reason"`
+	Expire        *int64            `json:"expire"`
+}
+
+func (tx TxDeployLibEniPropose) ValidateBasic() error {
+	return nil
+}
+
+func NewTxDeployLibEniPropose(proposer *common.Address, name, version, fileurl, md5, reason string, expire *int64) sdk.Tx {
+	return TxDeployLibEniPropose {
+		proposer,
+		name,
+		version,
+		fileurl,
+		md5,
+		reason,
+		expire,
+	}.Wrap()
+}
+
+func (tx TxDeployLibEniPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxVote struct {
 	ProposalId       string            `json:"proposal_id"`

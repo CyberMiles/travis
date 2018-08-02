@@ -15132,8 +15132,9 @@ var Cmt = function(web3) {
     p.setRequestManager(self._requestManager)
   })
 
-  // isSyncing is not supported
-  this.isSyncing = undefined
+  // isSyncing/getSyncing are not supported
+  delete this.isSyncing
+  delete this.getSyncing
 
   // restore the original defineProperty
   Object.defineProperty = _defineProperty

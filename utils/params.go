@@ -16,11 +16,12 @@ type Params struct {
 	InflationRate             int64          `json:"inflation_rate" type:"uint"`
 	ValidatorSizeThreshold    string         `json:"validator_size_threshold" type:"float"`
 	UnstakeWaitingPeriod      uint64         `json:"unstake_waiting_period" type:"uint"`
-	ProposalExpirePeriod      uint64         `json:"proposal_expire_period" type:"uint"`
+	ProposalExpirePeriod      int64          `json:"proposal_expire_period" type:"uint"`
 	DeclareCandidacy          uint64         `json:"declare_candidacy" type:"uint"`
 	UpdateCandidacy           uint64         `json:"update_candidacy" type:"uint"`
 	TransferFundProposal      uint64         `json:"transfer_fund_proposal" type:"uint"`
 	ChangeParamsProposal      uint64         `json:"change_params_proposal" type:"uint"`
+	DeployLibEniProposal      uint64         `json:"deploy_libeni_proposal" type:"uint"`
 	GasPrice                  uint64         `json:"gas_price" type:"uint"`
 	MinStakingAmount          int64          `json:"min_staking_amount" type:"uint"`
 	ValidatorsBlockAwardRatio int64          `json:"validators_block_award_ratio" type:"uint"`
@@ -37,11 +38,12 @@ func defaultParams() *Params {
 		InflationRate:             8,
 		ValidatorSizeThreshold:    "0.12",
 		UnstakeWaitingPeriod:      7 * 24 * 3600 / 10,
-		ProposalExpirePeriod:      7 * 24 * 3600 / 10,
+		ProposalExpirePeriod:      7 * 24 * 3600,
 		DeclareCandidacy:          1e6,
 		UpdateCandidacy:           1e6,
 		TransferFundProposal:      2e6,
 		ChangeParamsProposal:      2e6,
+		DeployLibEniProposal:      2e6,
 		GasPrice:                  2e9,
 		MinStakingAmount:          1000,
 		ValidatorsBlockAwardRatio: 80,

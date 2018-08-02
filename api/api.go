@@ -428,14 +428,14 @@ type GovernanceTransferFundProposalArgs struct {
 	TransferTo   common.Address  `json:"transferTo"`
 	Amount       hexutil.Big     `json:"amount"`
 	Reason       string          `json:"reason"`
-	Expire       uint64          `json:"expire"`
+	Expire       *int64          `json:"expire"`
 }
 
-func (s *CmtRPCService) Propose(args GovernanceTransferFundProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+func (s *CmtRPCService) ProposeTransferFund(args GovernanceTransferFundProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	tx := governance.NewTxTransferFundPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount.ToInt().String(), args.Reason, args.Expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
-	if err != err {
+	if err != nil {
 		return nil, err
 	}
 
@@ -448,14 +448,36 @@ type GovernanceChangeParamProposalArgs struct {
 	Name   string          `json:"name"`
 	Value  string          `json:"value"`
 	Reason string          `json:"reason"`
-	Expire uint64          `json:"expire"`
+	Expire *int64          `json:"expire"`
 }
 
 func (s *CmtRPCService) ProposeChangeParam(args GovernanceChangeParamProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	tx := governance.NewTxChangeParamPropose(&args.From, args.Name, args.Value, args.Reason, args.Expire)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
-	if err != err {
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sendTransaction(txArgs)
+}
+
+type GovernanceDeployLibEniProposalArgs struct {
+	Nonce   *hexutil.Uint64 `json:"nonce"`
+	From    common.Address  `json:"from"`
+	Name    string          `json:"name"`
+	Version string          `json:"version"`
+	FileUrl string          `json:"fileUrl"`
+	Md5     string          `json:"md5"`
+	Reason  string          `json:"reason"`
+	Expire  *int64          `json:"expire"`
+}
+
+func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := governance.NewTxDeployLibEniPropose(&args.From, args.Name, args.Version, args.FileUrl, args.Md5, args.Reason, args.Expire)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
 		return nil, err
 	}
 
@@ -473,7 +495,7 @@ func (s *CmtRPCService) Vote(args GovernanceVoteArgs) (*ctypes.ResultBroadcastTx
 	tx := governance.NewTxVote(args.ProposalId, args.Voter, args.Answer)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.Voter, args.Nonce)
-	if err != err {
+	if err != nil {
 		return nil, err
 	}
 

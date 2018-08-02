@@ -18,13 +18,15 @@ type Context struct {
 	signers     []common.Address
 	ethappState *state.StateDB
 	nonce       uint64
+	time        int64
 }
 
-func NewContext(chain string, height int64, ethappState *state.StateDB) Context {
+func NewContext(chain string, height, time int64, ethappState *state.StateDB) Context {
 	return Context{
 		id:          nonce(rand.Int63()),
 		chain:       chain,
 		height:      height,
+		time:        time,
 		ethappState: ethappState,
 	}
 }
@@ -35,6 +37,10 @@ func (c Context) ChainID() string {
 
 func (c Context) BlockHeight() int64 {
 	return c.height
+}
+
+func (c Context) BlockTime() int64 {
+	return c.time
 }
 
 /*func (c Context) WithSigners(signers ...common.Address) Context {

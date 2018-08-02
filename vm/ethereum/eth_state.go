@@ -253,7 +253,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (common.Hash, error) {
 	currentHeight := ws.header.Number.Uint64()
 
-	proposalIds := utils.PendingProposal.ReachMin(currentHeight)
+	proposalIds := utils.PendingProposal.ReachMin(ws.parent.Time().Int64())
 	for _, pid := range proposalIds {
 		proposal := gov.GetProposalById(pid)
 
@@ -278,6 +278,54 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 				gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
 			default:
 				gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
+			}
+		case gov.DEPLOY_LIBENI_PROPOSAL:
+			if proposal.Result == "Approved" {
+				if proposal.Detail["status"] == "unready" {
+					result := make(chan bool)
+
+					go func() {
+						if r := <- result; r {
+							gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
+							gov.RegisterLibEni(proposal)
+						} else {
+							panic("Can't install the new libeni")
+						}
+					}()
+
+					go gov.DownloadLibEni(proposal, 5, result)
+				} else {
+					gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
+					gov.RegisterLibEni(proposal)
+				}
+			} else {
+				switch gov.CheckProposal(pid, nil) {
+				case "approved":
+					if proposal.Detail["status"] == "unready" {
+						result := make(chan bool)
+
+						go func() {
+							if r := <- result; r {
+								gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
+								gov.RegisterLibEni(proposal)
+							} else {
+								panic("Can't install the new libeni")
+							}
+						}()
+
+						go gov.DownloadLibEni(proposal, 5, result)
+					} else {
+						gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
+						gov.RegisterLibEni(proposal)
+					}
+					gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
+				case "rejected":
+					gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
+					gov.DestroyLibEni(proposal)
+				default:
+					gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
+					gov.DestroyLibEni(proposal)
+				}
 			}
 		}
 
