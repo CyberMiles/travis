@@ -163,6 +163,14 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
+		otaInfo := eni.OTAInfo {
+			LibName: txInner.Name,
+			Version: txInner.Version,
+		}
+		if valid, _ := OTAInstance.IsValidNewLib(otaInfo); !valid {
+			return sdk.NewCheck(0, ""), ErrInvalidNewLib()
+		}
+
 		// Transfer gasFee
 		if _, err := checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposal); err != nil {
 			return sdk.NewCheck(0, ""), err
