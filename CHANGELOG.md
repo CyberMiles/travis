@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.1.0-rc.4
+
+_August 3rd, 2018_
+
+### FEATURES
+- Upgrade on Lity and CVM: Support registration or upgrade of libENI in Governance.
+- Enhancement in DPoS Protocol: Replace Ranking Power with Voting Power. On top of stakes, ranking and compensation of Validator will be determined by participation, diversity, loyalty and growth of community. 
+For detailed algorithm, please refer to our DPoS Protocol: https://www.cybermiles.io/validator/
+
+### IMPROVEMENTS
+- Modify Governance mechanism: Support setting an expiration date on a Governance proposal, either with timestamp or block height. 
+- Improve system stability: Trigger db transaction with every block created. Skating and governance in SQLite database is operated in the same db transaction. 
+
 ## v0.1.0-rc.3
 
 _July 20th, 2018_
