@@ -611,3 +611,64 @@ func updateUnstakeRequest(req *UnstakeRequest) {
 		panic(err)
 	}
 }
+
+func SaveCandidateDailyStake(cds *CandidateDailyStake) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("insert into candidate_daily_stakes(id, pub_key, amount, created_at) values(?, ?, ?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(cds.Id, types.PubKeyString(cds.PubKey), cds.Amount, cds.CreatedAt)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func RemoveCandidateDailyStake(cds *CandidateDailyStake) {
+	db := getDb()
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	stmt, err := tx.Prepare("delete from candidate_daily_stakes where id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(cds.Id)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GetCandidateDailyStakeMax(pubKey types.PubKey, startDate string) string {
+	db := getDb()
+	defer db.Close()
+	stmt, err := db.Prepare("select max(amount) from candidate_daily_stakes where pub_key = ? and created_at >= ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var maxAmount string
+	err = stmt.QueryRow(types.PubKeyString(pubKey), startDate).Scan(&maxAmount)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return maxAmount
+}

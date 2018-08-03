@@ -488,3 +488,30 @@ func (r *UnstakeRequest) Hash() []byte {
 	hasher.Write(req)
 	return hasher.Sum(nil)
 }
+
+type CandidateDailyStake struct {
+	Id        string
+	PubKey    types.PubKey
+	Amount    string
+	CreatedAt string
+}
+
+func (c *CandidateDailyStake) GenId() []byte {
+	req, err := json.Marshal(struct {
+		PubKey  types.PubKey
+		Amount  string
+		Created string
+	}{
+		c.PubKey,
+		c.Amount,
+		c.CreatedAt,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	hasher := ripemd160.New()
+	hasher.Write(req)
+	return hasher.Sum(nil)
+}

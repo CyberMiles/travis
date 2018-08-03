@@ -25,9 +25,9 @@ import (
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	sm "github.com/CyberMiles/travis/sdk/state"
-	"github.com/CyberMiles/travis/sdk/dbm"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -58,7 +58,7 @@ type StoreApp struct {
 
 	sqliter *dbm.Sqliter
 
-	BlockEnd            bool
+	BlockEnd bool
 }
 
 // NewStoreApp creates a data store to handle queries
@@ -85,7 +85,7 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 		info:            sm.NewChainState(),
 		TotalUsedGasFee: big.NewInt(0),
 		logger:          logger.With("module", "app"),
-		sqliter:		 sqliter,
+		sqliter:         sqliter,
 	}
 	return app, nil
 }
@@ -137,7 +137,6 @@ func (app *StoreApp) WorkingHeight() int64 {
 func (app *StoreApp) GetSqliter() *dbm.Sqliter {
 	return app.sqliter
 }
-
 
 // Info implements abci.Application. It returns the height and hash,
 // as well as the abci name and version.
@@ -357,6 +356,9 @@ func initTravisDb(sqliter *dbm.Sqliter) error {
 	create index idx_governance_vote_voter on governance_vote(voter);
 	create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 	create index idx_governance_vote_hash on governance_vote(hash);
+
+	create table candidate_daily_stakes(id text not null primary key, pub_key text not null, amount text not null default '0', created_at text not null);
+	create index idx_candidate_daily_stakes_pub_key on candidate_daily_stakes(pub_key);
 	`
 	_, err := sqliter.Exec(sqlStmt)
 	if err != nil {
