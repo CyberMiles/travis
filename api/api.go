@@ -65,32 +65,20 @@ func (s *CmtRPCService) makeTravisTxArgs(tx sdk.Tx, address common.Address, nonc
 	}, nil
 }
 
-// SendTransaction creates a transaction for the given argument, sign it and broadcast it to tendermint.
-func (s *CmtRPCService) sendTransaction(args *SendTxArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-
-	// Look up the wallet containing the requested signer
-	account := accounts.Account{Address: args.From}
-
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
+// sign tx and broadcast commit to tendermint.
+func (s *CmtRPCService) signAndBroadcastTxCommit(args *SendTxArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	signTx := func(args *SendTxArgs) (*ethTypes.Transaction, error) {
+		if args.Nonce == nil {
+			// Hold the addresse's mutex around signing to prevent concurrent assignment of
+			// the same nonce to multiple accounts.
+			s.nonceLock.LockAddr(args.From)
+			// release noncelock after sign
+			defer s.nonceLock.UnlockAddr(args.From)
+		}
+		return s.signTransaction(*args)
 	}
 
-	// Set some sanity defaults and terminate on failure
-	if err := args.setDefaults(s.backend); err != nil {
-		return nil, err
-	}
-	// Assemble the transaction and sign with the wallet
-	tx := args.toTransaction()
-
-	wallet, err := s.am.Find(account)
-	if err != nil {
-		return nil, err
-	}
-	ethChainId := int64(s.backend.ethConfig.NetworkId)
-	signed, err := wallet.SignTx(account, tx, big.NewInt(ethChainId))
+	signed, err := signTx(args)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +251,7 @@ func (s *CmtRPCService) DeclareCandidacy(args DeclareCandidacyArgs) (*ctypes.Res
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type WithdrawCandidacyArgs struct {
@@ -279,7 +267,7 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type UpdateCandidacyArgs struct {
@@ -301,7 +289,7 @@ func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.Resul
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type VerifyCandidacyArgs struct {
@@ -322,7 +310,7 @@ func (s *CmtRPCService) VerifyCandidacy(args VerifyCandidacyArgs) (*ctypes.Resul
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type ActivateCandidacyArgs struct {
@@ -338,7 +326,7 @@ func (s *CmtRPCService) ActivateCandidacy(args ActivateCandidacyArgs) (*ctypes.R
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type DelegateArgs struct {
@@ -361,7 +349,7 @@ func (s *CmtRPCService) Delegate(args DelegateArgs) (*ctypes.ResultBroadcastTxCo
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type WithdrawArgs struct {
@@ -382,7 +370,7 @@ func (s *CmtRPCService) Withdraw(args WithdrawArgs) (*ctypes.ResultBroadcastTxCo
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type StakeQueryResult struct {
@@ -422,14 +410,14 @@ func (s *CmtRPCService) QueryDelegator(address common.Address, height uint64) (*
 }
 
 type GovernanceTransferFundProposalArgs struct {
-	Nonce                 *hexutil.Uint64   `json:"nonce"`
-	From                  common.Address    `json:"from"`
-	TransferFrom          common.Address    `json:"transferFrom"`
-	TransferTo            common.Address    `json:"transferTo"`
-	Amount                hexutil.Big       `json:"amount"`
-	Reason                string            `json:"reason"`
-	ExpireTimestamp       *int64            `json:"expireTimestamp"`
-	ExpireBlockHeight     *int64            `json:"expireBlockHeight"`
+	Nonce             *hexutil.Uint64 `json:"nonce"`
+	From              common.Address  `json:"from"`
+	TransferFrom      common.Address  `json:"transferFrom"`
+	TransferTo        common.Address  `json:"transferTo"`
+	Amount            hexutil.Big     `json:"amount"`
+	Reason            string          `json:"reason"`
+	ExpireTimestamp   *int64          `json:"expireTimestamp"`
+	ExpireBlockHeight *int64          `json:"expireBlockHeight"`
 }
 
 func (s *CmtRPCService) ProposeTransferFund(args GovernanceTransferFundProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -440,17 +428,17 @@ func (s *CmtRPCService) ProposeTransferFund(args GovernanceTransferFundProposalA
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type GovernanceChangeParamProposalArgs struct {
-	Nonce              *hexutil.Uint64 `json:"nonce"`
-	From               common.Address  `json:"from"`
-	Name               string          `json:"name"`
-	Value              string          `json:"value"`
-	Reason             string          `json:"reason"`
-	ExpireTimestamp    *int64          `json:"expireTimestamp"`
-	ExpireBlockHeight  *int64          `json:"expireBlockHeight"`
+	Nonce             *hexutil.Uint64 `json:"nonce"`
+	From              common.Address  `json:"from"`
+	Name              string          `json:"name"`
+	Value             string          `json:"value"`
+	Reason            string          `json:"reason"`
+	ExpireTimestamp   *int64          `json:"expireTimestamp"`
+	ExpireBlockHeight *int64          `json:"expireBlockHeight"`
 }
 
 func (s *CmtRPCService) ProposeChangeParam(args GovernanceChangeParamProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -461,19 +449,19 @@ func (s *CmtRPCService) ProposeChangeParam(args GovernanceChangeParamProposalArg
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type GovernanceDeployLibEniProposalArgs struct {
-	Nonce              *hexutil.Uint64 `json:"nonce"`
-	From               common.Address  `json:"from"`
-	Name               string          `json:"name"`
-	Version            string          `json:"version"`
-	FileUrl            string          `json:"fileUrl"`
-	Md5                string          `json:"md5"`
-	Reason             string          `json:"reason"`
-	ExpireTimestamp    *int64         `json:"expireTimestamp"`
-	ExpireBlockHeight  *int64         `json:"expireBlockHeight"`
+	Nonce             *hexutil.Uint64 `json:"nonce"`
+	From              common.Address  `json:"from"`
+	Name              string          `json:"name"`
+	Version           string          `json:"version"`
+	FileUrl           string          `json:"fileUrl"`
+	Md5               string          `json:"md5"`
+	Reason            string          `json:"reason"`
+	ExpireTimestamp   *int64          `json:"expireTimestamp"`
+	ExpireBlockHeight *int64          `json:"expireBlockHeight"`
 }
 
 func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -484,7 +472,7 @@ func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalA
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 type GovernanceVoteArgs struct {
@@ -502,7 +490,7 @@ func (s *CmtRPCService) Vote(args GovernanceVoteArgs) (*ctypes.ResultBroadcastTx
 		return nil, err
 	}
 
-	return s.sendTransaction(txArgs)
+	return s.signAndBroadcastTxCommit(txArgs)
 }
 
 func (s *CmtRPCService) QueryProposals() (*StakeQueryResult, error) {

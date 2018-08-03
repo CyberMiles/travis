@@ -81,17 +81,11 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
 }
 
-// creates a transaction for the given argument, sign it and broardcast it to tendermint.
-func (s *CmtRPCService) signAndBroadcast(args SendTxArgs) (*types.Transaction, error) {
+// signTransaction sets defaults and signs the given transaction
+// NOTE: the caller needs to ensure that the nonceLock is held, and release it after use.
+func (s *CmtRPCService) signTransaction(args SendTxArgs) (*types.Transaction, error) {
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: args.From}
-
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
-	}
 
 	// Set some sanity defaults and terminate on failure
 	if err := args.setDefaults(s.backend); err != nil {
@@ -110,6 +104,24 @@ func (s *CmtRPCService) signAndBroadcast(args SendTxArgs) (*types.Transaction, e
 		return nil, err
 	}
 
+	return signed, nil
+}
+
+// sign tx and broardcast sync to tendermint.
+func (s *CmtRPCService) signAndBroadcastSync(args SendTxArgs) (*types.Transaction, error) {
+	if args.Nonce == nil {
+		// Hold the addresse's mutex around signing to prevent concurrent assignment of
+		// the same nonce to multiple accounts.
+		s.nonceLock.LockAddr(args.From)
+		// release noncelock after broadcast
+		defer s.nonceLock.UnlockAddr(args.From)
+	}
+
+	signed, err := s.signTransaction(args)
+	if err != nil {
+		return nil, err
+	}
+
 	result, err := s.backend.BroadcastTxSync(signed)
 	if err != nil {
 		return nil, err
@@ -123,7 +135,7 @@ func (s *CmtRPCService) signAndBroadcast(args SendTxArgs) (*types.Transaction, e
 
 // SendTransaction is compatible with Ethereum, return eth transaction hash
 func (s *CmtRPCService) SendTransaction(args SendTxArgs) (common.Hash, error) {
-	signed, err := s.signAndBroadcast(args)
+	signed, err := s.signAndBroadcastSync(args)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -133,7 +145,7 @@ func (s *CmtRPCService) SendTransaction(args SendTxArgs) (common.Hash, error) {
 
 // SendTx is same as SendTransaction, but return cmt transaction hash
 func (s *CmtRPCService) SendTx(args SendTxArgs) (string, error) {
-	signed, err := s.signAndBroadcast(args)
+	signed, err := s.signAndBroadcastSync(args)
 	if err != nil {
 		return "", err
 	}
