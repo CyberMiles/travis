@@ -5,8 +5,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"fmt"
-	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/sdk/dbm"
+	"github.com/CyberMiles/travis/types"
 )
 
 var (
@@ -21,7 +21,6 @@ func ResetDeliverSqlTx() {
 	deliverSqlTx = nil
 }
 
-
 func getDb() *sql.DB {
 	db, err := dbm.Sqliter.GetDB()
 	if err != nil {
@@ -30,15 +29,14 @@ func getDb() *sql.DB {
 	return db
 }
 
-
 type SqlTxWrapper struct {
-	tx *sql.Tx
+	tx        *sql.Tx
 	withBlock bool
 }
 
-func getSqlTxWrapper() *SqlTxWrapper{
+func getSqlTxWrapper() *SqlTxWrapper {
 	var wrapper = &SqlTxWrapper{
-		tx: deliverSqlTx,
+		tx:        deliverSqlTx,
 		withBlock: true,
 	}
 	if wrapper.tx == nil {
@@ -189,7 +187,7 @@ func SaveCandidate(candidate *Candidate) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -563,7 +561,7 @@ func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 		reqs = append(reqs, req)
 	}
 
-	if 	err := rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		panic(err)
 	}
 
