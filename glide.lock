@@ -443,7 +443,7 @@ imports:
   - tap
   - transport
 - name: gopkg.in/fatih/set.v0
-  version: 168a5d71ba0669ae06888225478d73a113f1687e
+  version: 2c768e3c5489976167bfc42b5c7c92ca783f4389
 - name: gopkg.in/karalabe/cookiejar.v2
   version: 8dcd6a7f4951f6ff3ee9cbb919a06d8925822e57
   subpackages:
