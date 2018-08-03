@@ -186,9 +186,9 @@ describe("Stake Test", function() {
       ).to.gte(0)
       expect(tx_result.data.state).to.eq("Backup Validator")
       delegation_after = Utils.getDelegation(3, 3)
-      expect(tx_result.data.ranking_power).to.eq(
-        calcRP([delegation_after.shares])
-      )
+      // expect(tx_result.data.ranking_power).to.eq(
+      //   calcRP([delegation_after.shares])
+      // )
     })
   })
 
@@ -225,12 +225,12 @@ describe("Stake Test", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.eq(0)
         expect(tx_result.data.state).to.eq("Backup Validator")
-        expect(tx_result.data.ranking_power).to.eq(
-          calcRP([
-            Utils.getDelegation(1, 3).shares,
-            Utils.getDelegation(3, 3).shares
-          ])
-        )
+        // expect(tx_result.data.ranking_power).to.eq(
+        //   calcRP([
+        //     Utils.getDelegation(1, 3).shares,
+        //     Utils.getDelegation(3, 3).shares
+        //   ])
+        // )
       })
     })
     describe("Account C stakes 12000 CMTs for D.", function() {
@@ -264,13 +264,13 @@ describe("Stake Test", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.be.above(0)
         expect(tx_result.data.state).to.eq("Validator")
-        expect(tx_result.data.ranking_power).to.eq(
-          calcRP([
-            Utils.getDelegation(1, 3).shares,
-            Utils.getDelegation(2, 3).shares,
-            Utils.getDelegation(3, 3).shares
-          ])
-        )
+        // expect(tx_result.data.ranking_power).to.eq(
+        //   calcRP([
+        //     Utils.getDelegation(1, 3).shares,
+        //     Utils.getDelegation(2, 3).shares,
+        //     Utils.getDelegation(3, 3).shares
+        //   ])
+        // )
       })
       it("One of the genesis validators now drops off", function() {
         tx_result = web3.cmt.stake.validator.list()
@@ -280,7 +280,7 @@ describe("Stake Test", function() {
           Globals.Accounts[3]
         )
         expect(drops[0].state).to.eq("Backup Validator")
-        expect(drops[0].ranking_power).to.eq(calcRP([drops[0].shares]))
+        // expect(drops[0].ranking_power).to.eq(calcRP([drops[0].shares]))
       })
     })
   })
