@@ -701,3 +701,20 @@ func getRechargeAmount(maxAmount *big.Int, candidate *Candidate, ratio string) (
 	needRechargeAmount.Sub(needRechargeAmount, delegation.ParseAwardAmount())
 	return
 }
+
+func RecordCandidateDailyStakes() error {
+	candidates := GetCandidates()
+	now := utils.GetNow()
+	for _, candidate := range candidates {
+		cds := &CandidateDailyStake{PubKey: candidate.PubKey, Amount: candidate.Shares, CreatedAt: now}
+		SaveCandidateDailyStake(cds)
+
+		// remove expired records
+		startDate, err := utils.GetTimeBefore(24 * 90) // 90 days
+		if err != nil {
+			return err
+		}
+
+		RemoveCandidateDailyStakes(candidate.PubKey, startDate)
+	}
+}

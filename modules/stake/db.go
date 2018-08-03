@@ -633,7 +633,7 @@ func SaveCandidateDailyStake(cds *CandidateDailyStake) {
 	}
 }
 
-func RemoveCandidateDailyStake(cds *CandidateDailyStake) {
+func RemoveCandidateDailyStakes(pubKey types.PubKey, startDate string) {
 	db := getDb()
 	defer db.Close()
 	tx, err := db.Begin()
@@ -642,13 +642,13 @@ func RemoveCandidateDailyStake(cds *CandidateDailyStake) {
 	}
 	defer tx.Commit()
 
-	stmt, err := tx.Prepare("delete from candidate_daily_stakes where id = ?")
+	stmt, err := tx.Prepare("delete from candidate_daily_stakes where pub_key = ? and created_at < ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(cds.Id)
+	_, err = stmt.Exec(types.PubKeyString(pubKey), startDate)
 	if err != nil {
 		panic(err)
 	}

@@ -222,6 +222,11 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	// handle the pending unstake requests
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
 
+	// record candidates stakes daily
+	if app.WorkingHeight()%8640 == 0 {
+		stake.RecordCandidateDailyStakes()
+	}
+
 	return app.StoreApp.EndBlock(req)
 }
 
