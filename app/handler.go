@@ -47,6 +47,7 @@ func (app BaseApp) checkHandler(ctx types.Context, store state.SimpleDB, tx *eth
 
 	utils.NonceCheckedTx[tx.Hash()] = true
 	currentState.SetNonce(from, nonce+1)
+	app.EthApp.backend.AddNonce(from)
 
 	return res.ToABCI()
 }
@@ -88,8 +89,6 @@ func (app BaseApp) deliverHandler(ctx types.Context, store state.SimpleDB, tx *e
 		return errors.DeliverResult(err)
 	}
 
-	// no error, call ethereum app to add nonce
-	app.EthApp.backend.AddNonce(from)
 	// accumulate gasFee
 	app.StoreApp.TotalUsedGasFee.Add(app.StoreApp.TotalUsedGasFee, res.GasFee)
 	return res.ToABCI()
