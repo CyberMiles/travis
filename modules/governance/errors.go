@@ -23,6 +23,7 @@ var (
 	errInvalidMd5Json           = fmt.Errorf("The md5 is not a valid json")
 	errNoFileurl                = fmt.Errorf("Can not find fileurl for current os")
 	errNoMd5                    = fmt.Errorf("Can not find md5 for current os")
+	errInvalidNewLib            = fmt.Errorf("Invalid ENI lib name or version")
 )
 
 func ErrMissingSignature() error {
@@ -83,4 +84,8 @@ func ErrNoFileurl() error {
 
 func ErrNoMd5() error {
 	return errors.WithCode(errNoMd5, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrInvalidNewLib() error {
+	return errors.WithCode(errInvalidNewLib, errors.CodeTypeBaseInvalidInput)
 }
