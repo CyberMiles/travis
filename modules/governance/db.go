@@ -395,6 +395,33 @@ func GetProposals() (proposals []*Proposal) {
 	return
 }
 
+func HasUndeployedProposal(name string) bool {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("select p.id from governance_proposal p, governance_deploy_libeni_detail d where p.id = d.proposal_id and p.type='deploy_libeni' and (p.result = 'Approved' or p.result = '') and d.status != 'deployed' and d.name = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(name)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+		return true
+	}
+
+	if err = rows.Err(); err != nil {
+		panic(err)
+	}
+
+	return false
+}
+
 func GetPendingProposals() (proposals []*Proposal) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()

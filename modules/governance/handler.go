@@ -171,6 +171,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidNewLib()
 		}
 
+		if HasUndeployedProposal(txInner.Name) {
+			return sdk.NewCheck(0, ""), ErrOngoingLibFound()
+		}
+
 		// Transfer gasFee
 		if _, err := checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposal); err != nil {
 			return sdk.NewCheck(0, ""), err
