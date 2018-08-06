@@ -184,6 +184,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 // EndBlock - ABCI - triggers Tick actions
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.EthApp.EndBlock(req)
+	// todo
 	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, app.TotalUsedGasFee)
 
 	var backups stake.Validators
@@ -192,7 +193,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	// block award
-	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, utils.BlockGasFee, app.logger).Distribute()
+	if app.WorkingHeight()%360 == 0 {
+		// run once per hour
+		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, utils.BlockGasFee, app.logger).Distribute()
+	}
 
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
@@ -224,6 +228,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	// record candidates stakes daily
 	if app.WorkingHeight()%8640 == 0 {
+		// run once per day
 		stake.RecordCandidateDailyStakes()
 	}
 

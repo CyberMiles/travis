@@ -331,6 +331,7 @@ type Delegation struct {
 	AwardAmount      string         `json:"award_amount"`
 	WithdrawAmount   string         `json:"withdraw_amount"`
 	SlashAmount      string         `json:"slash_amount"`
+	CompRate         string         `json:"comp_rate"`
 	CreatedAt        string         `json:"created_at"`
 	UpdatedAt        string         `json:"updated_at"`
 }
@@ -357,6 +358,10 @@ func (d *Delegation) ParseWithdrawAmount() *big.Int {
 
 func (d *Delegation) ParseSlashAmount() *big.Int {
 	return utils.ParseInt(d.SlashAmount)
+}
+
+func (d *Delegation) ParseCompRate() float64 {
+	return utils.ParseFloat(d.CompRate)
 }
 
 func (d *Delegation) AddDelegateAmount(value *big.Int) *big.Int {

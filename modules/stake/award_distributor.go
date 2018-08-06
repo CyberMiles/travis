@@ -23,11 +23,11 @@ type validator struct {
 	ownerAddress     common.Address
 	pubKey           types.PubKey
 	delegators       []*delegator
-	compRate         float64
 	sharesPercentage *big.Float
 	selfDelegator    *delegator
 	exceedLimit      bool
 	totalShares      *big.Int
+	votingPower      *big.Int
 }
 
 func (v validator) getAwardForValidatorSelf(totalAward *big.Int, ac *awardDistributor) (award *big.Int) {
@@ -88,6 +88,12 @@ type delegator struct {
 	address          common.Address
 	shares           *big.Int
 	sharesPercentage *big.Float
+	compRate         float64
+	V                *big.Int
+	S1               *big.Int
+	S2               *big.Int
+	T                int
+	N                int
 }
 
 func (d *delegator) computeSharesPercentage(val *validator) {
@@ -185,9 +191,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		validator.shares = shares
 		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
 		validator.pubKey = candidate.PubKey
-		validator.compRate = candidate.ParseCompRate()
 		totalShares.Add(totalShares, shares)
-		skippedShares := big.NewInt(0)
 
 		// Get all delegators
 		delegations := GetDelegationsByPubKey(candidate.PubKey)
@@ -195,28 +199,27 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
 			minStakingAmount := new(big.Int).Mul(big.NewInt(utils.GetParams().MinStakingAmount), big.NewInt(1e18))
 			if delegation.Shares().Cmp(minStakingAmount) < 0 {
-				skippedShares.Add(skippedShares, delegation.Shares())
 				continue
 			}
 
 			delegator := delegator{}
 			delegator.address = delegation.DelegatorAddress
 			delegator.shares = delegation.Shares()
-
-			if delegator.address == validator.ownerAddress {
-				validator.selfDelegator = &delegator
-			} else {
-				delegators = append(delegators, &delegator)
-			}
+			delegators = append(delegators, &delegator)
+			// todo
+			//delegator.S1 =
+			//delegator.S2 =
+			//delegator.T =
+			delegator.N += 1
 		}
 
-		totalShares.Sub(totalShares, skippedShares)
-		validator.shares.Sub(validator.shares, skippedShares)
+		// todo calculator voting power for delegators
+		for _, d := range delegators {
 
-		if validator.selfDelegator != nil {
-			validator.delegators = delegators
-			normalizedValidators = append(normalizedValidators, &validator)
 		}
+
+		validator.delegators = delegators
+		normalizedValidators = append(normalizedValidators, &validator)
 	}
 
 	return
