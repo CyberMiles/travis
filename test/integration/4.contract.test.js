@@ -291,7 +291,7 @@ describe("Contract Test", function() {
           expect(token_balance_new[i].toNumber()).to.eq(0)
         }
         // check code
-        expect(web3.cmt.getCode(contractAddress)).to.eq("0x")
+        expect(web3.cmt.getCode(Globals.ETH.contractAddress)).to.eq("0x")
 
         done()
       })

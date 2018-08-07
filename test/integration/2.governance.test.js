@@ -254,8 +254,7 @@ describe("Governance Test", function() {
       })
       it("Verify that 500 CMTs are removed from account #1 and show up as frozen amount for this account. ", function() {
         let amount = web3.toWei(500, "cmt")
-        let now = Math.floor(new Date() / 1000)
-        let expire = now + 2 * 10 // about 2 blocks
+        let expire = web3.cmt.getBlock("latest").timestamp + 2 * 10 // about 2 blocks
 
         tx_result = web3.cmt.governance.proposeRecoverFund({
           from: Globals.Accounts[0],

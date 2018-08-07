@@ -1,5 +1,4 @@
 const expect = require("chai").expect
-const fs = require("fs")
 const async = require("async")
 const logger = require("./logger")
 const { Settings } = require("./constants")
@@ -36,14 +35,9 @@ const getBalance = (index = null) => {
   return index == null ? balance : balance[index]
 }
 
-const tokenFile = "./ETHToken.json"
-const tokenJSON = JSON.parse(fs.readFileSync(tokenFile).toString())
-const abi = tokenJSON["abi"]
-const bytecode = tokenJSON["bytecode"]
-
-const newContract = function(deployAddress, cb) {
+const newContract = function(deployAddress, abi, bytecode, cb) {
   let tokenContract = web3.cmt.contract(abi)
-  tokenContract.new(
+  let contractInstance = tokenContract.new(
     {
       from: deployAddress,
       data: bytecode,
@@ -63,11 +57,12 @@ const newContract = function(deployAddress, cb) {
       }
     }
   )
+  return contractInstance
 }
 
 const tokenTransfer = function(f, t, v, gasPrice, nonce) {
-  let tokenContract = web3.cmt.contract(abi)
-  let tokenInstance = tokenContract.at(contractAddress)
+  let tokenContract = web3.cmt.contract(Globals.ETH.abi)
+  let tokenInstance = tokenContract.at(Globals.ETH.contractAddress)
   let option = {
     from: f,
     gasPrice: gasPrice || 0
@@ -86,16 +81,16 @@ const tokenTransfer = function(f, t, v, gasPrice, nonce) {
 }
 
 const tokenKill = deployAdrress => {
-  let tokenContract = web3.cmt.contract(abi)
-  let tokenInstance = tokenContract.at(contractAddress)
+  let tokenContract = web3.cmt.contract(Globals.ETH.abi)
+  let tokenInstance = tokenContract.at(Globals.ETH.contractAddress)
   let hash = tokenInstance.kill({ from: deployAdrress })
   logger.debug("token kill hash: ", hash)
   return hash
 }
 
 const getTokenBalance = () => {
-  let tokenContract = web3.cmt.contract(abi)
-  let tokenInstance = tokenContract.at(contractAddress)
+  let tokenContract = web3.cmt.contract(Globals.ETH.abi)
+  let tokenInstance = tokenContract.at(Globals.ETH.contractAddress)
 
   let balance = new Array(4)
   for (i = 0; i < 4; i++) {
@@ -265,6 +260,9 @@ const gasFee = txType => {
       break
     case "proposeChangeParam":
       gasLimit = web3.toBigNumber(Globals.Params.change_params_proposal)
+      break
+    case "proposeDeployLibEni":
+      gasLimit = web3.toBigNumber(Globals.Params.deploy_libeni_proposal)
       break
   }
   return gasPrice.times(gasLimit)
