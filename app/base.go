@@ -65,17 +65,7 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 			if pp.Type == governance.DEPLOY_LIBENI_PROPOSAL {
 				dp := governance.GetProposalById(pp.Id)
 				if dp.Detail["status"] != "ready" {
-					result := make(chan bool)
-
-					go func() {
-						if r := <- result; r {
-							governance.UpdateDeployLibEniStatus(pp.Id, "ready")
-						} else {
-							governance.UpdateDeployLibEniStatus(pp.Id, "unready")
-						}
-					}()
-
-					go governance.DownloadLibEni(dp, result, true)
+					governance.DownloadLibEni(dp)
 				}
 			}
 		}

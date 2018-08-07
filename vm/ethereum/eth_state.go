@@ -282,18 +282,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 		case gov.DEPLOY_LIBENI_PROPOSAL:
 			if proposal.Result == "Approved" {
 				if proposal.Detail["status"] != "ready" {
-					result := make(chan bool)
-
-					go func() {
-						if r := <- result; r {
-							gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
-							gov.RegisterLibEni(proposal)
-						} else {
-							panic("Can't install the new libeni")
-						}
-					}()
-
-					go gov.DownloadLibEni(proposal, result, false)
+					gov.CancelDownload(proposal, true)
 				} else {
 					gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 					gov.RegisterLibEni(proposal)
@@ -302,28 +291,17 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 				switch gov.CheckProposal(pid, nil) {
 				case "approved":
 					if proposal.Detail["status"] != "ready" {
-						result := make(chan bool)
-
-						go func() {
-							if r := <- result; r {
-								gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
-								gov.RegisterLibEni(proposal)
-							} else {
-								panic("Can't install the new libeni")
-							}
-						}()
-
-						go gov.DownloadLibEni(proposal, result, false)
+						gov.CancelDownload(proposal, true)
 					} else {
 						gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 						gov.RegisterLibEni(proposal)
 					}
 					gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 				case "rejected":
-					gov.CancelDownload(proposal)
+					gov.CancelDownload(proposal, false)
 					gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
 				default:
-					gov.CancelDownload(proposal)
+					gov.CancelDownload(proposal, false)
 					gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
 				}
 			}

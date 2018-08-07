@@ -23,7 +23,7 @@ const governanceModuleName = "governance"
 
 var OTAInstance = eni.NewOTAInstance()
 
-var downloading = make(map[string] chan<- bool)
+var cancelDownload= make(map[string] bool)
 
 // Name is the name of the modules.
 func Name() string {
@@ -405,17 +405,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		res.Data = hash
 
-		result := make(chan bool)
-
-		go func() {
-			if r := <- result; r {
-				UpdateDeployLibEniStatus(dp.Id, "ready")
-			} else {
-				UpdateDeployLibEniStatus(dp.Id, "unready")
-			}
-		}()
-
-		go DownloadLibEni(dp, result, true)
+		DownloadLibEni(dp)
 
 	case TxVote:
 		var vote *Vote
@@ -472,7 +462,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			case "approved":
 				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
 			case "rejected":
-				CancelDownload(proposal)
+				CancelDownload(proposal, false)
+				utils.PendingProposal.Del(proposal.Id)
 				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
 			}
 		}
@@ -602,62 +593,52 @@ func getOTAInfo(p *Proposal) *eni.OTAInfo {
 	}
 }
 
-func DownloadLibEni(p *Proposal, result chan<- bool, retry bool) {
+func DownloadLibEni(p *Proposal) {
 	oi := getOTAInfo(p)
 	if oi == nil {
-		result <- false
 		return
 	}
 
-	if _, ok := downloading[oi.LibName]; !ok {
-		if retry {
-			downloading[oi.LibName] = nil
-		} else  {
-			downloading[oi.LibName] = result
+	result := make(chan bool)
+
+	go func() {
+		if r := <- result; r {
+			delete(cancelDownload, p.Id)
+			UpdateDeployLibEniStatus(p.Id, "ready")
+		} else {
+			UpdateDeployLibEniStatus(p.Id, "failed")
+			if r, ok := cancelDownload[p.Id]; ok {
+				delete(cancelDownload, p.Id)
+				if r {
+					panic("Can't install the new libeni")
+				}
+			}
 		}
+	}()
+
+	go func() {
 		for {
+			if _, ok := cancelDownload[p.Id]; ok {
+				result <- false
+				break;
+			}
 			if err := OTAInstance.Download(*oi); err == nil {
 				if err = OTAInstance.Verify(*oi); err == nil {
-					if r := downloading[oi.LibName]; r != nil {
-						r <- true
-					}
-					if retry {
-						result <- true
-					}
+					result <- true
 					break
 				}
 			}
-			if r := downloading[oi.LibName]; r != nil {
-				if retry {
-					result <- false
-				}
-				r <- false
+			if _, ok := cancelDownload[p.Id]; ok {
+				result <- false
 				break;
 			}
-			time.Sleep(10 * time.Minute)
+			time.Sleep(10 * time.Second)
 		}
-		delete(downloading, oi.LibName)
-	} else {
-		downloading[oi.LibName] = result
-	}
+	}()
 }
 
-func CancelDownload(p *Proposal) {
-	oi := getOTAInfo(p)
-	if oi == nil {
-		return
-	}
-
-	if _, ok := downloading[oi.LibName]; ok {
-		t := make(chan bool)
-		go func() {
-			<- t
-			DestroyLibEni(p)
-		}()
-		downloading[oi.LibName] = t
-	} else {
-		DestroyLibEni(p)
-	}
+func CancelDownload(p *Proposal, bpanic bool) {
+	cancelDownload[p.Id] = bpanic
 }
 
 func RegisterLibEni(p *Proposal) {
