@@ -75,7 +75,7 @@ func (s *CmtRPCService) signAndBroadcastTxCommit(args *SendTxArgs) (*ctypes.Resu
 			// release noncelock after sign
 			defer s.nonceLock.UnlockAddr(args.From)
 		}
-		return s.signTransaction(*args)
+		return s.signTransaction(args)
 	}
 
 	signed, err := signTx(args)

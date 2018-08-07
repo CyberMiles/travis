@@ -281,7 +281,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 			}
 		case gov.DEPLOY_LIBENI_PROPOSAL:
 			if proposal.Result == "Approved" {
-				if proposal.Detail["status"] == "unready" {
+				if proposal.Detail["status"] != "ready" {
 					result := make(chan bool)
 
 					go func() {
@@ -293,7 +293,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 						}
 					}()
 
-					go gov.DownloadLibEni(proposal, 5, result)
+					go gov.DownloadLibEni(proposal, result, false)
 				} else {
 					gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 					gov.RegisterLibEni(proposal)
@@ -301,7 +301,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 			} else {
 				switch gov.CheckProposal(pid, nil) {
 				case "approved":
-					if proposal.Detail["status"] == "unready" {
+					if proposal.Detail["status"] != "ready" {
 						result := make(chan bool)
 
 						go func() {
@@ -313,18 +313,18 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 							}
 						}()
 
-						go gov.DownloadLibEni(proposal, 5, result)
+						go gov.DownloadLibEni(proposal, result, false)
 					} else {
 						gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 						gov.RegisterLibEni(proposal)
 					}
 					gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 				case "rejected":
+					gov.CancelDownload(proposal)
 					gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
-					gov.DestroyLibEni(proposal)
 				default:
+					gov.CancelDownload(proposal)
 					gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
-					gov.DestroyLibEni(proposal)
 				}
 			}
 		}

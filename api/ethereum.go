@@ -83,7 +83,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 
 // signTransaction sets defaults and signs the given transaction
 // NOTE: the caller needs to ensure that the nonceLock is held, and release it after use.
-func (s *CmtRPCService) signTransaction(args SendTxArgs) (*types.Transaction, error) {
+func (s *CmtRPCService) signTransaction(args *SendTxArgs) (*types.Transaction, error) {
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: args.From}
 
@@ -117,7 +117,7 @@ func (s *CmtRPCService) signAndBroadcastSync(args SendTxArgs) (*types.Transactio
 		defer s.nonceLock.UnlockAddr(args.From)
 	}
 
-	signed, err := s.signTransaction(args)
+	signed, err := s.signTransaction(&args)
 	if err != nil {
 		return nil, err
 	}

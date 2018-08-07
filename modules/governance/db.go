@@ -426,24 +426,25 @@ func GetPendingProposals() (proposals []*Proposal) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	rows, err := txWrapper.tx.Query("select id, expire_timestamp, expire_block_height from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and d.status != 'deployed'))")
+	rows, err := txWrapper.tx.Query("select id, type, expire_timestamp, expire_block_height from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and d.status != 'deployed'))")
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var id string
+		var id, ptype string
 		var expireTimestamp int64
 		var expireBlockHeight int64
 
-		err = rows.Scan(&id, &expireTimestamp, &expireBlockHeight)
+		err = rows.Scan(&id, &ptype, &expireTimestamp, &expireBlockHeight)
 		if err != nil {
 			panic(err)
 		}
 
 		pp := &Proposal{
 			Id: id,
+			Type: ptype,
 			ExpireTimestamp: expireTimestamp,
 			ExpireBlockHeight: expireBlockHeight,
 		}
