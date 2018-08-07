@@ -655,6 +655,8 @@ func CancelDownload(p *Proposal) {
 			DestroyLibEni(p)
 		}()
 		downloading[oi.LibName] = t
+	} else {
+		DestroyLibEni(p)
 	}
 }
 
