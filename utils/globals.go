@@ -140,7 +140,7 @@ func (p *pendingProposal) ReachMin(timestamp, blockHeight int64) (pids []string)
 		p.updateTS()
 	}
 
-	if p.minExpireBlockHeight == blockHeight {
+	if p.minExpireBlockHeight <= blockHeight {
 		pids = append(pids, p.minBHMappedPid...)
 
 		for _, pid := range p.minBHMappedPid {

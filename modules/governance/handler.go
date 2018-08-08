@@ -606,12 +606,15 @@ func DownloadLibEni(p *Proposal) {
 			delete(cancelDownload, p.Id)
 			UpdateDeployLibEniStatus(p.Id, "ready")
 		} else {
-			UpdateDeployLibEniStatus(p.Id, "failed")
 			if r, ok := cancelDownload[p.Id]; ok {
 				delete(cancelDownload, p.Id)
 				if r {
-					panic("Can't install the new libeni")
+					UpdateDeployLibEniStatus(p.Id, "failed, but proposal has been approved")
+				} else {
+					UpdateDeployLibEniStatus(p.Id, "failed")
 				}
+			} else {
+				UpdateDeployLibEniStatus(p.Id, "failed")
 			}
 		}
 	}()

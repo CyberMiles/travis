@@ -289,10 +289,14 @@ func UpdateProposalResult(pid, result, msg string, blockHeight int64, resultAt s
 }
 
 func UpdateDeployLibEniStatus(pid, status string) {
-	txWrapper := getSqlTxWrapper()
-	defer txWrapper.Commit()
+	db := getDb()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("update governance_deploy_libeni_detail set status = ? where proposal_id = ?")
+	stmt, err := tx.Prepare("update governance_deploy_libeni_detail set status = ? where proposal_id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -399,7 +403,7 @@ func HasUndeployedProposal(name string) bool {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("select p.id from governance_proposal p, governance_deploy_libeni_detail d where p.id = d.proposal_id and p.type='deploy_libeni' and (p.result = 'Approved' or p.result = '') and d.status != 'deployed' and d.name = ?")
+	stmt, err := txWrapper.tx.Prepare("select p.id from governance_proposal p, governance_deploy_libeni_detail d where p.id = d.proposal_id and p.type='deploy_libeni' and (p.result = 'Approved' or p.result = '') and (d.status != 'deployed' and d.status not like 'failed%')  and d.name = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -426,7 +430,7 @@ func GetPendingProposals() (proposals []*Proposal) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	rows, err := txWrapper.tx.Query("select id, type, expire_timestamp, expire_block_height from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and d.status != 'deployed'))")
+	rows, err := txWrapper.tx.Query("select id, type, expire_timestamp, expire_block_height from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and (d.status != 'deployed' and d.status not like 'failed%')))")
 	if err != nil {
 		panic(err)
 	}
