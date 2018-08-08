@@ -36,7 +36,7 @@ import:
   - types
 - package: github.com/ethereum/go-ethereum
   repo: https://github.com/CyberMiles/go-ethereum.git
-  version: 9fd28eadb961881125f95cc58062b37a4601c37f
+  version: 920e793aa16f78cb59da359a8ffc11f629d88ad7
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
 - package: github.com/mattn/go-sqlite3
