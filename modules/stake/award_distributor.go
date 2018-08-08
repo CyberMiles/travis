@@ -9,6 +9,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/CyberMiles/travis/commons"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 )
@@ -89,11 +90,11 @@ type delegator struct {
 	shares           *big.Int
 	sharesPercentage *big.Float
 	compRate         float64
-	V                *big.Int
-	S1               *big.Int
-	S2               *big.Int
-	T                int
-	N                int
+	V                int64
+	S1               int64
+	S2               int64
+	T                int64
+	N                int64
 }
 
 func (d *delegator) computeSharesPercentage(val *validator) {
@@ -206,16 +207,27 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			delegator.address = delegation.DelegatorAddress
 			delegator.shares = delegation.Shares()
 			delegators = append(delegators, &delegator)
-			// todo
-			//delegator.S1 =
-			//delegator.S2 =
-			//delegator.T =
+
+			tenDaysAgo, _ := utils.GetTimeBefore(10 * 24)
+			ninetyDaysAgo, _ := utils.GetTimeBefore(90 * 24)
+			m1 := GetCandidateDailyStakeMax(delegation.PubKey, tenDaysAgo)
+			m2 := GetCandidateDailyStakeMax(delegation.PubKey, ninetyDaysAgo)
+			s1, _ := new(big.Int).SetString(m1, 10)
+			s2, _ := new(big.Int).SetString(m2, 10)
+			delegator.S1 = s1.Int64()
+			delegator.S2 = s2.Int64()
+
+			t, _ := utils.Diff(delegation.CreatedAt)
+			if t > 180 {
+				t = 180
+			}
+			delegator.T = t
 			delegator.N += 1
 		}
 
 		// todo calculator voting power for delegators
 		for _, d := range delegators {
-
+			d.V = calcVotingPowerForDelegator(d.S1, d.S2, d.T, d.N, d.shares.Div)
 		}
 
 		validator.delegators = delegators
@@ -301,4 +313,20 @@ func (ad awardDistributor) awardToDelegator(d *delegator, v *validator, award *b
 	val.AddShares(award)
 	val.UpdatedAt = now
 	updateCandidate(val)
+}
+
+func calcVotingPowerForDelegator(s1, s2, t, n, s int64) int64 {
+	one := sdk.OneRat()
+	r1 := sdk.NewRat(s1, s2)
+	r2 := sdk.NewRat(t, 180)
+	r3 := sdk.NewRat(n, 10)
+	r4 := sdk.NewRat(s, 1)
+
+	r1 = r1.Mul(r1)
+	r2 = r2.Add(one)
+	r3 = one.Sub(one.Quo(r3.Add(one)))
+	r3 = r3.Mul(r3)
+	v, _ := r1.Mul(r3).Mul(r4).Float64()
+	f2, _ := r2.Float64()
+	return int64(v * math.Log2(f2))
 }

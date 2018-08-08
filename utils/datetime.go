@@ -17,3 +17,13 @@ func GetTimeBefore(hours int) (string, error) {
 
 	return time.Now().Add(d).UTC().Format(time.RFC3339), nil
 }
+
+func Diff(t string) (int64, error) {
+	dt, err := time.Parse(time.RFC3339, t)
+	if err != nil {
+		return 0, err
+	}
+
+	d := time.Now().Sub(dt)
+	return int64(d.Hours() / 24), nil
+}
