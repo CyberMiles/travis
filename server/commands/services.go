@@ -239,7 +239,7 @@ func startTendermint(basecoinApp abcitypes.Application) (*node.Node, error) {
 		papp,
 		node.DefaultGenesisDocProviderFunc(cfg),
 		node.DefaultDBProvider,
-		node.DefaultMetricsProvider,
+		node.DefaultMetricsProvider(cfg.Instrumentation),
 		logger.With("module", "node"))
 	if err != nil {
 		return nil, err
