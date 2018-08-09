@@ -462,7 +462,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			case "approved":
 				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
 			case "rejected":
-				CancelDownload(proposal, false)
+				if proposal.Detail["status"] != "ready" {
+					CancelDownload(proposal, false)
+				}
 				utils.PendingProposal.Del(proposal.Id)
 				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
 			}
@@ -603,8 +605,17 @@ func DownloadLibEni(p *Proposal) {
 
 	go func() {
 		if r := <- result; r {
-			delete(cancelDownload, p.Id)
-			UpdateDeployLibEniStatus(p.Id, "ready")
+			if r, ok := cancelDownload[p.Id]; ok {
+				delete(cancelDownload, p.Id)
+				if r {
+					UpdateDeployLibEniStatus(p.Id, "deployed")
+					RegisterLibEni(p)
+				} else {
+					UpdateDeployLibEniStatus(p.Id, "ready")
+				}
+			} else {
+				UpdateDeployLibEniStatus(p.Id, "ready")
+			}
 		} else {
 			if r, ok := cancelDownload[p.Id]; ok {
 				delete(cancelDownload, p.Id)

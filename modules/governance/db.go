@@ -289,24 +289,26 @@ func UpdateProposalResult(pid, result, msg string, blockHeight int64, resultAt s
 }
 
 func UpdateDeployLibEniStatus(pid, status string) {
-	db := getDb()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	go func() {
+		db := getDb()
+		tx, err := db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		defer tx.Commit()
 
-	stmt, err := tx.Prepare("update governance_deploy_libeni_detail set status = ? where proposal_id = ?")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
+		stmt, err := tx.Prepare("update governance_deploy_libeni_detail set status = ? where proposal_id = ?")
+		if err != nil {
+			panic(err)
+		}
+		defer stmt.Close()
 
-	_, err = stmt.Exec(status, pid)
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
+		_, err = stmt.Exec(status, pid)
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+	}()
 }
 
 func GetProposals() (proposals []*Proposal) {

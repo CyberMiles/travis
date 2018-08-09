@@ -298,10 +298,14 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 					}
 					gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 				case "rejected":
-					gov.CancelDownload(proposal, false)
+					if proposal.Detail["status"] != "ready" {
+						gov.CancelDownload(proposal, false)
+					}
 					gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
 				default:
-					gov.CancelDownload(proposal, false)
+					if proposal.Detail["status"] != "ready" {
+						gov.CancelDownload(proposal, false)
+					}
 					gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
 				}
 			}
