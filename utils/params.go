@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -14,7 +15,7 @@ type Params struct {
 	MaxVals                   uint16         `json:"max_vals" type:"uint"` // maximum number of validators
 	SelfStakingRatio          string         `json:"self_staking_ratio" type:"float"`
 	InflationRate             int64          `json:"inflation_rate" type:"uint"`
-	ValidatorSizeThreshold    string         `json:"validator_size_threshold" type:"float"`
+	ValidatorSizeThreshold    sdk.Rat        `json:"validator_size_threshold" type:"rat"`
 	UnstakeWaitingPeriod      uint64         `json:"unstake_waiting_period" type:"uint"`
 	ProposalExpirePeriod      int64          `json:"proposal_expire_period" type:"uint"`
 	DeclareCandidacy          uint64         `json:"declare_candidacy" type:"uint"`
@@ -35,7 +36,7 @@ func defaultParams() *Params {
 		MaxVals:                   100,
 		SelfStakingRatio:          "0.1",
 		InflationRate:             8,
-		ValidatorSizeThreshold:    "0.12",
+		ValidatorSizeThreshold:    sdk.NewRat(12, 100),
 		UnstakeWaitingPeriod:      7 * 24 * 3600 / 10,
 		ProposalExpirePeriod:      7 * 24 * 3600,
 		DeclareCandidacy:          1e6,

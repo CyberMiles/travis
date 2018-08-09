@@ -1,9 +1,16 @@
 package sdk
 
-import "math/big"
+import (
+	"encoding/json"
+	"math/big"
+)
 
 type Rat struct {
 	*big.Rat `json:"rat"`
+}
+
+func ZeroRat() Rat {
+	return Rat{big.NewRat(0, 1)}
 }
 
 func OneRat() Rat {
@@ -28,4 +35,34 @@ func (r Rat) Mul(r2 Rat) Rat {
 
 func (r Rat) Quo(r2 Rat) Rat {
 	return Rat{new(big.Rat).Quo(r.Rat, r2.Rat)}
+}
+
+func (r Rat) Cmp(r2 Rat) int {
+	return r.Rat.Cmp(r2.Rat)
+}
+
+//Wraps r.MarshalText().
+func (r Rat) MarshalJson() ([]byte, error) {
+	if r.Rat == nil {
+		r.Rat = new(big.Rat)
+	}
+
+	text, err := r.Rat.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(string(text))
+}
+
+// Requires a valid JSON string - strings quotes and calls UnmarshalText
+func (r *Rat) UnmarshalJson(text []byte) (err error) {
+	tempRat := big.NewRat(0, 1)
+	err = tempRat.UnmarshalText([]byte(text))
+	if err != nil {
+		return err
+	}
+
+	r.Rat = tempRat
+	return nil
 }

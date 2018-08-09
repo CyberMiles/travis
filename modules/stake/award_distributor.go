@@ -1,12 +1,10 @@
 package stake
 
 import (
-	"math"
-	"math/big"
-	"strconv"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tendermint/libs/log"
+	"math"
+	"math/big"
 
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
@@ -20,15 +18,13 @@ const (
 )
 
 type validator struct {
-	shares           *big.Int
+	shares           int64
 	ownerAddress     common.Address
 	pubKey           types.PubKey
 	delegators       []*delegator
-	sharesPercentage *big.Float
 	selfDelegator    *delegator
-	exceedLimit      bool
-	totalShares      *big.Int
-	votingPower      *big.Int
+	totalVotingPower int64
+	votingPower      int64
 }
 
 func (v validator) getAwardForValidatorSelf(totalAward *big.Int, ac *awardDistributor) (award *big.Int) {
@@ -66,44 +62,27 @@ func (v validator) computeSelfSharesPercentage() *big.Float {
 	return result
 }
 
-func (v *validator) computeTotalSharesPercentage(redistribute bool) {
-	x := new(big.Float).SetInt(v.shares)
-	y := new(big.Float).SetInt(v.totalShares)
-	v.sharesPercentage = new(big.Float).Quo(x, y)
-	v.exceedLimit = false
+func (v *validator) computeTotalSharesPercentage(totalShares int64, redistribute bool) sdk.Rat {
+	p := sdk.NewRat(v.shares, totalShares)
+	threshold := utils.GetParams().ValidatorSizeThreshold
+	if !redistribute && p.Cmp(threshold) > 0 {
+		p = threshold
+	}
 
-	slf, err := strconv.ParseFloat(utils.GetParams().ValidatorSizeThreshold, 64)
-	if err != nil {
-		panic(err)
-	}
-	threshold := big.NewFloat(slf)
-	if !redistribute && v.sharesPercentage.Cmp(threshold) > 0 {
-		v.sharesPercentage = threshold
-		v.exceedLimit = true
-	}
+	return p
 }
 
 //_______________________________________________________________________
 
 type delegator struct {
-	address          common.Address
-	shares           *big.Int
-	sharesPercentage *big.Float
-	compRate         float64
-	V                int64
-	S1               int64
-	S2               int64
-	T                int64
-	N                int64
-}
-
-func (d *delegator) computeSharesPercentage(val *validator) {
-	d.sharesPercentage = new(big.Float)
-	x := new(big.Float).SetInt(d.shares) // shares of the delegator
-	tmp := new(big.Int)
-	tmp.Sub(val.shares, val.selfDelegator.shares)
-	y := new(big.Float).SetInt(tmp) // total shares of the validator
-	d.sharesPercentage.Quo(x, y)
+	address  common.Address
+	shares   int64
+	compRate float64
+	V        int64
+	S1       int64
+	S2       int64
+	T        int64
+	N        int64
 }
 
 func (d delegator) getAwardForDelegator(totalShares, totalAward *big.Int, ac *awardDistributor, val *validator) (award *big.Int) {
@@ -177,8 +156,8 @@ func (ad awardDistributor) Distribute() {
 	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
 }
 
-func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares *big.Int) {
-	totalShares = new(big.Int)
+func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares int64) {
+	totalShares = 0
 
 	for _, val := range rawValidators {
 		var validator validator
@@ -188,11 +167,8 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			continue
 		}
 
-		shares := candidate.ParseShares()
-		validator.shares = shares
 		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
 		validator.pubKey = candidate.PubKey
-		totalShares.Add(totalShares, shares)
 
 		// Get all delegators
 		delegations := GetDelegationsByPubKey(candidate.PubKey)
@@ -205,15 +181,15 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 
 			delegator := delegator{}
 			delegator.address = delegation.DelegatorAddress
-			delegator.shares = delegation.Shares()
+			delegator.shares = sdk.NewIntFromBigInt(delegation.Shares()).Div(sdk.NewInt(1e18)).Int64()
 			delegators = append(delegators, &delegator)
 
 			tenDaysAgo, _ := utils.GetTimeBefore(10 * 24)
 			ninetyDaysAgo, _ := utils.GetTimeBefore(90 * 24)
 			m1 := GetCandidateDailyStakeMax(delegation.PubKey, tenDaysAgo)
 			m2 := GetCandidateDailyStakeMax(delegation.PubKey, ninetyDaysAgo)
-			s1, _ := new(big.Int).SetString(m1, 10)
-			s2, _ := new(big.Int).SetString(m2, 10)
+			s1, _ := sdk.NewIntFromString(m1)
+			s2, _ := sdk.NewIntFromString(m2)
 			delegator.S1 = s1.Int64()
 			delegator.S2 = s2.Int64()
 
@@ -225,9 +201,12 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			delegator.N += 1
 		}
 
-		// todo calculator voting power for delegators
+		// calculator voting power for delegators
 		for _, d := range delegators {
-			d.V = calcVotingPowerForDelegator(d.S1, d.S2, d.T, d.N, d.shares.Div)
+			d.V = calcVotingPowerForDelegator(d.S1, d.S2, d.T, d.N, d.shares)
+			validator.votingPower += d.V
+			validator.shares += d.shares
+			totalShares += d.shares
 		}
 
 		validator.delegators = delegators
@@ -237,11 +216,10 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 	return
 }
 
-func (ad *awardDistributor) distributeToValidators(normalizedValidators []*validator, totalShares *big.Int, totalAward *big.Int) {
+func (ad *awardDistributor) distributeToValidators(normalizedValidators []*validator, totalShares int64, totalAward *big.Int) {
 	actualDistributed := big.NewInt(0)
 	for _, val := range normalizedValidators {
-		val.totalShares = totalShares
-		val.computeTotalSharesPercentage(false)
+		p := val.computeTotalSharesPercentage(totalShares, false)
 		actualAward := ad.doDistribute(val, totalAward)
 		actualDistributed.Add(actualDistributed, actualAward)
 	}
@@ -251,7 +229,7 @@ func (ad *awardDistributor) distributeToValidators(normalizedValidators []*valid
 	if remaining.Cmp(big.NewInt(0)) > 0 {
 		ad.logger.Debug("there is remaining award, doDistribute a second round based on stake amount.", "remaining", remaining)
 		for _, val := range normalizedValidators {
-			val.computeTotalSharesPercentage(true)
+			val.computeTotalSharesPercentage(totalShares, true)
 			ad.doDistribute(val, remaining)
 		}
 	}
