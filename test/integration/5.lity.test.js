@@ -39,7 +39,7 @@ describe("Lity Test", function() {
         balance_old = web3.cmt.getBalance(web3.cmt.defaultAccount, "latest")
       })
       it("The proposal TX returns an error if bad version format. ", function() {
-        expireBlocks = web3.cmt.blockNumber + 5
+        expireBlocks = web3.cmt.blockNumber + 25
         tx_result = web3.cmt.governance.proposeDeployLibEni({
           from: web3.cmt.defaultAccount,
           name: "reverse",
@@ -104,7 +104,7 @@ describe("Lity Test", function() {
     })
     describe("Propose to upgrade reverse. ", function() {
       it("The proposal TX returns an error if version <= 0.9.0. ", function() {
-        expireBlocks = web3.cmt.blockNumber + 5
+        expireBlocks = web3.cmt.blockNumber + 25
         tx_result = web3.cmt.governance.proposeDeployLibEni({
           from: web3.cmt.defaultAccount,
           name: "reverse",
