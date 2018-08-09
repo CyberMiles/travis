@@ -68,4 +68,4 @@ deploy:
     tags: true
 
 after_script:
-  - TAG=$TRAVIS_BRANCH make push_tag_image ;
+  - cd $TRAVIS_BUILD_DIR && TAG=$TRAVIS_BRANCH make push_tag_image ;
