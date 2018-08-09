@@ -157,7 +157,12 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
+        let tag = tx_result.deliver_tx.tags.find(
+          t => t.key == Globals.GasFeeKey
+        )
+        expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+          gasFee.toString()
+        )
         expect(tx_result.deliver_tx.gasUsed).to.eq(
           web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
         )
@@ -223,7 +228,12 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
+        let tag = tx_result.deliver_tx.tags.find(
+          t => t.key == Globals.GasFeeKey
+        )
+        expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+          gasFee.toString()
+        )
         expect(tx_result.deliver_tx.gasUsed).to.eq(
           web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
         )
@@ -284,7 +294,12 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
+        let tag = tx_result.deliver_tx.tags.find(
+          t => t.key == Globals.GasFeeKey
+        )
+        expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+          gasFee.toString()
+        )
         expect(tx_result.deliver_tx.gasUsed).to.eq(
           web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
         )
@@ -343,7 +358,12 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
+        let tag = tx_result.deliver_tx.tags.find(
+          t => t.key == Globals.GasFeeKey
+        )
+        expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+          gasFee.toString()
+        )
         expect(tx_result.deliver_tx.gasUsed).to.eq(
           web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
         )

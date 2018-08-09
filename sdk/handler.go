@@ -1,8 +1,9 @@
 package sdk
 
 import (
-	abci "github.com/tendermint/tendermint/abci/types"
 	"math/big"
+
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/common"
 )
 
@@ -39,9 +40,9 @@ func NewCheck(gasAllocated int64, log string) CheckResult {
 
 func (c CheckResult) ToABCI() abci.ResponseCheckTx {
 	return abci.ResponseCheckTx{
-		Data: c.Data,
-		Log:  c.Log,
-		GasUsed:  c.GasAllocated,
+		Data:    c.Data,
+		Log:     c.Log,
+		GasUsed: c.GasAllocated,
 	}
 }
 
@@ -62,14 +63,13 @@ type DeliverResult struct {
 func (d DeliverResult) ToABCI() abci.ResponseDeliverTx {
 	var tags []common.KVPair
 	if d.GasFee.Cmp(big.NewInt(0)) > 0 {
-		tags = append(tags, common.KVPair{Key: []byte("GasFee"), Value: d.GasFee.Bytes()})
+		tags = append(tags, common.KVPair{Key: []byte("GasFee"), Value: []byte(d.GasFee.String())})
 	}
 	return abci.ResponseDeliverTx{
-		Data: d.Data,
-		Log:  d.Log,
-		Tags: tags,
+		Data:    d.Data,
+		Log:     d.Log,
+		Tags:    tags,
 		GasUsed: d.GasUsed,
-
 	}
 }
 

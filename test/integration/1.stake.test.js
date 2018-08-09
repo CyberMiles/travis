@@ -128,7 +128,12 @@ describe("Stake Test", function() {
             -gasFee.plus(amounts.self).toNumber()
           )
           // check deliver tx tx_result
-          expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
+          let tag = tx_result.deliver_tx.tags.find(
+            t => t.key == Globals.GasFeeKey
+          )
+          expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+            gasFee.toString()
+          )
           expect(tx_result.deliver_tx.gasUsed).to.eq(
             web3.toBigNumber(Globals.Params.declare_candidacy).toString()
           )
@@ -401,7 +406,12 @@ describe("Stake Test", function() {
           -gasFee.toNumber()
         )
         // check deliver tx tx_result
-        expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
+        let tag = tx_result.deliver_tx.tags.find(
+          t => t.key == Globals.GasFeeKey
+        )
+        expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+          gasFee.toString()
+        )
         expect(tx_result.deliver_tx.gasUsed).to.eq(
           web3.toBigNumber(Globals.Params.update_candidacy).toString()
         )
