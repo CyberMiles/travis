@@ -108,23 +108,24 @@ func NewAwardDistributor(height int64, validators, backupValidators Validators, 
 	return &awardDistributor{height, validators, backupValidators, transactionFees, logger}
 }
 
-func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
-	amount = new(big.Int)
+func (ad awardDistributor) getMintableAmount() (amount sdk.Int) {
+	amount = sdk.NewInt(0)
 	base, ok := new(big.Float).SetString(basicMintableAmount)
 	if !ok {
 		return
 	}
 
 	year := ad.height / yearlyBlockNumber
-	pow := big.NewFloat(math.Pow(float64(1+utils.GetParams().InflationRate/100), float64(year)))
+	b, _ := utils.GetParams().InflationRate.Add(sdk.OneRat()).Float64()
+	pow := big.NewFloat(math.Pow(b, float64(year)))
 	new(big.Float).Mul(base, pow).Int(amount)
 	ad.logger.Debug("getMintableAmount", "height", ad.height, "year", year, "amount", amount)
 	return
 }
 
-func (ad awardDistributor) getBlockAward() (blockAward *big.Int) {
+func (ad awardDistributor) getBlockAward() (blockAward sdk.Int) {
 	ybn := big.NewInt(yearlyBlockNumber)
-	blockAward = new(big.Int)
+	blockAward = sdk.NewInt(0)
 	blockAward.Mul(ad.getMintableAmount(), big.NewInt(utils.GetParams().InflationRate))
 	blockAward.Div(blockAward, big.NewInt(100))
 	blockAward.Div(blockAward, ybn)
@@ -136,17 +137,28 @@ func (ad awardDistributor) Distribute() {
 	// distribute to the validators
 	normalizedValidators, totalValidatorsShares := ad.buildValidators(ad.validators)
 	normalizedBackupValidators, totalBackupsShares := ad.buildValidators(ad.backupValidators)
-	totalAward := new(big.Int)
-	if len(normalizedBackupValidators) > 0 {
+	totalAward := sdk.NewInt(0)
+	rr := sdk.ZeroRat()
+	rr.Rat.Denom()
+	rs := sdk.ZeroRat()
+	if len(normalizedBackupValidators) > 0 && totalBackupsShares > 0 {
 		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(utils.GetParams().ValidatorsBlockAwardRatio))
 		totalAward.Div(totalAward, big.NewInt(100))
+		totalAward =
+		rr := sdk.NewRat(utils.GetParams().ValidatorsBlockAwardRatio, 100)
+		rs := sdk.NewRat(totalValidatorsShares, totalValidatorsShares + totalBackupsShares)
 	} else {
 		totalAward = ad.getBlockAwardAndTxFees()
+		rr := sdk.OneRat()
+		rs := sdk.OneRat()
 	}
+
 	ad.distributeToValidators(normalizedValidators, totalValidatorsShares, totalAward)
 
 	// distribute to the backup validators
-	if len(normalizedBackupValidators) > 0 {
+	if len(normalizedBackupValidators) > 0 && totalBackupsShares > 0 {
+		rr = sdk.ZeroRat()
+		rs = sdk.NewRat(totalBackupsShares, totalValidatorsShares + totalBackupsShares)
 		totalAward = new(big.Int)
 		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(100-utils.GetParams().ValidatorsBlockAwardRatio))
 		totalAward.Div(totalAward, big.NewInt(100))

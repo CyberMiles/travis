@@ -14,7 +14,7 @@ type Params struct {
 	HoldAccount               common.Address `json:"hold_account"`         // PubKey where all bonded coins are held
 	MaxVals                   uint16         `json:"max_vals" type:"uint"` // maximum number of validators
 	SelfStakingRatio          string         `json:"self_staking_ratio" type:"float"`
-	InflationRate             int64          `json:"inflation_rate" type:"uint"`
+	InflationRate             sdk.Rat        `json:"inflation_rate" type:"rat"`
 	ValidatorSizeThreshold    sdk.Rat        `json:"validator_size_threshold" type:"rat"`
 	UnstakeWaitingPeriod      uint64         `json:"unstake_waiting_period" type:"uint"`
 	ProposalExpirePeriod      int64          `json:"proposal_expire_period" type:"uint"`
@@ -35,7 +35,7 @@ func defaultParams() *Params {
 		HoldAccount:               HoldAccount,
 		MaxVals:                   100,
 		SelfStakingRatio:          "0.1",
-		InflationRate:             8,
+		InflationRate:             sdk.NewRat(8, 100),
 		ValidatorSizeThreshold:    sdk.NewRat(12, 100),
 		UnstakeWaitingPeriod:      7 * 24 * 3600 / 10,
 		ProposalExpirePeriod:      7 * 24 * 3600,
