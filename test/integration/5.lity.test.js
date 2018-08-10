@@ -94,7 +94,7 @@ describe("Lity Test", function() {
         Utils.expectTxFail(tx_result)
       })
       it("Wait for serveral blocks.", function(done) {
-        Utils.waitBlocks(done, expireBlocks - web3.cmt.blockNumber)
+        Utils.waitBlocks(done, expireBlocks - web3.cmt.blockNumber + 1)
       })
       it("The library has been deployed. ", function() {
         // check proposal
@@ -140,7 +140,7 @@ describe("Lity Test", function() {
         expect(p.Result).to.equal("Approved")
       })
       it("Wait for serveral blocks.", function(done) {
-        Utils.waitBlocks(done, expireBlocks - web3.cmt.blockNumber)
+        Utils.waitBlocks(done, expireBlocks - web3.cmt.blockNumber + 1)
       })
       it("The library has been deployed. ", function() {
         // check proposal
