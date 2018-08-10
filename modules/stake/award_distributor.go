@@ -110,15 +110,17 @@ func NewAwardDistributor(height int64, validators, backupValidators Validators, 
 
 func (ad awardDistributor) getMintableAmount() (amount sdk.Int) {
 	amount = sdk.NewInt(0)
-	base, ok := new(big.Float).SetString(basicMintableAmount)
+	base, ok := sdk.NewIntFromString(basicMintableAmount)
 	if !ok {
 		return
 	}
 
 	year := ad.height / yearlyBlockNumber
 	b, _ := utils.GetParams().InflationRate.Add(sdk.OneRat()).Float64()
-	pow := big.NewFloat(math.Pow(b, float64(year)))
-	new(big.Float).Mul(base, pow).Int(amount)
+	pow, _ := big.NewFloat(math.Pow(b, float64(year))).Float64()
+	pow = utils.RoundFloat(pow, 2)
+	r := sdk.NewRat(int64(pow*100), 100)
+	amount = base.MulRat(r)
 	ad.logger.Debug("getMintableAmount", "height", ad.height, "year", year, "amount", amount)
 	return
 }
@@ -144,9 +146,8 @@ func (ad awardDistributor) Distribute() {
 	if len(normalizedBackupValidators) > 0 && totalBackupsShares > 0 {
 		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(utils.GetParams().ValidatorsBlockAwardRatio))
 		totalAward.Div(totalAward, big.NewInt(100))
-		totalAward =
 		rr := sdk.NewRat(utils.GetParams().ValidatorsBlockAwardRatio, 100)
-		rs := sdk.NewRat(totalValidatorsShares, totalValidatorsShares + totalBackupsShares)
+		rs := sdk.NewRat(totalValidatorsShares, totalValidatorsShares+totalBackupsShares)
 	} else {
 		totalAward = ad.getBlockAwardAndTxFees()
 		rr := sdk.OneRat()
@@ -158,7 +159,7 @@ func (ad awardDistributor) Distribute() {
 	// distribute to the backup validators
 	if len(normalizedBackupValidators) > 0 && totalBackupsShares > 0 {
 		rr = sdk.ZeroRat()
-		rs = sdk.NewRat(totalBackupsShares, totalValidatorsShares + totalBackupsShares)
+		rs = sdk.NewRat(totalBackupsShares, totalValidatorsShares+totalBackupsShares)
 		totalAward = new(big.Int)
 		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(100-utils.GetParams().ValidatorsBlockAwardRatio))
 		totalAward.Div(totalAward, big.NewInt(100))
