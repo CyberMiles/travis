@@ -315,7 +315,23 @@ func GetProposals() (proposals []*Proposal) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	rows, err := txWrapper.tx.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire_timestamp, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
+	proposals = getProposals(txWrapper.tx)
+	return
+}
+
+func QueryProposals() (proposals []*Proposal) {
+	tx, err := getDb().Begin()
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Commit()
+
+	proposals = getProposals(tx)
+	return
+}
+
+func getProposals(tx *sql.Tx) (proposals []*Proposal){
+	rows, err := tx.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire_timestamp, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
 		case
 		when p.type = 'transfer_fund'
 		then (select printf('%s-+-%s-+-%s-+-%s', from_address, to_address, amount, reason) from governance_transfer_fund_detail where proposal_id = p.id) 

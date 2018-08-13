@@ -191,12 +191,12 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 			resQuery.Value = value
 		}
 	case "/validators":
-		candidates := stake.GetCandidates()
+		candidates := stake.QueryCandidates()
 		b, _ := json.Marshal(candidates)
 		resQuery.Value = b
 	case "/validator":
 		address := common.HexToAddress(string(reqQuery.Data))
-		candidate := stake.GetCandidateByAddress(address)
+		candidate := stake.QueryCandidateByAddress(address)
 		if candidate != nil {
 			b, _ := json.Marshal(candidate)
 			resQuery.Value = b
@@ -205,11 +205,11 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		}
 	case "/delegator":
 		address := common.HexToAddress(string(reqQuery.Data))
-		delegations := stake.GetDelegationsByDelegator(address)
+		delegations := stake.QueryDelegationsByDelegator(address)
 		b, _ := json.Marshal(delegations)
 		resQuery.Value = b
 	case "/governance/proposals":
-		proposals := governance.GetProposals()
+		proposals := governance.QueryProposals()
 		b, _ := json.Marshal(proposals)
 		resQuery.Value = b
 	default:

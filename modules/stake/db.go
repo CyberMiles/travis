@@ -140,11 +140,15 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 		panic(err)
 	}
 	defer rows.Close()
+	candidates = composeCandidateResults(rows)
+	return
+}
 
+func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
 		var votingPower, blockHeight, rank int64
-		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+		err := rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -175,11 +179,9 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 		candidates = append(candidates, candidate)
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		panic(err)
 	}
-
 	return
 }
 
@@ -428,9 +430,14 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	}
 	defer rows.Close()
 
+	delegations = composeDelegationResults(rows)
+	return
+}
+
+func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation)  {
 	for rows.Next() {
 		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
-		err = rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
+		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
