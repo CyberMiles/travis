@@ -456,11 +456,17 @@ WPa9dcsV51zwmQZXZvkCQQChnQLBs6BbH6O85ePXSSbe7RUvHua6EEkmCNkIw+vT
 const cubeSign = (address, nonce) => {
   let message = address + "|" + nonce
 
-  let signer = crypto.createSign("sha256")
-  signer.write(message)
-  signer.end()
-
-  let signature = signer.sign(privateKey)
+  let hash = crypto
+    .createHash("sha256")
+    .update(message)
+    .digest("hex")
+  let signature = crypto.privateDecrypt(
+    {
+      key: privateKey,
+      padding: crypto.constants.RSA_NO_PADDING
+    },
+    new Buffer(hash, "hex")
+  )
   let signature_hex = signature.toString("hex")
   logger.debug("cube sig: ", signature_hex)
   return signature_hex
