@@ -193,9 +193,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	// block award
-	if app.WorkingHeight()%360 == 0 {
+	if app.WorkingHeight()%utils.BlocksPerHour == 0 {
 		// run once per hour
-		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, utils.BlockGasFee, app.logger).Distribute()
+		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, sdk.NewIntFromBigInt(utils.BlockGasFee), app.logger).Distribute()
 	}
 
 	// punish Byzantine validators
@@ -227,7 +227,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
 
 	// record candidates stakes daily
-	if app.WorkingHeight()%8640 == 0 {
+	if app.WorkingHeight()%utils.BlocksPerDay == 0 {
 		// run once per day
 		stake.RecordCandidateDailyStakes()
 	}

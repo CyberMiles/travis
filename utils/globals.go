@@ -8,7 +8,11 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-const CommitSeconds = 10
+const (
+	CommitSeconds = 10
+	BlocksPerHour = 60 * 60 / 10
+	BlocksPerDay  = 24 * 60 * 60 / 10
+)
 
 type StateChangeObject struct {
 	From   common.Address
@@ -23,9 +27,9 @@ type StateChangeReactor interface {
 }
 
 type pendingProposal struct {
-	proposals            map[string]int64
-	minExpire            int64
-	minHeightMappedPid   []string
+	proposals          map[string]int64
+	minExpire          int64
+	minHeightMappedPid []string
 }
 
 func (p *pendingProposal) BatchAdd(proposals map[string]int64) {
@@ -95,7 +99,7 @@ func (p *pendingProposal) ReachMin(timestamp int64) (pids []string) {
 }
 
 func shouldBePacked(timestamp, lastTs int64) bool {
-	if timestamp < lastTs || timestamp - lastTs < CommitSeconds {
+	if timestamp < lastTs || timestamp-lastTs < CommitSeconds {
 		return true
 	}
 	return false

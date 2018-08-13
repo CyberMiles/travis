@@ -109,7 +109,7 @@ func (ad awardDistributor) Distribute() {
 		ad.distributeToValidators(normalizedBackupValidators, totalBackupsShares, ad.getBlockAwardAndTxFees(), rr, rs)
 	}
 
-	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Int)
+	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)).Int)
 }
 
 func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares int64) {
@@ -193,7 +193,7 @@ func (ad *awardDistributor) distributeToValidators(normalizedValidators []*valid
 	}
 }
 
-func (ad *awardDistributor) doDistribute(val *validator, totalAward sdk.Int, rr, rs sdk.Rat) (actualTotalAward *big.Int) {
+func (ad *awardDistributor) doDistribute(val *validator, totalAward sdk.Int, rr, rs sdk.Rat) {
 	var t int64
 	t = 0
 
@@ -214,7 +214,7 @@ func (ad *awardDistributor) doDistribute(val *validator, totalAward sdk.Int, rr,
 }
 
 func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {
-	return ad.getBlockAward().Add(ad.transactionFees)
+	return ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)).Add(ad.transactionFees)
 }
 
 func (ad awardDistributor) awardToValidator(v *validator, award sdk.Int) {
