@@ -157,15 +157,15 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        let tag = tx_result.deliver_tx.tags.find(
-          t => t.key == Globals.GasFeeKey
-        )
-        expect(Buffer.from(tag.value, "base64").toString()).to.eq(
-          gasFee.toString()
-        )
-        expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
-        )
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        // )
       })
       describe("Validators A, B, and C votes for the proposal. The total vote (A+B+C) now exceeds 2/3. ", function() {
         it("Verify that the 500 CMTs are transfered to account #2. ", function() {
@@ -228,15 +228,15 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        let tag = tx_result.deliver_tx.tags.find(
-          t => t.key == Globals.GasFeeKey
-        )
-        expect(Buffer.from(tag.value, "base64").toString()).to.eq(
-          gasFee.toString()
-        )
-        expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
-        )
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        // )
       })
       describe("Validator A votes for the proposal, but defaultAccount, B and C vote against the proposal. The total vote (default+B+C) now exceeds 2/3.", function() {
         it("Verify that the 500 CMTs are transfered back to account #1. ", function() {
@@ -294,15 +294,15 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        let tag = tx_result.deliver_tx.tags.find(
-          t => t.key == Globals.GasFeeKey
-        )
-        expect(Buffer.from(tag.value, "base64").toString()).to.eq(
-          gasFee.toString()
-        )
-        expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
-        )
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        // )
       })
 
       it("Validator A votes for the proposal, but no one else votes(wait for 2 blocks).", function(done) {
@@ -358,15 +358,15 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        let tag = tx_result.deliver_tx.tags.find(
-          t => t.key == Globals.GasFeeKey
-        )
-        expect(Buffer.from(tag.value, "base64").toString()).to.eq(
-          gasFee.toString()
-        )
-        expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
-        )
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        // )
       })
 
       it("Validator A votes for the proposal, but no one else votes(wait for 2 blocks).", function(done) {
