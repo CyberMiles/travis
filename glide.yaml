@@ -1,13 +1,13 @@
 package: github.com/CyberMiles/travis
 import:
 - package: github.com/prometheus/client_golang
-  version: ae27198cdd90bf12cd134ad79d1366a6cf49f632
+  version: v0.8.0
 - package: github.com/prometheus/client_model
-  version: 5c3871d89910bfb32f5fcab2aa4b9ec68e65a99f
+  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
 - package: github.com/prometheus/common
-  version: c7de2306084e37d54b8be01f3541a8464345e9a5
+  version: e4aa40a9169a88835b849a6efb71e05dc04b88f0
 - package: github.com/prometheus/procfs
-  version: 05ee40e3a273f7245e8777337fc7b46e533a9a92
+  version: 54d17b57dd7d4a3aa092476596b3f8a933bde349
 - package: github.com/prometheus/prometheus
   version: v2.0.0
   
@@ -24,7 +24,7 @@ import:
   subpackages:
   - data
 - package: github.com/tendermint/tendermint
-  version: v0.23.0
+  version: v0.22.0
   subpackages:
   - config
   - node
@@ -43,10 +43,6 @@ import:
   version: v1.6.0
 - package: github.com/tendermint/go-amino
   version: ~0.10.1
-- package: github.com/gogo/protobuf
-  version: =1.1.1
-- package: github.com/rcrowley/go-metrics
-  version: e2704e165165ec55d062f5919b4b29494e9fa790
 testImport:
 - package: github.com/stretchr/testify
   subpackages:

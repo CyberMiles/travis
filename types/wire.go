@@ -3,7 +3,6 @@ package types
 import (
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
-	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"fmt"
 	"encoding/json"
 )
@@ -11,7 +10,7 @@ import (
 var Cdc = amino.NewCodec()
 
 func init() {
-	cryptoAmino.RegisterAmino(Cdc)
+	crypto.RegisterAmino(Cdc)
 }
 
 type jsonPubKey struct {

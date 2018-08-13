@@ -20,7 +20,7 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
 	"database/sql"
 )
@@ -170,7 +170,7 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 // BeginBlock - ABCI
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	app.BlockEnd = false
-	app.blockTime = req.GetHeader().Time.Unix()
+	app.blockTime = req.GetHeader().Time
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
 
@@ -191,8 +191,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// init end
 
 	// handle the absent validators
-	for _, sv := range req.LastCommitInfo.GetValidators() {
-		var pk ed25519.PubKeyEd25519
+	for _, sv := range req.Validators {
+		var pk crypto.PubKeyEd25519
 		copy(pk[:], sv.Validator.PubKey.Data)
 
 		pubKey := ttypes.PubKey{pk}

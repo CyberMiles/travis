@@ -61,15 +61,19 @@ type DeliverResult struct {
 }
 
 func (d DeliverResult) ToABCI() abci.ResponseDeliverTx {
-	var tags []common.KVPair
+	var fee = common.KI64Pair{}
 	if d.GasFee.Cmp(big.NewInt(0)) > 0 {
-		tags = append(tags, common.KVPair{Key: []byte("GasFee"), Value: []byte(d.GasFee.String())})
+			fee = common.KI64Pair{
+			Key: []byte("GasFee"),
+			Value: d.GasFee.Int64(),
+		}
 	}
 	return abci.ResponseDeliverTx{
-		Data:    d.Data,
-		Log:     d.Log,
-		Tags:    tags,
+		Data: d.Data,
+		Log:  d.Log,
+		Tags: nil,
 		GasUsed: d.GasUsed,
+		Fee:	fee,
 	}
 }
 

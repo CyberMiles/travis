@@ -1,5 +1,5 @@
-hash: 7fa6b8733f6902121313d1ae55d2f6bd293d40c992830b19bc7c90c7509a0dd9
-updated: 2018-08-09T12:19:10.253230274+08:00
+hash: 98497c40b26fd3326e5f48728ea7947cf7ab0c53a559654ce5b33a39cef35cf4
+updated: 2018-07-19T18:36:59.515676304+08:00
 imports:
 - name: github.com/aristanetworks/goarista
   version: 59944ff78bc1de686b0aba1444dfd380f48f03d4
@@ -55,7 +55,6 @@ imports:
   - core/state
   - core/types
   - core/vm
-  - core/vm/eni
   - crypto
   - crypto/bn256
   - crypto/bn256/cloudflare
@@ -128,7 +127,7 @@ imports:
 - name: github.com/go-stack/stack
   version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
 - name: github.com/gogo/protobuf
-  version: 636bf0302bc95575d69441b25a2603156ffdddf1
+  version: 1adfc126b41513cc696b209667c8656ea7aac67c
   subpackages:
   - gogoproto
   - jsonpb
@@ -215,22 +214,22 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/prometheus/client_golang
-  version: ae27198cdd90bf12cd134ad79d1366a6cf49f632
+  version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
   - prometheus
   - prometheus/promhttp
 - name: github.com/prometheus/client_model
-  version: 5c3871d89910bfb32f5fcab2aa4b9ec68e65a99f
+  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
   subpackages:
   - go
 - name: github.com/prometheus/common
-  version: c7de2306084e37d54b8be01f3541a8464345e9a5
+  version: e4aa40a9169a88835b849a6efb71e05dc04b88f0
   subpackages:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
   - model
 - name: github.com/prometheus/procfs
-  version: 05ee40e3a273f7245e8777337fc7b46e533a9a92
+  version: 54d17b57dd7d4a3aa092476596b3f8a933bde349
   subpackages:
   - internal/util
   - nfs
@@ -300,7 +299,7 @@ imports:
 - name: github.com/tendermint/iavl
   version: 35f66e53d9b01e83b30de68b931f54b2477a94c9
 - name: github.com/tendermint/tendermint
-  version: 013b9cef642f875634c614019ab13b17570778ad
+  version: dfa9a9a30a666132425b29454e90a472aa579a48
   subpackages:
   - abci/client
   - abci/example/code
@@ -312,10 +311,7 @@ imports:
   - consensus
   - consensus/types
   - crypto
-  - crypto/ed25519
-  - crypto/encoding/amino
   - crypto/merkle
-  - crypto/secp256k1
   - crypto/tmhash
   - evidence
   - libs/autofile
@@ -360,19 +356,16 @@ imports:
 - name: golang.org/x/crypto
   version: c3a3ad6d03f7a915c0f7e194b7152974bb73d287
   subpackages:
-  - chacha20poly1305
   - curve25519
-  - hkdf
-  - internal/chacha20
   - nacl/box
   - nacl/secretbox
+  - openpgp/armor
+  - openpgp/errors
   - pbkdf2
   - poly1305
   - ripemd160
   - salsa20/salsa
   - scrypt
-- name: golang.org/x/crypto/ripemd160
-  version: de0752318171da717af4ce24d0a2e8626afaeb11
 - name: golang.org/x/net
   version: 92b859f39abd2d91a854c9f9c4621b2f5054a92d
   subpackages:
