@@ -13,7 +13,7 @@ import (
 type Params struct {
 	HoldAccount               common.Address `json:"hold_account"`         // PubKey where all bonded coins are held
 	MaxVals                   uint16         `json:"max_vals" type:"uint"` // maximum number of validators
-	SelfStakingRatio          string         `json:"self_staking_ratio" type:"float"`
+	SelfStakingRatio          sdk.Rat        `json:"self_staking_ratio" type:"float"`
 	InflationRate             sdk.Rat        `json:"inflation_rate" type:"rat"`
 	ValidatorSizeThreshold    sdk.Rat        `json:"validator_size_threshold" type:"rat"`
 	UnstakeWaitingPeriod      uint64         `json:"unstake_waiting_period" type:"uint"`
@@ -24,9 +24,9 @@ type Params struct {
 	ChangeParamsProposal      uint64         `json:"change_params_proposal" type:"uint"`
 	GasPrice                  uint64         `json:"gas_price" type:"uint"`
 	MinStakingAmount          int64          `json:"min_staking_amount" type:"uint"`
-	ValidatorsBlockAwardRatio int64          `json:"validators_block_award_ratio" type:"uint"`
+	ValidatorsBlockAwardRatio sdk.Rat        `json:"validators_block_award_ratio" type:"uint"`
 	MaxSlashingBlocks         int16          `json:"max_slashing_blocks" type:"uint"`
-	SlashingRatio             string         `json:"slashing_ratio" type:"float"`
+	SlashingRatio             sdk.Rat        `json:"slashing_ratio" type:"float"`
 	CubePubKeys               string         `json:"cube_pub_keys" type:"json"`
 }
 
@@ -34,7 +34,7 @@ func defaultParams() *Params {
 	return &Params{
 		HoldAccount:               HoldAccount,
 		MaxVals:                   100,
-		SelfStakingRatio:          "0.1",
+		SelfStakingRatio:          sdk.NewRat(10, 100),
 		InflationRate:             sdk.NewRat(8, 100),
 		ValidatorSizeThreshold:    sdk.NewRat(12, 100),
 		UnstakeWaitingPeriod:      7 * 24 * 3600 / 10,
@@ -45,9 +45,9 @@ func defaultParams() *Params {
 		ChangeParamsProposal:      2e6,
 		GasPrice:                  2e9,
 		MinStakingAmount:          1000,
-		ValidatorsBlockAwardRatio: 80,
+		ValidatorsBlockAwardRatio: sdk.NewRat(80, 100),
 		MaxSlashingBlocks:         12,
-		SlashingRatio:             "0.001",
+		SlashingRatio:             sdk.NewRat(1, 1000),
 		CubePubKeys:               "{}",
 	}
 }
