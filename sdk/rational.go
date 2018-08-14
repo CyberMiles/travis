@@ -66,3 +66,13 @@ func (r *Rat) UnmarshalJson(text []byte) (err error) {
 	r.Rat = tempRat
 	return nil
 }
+
+func (r Rat) Equal(r2 Rat) bool { return (r.Rat).Cmp(r2.Rat) == 0 }
+
+func (r Rat) GT(r2 Rat) bool { return (r.Rat).Cmp(r2.Rat) == 1 }
+
+func (r Rat) GTE(r2 Rat) bool { return !r.LT(r2) }
+
+func (r Rat) LT(r2 Rat) bool { return (r.Rat).Cmp(r2.Rat) == -1 }
+
+func (r Rat) LTE(r2 Rat) bool { return !r.GT(r2) }

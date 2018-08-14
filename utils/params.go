@@ -13,7 +13,7 @@ import (
 type Params struct {
 	HoldAccount               common.Address `json:"hold_account"`         // PubKey where all bonded coins are held
 	MaxVals                   uint16         `json:"max_vals" type:"uint"` // maximum number of validators
-	SelfStakingRatio          sdk.Rat        `json:"self_staking_ratio" type:"float"`
+	SelfStakingRatio          sdk.Rat        `json:"self_staking_ratio" type:"rat"`
 	InflationRate             sdk.Rat        `json:"inflation_rate" type:"rat"`
 	ValidatorSizeThreshold    sdk.Rat        `json:"validator_size_threshold" type:"rat"`
 	UnstakeWaitingPeriod      uint64         `json:"unstake_waiting_period" type:"uint"`
@@ -24,9 +24,9 @@ type Params struct {
 	ChangeParamsProposal      uint64         `json:"change_params_proposal" type:"uint"`
 	GasPrice                  uint64         `json:"gas_price" type:"uint"`
 	MinStakingAmount          int64          `json:"min_staking_amount" type:"uint"`
-	ValidatorsBlockAwardRatio sdk.Rat        `json:"validators_block_award_ratio" type:"uint"`
+	ValidatorsBlockAwardRatio sdk.Rat        `json:"validators_block_award_ratio" type:"rat"`
 	MaxSlashingBlocks         int16          `json:"max_slashing_blocks" type:"uint"`
-	SlashingRatio             sdk.Rat        `json:"slashing_ratio" type:"float"`
+	SlashingRatio             sdk.Rat        `json:"slashing_ratio" type:"rat"`
 	CubePubKeys               string         `json:"cube_pub_keys" type:"json"`
 }
 

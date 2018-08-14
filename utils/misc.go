@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/CyberMiles/travis/sdk"
 	"math/big"
 	"strconv"
 )
@@ -15,10 +16,10 @@ func ParseFloat(str string) float64 {
 	return value
 }
 
-func ParseInt(str string) *big.Int {
-	value, ok := new(big.Int).SetString(str, 10)
+func ParseInt(str string) sdk.Int {
+	value, ok := sdk.NewIntFromString(str)
 	if !ok {
-		return big.NewInt(0)
+		return sdk.ZeroInt()
 	}
 
 	return value

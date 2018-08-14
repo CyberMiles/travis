@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -114,10 +115,8 @@ func IsEthTx(tx *types.Transaction) bool {
 		tx.To() != nil
 }
 
-func CalGasFee(gasUsed uint64, gasPrice uint64) *big.Int {
-	gasFee := big.NewInt(int64(0))
-	gasFee = gasFee.Mul(big.NewInt(int64(gasUsed)), big.NewInt(int64(gasPrice)))
-	return gasFee
+func CalGasFee(gasUsed uint64, gasPrice uint64) sdk.Int {
+	return sdk.NewInt(int64(gasUsed)).Mul(sdk.NewInt(int64(gasPrice)))
 }
 
 var (

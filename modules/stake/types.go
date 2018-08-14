@@ -9,6 +9,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"encoding/json"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
@@ -57,11 +58,11 @@ func (c *Candidate) Validator() Validator {
 	return Validator(*c)
 }
 
-func (c *Candidate) ParseShares() *big.Int {
+func (c *Candidate) ParseShares() sdk.Int {
 	return utils.ParseInt(c.Shares)
 }
 
-func (c *Candidate) ParseMaxShares() *big.Int {
+func (c *Candidate) ParseMaxShares() sdk.Int {
 	return utils.ParseInt(c.MaxShares)
 }
 
@@ -69,20 +70,14 @@ func (c *Candidate) ParseCompRate() float64 {
 	return utils.ParseFloat(c.CompRate)
 }
 
-func (c *Candidate) AddShares(value *big.Int) *big.Int {
-	x := new(big.Int)
-	x.Add(c.ParseShares(), value)
-	c.Shares = x.String()
-	return x
+func (c *Candidate) AddShares(value sdk.Int) (res sdk.Int) {
+	res = c.ParseShares().Add(value)
+	c.Shares = res.String()
+	return
 }
 
-func (c *Candidate) SelfStakingAmount(ratio string) (result *big.Int) {
-	result = new(big.Int)
-	z := new(big.Float)
-	maxShares := new(big.Float).SetInt(c.ParseMaxShares())
-	r, _ := new(big.Float).SetString(ratio)
-	z.Mul(maxShares, r)
-	z.Int(result)
+func (c *Candidate) SelfStakingAmount(ssr sdk.Rat) (res sdk.Int) {
+	res = c.ParseMaxShares().MulRat(ssr)
 	return
 }
 
@@ -170,10 +165,8 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 
 		if c.Active == "N" {
 			c.VotingPower = 0
-		} else if big.NewInt(c.VotingPower).Cmp(shares) != 0 {
-			v := new(big.Int)
-			v.Div(shares, big.NewInt(1e18))
-			c.VotingPower = v.Int64()
+		} else if !sdk.NewInt(c.VotingPower).Equal(shares) {
+			c.VotingPower = shares.Div(sdk.E18Int()).Int64()
 		}
 	}
 	cs.Sort()
@@ -336,27 +329,24 @@ type Delegation struct {
 	UpdatedAt        string         `json:"updated_at"`
 }
 
-func (d *Delegation) Shares() (shares *big.Int) {
-	shares = new(big.Int)
-	shares.Add(d.ParseDelegateAmount(), d.ParseAwardAmount())
-	shares.Sub(shares, d.ParseWithdrawAmount())
-	shares.Sub(shares, d.ParseSlashAmount())
+func (d *Delegation) Shares() (res sdk.Int) {
+	res = d.ParseDelegateAmount().Add(d.ParseAwardAmount()).Sub(d.ParseWithdrawAmount()).Sub(d.ParseSlashAmount())
 	return
 }
 
-func (d *Delegation) ParseDelegateAmount() *big.Int {
+func (d *Delegation) ParseDelegateAmount() sdk.Int {
 	return utils.ParseInt(d.DelegateAmount)
 }
 
-func (d *Delegation) ParseAwardAmount() *big.Int {
+func (d *Delegation) ParseAwardAmount() sdk.Int {
 	return utils.ParseInt(d.AwardAmount)
 }
 
-func (d *Delegation) ParseWithdrawAmount() *big.Int {
+func (d *Delegation) ParseWithdrawAmount() sdk.Int {
 	return utils.ParseInt(d.WithdrawAmount)
 }
 
-func (d *Delegation) ParseSlashAmount() *big.Int {
+func (d *Delegation) ParseSlashAmount() sdk.Int {
 	return utils.ParseInt(d.SlashAmount)
 }
 
@@ -364,32 +354,28 @@ func (d *Delegation) ParseCompRate() float64 {
 	return utils.ParseFloat(d.CompRate)
 }
 
-func (d *Delegation) AddDelegateAmount(value *big.Int) *big.Int {
-	x := new(big.Int)
-	x.Add(d.ParseDelegateAmount(), value)
-	d.DelegateAmount = x.String()
-	return x
+func (d *Delegation) AddDelegateAmount(value sdk.Int) (res sdk.Int) {
+	res = d.ParseDelegateAmount().Add(value)
+	d.DelegateAmount = res.String()
+	return
 }
 
-func (d *Delegation) AddAwardAmount(value *big.Int) *big.Int {
-	x := new(big.Int)
-	x.Add(d.ParseAwardAmount(), value)
-	d.AwardAmount = x.String()
-	return x
+func (d *Delegation) AddAwardAmount(value sdk.Int) (res sdk.Int) {
+	res = d.ParseAwardAmount().Add(value)
+	d.AwardAmount = res.String()
+	return
 }
 
-func (d *Delegation) AddWithdrawAmount(value *big.Int) *big.Int {
-	x := new(big.Int)
-	x.Add(d.ParseWithdrawAmount(), value)
-	d.WithdrawAmount = x.String()
-	return x
+func (d *Delegation) AddWithdrawAmount(value sdk.Int) (res sdk.Int) {
+	res = d.ParseWithdrawAmount().Add(value)
+	d.WithdrawAmount = res.String()
+	return
 }
 
-func (d *Delegation) AddSlashAmount(value *big.Int) *big.Int {
-	x := new(big.Int)
-	x.Add(d.ParseSlashAmount(), value)
-	d.SlashAmount = x.String()
-	return x
+func (d *Delegation) AddSlashAmount(value sdk.Int) (res sdk.Int) {
+	res = d.ParseSlashAmount().Add(value)
+	d.SlashAmount = res.String()
+	return
 }
 
 func (d *Delegation) Hash() []byte {
@@ -427,8 +413,8 @@ type DelegateHistory struct {
 
 type PunishHistory struct {
 	PubKey        types.PubKey
-	SlashingRatio float64
-	SlashAmount   *big.Int
+	SlashingRatio sdk.Rat
+	SlashAmount   sdk.Int
 	Reason        string
 	CreatedAt     string
 }

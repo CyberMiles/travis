@@ -1,8 +1,6 @@
 package stake
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/CyberMiles/travis/sdk"
@@ -56,13 +54,9 @@ func (tx TxDeclareCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func (tx TxDeclareCandidacy) SelfStakingAmount(ratio string) (amount *big.Int) {
-	amount = new(big.Int)
-	maxAmount, _ := new(big.Float).SetString(tx.MaxAmount)
-	z := new(big.Float)
-	r, _ := new(big.Float).SetString(ratio)
-	z.Mul(maxAmount, r)
-	z.Int(amount)
+func (tx TxDeclareCandidacy) SelfStakingAmount(ssr sdk.Rat) (res sdk.Int) {
+	maxAmount, _ := sdk.NewIntFromString(tx.MaxAmount)
+	res = maxAmount.MulRat(ssr)
 	return
 }
 

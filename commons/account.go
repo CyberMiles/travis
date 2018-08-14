@@ -2,16 +2,17 @@ package commons
 
 import (
 	"fmt"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/state"
 	"math"
 	"math/big"
 	"os"
 	"path/filepath"
 	"time"
-	"github.com/ethereum/go-ethereum/core/state"
 )
 
 const (
@@ -75,6 +76,6 @@ func TransferWithReactor(from, to common.Address, amount *big.Int, reactor utils
 	return nil
 }
 
-func GetBalance(state *state.StateDB, addr common.Address) (*big.Int, error) {
-	return state.GetBalance(addr), nil
+func GetBalance(state *state.StateDB, addr common.Address) (sdk.Int, error) {
+	return sdk.NewIntFromBigInt(state.GetBalance(addr)), nil
 }
