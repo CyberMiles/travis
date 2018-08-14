@@ -284,8 +284,8 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 				if proposal.Detail["status"] != "ready" {
 					gov.CancelDownload(proposal, true)
 				} else {
-					gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 					gov.RegisterLibEni(proposal)
+					gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 				}
 			} else {
 				switch gov.CheckProposal(pid, nil) {
@@ -293,8 +293,8 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 					if proposal.Detail["status"] != "ready" {
 						gov.CancelDownload(proposal, true)
 					} else {
-						gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 						gov.RegisterLibEni(proposal)
+						gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 					}
 					gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 				case "rejected":

@@ -183,7 +183,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), err
 		}
 
-		var fileurlJson map[string]string
+		var fileurlJson map[string][]string
 
 		if err = json.Unmarshal([]byte(txInner.Fileurl), &fileurlJson); err != nil {
 			return sdk.NewCheck(0, ""), ErrInvalidFileurlJson()
@@ -567,7 +567,7 @@ func checkGasFee(state *ethState.StateDB, address common.Address, gas uint64) (*
 }
 
 func getOTAInfo(p *Proposal) *eni.OTAInfo {
-	var fileurlJson map[string]string
+	var fileurlJson map[string][]string
 	if err := json.Unmarshal([]byte(p.Detail["fileurl"].(string)), &fileurlJson); err != nil {
 		return nil
 	}
@@ -608,8 +608,8 @@ func DownloadLibEni(p *Proposal) {
 			if r, ok := cancelDownload[p.Id]; ok {
 				delete(cancelDownload, p.Id)
 				if r {
-					UpdateDeployLibEniStatus(p.Id, "deployed")
 					RegisterLibEni(p)
+					UpdateDeployLibEniStatus(p.Id, "deployed")
 				} else {
 					UpdateDeployLibEniStatus(p.Id, "ready")
 				}
@@ -636,11 +636,9 @@ func DownloadLibEni(p *Proposal) {
 				result <- false
 				break;
 			}
-			if err := OTAInstance.Download(*oi); err == nil {
-				if err = OTAInstance.Verify(*oi); err == nil {
-					result <- true
-					break
-				}
+			if err := OTAInstance.DownloadInfo(*oi); err == nil {
+				result <- true
+				break
 			}
 			if _, ok := cancelDownload[p.Id]; ok {
 				result <- false
