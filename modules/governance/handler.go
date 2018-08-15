@@ -5,14 +5,14 @@ import (
 	"math/big"
 	"strings"
 
+	"encoding/json"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"encoding/json"
 	ethState "github.com/ethereum/go-ethereum/core/state"
 )
 
@@ -56,7 +56,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if v.OwnerAddress == txInner.Proposer.String() {
 				break
 			}
-			if i + 1 == len(validators) {
+			if i+1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
 		}
@@ -94,7 +94,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if v.OwnerAddress == txInner.Proposer.String() {
 				break
 			}
-			if i + 1 == len(validators) {
+			if i+1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
 		}
@@ -108,7 +108,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), err
 		}
 
-		if ! utils.CheckParamType(txInner.Name, txInner.Value) {
+		if !utils.CheckParamType(txInner.Name, txInner.Value) {
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 	case TxVote:
@@ -124,7 +124,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if v.OwnerAddress == txInner.Voter.String() {
 				break
 			}
-			if i + 1 == len(validators) {
+			if i+1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
 		}
@@ -167,7 +167,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if txInner.Expire != nil {
 			expire = *txInner.Expire
 		}
-		hashJson, _ :=	json.Marshal(hash)
+		hashJson, _ := json.Marshal(hash)
 		pp := NewTransferFundProposal(
 			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
@@ -184,9 +184,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			return res, ErrInvalidParameter()
 		}
 
-		amount := big.NewInt(0)
-		amount.SetString(txInner.Amount, 10)
-		if balance.Cmp(amount) < 0 {
+		amount, _ := sdk.NewIntFromString(txInner.Amount)
+		if balance.LT(amount) {
 			return res, ErrInsufficientBalance()
 		}
 
@@ -205,7 +204,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee
+			res.GasFee = gasFee.Int
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
 			commons.Transfer(sender, utils.HoldAccount, gasFee)
@@ -245,7 +244,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee
+			res.GasFee = gasFee.Int
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
 			commons.Transfer(sender, utils.HoldAccount, gasFee)
@@ -278,8 +277,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		switch proposal.Type {
 		case TRANSFER_FUND_PROPOSAL:
-			amount := new(big.Int)
-			amount.SetString(proposal.Detail["amount"].(string), 10)
+			amount, _ := sdk.NewIntFromString(proposal.Detail["amount"].(string))
 			switch checkResult {
 			case "approved":
 				// as succeeded proposal only need to add balance to receiver,
@@ -386,16 +384,16 @@ func getTxSender(ctx types.Context) (sender common.Address, err error) {
 	return senders[0], nil
 }
 
-func checkGasFee(state *ethState.StateDB, address common.Address, gas uint64) (*big.Int,  error) {
+func checkGasFee(state *ethState.StateDB, address common.Address, gas uint64) (sdk.Int, error) {
 	balance, err := commons.GetBalance(state, address)
 	if err != nil {
-		return nil, ErrInvalidParameter()
+		return sdk.Int{}, ErrInvalidParameter()
 	}
 
 	gasFee := utils.CalGasFee(gas, utils.GetParams().GasPrice)
 
-	if balance.Cmp(gasFee) < 0 {
-		return nil, ErrInsufficientBalance()
+	if balance.LT(gasFee) {
+		return sdk.Int{}, ErrInsufficientBalance()
 	}
 
 	return gasFee, nil

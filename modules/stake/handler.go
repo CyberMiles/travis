@@ -335,7 +335,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 		return ErrBadValidatorAddr()
 	}
 
-	amount, ok := new(big.Int).SetString(tx.Amount, 10)
+	amount, ok := sdk.NewIntFromString(tx.Amount)
 	if !ok || amount.Cmp(big.NewInt(0)) < 0 {
 		return ErrBadAmount()
 	}
@@ -345,7 +345,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 		return ErrDelegationNotExists()
 	}
 
-	if amount.Cmp(d.Shares()) > 0 {
+	if amount.GT(d.Shares()) {
 		return ErrInvalidWithdrawalAmount()
 	}
 
@@ -392,7 +392,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 
 	// delegate a part of the max staked CMT amount
 	amount := tx.SelfStakingAmount(d.params.SelfStakingRatio)
-	totalCost := big.NewInt(0).Add(amount, gasFee)
+	totalCost := amount.Add(gasFee)
 	// check if the delegator has sufficient funds
 	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
 		return err
@@ -441,20 +441,18 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		return ErrNoCandidateForAddress()
 	}
 
-	var rechargeAmount = big.NewInt(0)
+	rechargeAmount := sdk.NewInt(0)
 	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
 	// and the different will be charged
 	if tx.MaxAmount != "" {
-		maxAmount := utils.ParseInt(tx.MaxAmount)
+		maxAmount, _ := sdk.NewIntFromString(tx.MaxAmount)
 
-		if candidate.ParseMaxShares().Cmp(maxAmount) != 0 {
+		if !candidate.ParseMaxShares().Equal(maxAmount) {
 			rechargeAmount = getRechargeAmount(maxAmount, candidate, d.params.SelfStakingRatio)
-			rechargeAmountAbs := new(big.Int)
-			rechargeAmountAbs.Abs(rechargeAmount)
 
 			if rechargeAmount.Cmp(big.NewInt(0)) > 0 {
 				// charge
-				commons.Transfer(d.sender, utils.HoldAccount, rechargeAmountAbs)
+				commons.Transfer(d.sender, utils.HoldAccount, rechargeAmount.Abs())
 				candidate.AddShares(rechargeAmount)
 
 				// update delegation
@@ -474,7 +472,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		candidate.Description = tx.Description
 	}
 
-	totalCost := big.NewInt(0).Add(rechargeAmount, gasFee)
+	totalCost := rechargeAmount.Add(gasFee)
 	// check if the delegator has sufficient funds
 	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
 		return err
@@ -540,8 +538,8 @@ func (d deliver) delegate(tx TxDelegate) error {
 	// Get the pubKey bond account
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 
-	delegateAmount, ok := new(big.Int).SetString(tx.Amount, 0)
-	if !ok || delegateAmount.Cmp(big.NewInt(0)) < 0 {
+	delegateAmount, ok := sdk.NewIntFromString(tx.Amount)
+	if !ok || delegateAmount.LT(sdk.ZeroInt()) {
 		return ErrBadAmount()
 	}
 
@@ -587,7 +585,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		return ErrNoCandidateForAddress()
 	}
 
-	amount, ok := new(big.Int).SetString(tx.Amount, 10)
+	amount, ok := sdk.NewIntFromString(tx.Amount)
 	if !ok {
 		return ErrInvalidWithdrawalAmount()
 	}
@@ -596,9 +594,8 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 
 	// candidates can't withdraw the reserved reservation fund
 	if d.sender.String() == candidate.OwnerAddress {
-		remained := new(big.Int)
-		remained.Sub(delegation.Shares(), amount)
-		if remained.Cmp(candidate.SelfStakingAmount(d.params.SelfStakingRatio)) < 0 {
+		remained := delegation.Shares().Sub(amount)
+		if remained.LT(candidate.SelfStakingAmount(d.params.SelfStakingRatio)) {
 			return ErrCandidateWithdrawalDisallowed()
 		}
 	}
@@ -606,8 +603,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	d.doWithdraw(delegation, amount, candidate, tx)
 
 	// deduct shares from the candidate
-	neg := new(big.Int).Neg(amount)
-	candidate.AddShares(neg)
+	candidate.AddShares(amount.Neg())
 	now := utils.GetNow()
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
@@ -618,7 +614,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	return nil
 }
 
-func (d deliver) doWithdraw(delegation *Delegation, amount *big.Int, candidate *Candidate, tx TxWithdraw) {
+func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *Candidate, tx TxWithdraw) {
 	// update delegation withdraw amount
 	delegation.AddWithdrawAmount(amount)
 	UpdateDelegation(delegation)
@@ -664,7 +660,7 @@ func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
 		updateUnstakeRequest(req)
 
 		// transfer coins back to account
-		amount, _ := new(big.Int).SetString(req.Amount, 10)
+		amount, _ := sdk.NewIntFromString(req.Amount)
 		commons.Transfer(params.HoldAccount, req.DelegatorAddress, amount)
 	}
 
@@ -707,4 +703,5 @@ func RecordCandidateDailyStakes() error {
 
 		RemoveCandidateDailyStakes(candidate.PubKey, startDate)
 	}
+	return nil
 }

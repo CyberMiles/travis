@@ -21,6 +21,7 @@ import (
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/errors"
 	gov "github.com/CyberMiles/travis/modules/governance"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/utils"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
@@ -259,8 +260,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 
 		switch proposal.Type {
 		case gov.TRANSFER_FUND_PROPOSAL:
-			amount := new(big.Int)
-			amount.SetString(proposal.Detail["amount"].(string), 10)
+			amount, _ := sdk.NewIntFromString(proposal.Detail["amount"].(string))
 			switch gov.CheckProposal(pid, nil) {
 			case "approved":
 				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, gov.ProposalReactor{proposal.Id, currentHeight, "Approved"})
@@ -319,16 +319,16 @@ func (ws *workState) handleStateChangeQueue() {
 		scObj := utils.StateChangeQueue[i]
 		if bytes.Compare(scObj.From.Bytes(), utils.MintAccount.Bytes()) == 0 {
 			if bytes.Compare(scObj.To.Bytes(), utils.MintAccount.Bytes()) != 0 {
-				ws.state.AddBalance(scObj.To, scObj.Amount)
+				ws.state.AddBalance(scObj.To, scObj.Amount.Int)
 				if scObj.Reactor != nil {
 					scObj.Reactor.React("success", "")
 				}
 			}
 		} else {
-			if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount) >= 0 {
-				ws.state.SubBalance(scObj.From, scObj.Amount)
+			if ws.state.GetBalance(scObj.From).Cmp(scObj.Amount.Int) >= 0 {
+				ws.state.SubBalance(scObj.From, scObj.Amount.Int)
 				if bytes.Compare(scObj.To.Bytes(), utils.MintAccount.Bytes()) != 0 {
-					ws.state.AddBalance(scObj.To, scObj.Amount)
+					ws.state.AddBalance(scObj.To, scObj.Amount.Int)
 				}
 				if scObj.Reactor != nil {
 					scObj.Reactor.React("success", "")
@@ -376,6 +376,6 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 // This is miner strategy, not consensus protocol.
 func calcGasLimit(parent *types.Block) uint64 {
 	// 0xF00000000 = 64424509440
-	var  gl uint64 = 64424509440
+	var gl uint64 = 64424509440
 	return gl
 }

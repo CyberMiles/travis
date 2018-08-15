@@ -1,15 +1,13 @@
 package stake
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/tendermint/libs/log"
-	"math"
-	"math/big"
-
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/tendermint/libs/log"
+	"math"
 )
 
 const (
@@ -109,7 +107,7 @@ func (ad awardDistributor) Distribute() {
 		ad.distributeToValidators(normalizedBackupValidators, totalBackupsShares, ad.getBlockAwardAndTxFees(), rr, rs)
 	}
 
-	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)).Int)
+	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)))
 }
 
 func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares int64) {
@@ -130,14 +128,14 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		delegations := GetDelegationsByPubKey(candidate.PubKey)
 		for _, delegation := range delegations {
 			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
-			minStakingAmount := new(big.Int).Mul(big.NewInt(utils.GetParams().MinStakingAmount), big.NewInt(1e18))
-			if delegation.Shares().Cmp(minStakingAmount) < 0 {
+			minStakingAmount := sdk.NewInt(utils.GetParams().MinStakingAmount).Mul(sdk.E18Int())
+			if delegation.Shares().LT(minStakingAmount) {
 				continue
 			}
 
 			delegator := delegator{}
 			delegator.address = delegation.DelegatorAddress
-			delegator.shares = sdk.NewIntFromBigInt(delegation.Shares()).Div(sdk.NewInt(1e18)).Int64()
+			delegator.shares = delegation.Shares().Div(sdk.E18Int()).Int64()
 			delegators = append(delegators, &delegator)
 
 			tenDaysAgo, _ := utils.GetTimeBefore(10 * 24)
@@ -184,7 +182,7 @@ func (ad *awardDistributor) distributeToValidators(normalizedValidators []*valid
 
 	// If there is remaining doDistribute, doDistribute a second round based on stake amount.
 	remaining := totalAward.Sub(actualDistributed)
-	if remaining.Cmp(big.NewInt(0)) > 0 {
+	if remaining.GT(sdk.ZeroInt()) {
 		ad.logger.Debug("there is remaining award, doDistribute a second round based on stake amount.", "remaining", remaining)
 		for _, val := range normalizedValidators {
 			val.computeTotalSharesPercentage(totalShares, true)
@@ -233,13 +231,13 @@ func (ad awardDistributor) awardToDelegator(d *delegator, v *validator, award sd
 		return
 	}
 
-	delegation.AddAwardAmount(award.Int)
+	delegation.AddAwardAmount(award)
 	delegation.UpdatedAt = now
 	UpdateDelegation(delegation)
 
 	// accumulate shares of the validator
 	val := GetCandidateByAddress(v.ownerAddress)
-	val.AddShares(award.Int)
+	val.AddShares(award)
 	val.UpdatedAt = now
 	updateCandidate(val)
 }

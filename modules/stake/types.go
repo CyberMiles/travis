@@ -2,7 +2,6 @@ package stake
 
 import (
 	"bytes"
-	"math/big"
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -406,7 +405,7 @@ type DelegateHistory struct {
 	Id               int64
 	DelegatorAddress common.Address
 	PubKey           types.PubKey
-	Amount           *big.Int
+	Amount           sdk.Int
 	OpCode           string
 	CreatedAt        string
 }

@@ -18,7 +18,7 @@ const (
 type StateChangeObject struct {
 	From   common.Address
 	To     common.Address
-	Amount *big.Int
+	Amount sdk.Int
 
 	Reactor StateChangeReactor
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"math"
-	"math/big"
 	"os"
 	"path/filepath"
 	"time"
@@ -60,13 +59,13 @@ func UnlockAccount(am *accounts.Manager, addr common.Address, password string, d
 	return err == nil, err
 }
 
-func Transfer(from, to common.Address, amount *big.Int) error {
+func Transfer(from, to common.Address, amount sdk.Int) error {
 	utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
 		From: from, To: to, Amount: amount})
 	return nil
 }
 
-func TransferWithReactor(from, to common.Address, amount *big.Int, reactor utils.StateChangeReactor) error {
+func TransferWithReactor(from, to common.Address, amount sdk.Int, reactor utils.StateChangeReactor) error {
 	utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
 		from,
 		to,

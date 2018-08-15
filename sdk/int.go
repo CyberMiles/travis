@@ -45,6 +45,8 @@ func lt(i, i2 *big.Int) bool { return i.Cmp(i2) == -1 }
 
 func neg(i *big.Int) *big.Int { return new(big.Int).Neg(i) }
 
+func abs(i *big.Int) *big.Int { return new(big.Int).Abs(i) }
+
 func (i Int) Add(i2 Int) Int {
 	return Int{add(i.Int, i2.Int)}
 }
@@ -82,4 +84,8 @@ func (i Int) LT(i2 Int) bool {
 
 func (i Int) Neg() Int {
 	return Int{neg(i.Int)}
+}
+
+func (i Int) Abs() Int {
+	return Int{abs(i.Int)}
 }
