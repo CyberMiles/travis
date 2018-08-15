@@ -8,18 +8,18 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"database/sql"
+	"github.com/CyberMiles/travis/types"
+	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/tendermint/tendermint/libs/cli"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/p2p"
 	pv "github.com/tendermint/tendermint/privval"
-	"github.com/tendermint/tendermint/libs/cli"
-	"github.com/CyberMiles/travis/types"
-	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
-	_ "github.com/mattn/go-sqlite3"
-	"database/sql"
 )
 
 const (
@@ -88,6 +88,7 @@ func initTendermint() {
 		genDoc := GenesisDoc{
 			ChainID:          viper.GetString(FlagChainID),
 			MaxVals:          4,
+			BackupVals:       1,
 			SelfStakingRatio: "0.1",
 		}
 		genDoc.Validators = []types.GenesisValidator{{
@@ -209,7 +210,6 @@ func initTravisDb() {
 		log.Warn("The travis database already exists!")
 	}
 }
-
 
 var keystoreFilesMap = map[string]string{
 	// https://github.com/tendermint/ethermint/blob/edc95f9d47ba1fb7c8161182533b5f5d5c5d619b/setup/keystore/UTC--2016-10-21T22-30-03.071787745Z--7eff122b94897ea5b0e2a9abf47b86337fafebdc

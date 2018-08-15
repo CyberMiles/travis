@@ -10,8 +10,9 @@ import (
 )
 
 type Params struct {
-	HoldAccount               common.Address `json:"hold_account"`         // PubKey where all bonded coins are held
-	MaxVals                   uint16         `json:"max_vals" type:"uint"` // maximum number of validators
+	HoldAccount               common.Address `json:"hold_account"`            // PubKey where all bonded coins are held
+	MaxVals                   uint16         `json:"max_vals" type:"uint"`    // maximum number of validators
+	BackupVals                uint16         `json:"backup_vals" type:"uint"` // number of backup validators
 	SelfStakingRatio          string         `json:"self_staking_ratio" type:"float"`
 	InflationRate             int64          `json:"inflation_rate" type:"uint"`
 	ValidatorSizeThreshold    string         `json:"validator_size_threshold" type:"float"`
@@ -34,6 +35,7 @@ func defaultParams() *Params {
 	return &Params{
 		HoldAccount:               HoldAccount,
 		MaxVals:                   100,
+		BackupVals:                5,
 		SelfStakingRatio:          "0.1",
 		InflationRate:             8,
 		ValidatorSizeThreshold:    "0.12",
