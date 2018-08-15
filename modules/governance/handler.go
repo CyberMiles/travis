@@ -94,6 +94,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if _, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposal); err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
+		app_state.SubBalance(*txInner.From, amount)
 
 		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxChangeParamPropose:
@@ -244,11 +245,6 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 	tx sdk.Tx, hash []byte) (res sdk.DeliverResult, err error) {
 
 	res.GasFee = big.NewInt(0)
-
-	_, err = CheckTx(ctx, store, tx)
-	if err != nil {
-		return
-	}
 
 	app_state := ctx.EthappState()
 
