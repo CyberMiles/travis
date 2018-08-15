@@ -126,11 +126,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 
 // DeliverTx executes the tx if valid
 func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) (res sdk.DeliverResult, err error) {
-	_, err = CheckTx(ctx, store, tx)
-	if err != nil {
-		return
-	}
-
 	sender, err := getTxSender(ctx)
 	if err != nil {
 		return
