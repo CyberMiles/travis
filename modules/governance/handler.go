@@ -91,10 +91,12 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		if _, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposal); err != nil {
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposal)
+		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
 		app_state.SubBalance(*txInner.From, amount)
+		app_state.SubBalance(sender, gasFee)
 
 		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxChangeParamPropose:
@@ -126,14 +128,16 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
-		// Transfer gasFee
-		if _, err := checkGasFee(app_state, sender, utils.GetParams().ChangeParamsProposal); err != nil {
-			return sdk.NewCheck(0, ""), err
-		}
-
 		if ! utils.CheckParamType(txInner.Name, txInner.Value) {
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
+
+		// Transfer gasFee
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().ChangeParamsProposal)
+		if err != nil {
+			return sdk.NewCheck(0, ""), err
+		}
+		app_state.SubBalance(sender, gasFee)
 	case TxDeployLibEniPropose:
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
@@ -179,11 +183,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrOngoingLibFound()
 		}
 
-		// Transfer gasFee
-		if _, err := checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposal); err != nil {
-			return sdk.NewCheck(0, ""), err
-		}
-
 		var fileurlJson map[string][]string
 
 		if err = json.Unmarshal([]byte(txInner.Fileurl), &fileurlJson); err != nil {
@@ -203,6 +202,13 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if _, ok := md5Json[utils.GOOSDIST]; !ok {
 			return sdk.NewCheck(0, ""), ErrNoMd5()
 		}
+
+		// Transfer gasFee
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposal)
+		if err != nil {
+			return sdk.NewCheck(0, ""), err
+		}
+		app_state.SubBalance(sender, gasFee)
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
