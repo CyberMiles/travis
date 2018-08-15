@@ -71,14 +71,6 @@ func (es *EthState) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDelive
 	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx)
 }
 
-// called by travis tx only in deliver_tx
-func (es *EthState) AddNonce(addr common.Address) {
-	es.mtx.Lock()
-	defer es.mtx.Unlock()
-
-	es.work.state.SetNonce(addr, es.work.state.GetNonce(addr)+1)
-}
-
 // Accumulate validator rewards.
 func (es *EthState) AccumulateRewards(config *params.ChainConfig, strategy *emtTypes.Strategy) {
 	es.mtx.Lock()
@@ -406,6 +398,6 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 // This is miner strategy, not consensus protocol.
 func calcGasLimit(parent *types.Block) uint64 {
 	// 0xF00000000 = 64424509440
-	var  gl uint64 = 64424509440
+	var gl uint64 = 64424509440
 	return gl
 }
