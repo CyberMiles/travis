@@ -1,15 +1,17 @@
 # Travis Integration Test
 
 ## Requirement
-* node `^8.0.0`
-* yarn `^1.0.0` or npm `^5.0.0`
+
+- node `^8.0.0`
+- yarn `^1.0.0` or npm `^5.0.0`
 
 ## Installation
+
 ```bash
 # get latest version of web3-cmt
 git clone https://github.com/CyberMiles/web3-cmt.js /path_to/web3-cmt.js
 cd /path_to/web3-cmt.js
-git checkout dev
+git checkout master
 yarn install    # (or `npm install`)
 # prepare for web3-cmt package linking
 yarn link       # (or `npm link`)

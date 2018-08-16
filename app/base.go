@@ -8,6 +8,8 @@ import (
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/sdk/dbm"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
@@ -20,6 +22,7 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
+	"database/sql"
 )
 
 // BaseApp - The ABCI application
@@ -32,6 +35,7 @@ type BaseApp struct {
 	ByzantineValidators []abci.Evidence
 	PresentValidators   stake.Validators
 	blockTime           int64
+	deliverSqlTx *sql.Tx
 }
 
 const (
@@ -49,11 +53,24 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 	// init pending proposals
 	pendingProposals := governance.GetPendingProposals()
 	if len(pendingProposals) > 0 {
-		proposals := make(map[string]int64)
+		proposalsTS := make(map[string]int64)
+		proposalsBH := make(map[string]int64)
 		for _, pp := range pendingProposals {
-			proposals[pp.Id] = pp.Expire
+			if pp.ExpireTimestamp > 0 {
+				proposalsTS[pp.Id] = pp.ExpireTimestamp
+			} else {
+				proposalsBH[pp.Id] = pp.ExpireBlockHeight
+			}
+
+			if pp.Type == governance.DEPLOY_LIBENI_PROPOSAL {
+				dp := governance.GetProposalById(pp.Id)
+				if dp.Detail["status"] != "ready" {
+					governance.DownloadLibEni(dp)
+				}
+			}
 		}
-		utils.PendingProposal.BatchAdd(proposals)
+		utils.PendingProposal.BatchAddTS(proposalsTS)
+		utils.PendingProposal.BatchAddBH(proposalsBH)
 	}
 
 	b := store.Append().Get(utils.ParamKey)
@@ -157,6 +174,22 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
 
+	// init deliver sql tx for statke
+	db, err := dbm.Sqliter.GetDB()
+	if err != nil {
+		// TODO: wrapper error
+		panic(err)
+	}
+	deliverSqlTx, err := db.Begin()
+	if err != nil {
+		// TODO: wrapper error
+		panic(err)
+	}
+	app.deliverSqlTx = deliverSqlTx
+	stake.SetDeliverSqlTx(deliverSqlTx)
+	governance.SetDeliverSqlTx(deliverSqlTx)
+	// init end
+
 	// handle the absent validators
 	for _, sv := range req.Validators {
 		var pk crypto.PubKeyEd25519
@@ -238,7 +271,19 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	ethAppCommit := app.EthApp.Commit()
-
+	if len(ethAppCommit.Data) == 0 {
+		// Rollback transaction
+		if app.deliverSqlTx != nil {
+			err := app.deliverSqlTx.Rollback()
+			if err != nil {
+				// TODO: wrapper error
+				panic(err)
+			}
+			stake.ResetDeliverSqlTx()
+			governance.ResetDeliverSqlTx()
+		}
+		return abci.ResponseCommit{}
+	}
 	if dirty := utils.CleanParams(); dirty {
 		state := app.Append()
 		state.Set(utils.ParamKey, utils.UnloadParams())
@@ -250,6 +295,16 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.TotalUsedGasFee = big.NewInt(0)
 
 	res = app.StoreApp.Commit()
+	if app.deliverSqlTx != nil {
+		// Commit transaction
+		err := app.deliverSqlTx.Commit()
+		if err != nil {
+			// TODO: wrapper error
+			panic(err)
+		}
+		stake.ResetDeliverSqlTx()
+		governance.ResetDeliverSqlTx()
+	}
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
 
@@ -299,8 +354,8 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 	hasher.Write(buf.Bytes())
 	hash := hasher.Sum(nil)
 
-	if store != nil {
-		// TODO: save to DB
-	}
+	//if store != nil {
+	//	// TODO: save to DB
+	//}
 	return hash
 }

@@ -30,7 +30,7 @@ imports:
   subpackages:
   - sys/windows
 - name: github.com/ethereum/go-ethereum
-  version: a9a152e49dd8ffe22318d279cb507af87ce4875d
+  version: 8b72416b64a0717b031e6efaebf12bbe97df1a2e
   repo: https://github.com/CyberMiles/go-ethereum.git
   subpackages:
   - accounts
@@ -442,6 +442,8 @@ imports:
   - status
   - tap
   - transport
+- name: gopkg.in/fatih/set.v0
+  version: 2c768e3c5489976167bfc42b5c7c92ca783f4389
 - name: gopkg.in/karalabe/cookiejar.v2
   version: 8dcd6a7f4951f6ff3ee9cbb919a06d8925822e57
   subpackages:

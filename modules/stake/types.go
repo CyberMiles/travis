@@ -174,7 +174,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 		if i >= int(utils.GetParams().MaxVals) {
 			c.VotingPower = 0
 
-			if i > (int(utils.GetParams().MaxVals) + 5) {
+			if i > (int(utils.GetParams().MaxVals + utils.GetParams().BackupVals)) {
 				c.State = "Candidate"
 			} else {
 				c.State = "Backup Validator"

@@ -15147,12 +15147,6 @@ Cmt.prototype = Object.create(Eth.prototype)
 Cmt.prototype.constructor = Cmt
 
 var methods = function() {
-  var sendTx = new Method({
-    name: "sendTx",
-    call: "cmt_sendTx",
-    params: 1,
-    inputFormatter: [formatters.inputTransactionFormatter]
-  })
   var sendRawTx = new Method({
     name: "sendRawTx",
     call: "cmt_sendRawTx",
@@ -15161,36 +15155,48 @@ var methods = function() {
   })
   var sendTransaction = new Method({
     name: "sendTransaction",
-    call: "cmt_sendTransaction",
+    call: "eth_sendTransaction",
+    params: 1,
+    inputFormatter: [formatters.inputTransactionFormatter]
+  })
+  var sendTx = new Method({
+    name: "sendTx",
+    call: "eth_sendTx",
     params: 1,
     inputFormatter: [formatters.inputTransactionFormatter]
   })
   var sendRawTransaction = new Method({
     name: "sendRawTransaction",
-    call: "cmt_sendRawTransaction",
+    call: "eth_sendRawTransaction",
     params: 1,
     inputFormatter: [null]
   })
 
-  var getBlock = new Method({
-    name: "getBlock",
+  var getCmtBlock = new Method({
+    name: "getCmtBlock",
     call: "cmt_getBlockByNumber",
     params: 1
   })
-
-  var getTransaction = new Method({
-    name: "getTransaction",
+  var getCmtTransaction = new Method({
+    name: "getCmtTransaction",
     call: "cmt_getTransactionByHash",
     params: 1
   })
-
-  var getTransactionFromBlock = new Method({
-    name: "getTransactionFromBlock",
+  var getCmtTransactionFromBlock = new Method({
+    name: "getCmtTransactionFromBlock",
     call: "cmt_getTransactionFromBlock",
     params: 2
   })
 
-  return [sendTx, sendRawTx, sendTransaction, sendRawTransaction]
+  return [
+    sendRawTx,
+    sendTransaction,
+    sendTx,
+    sendRawTransaction,
+    getCmtBlock,
+    getCmtTransaction,
+    getCmtTransactionFromBlock
+  ]
 }
 
 var properties = function() {
@@ -15297,13 +15303,19 @@ var Governance = function(web3) {
 var methods = function() {
   var proposeRecoverFund = new Method({
     name: "proposeRecoverFund",
-    call: "cmt_propose",
+    call: "cmt_proposeTransferFund",
     params: 1,
     inputFormatter: [formatters.inputStakeTxFormatter]
   })
   var proposeChangeParam = new Method({
     name: "proposeChangeParam",
     call: "cmt_proposeChangeParam",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+  var proposeDeployLibEni = new Method({
+    name: "proposeDeployLibEni",
+    call: "cmt_proposeDeployLibEni",
     params: 1,
     inputFormatter: [formatters.inputStakeTxFormatter]
   })
@@ -15327,6 +15339,7 @@ var methods = function() {
   return [
     proposeRecoverFund,
     proposeChangeParam,
+    proposeDeployLibEni,
     vote,
     listProposals,
     getParams

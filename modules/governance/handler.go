@@ -2,8 +2,10 @@ package governance
 
 import (
 	"bytes"
+	"encoding/json"
 	"math/big"
 	"strings"
+	"time"
 
 	"encoding/json"
 	"github.com/CyberMiles/travis/commons"
@@ -14,10 +16,15 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	ethState "github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/vm/eni"
 )
 
 // nolint
 const governanceModuleName = "governance"
+
+var OTAInstance = eni.NewOTAInstance()
+
+var cancelDownload= make(map[string] bool)
 
 // Name is the name of the modules.
 func Name() string {
@@ -66,8 +73,16 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 
-		if txInner.Expire != nil && ctx.BlockTime() > *txInner.Expire {
-			return sdk.NewCheck(0, ""), ErrInvalidExpire()
+		if txInner.ExpireTimestamp != nil && txInner.ExpireBlockHeight != nil {
+			return sdk.NewCheck(0, ""), ErrExceedsExpiration()
+		}
+
+		if txInner.ExpireTimestamp != nil && ctx.BlockTime() > *txInner.ExpireTimestamp {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireTimestamp()
+		}
+
+		if txInner.ExpireBlockHeight != nil && ctx.BlockHeight() >= *txInner.ExpireBlockHeight {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
 		amount := big.NewInt(0)
@@ -77,9 +92,12 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		if _, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposal); err != nil {
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposal)
+		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
+		app_state.SubBalance(*txInner.From, amount)
+		app_state.SubBalance(sender, gasFee)
 
 		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxChangeParamPropose:
@@ -99,18 +117,99 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
-		if txInner.Expire != nil && ctx.BlockTime() > *txInner.Expire {
-			return sdk.NewCheck(0, ""), ErrInvalidExpire()
+		if txInner.ExpireTimestamp != nil && txInner.ExpireBlockHeight != nil {
+			return sdk.NewCheck(0, ""), ErrExceedsExpiration()
 		}
 
-		// Transfer gasFee
-		if _, err := checkGasFee(app_state, sender, utils.GetParams().ChangeParamsProposal); err != nil {
-			return sdk.NewCheck(0, ""), err
+		if txInner.ExpireTimestamp != nil && ctx.BlockTime() > *txInner.ExpireTimestamp {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireTimestamp()
+		}
+
+		if txInner.ExpireBlockHeight != nil && ctx.BlockHeight() >= *txInner.ExpireBlockHeight {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
 		if !utils.CheckParamType(txInner.Name, txInner.Value) {
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
+
+		// Transfer gasFee
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().ChangeParamsProposal)
+		if err != nil {
+			return sdk.NewCheck(0, ""), err
+		}
+		app_state.SubBalance(sender, gasFee)
+	case TxDeployLibEniPropose:
+		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+			return sdk.NewCheck(0, ""), ErrMissingSignature()
+		}
+		validators := stake.GetCandidates().Validators()
+		if validators == nil || validators.Len() == 0 {
+			return sdk.NewCheck(0, ""), ErrInvalidValidator()
+		}
+		for i, v := range validators {
+			if v.OwnerAddress == txInner.Proposer.String() {
+				break
+			}
+			if i + 1 == len(validators) {
+				return sdk.NewCheck(0, ""), ErrInvalidValidator()
+			}
+		}
+
+		if strings.Trim(txInner.Name, " ") == "" || strings.Trim(txInner.Version, " ") == "" {
+			return sdk.NewCheck(0, ""), ErrInsufficientParameters()
+		}
+
+		if txInner.ExpireTimestamp != nil && txInner.ExpireBlockHeight != nil {
+			return sdk.NewCheck(0, ""), ErrExceedsExpiration()
+		}
+
+		if txInner.ExpireTimestamp != nil && ctx.BlockTime() > *txInner.ExpireTimestamp {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireTimestamp()
+		}
+
+		if txInner.ExpireBlockHeight != nil && ctx.BlockHeight() >= *txInner.ExpireBlockHeight {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
+		}
+
+		otaInfo := eni.OTAInfo {
+			LibName: txInner.Name,
+			Version: txInner.Version,
+		}
+		if valid, _ := OTAInstance.IsValidNewLib(otaInfo); !valid {
+			return sdk.NewCheck(0, ""), ErrInvalidNewLib()
+		}
+
+		if HasUndeployedProposal(txInner.Name) {
+			return sdk.NewCheck(0, ""), ErrOngoingLibFound()
+		}
+
+		var fileurlJson map[string][]string
+
+		if err = json.Unmarshal([]byte(txInner.Fileurl), &fileurlJson); err != nil {
+			return sdk.NewCheck(0, ""), ErrInvalidFileurlJson()
+		}
+
+		if _, ok := fileurlJson[utils.GOOSDIST]; !ok {
+			return sdk.NewCheck(0, ""), ErrNoFileurl()
+		}
+
+		var md5Json map[string]string
+
+		if err = json.Unmarshal([]byte(txInner.Md5), &md5Json); err != nil {
+			return sdk.NewCheck(0, ""), ErrInvalidMd5Json()
+		}
+
+		if _, ok := md5Json[utils.GOOSDIST]; !ok {
+			return sdk.NewCheck(0, ""), ErrNoMd5()
+		}
+
+		// Transfer gasFee
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposal)
+		if err != nil {
+			return sdk.NewCheck(0, ""), err
+		}
+		app_state.SubBalance(sender, gasFee)
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
@@ -154,29 +253,29 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	res.GasFee = big.NewInt(0)
 
-	_, err = CheckTx(ctx, store, tx)
-	if err != nil {
-		return
-	}
-
 	app_state := ctx.EthappState()
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
-		expire := ctx.BlockTime() + utils.GetParams().ProposalExpirePeriod
-		if txInner.Expire != nil {
-			expire = *txInner.Expire
+		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
+		var expireTimestamp int64
+		if txInner.ExpireTimestamp != nil {
+			expireTimestamp = *txInner.ExpireTimestamp
+			expireBlockHeight = 0
+		} else if txInner.ExpireBlockHeight != nil {
+			expireBlockHeight = *txInner.ExpireBlockHeight
 		}
 		hashJson, _ := json.Marshal(hash)
 		pp := NewTransferFundProposal(
 			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
-			uint64(ctx.BlockHeight()),
+			ctx.BlockHeight(),
 			txInner.From,
 			txInner.To,
 			txInner.Amount,
 			txInner.Reason,
-			expire,
+			expireTimestamp,
+			expireBlockHeight,
 		)
 
 		balance, err := commons.GetBalance(app_state, *txInner.From)
@@ -190,7 +289,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		SaveProposal(pp)
-		commons.TransferWithReactor(*pp.Detail["from"].(*common.Address), utils.GovHoldAccount, amount, ProposalReactor{pp.Id, uint64(ctx.BlockHeight()), ""})
+		commons.TransferWithReactor(*pp.Detail["from"].(*common.Address), utils.GovHoldAccount, amount, ProposalReactor{pp.Id, ctx.BlockHeight(), ""})
 
 		// Check gasFee  -- start
 		// get the sender
@@ -211,24 +310,29 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 		// Check gasFee  -- end
 
-		utils.PendingProposal.Add(pp.Id, pp.Expire)
+		utils.PendingProposal.Add(pp.Id, pp.ExpireTimestamp, pp.ExpireBlockHeight)
 
 		res.Data = hash
 
 	case TxChangeParamPropose:
-		expire := ctx.BlockTime() + utils.GetParams().ProposalExpirePeriod
-		if txInner.Expire != nil {
-			expire = *txInner.Expire
+		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
+		var expireTimestamp int64
+		if txInner.ExpireTimestamp != nil {
+			expireTimestamp = *txInner.ExpireTimestamp
+			expireBlockHeight = 0
+		} else if txInner.ExpireBlockHeight != nil {
+			expireBlockHeight = *txInner.ExpireBlockHeight
 		}
 		hashJson, _ := json.Marshal(hash)
 		cp := NewChangeParamProposal(
 			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
-			uint64(ctx.BlockHeight()),
+			ctx.BlockHeight(),
 			txInner.Name,
 			txInner.Value,
 			txInner.Reason,
-			expire,
+			expireTimestamp,
+			expireBlockHeight,
 		)
 		SaveProposal(cp)
 
@@ -251,21 +355,71 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 		// Check gasFee  -- end
 
-		utils.PendingProposal.Add(cp.Id, cp.Expire)
+		utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
 
 		res.Data = hash
+
+	case TxDeployLibEniPropose:
+		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
+		var expireTimestamp int64
+		if txInner.ExpireTimestamp != nil {
+			expireTimestamp = *txInner.ExpireTimestamp
+			expireBlockHeight = 0
+		} else if txInner.ExpireBlockHeight != nil {
+			expireBlockHeight = *txInner.ExpireBlockHeight
+		}
+		hashJson, _ := json.Marshal(hash)
+		dp := NewDeployLibEniProposal(
+			string(hashJson[1:len(hashJson)-1]),
+			txInner.Proposer,
+			ctx.BlockHeight(),
+			txInner.Name,
+			txInner.Version,
+			txInner.Fileurl,
+			txInner.Md5,
+			txInner.Reason,
+			"init",
+			expireTimestamp,
+			expireBlockHeight,
+		)
+		SaveProposal(dp)
+
+		// Check gasFee  -- start
+		// get the sender
+		sender, err := getTxSender(ctx)
+		if err != nil {
+			return res, err
+		}
+		params := utils.GetParams()
+		gasUsed := params.DeployLibEniProposal
+
+		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
+			return res, err
+		} else {
+			res.GasFee = gasFee
+			res.GasUsed = int64(gasUsed)
+			// transfer gasFee
+			commons.Transfer(sender, utils.HoldAccount, gasFee)
+		}
+		// Check gasFee  -- end
+
+		utils.PendingProposal.Add(dp.Id, dp.ExpireTimestamp, dp.ExpireBlockHeight)
+
+		res.Data = hash
+
+		DownloadLibEni(dp)
 
 	case TxVote:
 		var vote *Vote
 		if vote = GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
 			vote.Answer = txInner.Answer
-			vote.BlockHeight = uint64(ctx.BlockHeight())
+			vote.BlockHeight = ctx.BlockHeight()
 			UpdateVote(vote)
 		} else {
 			vote = NewVote(
 				txInner.ProposalId,
 				txInner.Voter,
-				uint64(ctx.BlockHeight()),
+				ctx.BlockHeight(),
 				txInner.Answer,
 			)
 			SaveVote(vote)
@@ -283,24 +437,38 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 				// as succeeded proposal only need to add balance to receiver,
 				// so the transfer should always be successful
 				// but we still use the reactor to keep the compatible with the old strategy
-				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"})
+				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"})
 			case "rejected":
 				// as succeeded proposal only need to refund balance to sender,
 				// so the transfer should always be successful
 				// but we still use the reactor to keep the compatible with the old strategy
-				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"})
+				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"})
+			}
+			if checkResult == "approved" || checkResult == "rejected" {
+				utils.PendingProposal.Del(proposal.Id)
 			}
 		case CHANGE_PARAM_PROPOSAL:
 			switch checkResult {
 			case "approved":
 				utils.SetParam(proposal.Detail["name"].(string), proposal.Detail["value"].(string))
-				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Approved"}.React("success", "")
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
 			case "rejected":
-				ProposalReactor{proposal.Id, uint64(ctx.BlockHeight()), "Rejected"}.React("success", "")
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
 			}
-		}
-		if checkResult == "approved" || checkResult == "rejected" {
-			utils.PendingProposal.Del(proposal.Id)
+			if checkResult == "approved" || checkResult == "rejected" {
+				utils.PendingProposal.Del(proposal.Id)
+			}
+		case DEPLOY_LIBENI_PROPOSAL:
+			switch checkResult {
+			case "approved":
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
+			case "rejected":
+				if proposal.Detail["status"] != "ready" {
+					CancelDownload(proposal, false)
+				}
+				utils.PendingProposal.Del(proposal.Id)
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
+			}
 		}
 	}
 
@@ -359,7 +527,7 @@ func CheckProposal(pid string, voter *common.Address) string {
 
 type ProposalReactor struct {
 	ProposalId  string
-	BlockHeight uint64
+	BlockHeight int64
 	Result      string
 }
 
@@ -397,4 +565,107 @@ func checkGasFee(state *ethState.StateDB, address common.Address, gas uint64) (s
 	}
 
 	return gasFee, nil
+}
+
+func getOTAInfo(p *Proposal) *eni.OTAInfo {
+	var fileurlJson map[string][]string
+	if err := json.Unmarshal([]byte(p.Detail["fileurl"].(string)), &fileurlJson); err != nil {
+		return nil
+	}
+
+	var md5Json map[string]string
+	if err := json.Unmarshal([]byte(p.Detail["md5"].(string)), &md5Json); err != nil {
+		return nil
+	}
+
+	fileurl, ok := fileurlJson[utils.GOOSDIST]
+	if !ok {
+		return nil
+	}
+
+	md5, ok := md5Json[utils.GOOSDIST]
+	if !ok {
+		return nil
+	}
+
+	return &eni.OTAInfo {
+		p.Detail["name"].(string),
+		p.Detail["version"].(string),
+		fileurl,
+		md5,
+	}
+}
+
+func DownloadLibEni(p *Proposal) {
+	oi := getOTAInfo(p)
+	if oi == nil {
+		return
+	}
+
+	result := make(chan bool)
+
+	go func() {
+		if r := <- result; r {
+			if r, ok := cancelDownload[p.Id]; ok {
+				delete(cancelDownload, p.Id)
+				if r {
+					RegisterLibEni(p)
+					UpdateDeployLibEniStatus(p.Id, "deployed")
+				} else {
+					UpdateDeployLibEniStatus(p.Id, "ready")
+				}
+			} else {
+				UpdateDeployLibEniStatus(p.Id, "ready")
+			}
+		} else {
+			if r, ok := cancelDownload[p.Id]; ok {
+				delete(cancelDownload, p.Id)
+				if r {
+					UpdateDeployLibEniStatus(p.Id, "failed, but proposal has been approved")
+				} else {
+					UpdateDeployLibEniStatus(p.Id, "failed")
+				}
+			} else {
+				UpdateDeployLibEniStatus(p.Id, "failed")
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			if _, ok := cancelDownload[p.Id]; ok {
+				result <- false
+				break;
+			}
+			if err := OTAInstance.DownloadInfo(*oi); err == nil {
+				result <- true
+				break
+			}
+			if _, ok := cancelDownload[p.Id]; ok {
+				result <- false
+				break;
+			}
+			time.Sleep(10 * time.Second)
+		}
+	}()
+}
+
+func CancelDownload(p *Proposal, bpanic bool) {
+	cancelDownload[p.Id] = bpanic
+}
+
+func RegisterLibEni(p *Proposal) {
+	oi := getOTAInfo(p)
+	if oi == nil {
+		return
+	}
+	OTAInstance.Register(*oi)
+}
+
+func DestroyLibEni(p *Proposal) {
+	oi := getOTAInfo(p)
+	if oi == nil {
+		return
+	}
+	OTAInstance.Destroy(*oi)
 }

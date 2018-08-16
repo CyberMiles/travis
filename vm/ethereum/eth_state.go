@@ -72,14 +72,6 @@ func (es *EthState) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDelive
 	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx)
 }
 
-// called by travis tx only in deliver_tx
-func (es *EthState) AddNonce(addr common.Address) {
-	es.mtx.Lock()
-	defer es.mtx.Unlock()
-
-	es.work.state.SetNonce(addr, es.work.state.GetNonce(addr)+1)
-}
-
 // Accumulate validator rewards.
 func (es *EthState) AccumulateRewards(config *params.ChainConfig, strategy *emtTypes.Strategy) {
 	es.mtx.Lock()
@@ -251,9 +243,9 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 // the ethereum blockchain. The application root hash is the hash of the
 // ethereum block.
 func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (common.Hash, error) {
-	currentHeight := ws.header.Number.Uint64()
+	currentHeight := ws.header.Number.Int64()
 
-	proposalIds := utils.PendingProposal.ReachMin(ws.parent.Time().Int64())
+	proposalIds := utils.PendingProposal.ReachMin(ws.parent.Time().Int64(), currentHeight)
 	for _, pid := range proposalIds {
 		proposal := gov.GetProposalById(pid)
 
@@ -277,6 +269,36 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 				gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
 			default:
 				gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
+			}
+		case gov.DEPLOY_LIBENI_PROPOSAL:
+			if proposal.Result == "Approved" {
+				if proposal.Detail["status"] != "ready" {
+					gov.CancelDownload(proposal, true)
+				} else {
+					gov.RegisterLibEni(proposal)
+					gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
+				}
+			} else {
+				switch gov.CheckProposal(pid, nil) {
+				case "approved":
+					if proposal.Detail["status"] != "ready" {
+						gov.CancelDownload(proposal, true)
+					} else {
+						gov.RegisterLibEni(proposal)
+						gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
+					}
+					gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
+				case "rejected":
+					if proposal.Detail["status"] != "ready" {
+						gov.CancelDownload(proposal, false)
+					}
+					gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
+				default:
+					if proposal.Detail["status"] != "ready" {
+						gov.CancelDownload(proposal, false)
+					}
+					gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
+				}
 			}
 		}
 

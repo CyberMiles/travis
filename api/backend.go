@@ -177,11 +177,6 @@ func (b *Backend) GasLimit() uint64 {
 	return b.es.GasLimit().Gas()
 }
 
-// called by travis tx only in deliver_tx
-func (b *Backend) AddNonce(addr common.Address) {
-	b.es.AddNonce(addr)
-}
-
 //----------------------------------------------------------------------
 // Implements: node.Service
 
@@ -196,6 +191,12 @@ func (b *Backend) APIs() []rpc.API {
 			Namespace: "cmt",
 			Version:   "1.0",
 			Service:   NewCmtRPCService(b, nonceLock),
+			Public:    true,
+		},
+		{
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   NewEthRPCService(b, nonceLock),
 			Public:    true,
 		},
 	}...)

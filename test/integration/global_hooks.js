@@ -1,4 +1,5 @@
 const expect = require("chai").expect
+const fs = require("fs")
 const Web3 = require("web3-cmt")
 const logger = require("./logger")
 const { Settings } = require("./constants")
@@ -59,15 +60,24 @@ before("Load system parameters", function() {
 before("Setup a ERC20 Smart contract called ETH", function(done) {
   logger.info(this.test.fullTitle())
   // check if contract already exists
-  let first = "b6b29ef90120bec597939e0eda6b8a9164f75deb"
+  let tokenFile = "./ETHToken.json"
+  let tokenJSON = JSON.parse(fs.readFileSync(tokenFile).toString())
+  Globals.ETH.abi = tokenJSON["abi"]
+  Globals.ETH.bytecode = tokenJSON["bytecode"]
+
+  let first = Globals.ETH.contractAddress
   if (web3.cmt.getCode(first) === "0x") {
     let deployAddress = web3.cmt.accounts[0]
-    Utils.newContract(deployAddress, addr => {
-      contractAddress = addr
-      done()
-    })
+    Utils.newContract(
+      deployAddress,
+      Globals.ETH.abi,
+      Globals.ETH.bytecode,
+      addr => {
+        Globals.ETH.contractAddress = addr
+        done()
+      }
+    )
   } else {
-    contractAddress = first
     logger.debug("create new contract skipped. ")
     done()
   }

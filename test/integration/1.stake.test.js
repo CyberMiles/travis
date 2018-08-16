@@ -18,15 +18,6 @@ describe("Stake Test", function() {
     this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")
   }
 
-  function calcRP(shares) {
-    let rp = 0
-    shares.forEach(s => {
-      let cmt = parseInt(web3.fromWei(s, "cmt"))
-      rp += parseInt(Math.sqrt(cmt) * 100)
-    })
-    return rp
-  }
-
   let compRate = "0.8"
   let existingValidator = {}
   let amounts, balance_old, balance_new, tx_result
@@ -137,10 +128,15 @@ describe("Stake Test", function() {
             -gasFee.plus(amounts.self).toNumber()
           )
           // check deliver tx tx_result
-          expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
-          expect(tx_result.deliver_tx.gasUsed).to.eq(
-            web3.toBigNumber(Globals.Params.declare_candidacy).toString()
-          )
+          // let tag = tx_result.deliver_tx.tags.find(
+          //   t => t.key == Globals.GasFeeKey
+          // )
+          // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+          //   gasFee.toString()
+          // )
+          // expect(tx_result.deliver_tx.gasUsed).to.eq(
+          //   web3.toBigNumber(Globals.Params.declare_candidacy).toString()
+          // )
         })
       })
     })
@@ -186,9 +182,6 @@ describe("Stake Test", function() {
       ).to.gte(0)
       expect(tx_result.data.state).to.eq("Backup Validator")
       delegation_after = Utils.getDelegation(3, 3)
-      expect(tx_result.data.ranking_power).to.eq(
-        calcRP([delegation_after.shares])
-      )
     })
   })
 
@@ -225,12 +218,6 @@ describe("Stake Test", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.eq(0)
         expect(tx_result.data.state).to.eq("Backup Validator")
-        expect(tx_result.data.ranking_power).to.eq(
-          calcRP([
-            Utils.getDelegation(1, 3).shares,
-            Utils.getDelegation(3, 3).shares
-          ])
-        )
       })
     })
     describe("Account C stakes 12000 CMTs for D.", function() {
@@ -264,13 +251,6 @@ describe("Stake Test", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.be.above(0)
         expect(tx_result.data.state).to.eq("Validator")
-        expect(tx_result.data.ranking_power).to.eq(
-          calcRP([
-            Utils.getDelegation(1, 3).shares,
-            Utils.getDelegation(2, 3).shares,
-            Utils.getDelegation(3, 3).shares
-          ])
-        )
       })
       it("One of the genesis validators now drops off", function() {
         tx_result = web3.cmt.stake.validator.list()
@@ -280,7 +260,6 @@ describe("Stake Test", function() {
           Globals.Accounts[3]
         )
         expect(drops[0].state).to.eq("Backup Validator")
-        expect(drops[0].ranking_power).to.eq(calcRP([drops[0].shares]))
       })
     })
   })
@@ -427,10 +406,15 @@ describe("Stake Test", function() {
           -gasFee.toNumber()
         )
         // check deliver tx tx_result
-        expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
-        expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.Params.update_candidacy).toString()
-        )
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.update_candidacy).toString()
+        // )
       })
     })
     describe("Account D modify other information", function() {

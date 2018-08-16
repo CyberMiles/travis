@@ -3,23 +3,68 @@ package stake
 import (
 	"database/sql"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
-	"path"
 
 	"fmt"
+	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/types"
 )
 
-func getDb() *sql.DB {
-	rootDir := viper.GetString(cli.HomeFlag)
-	stakeDbPath := path.Join(rootDir, "data", "travis.db")
+var (
+	deliverSqlTx *sql.Tx
+)
 
-	db, err := sql.Open("sqlite3", stakeDbPath)
+func SetDeliverSqlTx(tx *sql.Tx) {
+	deliverSqlTx = tx
+}
+
+func ResetDeliverSqlTx() {
+	deliverSqlTx = nil
+}
+
+func getDb() *sql.DB {
+	db, err := dbm.Sqliter.GetDB()
 	if err != nil {
 		panic(err)
 	}
 	return db
+}
+
+type SqlTxWrapper struct {
+	tx        *sql.Tx
+	withBlock bool
+}
+
+func getSqlTxWrapper() *SqlTxWrapper {
+	var wrapper = &SqlTxWrapper{
+		tx:        deliverSqlTx,
+		withBlock: true,
+	}
+	if wrapper.tx == nil {
+		db := getDb()
+		tx, err := db.Begin()
+		if err != nil {
+			panic(err)
+		}
+		wrapper.tx = tx
+		wrapper.withBlock = false
+	}
+	return wrapper
+}
+
+func (wrapper *SqlTxWrapper) Commit() {
+	if !wrapper.withBlock {
+		if err := wrapper.tx.Commit(); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (wrapper *SqlTxWrapper) Rollback() {
+	if !wrapper.withBlock {
+		if err := wrapper.tx.Rollback(); err != nil {
+			panic(err)
+		}
+	}
 }
 
 func composeQueryClause(cond map[string]interface{}) string {
@@ -86,20 +131,24 @@ func GetBackupValidators() (candidates Candidates) {
 }
 
 func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) {
-	db := getDb()
-	defer db.Close()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
 	clause := composeQueryClause(cond)
-	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
+	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
+	candidates = composeCandidateResults(rows)
+	return
+}
 
+func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
 		var votingPower, blockHeight, rank int64
-		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+		err := rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -130,27 +179,21 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 		candidates = append(candidates, candidate)
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		panic(err)
 	}
-
 	return
 }
 
 func SaveCandidate(candidate *Candidate) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
@@ -180,18 +223,14 @@ func SaveCandidate(candidate *Candidate) {
 }
 
 func updateCandidate(candidate *Candidate) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
@@ -219,18 +258,14 @@ func updateCandidate(candidate *Candidate) {
 }
 
 func removeCandidate(candidate *Candidate) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("delete from candidates where address = ?")
+	stmt, err := txWrapper.tx.Prepare("delete from candidates where address = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(candidate.OwnerAddress)
@@ -240,18 +275,14 @@ func removeCandidate(candidate *Candidate) {
 }
 
 func cleanCandidates() {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("delete from candidates where shares = ?")
+	stmt, err := txWrapper.tx.Prepare("delete from candidates where shares = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec("0")
@@ -261,18 +292,14 @@ func cleanCandidates() {
 }
 
 func SaveDelegator(delegator *Delegator) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("insert into delegators(address, created_at) values(?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into delegators(address, created_at) values(?, ?)")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(delegator.Address.String(), delegator.CreatedAt)
@@ -282,18 +309,14 @@ func SaveDelegator(delegator *Delegator) {
 }
 
 func RemoveDelegator(delegator *Delegator) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("delete from delegators where address = ?")
+	stmt, err := txWrapper.tx.Prepare("delete from delegators where address = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(delegator.Address.String())
@@ -303,9 +326,9 @@ func RemoveDelegator(delegator *Delegator) {
 }
 
 func GetDelegator(address string) *Delegator {
-	db := getDb()
-	defer db.Close()
-	stmt, err := db.Prepare("select address, created_at from delegators where address = ?")
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+	stmt, err := txWrapper.tx.Prepare("select address, created_at from delegators where address = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -325,18 +348,14 @@ func GetDelegator(address string) *Delegator {
 }
 
 func SaveDelegation(d *Delegation) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, hash, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, hash, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate, common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
@@ -346,18 +365,14 @@ func SaveDelegation(d *Delegation) {
 }
 
 func RemoveDelegation(delegation *Delegation) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("delete from delegations where delegator_address = ? and pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("delete from delegations where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
+
 	defer stmt.Close()
 
 	_, err = stmt.Exec(delegation.DelegatorAddress.String(), types.PubKeyString(delegation.PubKey))
@@ -367,20 +382,13 @@ func RemoveDelegation(delegation *Delegation) {
 }
 
 func UpdateDelegation(d *Delegation) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
-
-	stmt, err := tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, hash = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+	stmt, err := txWrapper.tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, hash = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
-
 	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
@@ -412,19 +420,24 @@ func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*
 }
 
 func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegation) {
-	db := getDb()
-	defer db.Close()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
 	clause := composeQueryClause(cond)
-	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, created_at, updated_at from delegations" + clause)
+	rows, err := txWrapper.tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, created_at, updated_at from delegations" + clause)
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 
+	delegations = composeDelegationResults(rows)
+	return
+}
+
+func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation)  {
 	for rows.Next() {
 		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, compRate, createdAt, updatedAt string
-		err = rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &compRate, &createdAt, &updatedAt)
+		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &compRate, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -448,28 +461,21 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 		delegations = append(delegations, delegation)
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		panic(err)
 	}
 	return
 }
 
 func saveDelegateHistory(delegateHistory *DelegateHistory) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("insert into delegate_history(delegator_address, pub_key, amount, op_code, created_at) values(?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into delegate_history(delegator_address, pub_key, amount, op_code, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
-
 	_, err = stmt.Exec(
 		delegateHistory.DelegatorAddress.String(),
 		types.PubKeyString(delegateHistory.PubKey),
@@ -483,15 +489,10 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 }
 
 func savePunishHistory(punishHistory *PunishHistory) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("insert into punish_history(pub_key, slashing_ratio, slash_amount, reason, created_at) values(?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into punish_history(pub_key, slashing_ratio, slash_amount, reason, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -510,15 +511,10 @@ func savePunishHistory(punishHistory *PunishHistory) {
 }
 
 func saveUnstakeRequest(req *UnstakeRequest) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("insert into unstake_requests(id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into unstake_requests(id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -543,7 +539,6 @@ func saveUnstakeRequest(req *UnstakeRequest) {
 
 func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 	db := getDb()
-	defer db.Close()
 
 	rows, err := db.Query("select id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, created_at, updated_at from unstake_requests where state = ? and performed_block_height <= ?", "PENDING", height)
 	if err != nil {
@@ -574,8 +569,7 @@ func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 		reqs = append(reqs, req)
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		panic(err)
 	}
 
@@ -583,15 +577,10 @@ func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 }
 
 func updateUnstakeRequest(req *UnstakeRequest) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("update unstake_requests set delegator_address = ?, pub_key = ?, initiated_block_height = ?, performed_block_height = ?, amount = ?, state = ?, hash=?, updated_at = ? where id = ?")
+	stmt, err := txWrapper.tx.Prepare("update unstake_requests set delegator_address = ?, pub_key = ?, initiated_block_height = ?, performed_block_height = ?, amount = ?, state = ?, hash=?, updated_at = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}

@@ -66,6 +66,9 @@ func (app BaseApp) deliverHandler(ctx types.Context, store state.SimpleDB, tx *e
 	if err != nil {
 		return errors.DeliverResult(err)
 	}
+	// increase nonce
+	app.EthApp.DeliverTxState().SetNonce(from, tx.Nonce()+1)
+
 	ctx.WithSigners(from)
 	ctx.SetNonce(tx.Nonce())
 
@@ -88,8 +91,6 @@ func (app BaseApp) deliverHandler(ctx types.Context, store state.SimpleDB, tx *e
 		return errors.DeliverResult(err)
 	}
 
-	// no error, call ethereum app to add nonce
-	app.EthApp.backend.AddNonce(from)
 	// accumulate gasFee
 	app.StoreApp.TotalUsedGasFee.Add(app.StoreApp.TotalUsedGasFee, res.GasFee)
 	return res.ToABCI()

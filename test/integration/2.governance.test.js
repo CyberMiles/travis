@@ -71,18 +71,20 @@ describe("Governance Test", function() {
         balance_old = Utils.getBalance()
       })
 
-      it("Validators A propose to double gas_price. ", function() {
+      it("Validators A propose to double max_slashing_blocks. ", function() {
         tx_result = web3.cmt.governance.proposeChangeParam({
           from: Globals.Accounts[0],
-          name: "gas_price",
-          value: (old_params.data.gas_price * 2).toString()
+          name: "max_slashing_blocks",
+          value: (old_params.data.max_slashing_blocks * 2).toString()
         })
         Utils.expectTxSuccess(tx_result)
         proposalId = tx_result.deliver_tx.data
       })
-      it("gas_price won't change before vote. ", function() {
+      it("max_slashing_blocks won't change before vote. ", function() {
         new_params = web3.cmt.governance.getParams()
-        expect(new_params.data.gas_price).to.equal(old_params.data.gas_price)
+        expect(new_params.data.max_slashing_blocks).to.equal(
+          old_params.data.max_slashing_blocks
+        )
       })
 
       it("Proposal passed. ", function() {
@@ -106,13 +108,14 @@ describe("Governance Test", function() {
           )
         })
       })
-      it("Verify the gas_price is doubled. ", function() {
+      it("Verify the max_slashing_blocks is doubled. ", function() {
         new_params = web3.cmt.governance.getParams()
         logger.debug(new_params)
-        expect(new_params.data.gas_price).to.equal(
-          old_params.data.gas_price * 2
+        expect(new_params.data.max_slashing_blocks).to.equal(
+          old_params.data.max_slashing_blocks * 2
         )
-        Globals.Params.gas_price = old_params.data.gas_price * 2
+        Globals.Params.max_slashing_blocks =
+          old_params.data.max_slashing_blocks * 2
       })
     })
 
@@ -138,11 +141,10 @@ describe("Governance Test", function() {
         expect(p.Detail.amount).to.equal(amount)
         expect(p.Result).to.be.empty
 
-        // default to 7 days
+        // default to 7 days(7*24*360 blocks)
         let now = Math.floor(new Date() / 1000)
-        let elapse = p.Expire - now
-        logger.debug(now, p.Expire, Globals.Params.proposal_expire_period)
-        expect(Math.abs(elapse - Globals.Params.proposal_expire_period)).lt(10)
+        let elapse = p.ExpireBlockHeight - p.BlockHeight
+        expect(elapse).to.equal(Globals.Params.proposal_expire_period)
 
         // balance after
         balance_new = Utils.getBalance()
@@ -155,10 +157,15 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
-        expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
-        )
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        // )
       })
       describe("Validators A, B, and C votes for the proposal. The total vote (A+B+C) now exceeds 2/3. ", function() {
         it("Verify that the 500 CMTs are transfered to account #2. ", function() {
@@ -207,10 +214,8 @@ describe("Governance Test", function() {
         expect(p.Result).to.be.empty
 
         // default to 7 days
-        let now = Math.floor(new Date() / 1000)
-        let elapse = p.Expire - now
-        logger.debug(now, p.Expire, Globals.Params.proposal_expire_period)
-        expect(Math.abs(elapse - Globals.Params.proposal_expire_period)).lt(10)
+        let elapse = p.ExpireBlockHeight - p.BlockHeight
+        expect(elapse).to.equal(Globals.Params.proposal_expire_period)
 
         // balance after
         balance_new = Utils.getBalance()
@@ -223,10 +228,15 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
-        expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
-        )
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        // )
       })
       describe("Validator A votes for the proposal, but defaultAccount, B and C vote against the proposal. The total vote (default+B+C) now exceeds 2/3.", function() {
         it("Verify that the 500 CMTs are transfered back to account #1. ", function() {
@@ -247,15 +257,14 @@ describe("Governance Test", function() {
       })
     })
 
-    describe("Validator A proposes to move 500 CMTs from account #1 to #2. And he specifies a short expiration date (5 blocks).  ", function() {
+    describe("Validator A proposes to move 500 CMTs from account #1 to #2. And he specifies expireTimeStamp = now+20s. ", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance()
       })
       it("Verify that 500 CMTs are removed from account #1 and show up as frozen amount for this account. ", function() {
         let amount = web3.toWei(500, "cmt")
-        let now = Math.floor(new Date() / 1000)
-        let expire = now + 5 * 10 // about 5 blocks
+        let expire = web3.cmt.getBlock("latest").timestamp + 2 * 10 // about 2 blocks
 
         tx_result = web3.cmt.governance.proposeRecoverFund({
           from: Globals.Accounts[0],
@@ -263,7 +272,7 @@ describe("Governance Test", function() {
           transferTo: Globals.Accounts[2],
           amount: amount,
           reason: "Governance test",
-          expire: expire
+          expireTimestamp: expire
         })
         Utils.expectTxSuccess(tx_result)
         proposalId = tx_result.deliver_tx.data
@@ -272,7 +281,7 @@ describe("Governance Test", function() {
         let p = Utils.getProposal(proposalId)
         expect(p.Detail.amount).to.equal(amount)
         expect(p.Result).to.be.empty
-        expect(p.Expire).to.equal(expire)
+        expect(p.ExpireTimestamp).to.equal(expire)
 
         // balance after
         balance_new = Utils.getBalance()
@@ -285,18 +294,87 @@ describe("Governance Test", function() {
         )
         expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
         // check deliver tx tx_result
-        expect(tx_result.deliver_tx.fee.value).to.eq(gasFee.toString())
-        expect(tx_result.deliver_tx.gasUsed).to.eq(
-          web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
-        )
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        // )
       })
 
-      it("Validator A votes for the proposal, but no one else votes(wait for 5 blocks).", function(done) {
+      it("Validator A votes for the proposal, but no one else votes(wait for 2 blocks).", function(done) {
         Utils.vote(proposalId, Globals.Accounts[0], "Y")
-        Utils.waitBlocks(done, 5)
+        Utils.waitBlocks(done, 2)
       })
 
-      it("Verify that the 500 CMTs are transfered back to account #1 after 5 blocks. ", function() {
+      it("Verify that the 500 CMTs are transfered back to account #1 after 2 blocks. ", function() {
+        // check proposal
+        let p = Utils.getProposal(proposalId)
+        expect(p.Result).to.equal("Expired")
+        // balance after
+        balance_new = Utils.getBalance()
+        expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(0)
+        expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
+      })
+    })
+
+    describe("Validator A proposes to move 500 CMTs from account #1 to #2. And he specifies expireBlockHeight = current+2. ", function() {
+      before(function() {
+        // balance before
+        balance_old = Utils.getBalance()
+      })
+      it("Verify that 500 CMTs are removed from account #1 and show up as frozen amount for this account. ", function() {
+        let amount = web3.toWei(500, "cmt")
+        let expire = web3.cmt.blockNumber + 2 // 2 blocks
+
+        tx_result = web3.cmt.governance.proposeRecoverFund({
+          from: Globals.Accounts[0],
+          transferFrom: Globals.Accounts[1],
+          transferTo: Globals.Accounts[2],
+          amount: amount,
+          reason: "Governance test",
+          expireBlockHeight: expire
+        })
+        Utils.expectTxSuccess(tx_result)
+        proposalId = tx_result.deliver_tx.data
+
+        // check proposal
+        let p = Utils.getProposal(proposalId)
+        expect(p.Detail.amount).to.equal(amount)
+        expect(p.Result).to.be.empty
+        expect(p.ExpireBlockHeight).to.equal(expire)
+
+        // balance after
+        balance_new = Utils.getBalance()
+        let gasFee = Utils.gasFee("proposeTransferFund")
+        expect(balance_new[0].minus(balance_old[0]).toNumber()).to.eq(
+          -gasFee.toNumber()
+        )
+        expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
+          Number(-amount)
+        )
+        expect(balance_new[2].minus(balance_old[2]).toNumber()).to.equal(0)
+        // check deliver tx tx_result
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        // )
+      })
+
+      it("Validator A votes for the proposal, but no one else votes(wait for 2 blocks).", function(done) {
+        Utils.vote(proposalId, Globals.Accounts[0], "Y")
+        Utils.waitBlocks(done, 2)
+      })
+
+      it("Verify that the 500 CMTs are transfered back to account #1 after 2 blocks. ", function() {
         // check proposal
         let p = Utils.getProposal(proposalId)
         expect(p.Result).to.equal("Expired")

@@ -13,27 +13,32 @@ import (
 type Params struct {
 	HoldAccount               common.Address `json:"hold_account"`         // PubKey where all bonded coins are held
 	MaxVals                   uint16         `json:"max_vals" type:"uint"` // maximum number of validators
+	BackupVals                uint16         `json:"backup_vals" type:"uint"` // number of backup validators
 	SelfStakingRatio          sdk.Rat        `json:"self_staking_ratio" type:"rat"`
 	InflationRate             sdk.Rat        `json:"inflation_rate" type:"rat"`
 	ValidatorSizeThreshold    sdk.Rat        `json:"validator_size_threshold" type:"rat"`
 	UnstakeWaitingPeriod      uint64         `json:"unstake_waiting_period" type:"uint"`
-	ProposalExpirePeriod      int64          `json:"proposal_expire_period" type:"uint"`
+	ProposalExpirePeriod      uint64         `json:"proposal_expire_period" type:"uint"`
 	DeclareCandidacy          uint64         `json:"declare_candidacy" type:"uint"`
 	UpdateCandidacy           uint64         `json:"update_candidacy" type:"uint"`
 	TransferFundProposal      uint64         `json:"transfer_fund_proposal" type:"uint"`
 	ChangeParamsProposal      uint64         `json:"change_params_proposal" type:"uint"`
+	DeployLibEniProposal      uint64         `json:"deploy_libeni_proposal" type:"uint"`
 	GasPrice                  uint64         `json:"gas_price" type:"uint"`
 	MinStakingAmount          int64          `json:"min_staking_amount" type:"uint"`
 	ValidatorsBlockAwardRatio sdk.Rat        `json:"validators_block_award_ratio" type:"rat"`
 	MaxSlashingBlocks         int16          `json:"max_slashing_blocks" type:"uint"`
 	SlashingRatio             sdk.Rat        `json:"slashing_ratio" type:"rat"`
 	CubePubKeys               string         `json:"cube_pub_keys" type:"json"`
+	LowPriceTxGasLimit		  uint64		 `json:"low_price_tx_gas_limit" type:"uint"`
+	LowPriceTxSlotsCap		  int		 	 `json:"low_price_tx_slots_cap" type:"int"`
 }
 
 func defaultParams() *Params {
 	return &Params{
 		HoldAccount:               HoldAccount,
 		MaxVals:                   100,
+		BackupVals:                5,
 		SelfStakingRatio:          sdk.NewRat(10, 100),
 		InflationRate:             sdk.NewRat(8, 100),
 		ValidatorSizeThreshold:    sdk.NewRat(12, 100),
@@ -43,12 +48,15 @@ func defaultParams() *Params {
 		UpdateCandidacy:           1e6,
 		TransferFundProposal:      2e6,
 		ChangeParamsProposal:      2e6,
+		DeployLibEniProposal:      2e6,
 		GasPrice:                  2e9,
 		MinStakingAmount:          1000,
 		ValidatorsBlockAwardRatio: sdk.NewRat(80, 100),
 		MaxSlashingBlocks:         12,
 		SlashingRatio:             sdk.NewRat(1, 1000),
 		CubePubKeys:               "{}",
+		LowPriceTxGasLimit:			500000, // Maximum gas limit for low-price transaction
+		LowPriceTxSlotsCap:			100, // Maximum number of low-price transaction slots per block
 	}
 }
 

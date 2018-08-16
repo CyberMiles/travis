@@ -52,7 +52,6 @@ after_failure:
 
 before_deploy:
   - BUILD_TAG=$TRAVIS_TAG make dist
-  - export RELEASE_PKG_FILE=$(ls build/dist/*.zip)
 
 deploy:
   provider: releases
@@ -61,7 +60,7 @@ deploy:
     secure: iIaBQLDBPzi95sIt36XaOaSrD7hwB/dUxAfpCeFLoFqdGNsGZhaPp4XfW8UghwqNlUF9spW1Ri8uOMF2Ig3FBTmeL/GELJl8pSJwhjb3Ra3p+kGg5eKyIZMvK1m9uoXBBMlMnjPhS9h0Z8bOpXLiEpQASV6nnJ0KE2N39ff3jBKShWDNWejOAYBTNNJ9N7GF8gh6z/xLwZ82nLWmOYGkwrEA9fH93IzguehmUyD2bbU66un0QrRfUCQ8xruxTENZ9ATz7GqOrqYe0L+IUbmK10VIYlJ1S7PcWvBSY4J4nslLnpFw2m+/3Zt2Cq/xaCLs7bmOlMie0AEbtyGamXxEIlNcIeWeOIyXv0k4yqGm5+IUl2scggDXGmysXCjwbQbLnPbHXo0sYlNMUr4WkH2LlPENT9r4mQGDwOYkrwt0ZlU9n+67IpgTBuBqd//khzmnjdDPleWZyr6fOfjfA8uBGbcO8fANyJOAzoPQQtKp7crzhyt2aVZB2M7JAGsJCr1TUZl9Y2KgAKkCQnpwBAZdntUB0DvodBFqVG61zaH4yY6k+5kiHC+kZ9gSqoh3gMoMlANRqaoIB+3IVf1TXWyVx4dp11RGCBxNmccvA1h+RsI8GXsCPSLYINiQLKWUl3jmNYbmQKK7TyWWl/soCTco6NnyivLp6cxbDi0zqy5xTDc=
   skip_cleanup: true
   file_glob: true
-  file: "${RELEASE_PKG_FILE}"
+  file: "build/dist/*.zip"
   name: Travis $TRAVIS_TAG
   body: https://github.com/CyberMiles/travis/blob/develop/CHANGELOG.md#${TRAVIS_TAG//.}
   on:
@@ -69,4 +68,4 @@ deploy:
     tags: true
 
 after_script:
-  - TAG=$TRAVIS_BRANCH make push_tag_image ;
+  - cd $TRAVIS_BUILD_DIR && TAG=$TRAVIS_BRANCH make push_tag_image ;

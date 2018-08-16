@@ -115,12 +115,12 @@ func (app *EthermintApplication) basicCheck(tx *ethTypes.Transaction) (*state.St
 	currentState := app.checkTxState
 
 	// Make sure the account exist - cant send from non-existing account.
-	if !currentState.Exist(from) {
-		return nil, common.Address{}, 0,
-			abciTypes.ResponseCheckTx{
-				Code: errors.CodeTypeUnknownAddress,
-				Log:  core.ErrInvalidSender.Error()}
-	}
+	//if !currentState.Exist(from) {
+	//	return nil, common.Address{}, 0,
+	//		abciTypes.ResponseCheckTx{
+	//			Code: errors.CodeTypeUnknownAddress,
+	//			Log:  core.ErrInvalidSender.Error()}
+	//}
 
 	// Check the transaction doesn't exceed the current block limit gas.
 	gasLimit := app.backend.GasLimit()

@@ -25,6 +25,7 @@ type GenesisDoc struct {
 	AppHash          []byte                     `json:"app_hash"`
 	AppOptions       interface{}                `json:"app_options,omitempty"`
 	MaxVals          uint16                     `json:"max_vals"`
+	BackupVals       uint16                     `json:"backup_vals"`
 	SelfStakingRatio string                     `json:"self_staking_ratio"`
 	CubePubKeys      []travis.GenesisCubePubKey `json:"cube_pub_keys"`
 }
