@@ -13,4 +13,6 @@ const (
 	CodeTypeBaseInvalidOutput uint32 = 21
 
 	CodeLowGasPriceErr        uint32 = 101
+	CodeHighGasLimitErr       uint32 = 102
+	CodeLowPriceTxCapErr      uint32 = 103
 )

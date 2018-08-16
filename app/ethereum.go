@@ -279,28 +279,11 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 			Log:  core.ErrIntrinsicGas.Error()}
 	}
 
-	// Iterate over all transactions to check if the gas price is too low for the
-	// non-first transaction with the same from/to address
-	// Todo performance maybe
-	var to common.Address
-	if tx.To() != nil {
-		to = *tx.To()
-	}
-	ft := FromTo{
-		from: from,
-		to:   to,
-	}
-	minGasPrice := new(big.Int).SetUint64(utils.GetParams().GasPrice)
-	if _, ok := app.lowPriceTransactions[ft]; ok {
-		if tx.GasPrice().Cmp(minGasPrice) < 0 {
-			// add failed count
-			// this map will keep growing because the nonce check will use it ongoing
-			app.checkFailedCount[from] = app.checkFailedCount[from] + 1
-			return abciTypes.ResponseCheckTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
-		}
-	}
-	if tx.GasPrice().Cmp(minGasPrice) < 0 {
-		app.lowPriceTransactions[ft] = tx
+	if resp := app.lowPriceTxCheck(from, tx); resp.Code != abciTypes.CodeTypeOK{
+		// add failed count
+		// this map will keep growing because the nonce check will use it ongoing
+		app.checkFailedCount[from] = app.checkFailedCount[from] + 1
+		return resp
 	}
 
 	utils.NonceCheckedTx[tx.Hash()] = true
@@ -314,6 +297,35 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 		currentState.AddBalance(*to, tx.Value())
 	}
 	currentState.SetNonce(from, nonce+1)
+
+	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
+}
+
+func  (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTypes.Transaction)  abciTypes.ResponseCheckTx {
+	// Iterate over all transactions to check if the gas price is too low for the
+	// non-first transaction with the same from/to address
+	// Todo performance maybe
+	var to common.Address
+	if tx.To() != nil {
+		to = *tx.To()
+	}
+	ft := FromTo{from: from, to: to}
+
+	minGasPrice := new(big.Int).SetUint64(utils.GetParams().GasPrice)
+	if _, ok := app.lowPriceTransactions[ft]; ok {
+		if tx.GasPrice().Cmp(minGasPrice) < 0 {
+			return abciTypes.ResponseCheckTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
+		}
+	}
+	if tx.GasPrice().Cmp(minGasPrice) < 0 {
+		if tx.Gas() > utils.GetParams().LowPriceTxGasLimit {
+			return abciTypes.ResponseCheckTx{Code: errors.CodeHighGasLimitErr, Log: "The gas limit is too high for low price transaction"}
+		}
+		if len(app.lowPriceTransactions) > utils.GetParams().LowPriceTxSlotsCap {
+			return abciTypes.ResponseCheckTx{Code: errors.CodeLowPriceTxCapErr, Log: "The capacity of one block is reached for low price transactions"}
+		}
+		app.lowPriceTransactions[ft] = tx
+	}
 
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }
