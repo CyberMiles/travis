@@ -138,7 +138,6 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 		totalUsedGasFee: big.NewInt(0),
 		gp:              new(core.GasPool).AddGas(ethHeader.GasLimit),
 	}
-	utils.BlockGasFee = big.NewInt(0)
 	utils.StateChangeQueue = make([]utils.StateChangeObject, 0)
 	utils.TravisTxAddrs = make([]*common.Address, 0)
 	return nil
