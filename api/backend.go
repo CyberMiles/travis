@@ -193,6 +193,12 @@ func (b *Backend) APIs() []rpc.API {
 			Service:   NewCmtRPCService(b, nonceLock),
 			Public:    true,
 		},
+		{
+			Namespace: "eth",
+			Version:   "1.0",
+			Service:   NewEthRPCService(b, nonceLock),
+			Public:    true,
+		},
 	}...)
 
 	retApis := []rpc.API{}
