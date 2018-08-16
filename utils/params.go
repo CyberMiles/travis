@@ -28,6 +28,8 @@ type Params struct {
 	MaxSlashingBlocks         int16          `json:"max_slashing_blocks" type:"uint"`
 	SlashingRatio             string         `json:"slashing_ratio" type:"float"`
 	CubePubKeys               string         `json:"cube_pub_keys" type:"json"`
+	LowPriceTxGasLimit		  uint64		 `json:"low_price_tx_gas_limit" type:"uint"`
+	LowPriceTxSlotsCap		  int		 	 `json:"low_price_tx_slots_cap" type:"int"`
 }
 
 func defaultParams() *Params {
@@ -50,6 +52,8 @@ func defaultParams() *Params {
 		MaxSlashingBlocks:         12,
 		SlashingRatio:             "0.001",
 		CubePubKeys:               "{}",
+		LowPriceTxGasLimit:			500000, // Maximum gas limit for low-price transaction
+		LowPriceTxSlotsCap:			100, // Maximum number of low-price transaction slots per block
 	}
 }
 
