@@ -55,7 +55,7 @@ func (s *sqliter) CloseDB() {
 		if err := s.db.Close(); err != nil {
 			log.Warn("Failed to close sqlite db: " + s.dbPath)
 		}
-		log.Info("Sqlite db closed sucessfully！")
+		log.Info("Sqlite db closed successfully！")
 		s.db = nil
 	}
 }
