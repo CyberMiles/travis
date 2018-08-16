@@ -96,6 +96,14 @@ func SetParam(name, value string) bool {
 				}
 			case reflect.String:
 				fv.SetString(value)
+			case reflect.Struct:
+				switch reflect.TypeOf(fv.Interface()).Name() {
+				case "Rat":
+					v := sdk.NewRat(0, 1)
+					if err := json.Unmarshal([]byte(value), &v); err == nil {
+						fv.Set(reflect.ValueOf(v))
+					}
+				}
 			}
 			dirty = true
 			return true
@@ -132,6 +140,11 @@ func CheckParamType(name, value string) bool {
 				}
 			case "string":
 				return true
+			case "rat":
+				v := sdk.NewRat(0, 1)
+				if err := json.Unmarshal([]byte(value), &v); err == nil {
+					return true
+				}
 			}
 			return false
 		}

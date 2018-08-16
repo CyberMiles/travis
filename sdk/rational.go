@@ -1,7 +1,6 @@
 package sdk
 
 import (
-	"encoding/json"
 	"math/big"
 )
 
@@ -42,7 +41,7 @@ func (r Rat) Cmp(r2 Rat) int {
 }
 
 //Wraps r.MarshalText().
-func (r Rat) MarshalJson() ([]byte, error) {
+func (r Rat) MarshalJSON() ([]byte, error) {
 	if r.Rat == nil {
 		r.Rat = new(big.Rat)
 	}
@@ -52,19 +51,19 @@ func (r Rat) MarshalJson() ([]byte, error) {
 		return nil, err
 	}
 
-	return json.Marshal(string(text))
+	return text, nil
 }
 
 // Requires a valid JSON string - strings quotes and calls UnmarshalText
-func (r *Rat) UnmarshalJson(text []byte) (err error) {
-	tempRat := big.NewRat(0, 1)
+func (r *Rat) UnmarshalJSON(text []byte) (err error) {
+	tempRat := new(big.Rat)
 	err = tempRat.UnmarshalText([]byte(text))
 	if err != nil {
-		return err
+		return
 	}
 
 	r.Rat = tempRat
-	return nil
+	return
 }
 
 func (r Rat) Equal(r2 Rat) bool { return (r.Rat).Cmp(r2.Rat) == 0 }

@@ -85,7 +85,7 @@ func initTendermint() {
 		genDoc := GenesisDoc{
 			ChainID:          viper.GetString(FlagChainID),
 			MaxVals:          4,
-			SelfStakingRatio: "0.1",
+			SelfStakingRatio: "\"10/100\"",
 		}
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
