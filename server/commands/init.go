@@ -177,7 +177,7 @@ func initTravisDb() {
 	create unique index idx_candidates_pub_key on candidates(pub_key);
 	create index idx_candidates_hash on candidates(hash);
  	create table delegators(address text not null primary key, created_at text not null);
-	create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', slash_amount text not null default '0', hash text not null default '',  created_at text not null, updated_at text not null default '');
+	create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  created_at text not null, updated_at text not null default '');
 	create unique index idx_delegations_delegator_address_pub_key on delegations(delegator_address, pub_key);
 	create index idx_delegations_hash on delegations(hash);
  	create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, amount text not null default '0', op_code text not null default '', created_at text not null);

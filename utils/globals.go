@@ -28,9 +28,9 @@ type StateChangeReactor interface {
 }
 
 type pendingProposal struct {
-	proposalsTS          map[string]int64
-	minExpireTimestamp   int64
-	minTSMappedPid       []string
+	proposalsTS        map[string]int64
+	minExpireTimestamp int64
+	minTSMappedPid     []string
 
 	proposalsBH          map[string]int64
 	minExpireBlockHeight int64
@@ -179,7 +179,7 @@ func CalGasFee(gasUsed uint64, gasPrice uint64) sdk.Int {
 }
 
 var (
-	BlockGasFee      *big.Int
+	BlockGasFee      = big.NewInt(0)
 	StateChangeQueue []StateChangeObject
 	// Recording addresses associated with travis tx (stake/governance) in one block
 	// Transfer transaction is not allowed if the sender of which was found in this recording

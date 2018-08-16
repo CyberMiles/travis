@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"encoding/json"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/sdk"
@@ -24,7 +23,7 @@ const governanceModuleName = "governance"
 
 var OTAInstance = eni.NewOTAInstance()
 
-var cancelDownload= make(map[string] bool)
+var cancelDownload = make(map[string]bool)
 
 // Name is the name of the modules.
 func Name() string {
@@ -97,7 +96,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), err
 		}
 		app_state.SubBalance(*txInner.From, amount)
-		app_state.SubBalance(sender, gasFee)
+		app_state.SubBalance(sender, gasFee.Int)
 
 		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxChangeParamPropose:
@@ -138,7 +137,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
-		app_state.SubBalance(sender, gasFee)
+		app_state.SubBalance(sender, gasFee.Int)
 	case TxDeployLibEniPropose:
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
@@ -151,7 +150,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if v.OwnerAddress == txInner.Proposer.String() {
 				break
 			}
-			if i + 1 == len(validators) {
+			if i+1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
 		}
@@ -172,7 +171,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
-		otaInfo := eni.OTAInfo {
+		otaInfo := eni.OTAInfo{
 			LibName: txInner.Name,
 			Version: txInner.Version,
 		}
@@ -209,7 +208,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
-		app_state.SubBalance(sender, gasFee)
+		app_state.SubBalance(sender, gasFee.Int)
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
@@ -396,7 +395,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee
+			res.GasFee = gasFee.Int
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
 			commons.Transfer(sender, utils.HoldAccount, gasFee)
@@ -588,7 +587,7 @@ func getOTAInfo(p *Proposal) *eni.OTAInfo {
 		return nil
 	}
 
-	return &eni.OTAInfo {
+	return &eni.OTAInfo{
 		p.Detail["name"].(string),
 		p.Detail["version"].(string),
 		fileurl,
@@ -605,7 +604,7 @@ func DownloadLibEni(p *Proposal) {
 	result := make(chan bool)
 
 	go func() {
-		if r := <- result; r {
+		if r := <-result; r {
 			if r, ok := cancelDownload[p.Id]; ok {
 				delete(cancelDownload, p.Id)
 				if r {
@@ -635,7 +634,7 @@ func DownloadLibEni(p *Proposal) {
 		for {
 			if _, ok := cancelDownload[p.Id]; ok {
 				result <- false
-				break;
+				break
 			}
 			if err := OTAInstance.DownloadInfo(*oi); err == nil {
 				result <- true
@@ -643,7 +642,7 @@ func DownloadLibEni(p *Proposal) {
 			}
 			if _, ok := cancelDownload[p.Id]; ok {
 				result <- false
-				break;
+				break
 			}
 			time.Sleep(10 * time.Second)
 		}
