@@ -179,7 +179,7 @@ func CalGasFee(gasUsed uint64, gasPrice uint64) sdk.Int {
 }
 
 var (
-	BlockGasFee      = big.NewInt(0)
+	BlockGasFee    = big.NewInt(0)
 	StateChangeQueue []StateChangeObject
 	// Recording addresses associated with travis tx (stake/governance) in one block
 	// Transfer transaction is not allowed if the sender of which was found in this recording

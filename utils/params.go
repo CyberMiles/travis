@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/CyberMiles/travis/sdk"
-	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -69,11 +68,11 @@ var (
 
 // load/save the global params
 func LoadParams(b []byte) {
-	types.Cdc.UnmarshalBinary(b, params)
+	json.Unmarshal(b, params)
 }
 
 func UnloadParams() (b []byte) {
-	b, _ = types.Cdc.MarshalBinary(*params)
+	b, _ = json.Marshal(*params)
 	return
 }
 
@@ -104,6 +103,14 @@ func SetParam(name, value string) bool {
 				}
 			case reflect.String:
 				fv.SetString(value)
+			case reflect.Struct:
+				switch reflect.TypeOf(fv.Interface()).Name() {
+				case "Rat":
+					v := sdk.NewRat(0, 1)
+					if err := json.Unmarshal([]byte("\"" + value + "\""), &v); err == nil {
+						fv.Set(reflect.ValueOf(v))
+					}
+				}
 			}
 			dirty = true
 			return true
@@ -140,6 +147,11 @@ func CheckParamType(name, value string) bool {
 				}
 			case "string":
 				return true
+			case "rat":
+				v := sdk.NewRat(0, 1)
+				if err := json.Unmarshal([]byte("\"" + value + "\""), &v); err == nil {
+					return true
+				}
 			}
 			return false
 		}

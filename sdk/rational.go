@@ -42,7 +42,7 @@ func (r Rat) Cmp(r2 Rat) int {
 }
 
 //Wraps r.MarshalText().
-func (r Rat) MarshalJson() ([]byte, error) {
+func (r Rat) MarshalJSON() ([]byte, error) {
 	if r.Rat == nil {
 		r.Rat = new(big.Rat)
 	}
@@ -56,15 +56,18 @@ func (r Rat) MarshalJson() ([]byte, error) {
 }
 
 // Requires a valid JSON string - strings quotes and calls UnmarshalText
-func (r *Rat) UnmarshalJson(text []byte) (err error) {
-	tempRat := big.NewRat(0, 1)
-	err = tempRat.UnmarshalText([]byte(text))
-	if err != nil {
-		return err
+func (r *Rat) UnmarshalJSON(b []byte) (err error) {
+	var text string
+	if err = json.Unmarshal(b, &text); err != nil {
+		return
+	}
+	tempRat := new(big.Rat)
+	if err = tempRat.UnmarshalText([]byte(text)); err != nil {
+		return
 	}
 
 	r.Rat = tempRat
-	return nil
+	return
 }
 
 func (r Rat) Equal(r2 Rat) bool { return (r.Rat).Cmp(r2.Rat) == 0 }
