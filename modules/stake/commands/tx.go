@@ -55,6 +55,7 @@ const (
 	FlagVerified         = "verified"
 	FlagCubeBatch        = "cube-batch"
 	FlagSig              = "sig"
+	FlagDelegatorAddress = "delegator-address"
 )
 
 // nolint
@@ -94,6 +95,11 @@ var (
 		Short: "Withdraw coins from a validator/candidate",
 		RunE:  cmdWithdraw,
 	}
+	CmdSetCompRate = &cobra.Command{
+		Use:   "set-comprate",
+		Short: "Set the compensation rate for a certain delegator",
+		RunE:  cmdSetCompRate,
+	}
 )
 
 func init() {
@@ -130,6 +136,9 @@ func init() {
 
 	fsSig := flag.NewFlagSet("", flag.ContinueOnError)
 	fsSig.String(FlagSig, "", "cube signature")
+
+	fsDelegatorAddress := flag.NewFlagSet("", flag.ContinueOnError)
+	fsDelegatorAddress.String(FlagDelegatorAddress, "", "delegator address")
 
 	// add the flags
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
@@ -265,5 +274,21 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 	}
 
 	tx := stake.NewTxWithdraw(validatorAddress, amount)
+	return txcmd.DoTx(tx)
+}
+
+func cmdSetCompRate(cmd *cobra.Command, args []string) error {
+	delegatorAddress := common.HexToAddress(viper.GetString(FlagDelegatorAddress))
+	if delegatorAddress.String() == "" {
+		return fmt.Errorf("please enter delegator address using --delegator-address")
+	}
+
+	compRate := viper.GetString(FlagCompRate)
+	fCompRate := utils.ParseFloat(compRate)
+	if fCompRate <= 0 || fCompRate >= 1 {
+		return fmt.Errorf("comp-rate must between 0 and 1")
+	}
+
+	tx := stake.NewTxSetCompRate(delegatorAddress, compRate)
 	return txcmd.DoTx(tx)
 }

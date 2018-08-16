@@ -37,6 +37,7 @@ type delegatedProofOfStake interface {
 	activateCandidacy(TxActivateCandidacy) error
 	delegate(TxDelegate) error
 	withdraw(TxWithdraw) error
+	setCompRate(TxSetCompRate) error
 }
 
 //_______________________________________________________________________
@@ -352,6 +353,15 @@ func (c check) withdraw(tx TxWithdraw) error {
 	return nil
 }
 
+func (c check) setCompRate(tx TxSetCompRate) error {
+	candidate := GetCandidateByAddress(c.sender)
+	d := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
+	if d == nil {
+		return ErrDelegationNotExists()
+	}
+	return nil
+}
+
 //_____________________________________________________________________
 
 type deliver struct {
@@ -560,6 +570,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 			AwardAmount:      "0",
 			WithdrawAmount:   "0",
 			SlashAmount:      "0",
+			CompRate:         candidate.CompRate,
 			CreatedAt:        now,
 			UpdatedAt:        now,
 		}
@@ -629,6 +640,19 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 	saveUnstakeRequest(unstakeRequest)
 
 	return
+}
+
+func (d deliver) setCompRate(tx TxSetCompRate) error {
+	candidate := GetCandidateByAddress(d.sender)
+	delegation := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
+	if delegation == nil {
+		return ErrDelegationNotExists()
+	}
+
+	delegation.CompRate = tx.CompRate
+	delegation.UpdatedAt = utils.GetNow()
+	SaveDelegation(delegation)
+	return nil
 }
 
 func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
