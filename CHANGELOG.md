@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.1.0-rc.5
+
+_August 17th, 2018_
+
+### FEATURES
+- Improve system security: Verify Delegator's transaction signature in CMT Cube. Make sure that the transaction is initiated by CMT Cube.
+- Revise the fault tolerance mechanism in deployment of libENI. 
+  * If any Node fails to download the library, it won’t go through the panic program. To ensure the Node can run normally, the network records the failure status, and allows downloading manually.
+  * To secure connectivity of global Nodes, more libENI downloading addresses are added. If the Nodes fail to download the library with the first URL, they with try with the rest in order.
+  
+### IMPROVEMENTS
+- Improve system security: 
+  * sendTransaction & sendRawTransaction no longer run through txpool API. This avoids bugs from using web3 or geth. 
+  * In regard to staking or governance transaction, noncelock will be released when a transaction is signed, instead of when the commit is completed. 
+- Enhance usability:
+  * Support configuring the number of Backup Validators.
+  * Add more Lity related test cases. 
+  
+### FIXES
+- Fix an error in punishing a Validator committed Byzantine failures.
+- Fix an error caused by travis tx in synchronising the new Validators.
+
 ## v0.1.0-rc.4
 
 _August 3rd, 2018_
@@ -36,7 +58,7 @@ For more information, visit https://www.litylang.org/
 3. Complete the Governance and Staking mechanism Documentation: http://travis.readthedocs.io/
 
 ### FIXES
-Fixed some small bugs.
+Fix some small bugs.
 
 ## v0.1.0-rc.2
 
