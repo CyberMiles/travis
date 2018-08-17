@@ -11,7 +11,7 @@ FROM ywonline/travis-build AS build-env
 # libeni
 ENV LIBENI_PATH=/app/lib
 RUN mkdir -p libeni \
-  && wget https://github.com/CyberMiles/libeni/releases/download/v1.2.0/libeni-1.2.0_ubuntu-16.04.tgz -P libeni \
+  && wget https://github.com/CyberMiles/libeni/releases/download/v1.3.0/libeni-1.3.0_ubuntu-16.04.tgz -P libeni \
   && tar zxvf libeni/*.tgz -C libeni \
   && mkdir -p $LIBENI_PATH && cp libeni/*/lib/*.so $LIBENI_PATH
 
@@ -33,8 +33,12 @@ RUN ENI_LIB=$LIBENI_PATH make build
 # final stage
 FROM ubuntu:16.04
 
+RUN apt-get update \
+  && apt-get install -y libssl-dev
+
 WORKDIR /app
 ENV ENI_LIBRARY_PATH=/app/lib
+ENV LD_LIBRARY_PATH=/app/lib
 
 # add the binary
 COPY --from=build-env /go/src/github.com/CyberMiles/travis/build/travis .
