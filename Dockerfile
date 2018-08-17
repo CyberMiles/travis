@@ -33,8 +33,12 @@ RUN ENI_LIB=$LIBENI_PATH make build
 # final stage
 FROM ubuntu:16.04
 
+RUN apt-get update \
+  && apt-get install -y libssl-dev
+
 WORKDIR /app
 ENV ENI_LIBRARY_PATH=/app/lib
+ENV LD_LIBRARY_PATH=/app/lib
 
 # add the binary
 COPY --from=build-env /go/src/github.com/CyberMiles/travis/build/travis .
