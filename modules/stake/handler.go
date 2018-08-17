@@ -222,8 +222,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee *big.Int) error {
 	totalCost := new(big.Int).Add(rr, gasFee)
 
 	// check if the delegator has sufficient funds
-	err := checkBalance(c.state, c.sender, totalCost)
-	if err != nil {
+	if err := checkBalance(c.state, c.sender, totalCost); err != nil {
 		return err
 	}
 
@@ -236,6 +235,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee *big.Int) error {
 		return fmt.Errorf("cannot edit non-exsits candidacy")
 	}
 
+	var totalCost = big.NewInt(0).Set(gasFee)
 	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
 	// and the different will be charged
 	if tx.MaxAmount != "" {
@@ -247,15 +247,13 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee *big.Int) error {
 		if maxAmount.Cmp(candidate.ParseMaxShares()) > 0 {
 			rechargeAmount := getRechargeAmount(maxAmount, candidate, c.params.SelfStakingRatio)
 
-			totalCost := new(big.Int).Add(rechargeAmount, gasFee)
-
-			// check if the delegator has sufficient funds
-			err := checkBalance(c.state, c.sender, totalCost)
-
-			if err != nil {
-				return err
-			}
+			totalCost = new(big.Int).Add(totalCost, rechargeAmount)
 		}
+	}
+
+	// check if the delegator has sufficient funds
+	if err := checkBalance(c.state, c.sender, totalCost); err != nil {
+		return err
 	}
 
 	return nil
@@ -392,17 +390,18 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee *big.Int) error 
 		Active:       "Y",
 		BlockHeight:  d.height,
 	}
-	SaveCandidate(candidate)
-
 	// delegate a part of the max staked CMT amount
 	amount := tx.SelfStakingAmount(d.params.SelfStakingRatio)
 	totalCost := big.NewInt(0).Add(amount, gasFee)
+	fmt.Println("deliver.declareCandidancy--totalCost: ", totalCost)
 	// check if the delegator has sufficient funds
 	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
 		return err
-	} else {
-		commons.Transfer(d.sender, utils.HoldAccount, gasFee)
 	}
+
+	// only charge gas fee here
+	commons.Transfer(d.sender, utils.HoldAccount, gasFee)
+	SaveCandidate(candidate)
 
 	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
 	return d.delegate(txDelegate)
@@ -445,20 +444,21 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee *big.Int) error {
 		return ErrNoCandidateForAddress()
 	}
 
-	var rechargeAmount = big.NewInt(0)
+	var totalCost = big.NewInt(0).Set(gasFee)
 	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
 	// and the different will be charged
 	if tx.MaxAmount != "" {
 		maxAmount := utils.ParseInt(tx.MaxAmount)
 
 		if candidate.ParseMaxShares().Cmp(maxAmount) != 0 {
-			rechargeAmount = getRechargeAmount(maxAmount, candidate, d.params.SelfStakingRatio)
+			rechargeAmount := getRechargeAmount(maxAmount, candidate, d.params.SelfStakingRatio)
 			rechargeAmountAbs := new(big.Int)
 			rechargeAmountAbs.Abs(rechargeAmount)
 
 			if rechargeAmount.Cmp(big.NewInt(0)) > 0 {
 				// charge
-				commons.Transfer(d.sender, utils.HoldAccount, rechargeAmountAbs)
+				totalCost.Add(totalCost, rechargeAmount)
+				//commons.Transfer(d.sender, utils.HoldAccount, rechargeAmountAbs)
 				candidate.AddShares(rechargeAmount)
 
 				// update delegation
@@ -478,13 +478,12 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee *big.Int) error {
 		candidate.Description = tx.Description
 	}
 
-	totalCost := big.NewInt(0).Add(rechargeAmount, gasFee)
 	// check if the delegator has sufficient funds
 	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
 		return err
-	} else {
-		commons.Transfer(d.sender, utils.HoldAccount, gasFee)
 	}
+
+	commons.Transfer(d.sender, utils.HoldAccount, totalCost)
 
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)

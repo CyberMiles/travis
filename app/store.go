@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -175,7 +174,6 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		key := reqQuery.Data // Data holds the key bytes
 		resQuery.Key = key
 		value := app.state.Check().Get(key)
-		fmt.Printf("Check Value: %s\n", hex.EncodeToString(value))
 		resQuery.Value = value
 
 		if reqQuery.Prove {
