@@ -11,8 +11,11 @@ import (
 
 const (
 	CommitSeconds = 10
-	BlocksPerHour = 60 * 60 / 10
-	BlocksPerDay  = 24 * 60 * 60 / 10
+	//BlocksPerHour = 60 * 60 / 10
+	// fixme just for test
+	BlocksPerHour = 2
+	//BlocksPerDay  = 24 * 60 * 60 / 10
+	BlocksPerDay = 1
 )
 
 type StateChangeObject struct {
@@ -179,7 +182,7 @@ func CalGasFee(gasUsed uint64, gasPrice uint64) sdk.Int {
 }
 
 var (
-	BlockGasFee    = big.NewInt(0)
+	BlockGasFee      = big.NewInt(0)
 	StateChangeQueue []StateChangeObject
 	// Recording addresses associated with travis tx (stake/governance) in one block
 	// Transfer transaction is not allowed if the sender of which was found in this recording

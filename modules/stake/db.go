@@ -434,7 +434,7 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	return
 }
 
-func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation)  {
+func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 	for rows.Next() {
 		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, compRate, createdAt, updatedAt string
 		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &compRate, &createdAt, &updatedAt)
@@ -603,15 +603,10 @@ func updateUnstakeRequest(req *UnstakeRequest) {
 }
 
 func SaveCandidateDailyStake(cds *CandidateDailyStake) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("insert into candidate_daily_stakes(id, pub_key, amount, created_at) values(?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into candidate_daily_stakes(id, pub_key, amount, created_at) values(?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -624,15 +619,10 @@ func SaveCandidateDailyStake(cds *CandidateDailyStake) {
 }
 
 func RemoveCandidateDailyStakes(pubKey types.PubKey, startDate string) {
-	db := getDb()
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
-	defer tx.Commit()
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
 
-	stmt, err := tx.Prepare("delete from candidate_daily_stakes where pub_key = ? and created_at < ?")
+	stmt, err := txWrapper.tx.Prepare("delete from candidate_daily_stakes where pub_key = ? and created_at < ?")
 	if err != nil {
 		panic(err)
 	}
@@ -645,9 +635,10 @@ func RemoveCandidateDailyStakes(pubKey types.PubKey, startDate string) {
 }
 
 func GetCandidateDailyStakeMax(pubKey types.PubKey, startDate string) string {
-	db := getDb()
-	defer db.Close()
-	stmt, err := db.Prepare("select max(amount) from candidate_daily_stakes where pub_key = ? and created_at >= ?")
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("select max(amount) from candidate_daily_stakes where pub_key = ? and created_at >= ?")
 	if err != nil {
 		panic(err)
 	}

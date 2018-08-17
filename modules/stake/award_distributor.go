@@ -1,6 +1,7 @@
 package stake
 
 import (
+	"fmt"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
@@ -13,16 +14,15 @@ import (
 const (
 	yearlyBlockNumber   = 365 * 24 * 3600 / 10
 	basicMintableAmount = "1000000000000000000000000000"
+	HalfYearInMinutes   = 180 * 24 * 60
 )
 
 type validator struct {
-	shares           int64
-	ownerAddress     common.Address
-	pubKey           types.PubKey
-	delegators       []*delegator
-	selfDelegator    *delegator
-	totalVotingPower int64
-	votingPower      int64
+	shares       int64
+	ownerAddress common.Address
+	pubKey       types.PubKey
+	delegators   []*delegator
+	votingPower  int64
 }
 
 func (v *validator) computeTotalSharesPercentage(totalShares int64, redistribute bool) sdk.Rat {
@@ -33,6 +33,10 @@ func (v *validator) computeTotalSharesPercentage(totalShares int64, redistribute
 	}
 
 	return p
+}
+
+func (v validator) String() string {
+	return fmt.Sprintf("ownerAddress: %s, pubKey: %s, delegators: %d, votingPower: %d", v.ownerAddress.String(), types.PubKeyString(v.pubKey), len(v.delegators), v.votingPower)
 }
 
 //_______________________________________________________________________
@@ -48,6 +52,10 @@ type delegator struct {
 	N        int64
 }
 
+func (d delegator) String() string {
+	return fmt.Sprintf("address: %s, shares: %d, compRate: %v, V: %d, S1: %d, S2: %d, T: %d, N: %d", d.address.String(), d.shares, d.compRate, d.V, d.S1, d.S2, d.T, d.N)
+}
+
 //_______________________________________________________________________
 
 type awardDistributor struct {
@@ -58,8 +66,8 @@ type awardDistributor struct {
 	logger           log.Logger
 }
 
-func NewAwardDistributor(height int64, validators, backupValidators Validators, transactionFees sdk.Int, logger log.Logger) *awardDistributor {
-	return &awardDistributor{height, validators, backupValidators, transactionFees, logger}
+func NewAwardDistributor(height int64, validators, backupValidators Validators, logger log.Logger) *awardDistributor {
+	return &awardDistributor{height, validators, backupValidators, sdk.NewIntFromBigInt(utils.BlockGasFee), logger}
 }
 
 func (ad awardDistributor) getMintableAmount() (amount sdk.Int) {
@@ -87,8 +95,9 @@ func (ad awardDistributor) getBlockAward() (blockAward sdk.Int) {
 
 func (ad awardDistributor) Distribute() {
 	// distribute to the validators
-	normalizedValidators, totalValidatorsShares := ad.buildValidators(ad.validators)
-	normalizedBackupValidators, totalBackupsShares := ad.buildValidators(ad.backupValidators)
+	normalizedValidators, totalValidatorsShares, totalValidatorVotingPower := ad.buildValidators(ad.validators)
+	normalizedBackupValidators, totalBackupsShares, totalBackupVotingPower := ad.buildValidators(ad.backupValidators)
+	totalVotingPower := totalValidatorVotingPower + totalBackupVotingPower
 	var rr, rs sdk.Rat
 	if len(normalizedBackupValidators) > 0 && totalBackupsShares > 0 {
 		rr = utils.GetParams().ValidatorsBlockAwardRatio
@@ -98,20 +107,22 @@ func (ad awardDistributor) Distribute() {
 		rs = sdk.OneRat()
 	}
 
-	ad.distributeToValidators(normalizedValidators, totalValidatorsShares, ad.getBlockAwardAndTxFees(), rr, rs)
+	ad.distributeToValidators(normalizedValidators, totalValidatorsShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
 
 	// distribute to the backup validators
 	if len(normalizedBackupValidators) > 0 && totalBackupsShares > 0 {
 		rr = sdk.OneRat().Sub(utils.GetParams().ValidatorsBlockAwardRatio)
 		rs = sdk.NewRat(totalBackupsShares, totalValidatorsShares+totalBackupsShares)
-		ad.distributeToValidators(normalizedBackupValidators, totalBackupsShares, ad.getBlockAwardAndTxFees(), rr, rs)
+		ad.distributeToValidators(normalizedBackupValidators, totalBackupsShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
 	}
 
 	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)))
+	utils.BlockGasFee.SetInt64(0)
 }
 
-func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares int64) {
+func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares int64, totalVotingPower int64) {
 	totalShares = 0
+	totalVotingPower = 0
 
 	for _, val := range rawValidators {
 		var validator validator
@@ -144,13 +155,13 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			m2 := GetCandidateDailyStakeMax(delegation.PubKey, ninetyDaysAgo)
 			s1, _ := sdk.NewIntFromString(m1)
 			s2, _ := sdk.NewIntFromString(m2)
-			delegator.S1 = s1.Int64()
-			delegator.S2 = s2.Int64()
+			delegator.S1 = s1.Div(sdk.E18Int()).Int64()
+			delegator.S2 = s2.Div(sdk.E18Int()).Int64()
 			delegator.compRate = sdk.NewRat(int64(delegation.ParseCompRate()*1000), 1000)
 
-			t, _ := utils.Diff(delegation.CreatedAt)
-			if t > 180 {
-				t = 180
+			t, _ := utils.DiffMinutes(delegation.CreatedAt)
+			if t > HalfYearInMinutes {
+				t = HalfYearInMinutes
 			}
 			delegator.T = t
 			delegator.N += 1
@@ -160,23 +171,27 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		for _, d := range delegators {
 			d.V = calcVotingPowerForDelegator(d.S1, d.S2, d.T, d.N, d.shares)
 			validator.votingPower += d.V
+			totalVotingPower += d.V
 			validator.shares += d.shares
 			totalShares += d.shares
+			fmt.Printf("%v\n", d)
 		}
 
 		validator.delegators = delegators
 		normalizedValidators = append(normalizedValidators, &validator)
+
+		fmt.Printf("%v\n", validator)
 	}
 
 	return
 }
 
-func (ad *awardDistributor) distributeToValidators(normalizedValidators []*validator, totalShares int64, totalAward sdk.Int, rr, rs sdk.Rat) {
+func (ad *awardDistributor) distributeToValidators(normalizedValidators []*validator, totalShares int64, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
 	actualDistributed := sdk.NewInt(0)
 	for _, val := range normalizedValidators {
 		p := val.computeTotalSharesPercentage(totalShares, false)
 		award := totalAward.MulRat(p)
-		ad.doDistribute(val, award, rr, rs)
+		ad.doDistribute(val, award, totalVotingPower, rr, rs)
 		actualDistributed.Add(award)
 	}
 
@@ -186,12 +201,12 @@ func (ad *awardDistributor) distributeToValidators(normalizedValidators []*valid
 		ad.logger.Debug("there is remaining award, doDistribute a second round based on stake amount.", "remaining", remaining)
 		for _, val := range normalizedValidators {
 			val.computeTotalSharesPercentage(totalShares, true)
-			ad.doDistribute(val, remaining, rr, rs)
+			ad.doDistribute(val, remaining, totalVotingPower, rr, rs)
 		}
 	}
 }
 
-func (ad *awardDistributor) doDistribute(val *validator, totalAward sdk.Int, rr, rs sdk.Rat) {
+func (ad *awardDistributor) doDistribute(val *validator, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
 	var t int64
 	t = 0
 
@@ -200,13 +215,13 @@ func (ad *awardDistributor) doDistribute(val *validator, totalAward sdk.Int, rr,
 		c := d.compRate
 		a := sdk.OneRat().Sub(c)
 		b := d.V * a.Num().Int64() / a.Denom().Int64()
-		r := totalAward.MulRat(sdk.NewRat(b, val.votingPower).Mul(rr).Quo(rs))
+		r := totalAward.MulRat(sdk.NewRat(b, totalVotingPower).Mul(rr).Quo(rs))
 		ad.awardToDelegator(d, val, r)
 		t += d.V * c.Num().Int64() / c.Denom().Int64()
 	}
 
 	// validator
-	r := totalAward.MulRat(sdk.NewRat(t, val.votingPower).Mul(rr).Quo(rs))
+	r := totalAward.MulRat(sdk.NewRat(t, totalVotingPower).Mul(rr).Quo(rs))
 	ad.awardToValidator(val, r)
 	return
 }
@@ -253,8 +268,9 @@ func calcVotingPowerForDelegator(s1, s2, t, n, s int64) int64 {
 	r2 = r2.Add(one)
 	r3 = one.Sub(one.Quo(r3.Add(one)))
 	r3 = r3.Mul(r3)
-	v, _ := r1.Mul(r3).Mul(r4).Float64()
+	x, _ := r1.Mul(r3).Mul(r4).Float64()
 	f2, _ := r2.Float64()
 	f2 = utils.RoundFloat(f2, 2)
-	return int64(v * math.Log2(f2))
+	l := math.Log2(f2)
+	return int64(x * l)
 }

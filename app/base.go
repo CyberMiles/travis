@@ -6,9 +6,9 @@ import (
 	"math/big"
 
 	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
-	"github.com/CyberMiles/travis/sdk/dbm"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -16,13 +16,13 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"bytes"
+	"database/sql"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
-	"database/sql"
 )
 
 // BaseApp - The ABCI application
@@ -35,7 +35,7 @@ type BaseApp struct {
 	ByzantineValidators []abci.Evidence
 	PresentValidators   stake.Validators
 	blockTime           int64
-	deliverSqlTx *sql.Tx
+	deliverSqlTx        *sql.Tx
 }
 
 const (
@@ -228,7 +228,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	// block award
 	if app.WorkingHeight()%utils.BlocksPerHour == 0 {
 		// run once per hour
-		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, sdk.NewIntFromBigInt(utils.BlockGasFee), app.logger).Distribute()
+		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
 	}
 
 	// punish Byzantine validators
