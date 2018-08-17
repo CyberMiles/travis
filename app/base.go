@@ -236,8 +236,8 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 			}
 
 			stake.PunishByzantineValidator(pk)
-			app.ByzantineValidators = app.ByzantineValidators[:0]
 		}
+		app.ByzantineValidators = app.ByzantineValidators[:0]
 	}
 
 	// punish the absent validators
