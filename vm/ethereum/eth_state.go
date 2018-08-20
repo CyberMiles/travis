@@ -203,8 +203,6 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
 	tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
 
-	delete(utils.NonceCheckedTx, tx.Hash())
-
 	ws.handleStateChangeQueue()
 	ws.travisTxIndex = len(utils.StateChangeQueue)
 

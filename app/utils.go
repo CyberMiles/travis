@@ -114,14 +114,6 @@ func (app *EthermintApplication) basicCheck(tx *ethTypes.Transaction) (*state.St
 
 	currentState := app.checkTxState
 
-	// Make sure the account exist - cant send from non-existing account.
-	//if !currentState.Exist(from) {
-	//	return nil, common.Address{}, 0,
-	//		abciTypes.ResponseCheckTx{
-	//			Code: errors.CodeTypeUnknownAddress,
-	//			Log:  core.ErrInvalidSender.Error()}
-	//}
-
 	// Check the transaction doesn't exceed the current block limit gas.
 	gasLimit := app.backend.GasLimit()
 	if gasLimit < tx.Gas() {
@@ -132,28 +124,13 @@ func (app *EthermintApplication) basicCheck(tx *ethTypes.Transaction) (*state.St
 	}
 
 	nonce := currentState.GetNonce(from)
-	if _, ok := utils.NonceCheckedTx[tx.Hash()]; !ok {
-		// Check if nonce is not strictly increasing
-		// if not then recheck with feeding failed count
-		if nonce != tx.Nonce() {
-			if c, ok := app.checkFailedCount[from]; ok {
-				if nonce+c != tx.Nonce() {
-					return nil, common.Address{}, 0,
-						abciTypes.ResponseCheckTx{
-							Code: errors.CodeTypeBadNonce,
-							Log: fmt.Sprintf(
-								"Nonce not strictly increasing. Expected %d Got %d",
-								nonce, tx.Nonce())}
-				}
-			} else {
-				return nil, common.Address{}, 0,
-					abciTypes.ResponseCheckTx{
-						Code: errors.CodeTypeBadNonce,
-						Log: fmt.Sprintf(
-							"Nonce not strictly increasing. Expected %d Got %d",
-							nonce, tx.Nonce())}
-			}
-		}
+	if nonce != tx.Nonce() {
+		return nil, common.Address{}, 0,
+			abciTypes.ResponseCheckTx{
+				Code: errors.CodeTypeBadNonce,
+				Log: fmt.Sprintf(
+					"Nonce not strictly increasing. Expected %d Got %d",
+					nonce, tx.Nonce())}
 	}
 
 	return currentState, from, nonce, abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
