@@ -165,7 +165,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 		if c.Active == "N" {
 			c.VotingPower = 0
 		} else if !sdk.NewInt(c.VotingPower).Equal(shares) {
-			c.VotingPower = shares.Div(sdk.E18Int()).Int64()
+			c.VotingPower = shares.Div(sdk.E18Int).Int64()
 		}
 	}
 	cs.Sort()

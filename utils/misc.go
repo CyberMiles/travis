@@ -19,7 +19,7 @@ func ParseFloat(str string) float64 {
 func ParseInt(str string) sdk.Int {
 	value, ok := sdk.NewIntFromString(str)
 	if !ok {
-		return sdk.ZeroInt()
+		return sdk.ZeroInt
 	}
 
 	return value

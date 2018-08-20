@@ -122,7 +122,7 @@ func RemoveAbsentValidator(pubKey types.PubKey) (err error) {
 	updateCandidate(v)
 
 	// Save punishment history
-	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: sdk.ZeroRat(), SlashAmount: sdk.ZeroInt(), Reason: "Absent for up to 12 consecutive blocks", CreatedAt: utils.GetNow()}
+	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: sdk.ZeroRat, SlashAmount: sdk.ZeroInt, Reason: "Absent for up to 12 consecutive blocks", CreatedAt: utils.GetNow()}
 	savePunishHistory(punishHistory)
 	return
 }

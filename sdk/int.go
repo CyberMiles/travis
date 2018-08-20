@@ -6,11 +6,11 @@ type Int struct {
 	*big.Int `json:"int"`
 }
 
-func ZeroInt() Int { return Int{big.NewInt(0)} }
-
-func OneInt() Int { return Int{big.NewInt(1)} }
-
-func E18Int() Int { return Int{big.NewInt(1e18)} }
+var (
+	ZeroInt = NewInt(0)
+	OnInt   = NewInt(1)
+	E18Int  = NewInt(1e18)
+)
 
 func NewInt(x int64) Int {
 	return Int{big.NewInt(x)}

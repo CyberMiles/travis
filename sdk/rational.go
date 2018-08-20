@@ -9,13 +9,10 @@ type Rat struct {
 	*big.Rat `json:"rat"`
 }
 
-func ZeroRat() Rat {
-	return Rat{big.NewRat(0, 1)}
-}
-
-func OneRat() Rat {
-	return Rat{big.NewRat(1, 1)}
-}
+var (
+	ZeroRat = NewRat(0, 1)
+	OneRat  = NewRat(1, 1)
+)
 
 func NewRat(a, b int64) Rat {
 	return Rat{big.NewRat(a, b)}
@@ -30,11 +27,6 @@ func (r Rat) Sub(r2 Rat) Rat {
 }
 
 func (r Rat) Mul(r2 Rat) Rat {
-	return Rat{new(big.Rat).Mul(r.Rat, r2.Rat)}
-}
-
-func (r Rat) MulInt(i Int) Rat {
-	r2 := NewRat(i, 1)
 	return Rat{new(big.Rat).Mul(r.Rat, r2.Rat)}
 }
 

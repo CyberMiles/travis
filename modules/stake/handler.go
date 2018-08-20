@@ -240,7 +240,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	// and the different will be charged
 	if tx.MaxAmount != "" {
 		maxAmount, ok := sdk.NewIntFromString(tx.MaxAmount)
-		if !ok || maxAmount.LT(sdk.ZeroInt()) {
+		if !ok || maxAmount.LT(sdk.ZeroInt) {
 			return ErrBadAmount()
 		}
 
@@ -312,7 +312,7 @@ func (c check) delegate(tx TxDelegate) error {
 
 	// check if the delegator has sufficient funds
 	amount, ok := sdk.NewIntFromString(tx.Amount)
-	if !ok || amount.LT(sdk.ZeroInt()) {
+	if !ok || amount.LT(sdk.ZeroInt) {
 		return ErrBadAmount()
 	}
 
@@ -549,7 +549,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 
 	delegateAmount, ok := sdk.NewIntFromString(tx.Amount)
-	if !ok || delegateAmount.LT(sdk.ZeroInt()) {
+	if !ok || delegateAmount.LT(sdk.ZeroInt) {
 		return ErrBadAmount()
 	}
 
