@@ -21,6 +21,7 @@ const (
 	ByteTxActivateCandidacy = 0x59
 	ByteTxDelegate          = 0x60
 	ByteTxWithdraw          = 0x61
+	ByteTxSetCompRate       = 0x62
 	TypeTxDeclareCandidacy  = stakingModuleName + "/declareCandidacy"
 	TypeTxUpdateCandidacy   = stakingModuleName + "/updateCandidacy"
 	TypeTxVerifyCandidacy   = stakingModuleName + "/verifyCandidacy"
@@ -28,6 +29,7 @@ const (
 	TypeTxActivateCandidacy = stakingModuleName + "/activateCandidacy"
 	TypeTxDelegate          = stakingModuleName + "/delegate"
 	TypeTxWithdraw          = stakingModuleName + "/withdraw"
+	TypeTxSetCompRate       = stakingModuleName + "/set-comprate"
 )
 
 func init() {
@@ -38,6 +40,7 @@ func init() {
 	sdk.TxMapper.RegisterImplementation(TxActivateCandidacy{}, TypeTxActivateCandidacy, ByteTxActivateCandidacy)
 	sdk.TxMapper.RegisterImplementation(TxDelegate{}, TypeTxDelegate, ByteTxDelegate)
 	sdk.TxMapper.RegisterImplementation(TxWithdraw{}, TypeTxWithdraw, ByteTxWithdraw)
+	sdk.TxMapper.RegisterImplementation(TxSetCompRate{}, TypeTxSetCompRate, ByteTxSetCompRate)
 }
 
 //Verify interface at compile time

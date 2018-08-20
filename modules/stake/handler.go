@@ -119,6 +119,8 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		return res, checker.delegate(txInner)
 	case TxWithdraw:
 		return res, checker.withdraw(txInner)
+	case TxSetCompRate:
+		return res, checker.setCompRate(txInner)
 	}
 
 	utils.TravisTxAddrs = append(utils.TravisTxAddrs, &sender)
@@ -147,10 +149,10 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 	}
 	res.GasFee = big.NewInt(0)
 	// Run the transaction
-	switch _tx := tx.Unwrap().(type) {
+	switch txInner := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
 		gasFee := utils.CalGasFee(utils.GetParams().DeclareCandidacy, utils.GetParams().GasPrice)
-		err := deliverer.declareCandidacy(_tx, gasFee)
+		err := deliverer.declareCandidacy(txInner, gasFee)
 		if err == nil {
 			res.GasUsed = int64(utils.GetParams().DeclareCandidacy)
 			res.GasFee = gasFee.Int
@@ -158,22 +160,24 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		return res, err
 	case TxUpdateCandidacy:
 		gasFee := utils.CalGasFee(utils.GetParams().UpdateCandidacy, utils.GetParams().GasPrice)
-		err := deliverer.updateCandidacy(_tx, gasFee)
+		err := deliverer.updateCandidacy(txInner, gasFee)
 		if err == nil {
 			res.GasUsed = int64(utils.GetParams().UpdateCandidacy)
 			res.GasFee = gasFee.Int
 		}
 		return res, err
 	case TxWithdrawCandidacy:
-		return res, deliverer.withdrawCandidacy(_tx)
+		return res, deliverer.withdrawCandidacy(txInner)
 	case TxVerifyCandidacy:
-		return res, deliverer.verifyCandidacy(_tx)
+		return res, deliverer.verifyCandidacy(txInner)
 	case TxActivateCandidacy:
-		return res, deliverer.activateCandidacy(_tx)
+		return res, deliverer.activateCandidacy(txInner)
 	case TxDelegate:
-		return res, deliverer.delegate(_tx)
+		return res, deliverer.delegate(txInner)
 	case TxWithdraw:
-		return res, deliverer.withdraw(_tx)
+		return res, deliverer.withdraw(txInner)
+	case TxSetCompRate:
+		return res, deliverer.setCompRate(txInner)
 	}
 
 	return
@@ -651,7 +655,7 @@ func (d deliver) setCompRate(tx TxSetCompRate) error {
 
 	delegation.CompRate = tx.CompRate
 	delegation.UpdatedAt = utils.GetNow()
-	SaveDelegation(delegation)
+	UpdateDelegation(delegation)
 	return nil
 }
 

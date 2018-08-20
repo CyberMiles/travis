@@ -385,6 +385,7 @@ func (d *Delegation) Hash() []byte {
 		AwardAmount      string
 		WithdrawAmount   string
 		SlashAmount      string
+		CompRate         string
 	}{
 		d.DelegatorAddress,
 		d.PubKey,
@@ -392,6 +393,7 @@ func (d *Delegation) Hash() []byte {
 		d.AwardAmount,
 		d.WithdrawAmount,
 		d.SlashAmount,
+		d.CompRate,
 	})
 	if err != nil {
 		panic(err)

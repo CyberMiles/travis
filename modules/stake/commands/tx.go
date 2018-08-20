@@ -157,6 +157,9 @@ func init() {
 
 	CmdWithdraw.Flags().AddFlagSet(fsValidatorAddress)
 	CmdWithdraw.Flags().AddFlagSet(fsAmount)
+
+	CmdSetCompRate.Flags().AddFlagSet(fsCompRate)
+	CmdSetCompRate.Flags().AddFlagSet(fsDelegatorAddress)
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
