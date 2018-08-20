@@ -33,6 +33,11 @@ func (r Rat) Mul(r2 Rat) Rat {
 	return Rat{new(big.Rat).Mul(r.Rat, r2.Rat)}
 }
 
+func (r Rat) MulInt(i Int) Rat {
+	r2 := NewRat(i, 1)
+	return Rat{new(big.Rat).Mul(r.Rat, r2.Rat)}
+}
+
 func (r Rat) Quo(r2 Rat) Rat {
 	return Rat{new(big.Rat).Quo(r.Rat, r2.Rat)}
 }

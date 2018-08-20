@@ -36,7 +36,7 @@ func (v *validator) computeTotalSharesPercentage(totalShares int64, redistribute
 }
 
 func (v validator) String() string {
-	return fmt.Sprintf("ownerAddress: %s, pubKey: %s, delegators: %d, votingPower: %d", v.ownerAddress.String(), types.PubKeyString(v.pubKey), len(v.delegators), v.votingPower)
+	return fmt.Sprintf("[validator] ownerAddress: %s, delegators: %d, votingPower: %d", v.ownerAddress.String(), len(v.delegators), v.votingPower)
 }
 
 //_______________________________________________________________________
@@ -53,7 +53,7 @@ type delegator struct {
 }
 
 func (d delegator) String() string {
-	return fmt.Sprintf("address: %s, shares: %d, compRate: %v, V: %d, S1: %d, S2: %d, T: %d, N: %d", d.address.String(), d.shares, d.compRate, d.V, d.S1, d.S2, d.T, d.N)
+	return fmt.Sprintf("[deligator] address: %s, shares: %d, compRate: %v, V: %d, S1: %d, S2: %d, T: %d, N: %d", d.address.String(), d.shares, d.compRate, d.V, d.S1, d.S2, d.T, d.N)
 }
 
 //_______________________________________________________________________
@@ -117,6 +117,8 @@ func (ad awardDistributor) Distribute() {
 	}
 
 	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)))
+
+	// reset block gas fee
 	utils.BlockGasFee.SetInt64(0)
 }
 
@@ -174,13 +176,10 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			totalVotingPower += d.V
 			validator.shares += d.shares
 			totalShares += d.shares
-			fmt.Printf("%v\n", d)
 		}
 
 		validator.delegators = delegators
 		normalizedValidators = append(normalizedValidators, &validator)
-
-		fmt.Printf("%v\n", validator)
 	}
 
 	return
@@ -207,21 +206,21 @@ func (ad *awardDistributor) distributeToValidators(normalizedValidators []*valid
 }
 
 func (ad *awardDistributor) doDistribute(val *validator, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
-	var t int64
-	t = 0
+	t := sdk.ZeroRat()
 
 	// doDistribute to the delegators
 	for _, d := range val.delegators {
 		c := d.compRate
 		a := sdk.OneRat().Sub(c)
-		b := d.V * a.Num().Int64() / a.Denom().Int64()
-		r := totalAward.MulRat(sdk.NewRat(b, totalVotingPower).Mul(rr).Quo(rs))
+		b := sdk.NewRat(d.V*a.Num().Int64(), a.Denom().Int64())
+		r := totalAward.MulRat(b.Mul(rr).Quo(rs).Quo(sdk.NewRat(totalVotingPower, 1)))
+		//fmt.Printf("c: %v, a: %v, b: %v, r: %v, d.V: %v\n", c, a, b, r, d.V)
 		ad.awardToDelegator(d, val, r)
-		t += d.V * c.Num().Int64() / c.Denom().Int64()
+		t.Add(sdk.NewRat(d.V*c.Num().Int64(), c.Denom().Int64()))
 	}
 
 	// validator
-	r := totalAward.MulRat(sdk.NewRat(t, totalVotingPower).Mul(rr).Quo(rs))
+	r := totalAward.MulRat(t.Mul(rr).Quo(rs).Quo(sdk.NewRat(totalVotingPower, 1)))
 	ad.awardToValidator(val, r)
 	return
 }
