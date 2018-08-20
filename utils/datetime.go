@@ -19,7 +19,7 @@ func GetTimeBefore(hours int) (string, error) {
 	return time.Now().Add(d).UTC().Format(time.RFC3339), nil
 }
 
-func DiffMinutes(t string) (int64, error) {
+func Diff(t string) (int64, error) {
 	dt, err := time.Parse(time.RFC3339, t)
 	if err != nil {
 		return 0, err
