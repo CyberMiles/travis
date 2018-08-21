@@ -182,7 +182,6 @@ var (
 	// Transfer transaction is not allowed if the sender of which was found in this recording
 	// TODO to be removed
 	TravisTxAddrs   []*common.Address
-	NonceCheckedTx  map[common.Hash]bool = make(map[common.Hash]bool)
 	PendingProposal                      = &pendingProposal{
 		make(map[string]int64),
 		math.MaxInt64,

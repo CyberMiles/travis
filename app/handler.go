@@ -13,7 +13,6 @@ import (
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/utils"
 )
 
 func (app BaseApp) checkHandler(ctx types.Context, store state.SimpleDB, tx *ethTypes.Transaction) abci.ResponseCheckTx {
@@ -45,7 +44,6 @@ func (app BaseApp) checkHandler(ctx types.Context, store state.SimpleDB, tx *eth
 		return errors.CheckResult(err)
 	}
 
-	utils.NonceCheckedTx[tx.Hash()] = true
 	currentState.SetNonce(from, nonce+1)
 
 	return res.ToABCI()
