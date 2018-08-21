@@ -137,6 +137,10 @@ func CheckParamType(name, value string) bool {
 				if err := json.Unmarshal([]byte(value), &s); err == nil {
 					return true
 				}
+				var b []interface{}
+				if err := json.Unmarshal([]byte(value), &b); err == nil {
+					return true
+				}
 			case "string":
 				return true
 			}
