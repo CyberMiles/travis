@@ -6,9 +6,9 @@ import (
 	"math/big"
 
 	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
-	"github.com/CyberMiles/travis/sdk/dbm"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -16,13 +16,13 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"bytes"
+	"database/sql"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
-	"database/sql"
 )
 
 // BaseApp - The ABCI application
@@ -35,7 +35,7 @@ type BaseApp struct {
 	ByzantineValidators []abci.Evidence
 	PresentValidators   stake.Validators
 	blockTime           int64
-	deliverSqlTx *sql.Tx
+	deliverSqlTx        *sql.Tx
 }
 
 const (
@@ -217,6 +217,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 // EndBlock - ABCI - triggers Tick actions
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.EthApp.EndBlock(req)
+	// todo
 	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, app.TotalUsedGasFee)
 
 	var backups stake.Validators
@@ -225,7 +226,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	// block award
-	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, utils.BlockGasFee, app.logger).Distribute()
+	if app.WorkingHeight()%utils.BlocksPerHour == 0 {
+		// run once per hour
+		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
+	}
 
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
@@ -254,6 +258,12 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	// handle the pending unstake requests
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
+
+	// record candidates stakes daily
+	if app.WorkingHeight()%utils.BlocksPerDay == 0 {
+		// run once per day
+		stake.RecordCandidateDailyStakes()
+	}
 
 	return app.StoreApp.EndBlock(req)
 }

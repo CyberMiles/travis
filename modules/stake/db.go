@@ -351,14 +351,14 @@ func SaveDelegation(d *Delegation) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, hash, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, hash, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate, common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -384,12 +384,12 @@ func RemoveDelegation(delegation *Delegation) {
 func UpdateDelegation(d *Delegation) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
-	stmt, err := txWrapper.tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, hash = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, comp_rate = ?, hash = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
+	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate, common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -424,7 +424,7 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	defer txWrapper.Commit()
 
 	clause := composeQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations" + clause)
+	rows, err := txWrapper.tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, created_at, updated_at from delegations" + clause)
 	if err != nil {
 		panic(err)
 	}
@@ -434,10 +434,10 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	return
 }
 
-func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation)  {
+func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 	for rows.Next() {
-		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
-		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
+		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, compRate, createdAt, updatedAt string
+		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &compRate, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -454,6 +454,7 @@ func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation)  {
 			AwardAmount:      awardAmount,
 			WithdrawAmount:   withdrawAmount,
 			SlashAmount:      slashAmount,
+			CompRate:         compRate,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		}
@@ -499,7 +500,7 @@ func savePunishHistory(punishHistory *PunishHistory) {
 
 	_, err = stmt.Exec(
 		types.PubKeyString(punishHistory.PubKey),
-		punishHistory.SlashingRatio,
+		punishHistory.SlashingRatio.String(),
 		punishHistory.SlashAmount.String(),
 		punishHistory.Reason,
 		punishHistory.CreatedAt,
@@ -599,4 +600,56 @@ func updateUnstakeRequest(req *UnstakeRequest) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func SaveCandidateDailyStake(cds *CandidateDailyStake) {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("insert into candidate_daily_stakes(id, pub_key, amount, created_at) values(?, ?, ?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(cds.Id, types.PubKeyString(cds.PubKey), cds.Amount, cds.CreatedAt)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func RemoveCandidateDailyStakes(pubKey types.PubKey, startDate string) {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("delete from candidate_daily_stakes where pub_key = ? and created_at < ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(types.PubKeyString(pubKey), startDate)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GetCandidateDailyStakeMax(pubKey types.PubKey, startDate string) string {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("select max(amount) from candidate_daily_stakes where pub_key = ? and created_at >= ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var maxAmount string
+	err = stmt.QueryRow(types.PubKeyString(pubKey), startDate).Scan(&maxAmount)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return maxAmount
 }

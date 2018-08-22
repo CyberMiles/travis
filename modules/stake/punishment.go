@@ -1,11 +1,11 @@
 package stake
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 )
@@ -71,7 +71,7 @@ func PunishAbsentValidator(pubKey types.PubKey, absence *Absence) (err error) {
 }
 
 func punish(pubKey types.PubKey, reason string) (err error) {
-	totalDeduction := new(big.Int)
+	totalDeduction := sdk.NewInt(0)
 	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
 	if v == nil {
 		return ErrNoCandidateForAddress()
@@ -83,15 +83,11 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 
 	// Get all of the delegators(includes the validator itself)
 	delegations := GetDelegationsByPubKey(v.PubKey)
-	slashingRatio := utils.ParseFloat(utils.GetParams().SlashingRatio)
-	for _, delegation := range delegations {
-		tmp := new(big.Float)
-		x := new(big.Float).SetInt(delegation.Shares())
-		tmp.Mul(x, big.NewFloat(slashingRatio))
-		slash := new(big.Int)
-		tmp.Int(slash)
-		punishDelegator(delegation, common.HexToAddress(v.OwnerAddress), slash)
-		totalDeduction.Add(totalDeduction, slash)
+	slashingRatio := utils.GetParams().SlashingRatio
+	for _, d := range delegations {
+		slash := d.Shares().MulRat(slashingRatio)
+		punishDelegator(d, common.HexToAddress(v.OwnerAddress), slash)
+		totalDeduction.Add(slash)
 	}
 
 	// Save punishment history
@@ -101,8 +97,8 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 	return
 }
 
-func punishDelegator(d *Delegation, validatorAddress common.Address, amount *big.Int) {
-	fmt.Printf("punish delegator, address: %s, amount: %d\n", d.DelegatorAddress.String(), amount)
+func punishDelegator(d *Delegation, validatorAddress common.Address, amount sdk.Int) {
+	//fmt.Printf("punish delegator, address: %s, amount: %d\n", d.DelegatorAddress.String(), amount)
 	now := utils.GetNow()
 	d.AddSlashAmount(amount)
 	d.UpdatedAt = now
@@ -110,8 +106,7 @@ func punishDelegator(d *Delegation, validatorAddress common.Address, amount *big
 
 	// accumulate shares of the validator
 	val := GetCandidateByAddress(validatorAddress)
-	neg := new(big.Int).Neg(amount)
-	val.AddShares(neg)
+	val.AddShares(amount.Neg())
 	val.UpdatedAt = now
 	updateCandidate(val)
 }
@@ -127,7 +122,7 @@ func RemoveAbsentValidator(pubKey types.PubKey) (err error) {
 	updateCandidate(v)
 
 	// Save punishment history
-	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: 0, SlashAmount: big.NewInt(0), Reason: "Absent for up to 12 consecutive blocks", CreatedAt: utils.GetNow()}
+	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: sdk.ZeroRat, SlashAmount: sdk.ZeroInt, Reason: "Absent for up to 12 consecutive blocks", CreatedAt: utils.GetNow()}
 	savePunishHistory(punishHistory)
 	return
 }

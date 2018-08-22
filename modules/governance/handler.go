@@ -9,10 +9,10 @@ import (
 
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/modules/stake"
-	"github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	ethState "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm/eni"
@@ -23,7 +23,7 @@ const governanceModuleName = "governance"
 
 var OTAInstance = eni.NewOTAInstance()
 
-var cancelDownload= make(map[string] bool)
+var cancelDownload = make(map[string]bool)
 
 // Name is the name of the modules.
 func Name() string {
@@ -62,7 +62,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if v.OwnerAddress == txInner.Proposer.String() {
 				break
 			}
-			if i + 1 == len(validators) {
+			if i+1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
 		}
@@ -96,7 +96,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), err
 		}
 		app_state.SubBalance(*txInner.From, amount)
-		app_state.SubBalance(sender, gasFee)
+		app_state.SubBalance(sender, gasFee.Int)
 
 		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxChangeParamPropose:
@@ -111,7 +111,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if v.OwnerAddress == txInner.Proposer.String() {
 				break
 			}
-			if i + 1 == len(validators) {
+			if i+1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
 		}
@@ -128,7 +128,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
-		if ! utils.CheckParamType(txInner.Name, txInner.Value) {
+		if !utils.CheckParamType(txInner.Name, txInner.Value) {
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
 
@@ -137,7 +137,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
-		app_state.SubBalance(sender, gasFee)
+		app_state.SubBalance(sender, gasFee.Int)
 	case TxDeployLibEniPropose:
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
@@ -150,7 +150,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if v.OwnerAddress == txInner.Proposer.String() {
 				break
 			}
-			if i + 1 == len(validators) {
+			if i+1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
 		}
@@ -171,7 +171,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
-		otaInfo := eni.OTAInfo {
+		otaInfo := eni.OTAInfo{
 			LibName: txInner.Name,
 			Version: txInner.Version,
 		}
@@ -208,7 +208,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
-		app_state.SubBalance(sender, gasFee)
+		app_state.SubBalance(sender, gasFee.Int)
 	case TxVote:
 		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
@@ -222,7 +222,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			if v.OwnerAddress == txInner.Voter.String() {
 				break
 			}
-			if i + 1 == len(validators) {
+			if i+1 == len(validators) {
 				return sdk.NewCheck(0, ""), ErrInvalidValidator()
 			}
 		}
@@ -264,7 +264,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		} else if txInner.ExpireBlockHeight != nil {
 			expireBlockHeight = *txInner.ExpireBlockHeight
 		}
-		hashJson, _ :=	json.Marshal(hash)
+		hashJson, _ := json.Marshal(hash)
 		pp := NewTransferFundProposal(
 			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
@@ -282,9 +282,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			return res, ErrInvalidParameter()
 		}
 
-		amount := big.NewInt(0)
-		amount.SetString(txInner.Amount, 10)
-		if balance.Cmp(amount) < 0 {
+		amount, _ := sdk.NewIntFromString(txInner.Amount)
+		if balance.LT(amount) {
 			return res, ErrInsufficientBalance()
 		}
 
@@ -303,7 +302,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee
+			res.GasFee = gasFee.Int
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
 			commons.Transfer(sender, utils.HoldAccount, gasFee)
@@ -348,7 +347,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee
+			res.GasFee = gasFee.Int
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
 			commons.Transfer(sender, utils.HoldAccount, gasFee)
@@ -396,7 +395,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee
+			res.GasFee = gasFee.Int
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
 			commons.Transfer(sender, utils.HoldAccount, gasFee)
@@ -431,8 +430,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		switch proposal.Type {
 		case TRANSFER_FUND_PROPOSAL:
-			amount := new(big.Int)
-			amount.SetString(proposal.Detail["amount"].(string), 10)
+			amount, _ := sdk.NewIntFromString(proposal.Detail["amount"].(string))
 			switch checkResult {
 			case "approved":
 				// as succeeded proposal only need to add balance to receiver,
@@ -553,16 +551,16 @@ func getTxSender(ctx types.Context) (sender common.Address, err error) {
 	return senders[0], nil
 }
 
-func checkGasFee(state *ethState.StateDB, address common.Address, gas uint64) (*big.Int,  error) {
+func checkGasFee(state *ethState.StateDB, address common.Address, gas uint64) (sdk.Int, error) {
 	balance, err := commons.GetBalance(state, address)
 	if err != nil {
-		return nil, ErrInvalidParameter()
+		return sdk.Int{}, ErrInvalidParameter()
 	}
 
 	gasFee := utils.CalGasFee(gas, utils.GetParams().GasPrice)
 
-	if balance.Cmp(gasFee) < 0 {
-		return nil, ErrInsufficientBalance()
+	if balance.LT(gasFee) {
+		return sdk.Int{}, ErrInsufficientBalance()
 	}
 
 	return gasFee, nil
@@ -589,7 +587,7 @@ func getOTAInfo(p *Proposal) *eni.OTAInfo {
 		return nil
 	}
 
-	return &eni.OTAInfo {
+	return &eni.OTAInfo{
 		p.Detail["name"].(string),
 		p.Detail["version"].(string),
 		fileurl,
@@ -606,7 +604,7 @@ func DownloadLibEni(p *Proposal) {
 	result := make(chan bool)
 
 	go func() {
-		if r := <- result; r {
+		if r := <-result; r {
 			if r, ok := cancelDownload[p.Id]; ok {
 				delete(cancelDownload, p.Id)
 				if r {
@@ -636,7 +634,7 @@ func DownloadLibEni(p *Proposal) {
 		for {
 			if _, ok := cancelDownload[p.Id]; ok {
 				result <- false
-				break;
+				break
 			}
 			if err := OTAInstance.DownloadInfo(*oi); err == nil {
 				result <- true
@@ -644,7 +642,7 @@ func DownloadLibEni(p *Proposal) {
 			}
 			if _, ok := cancelDownload[p.Id]; ok {
 				result <- false
-				break;
+				break
 			}
 			time.Sleep(10 * time.Second)
 		}

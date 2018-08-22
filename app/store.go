@@ -24,9 +24,9 @@ import (
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	sm "github.com/CyberMiles/travis/sdk/state"
-	"github.com/CyberMiles/travis/sdk/dbm"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
@@ -55,7 +55,7 @@ type StoreApp struct {
 
 	logger log.Logger
 
-	BlockEnd            bool
+	BlockEnd bool
 }
 
 // NewStoreApp creates a data store to handle queries
