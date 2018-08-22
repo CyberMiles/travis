@@ -250,7 +250,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 
 		if maxAmount.GT(candidate.ParseMaxShares()) {
 			rechargeAmount := getRechargeAmount(maxAmount, candidate, c.params.SelfStakingRatio)
-			totalCost := rechargeAmount.Add(gasFee)
+			totalCost = totalCost.Add(rechargeAmount)
 		}
 	}
 
