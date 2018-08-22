@@ -10,7 +10,7 @@ const Globals = require("./global_vars")
 
 describe("Stake Test", function() {
   function Amounts(maxAmount) {
-    self_staking_ratio = Globals.Params.self_staking_ratio
+    self_staking_ratio = eval(Globals.Params.self_staking_ratio)
     this.max = web3.toWei(maxAmount, "cmt")
     this.self = web3.toWei(maxAmount * self_staking_ratio, "cmt")
     this.dele1 = web3.toWei(maxAmount * 0.1, "cmt")

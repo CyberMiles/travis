@@ -35,7 +35,8 @@ before("Prepare 4 accounts", function() {
     Globals.Accounts = []
   }
   // create more accounts to get 4 in total
-  for (i = 0; i < 4 - Globals.Accounts.length; ++i) {
+  let newCount = 4 - Globals.Accounts.length
+  for (i = 0; i < newCount; ++i) {
     let acc = web3.personal.newAccount(Settings.Passphrase)
     logger.debug("new account created: ", acc)
     Globals.Accounts.push(acc)
