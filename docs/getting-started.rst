@@ -117,6 +117,7 @@ Next, we need to build libENI and put it into the default Travis data directory 
 
 .. code:: bash
 
+  sudo rm -rf ~/.travis
   wget -O $HOME/libeni.tgz https://github.com/CyberMiles/libeni/releases/download/v1.2.0/libeni-1.2.0_ubuntu-16.04.tgz
   tar zxvf $HOME/libeni.tgz -C $HOME
   mkdir -p $HOME/.travis/eni
@@ -128,7 +129,6 @@ Now, we can build and install Travis binary. It will populate additional configu
 
   cd $GOPATH/src/github.com/CyberMiles/travis
   make all
-  sudo rm -rf ~/.travis
 
 If the system cannot find glide at the last step, make sure that you have ``$GOPATH/bin`` under the ``$PATH`` variable.
 
