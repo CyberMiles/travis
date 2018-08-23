@@ -23,74 +23,133 @@ type StateChangeReactor interface {
 }
 
 type pendingProposal struct {
-	proposals            map[string]int64
-	minExpire            int64
-	minHeightMappedPid   []string
+	proposalsTS          map[string]int64
+	minExpireTimestamp   int64
+	minTSMappedPid       []string
+
+	proposalsBH          map[string]int64
+	minExpireBlockHeight int64
+	minBHMappedPid       []string
 }
 
-func (p *pendingProposal) BatchAdd(proposals map[string]int64) {
-	p.proposals = proposals
-	p.update()
+func (p *pendingProposal) BatchAddTS(proposals map[string]int64) {
+	p.proposalsTS = proposals
+	p.updateTS()
 }
 
-func (p *pendingProposal) Add(pid string, expire int64) {
-	p.proposals[pid] = expire
-	if p.minExpire > expire {
-		p.minHeightMappedPid = []string{pid}
-		p.minExpire = expire
-	} else if p.minExpire == expire {
-		p.minHeightMappedPid = append(p.minHeightMappedPid, pid)
+func (p *pendingProposal) BatchAddBH(proposals map[string]int64) {
+	p.proposalsBH = proposals
+	p.updateBH()
+}
+
+func (p *pendingProposal) Add(pid string, expireTimestamp, expireBlockHeight int64) {
+	if expireTimestamp > 0 {
+		p.proposalsTS[pid] = expireTimestamp
+		if p.minExpireTimestamp > expireTimestamp {
+			p.minTSMappedPid = []string{pid}
+			p.minExpireTimestamp = expireTimestamp
+		} else if p.minExpireTimestamp == expireTimestamp {
+			p.minTSMappedPid = append(p.minTSMappedPid, pid)
+		}
+	} else if expireBlockHeight > 0 {
+		p.proposalsBH[pid] = expireBlockHeight
+		if p.minExpireBlockHeight > expireBlockHeight {
+			p.minBHMappedPid = []string{pid}
+			p.minExpireBlockHeight = expireBlockHeight
+		} else if p.minExpireBlockHeight == expireBlockHeight {
+			p.minBHMappedPid = append(p.minBHMappedPid, pid)
+		}
 	}
 }
 
 func (p *pendingProposal) Del(pid string) {
-	expire := p.proposals[pid]
-	delete(p.proposals, pid)
-	if p.minExpire == expire {
-		if len(p.minHeightMappedPid) == 1 {
-			p.update()
-		} else {
-			for idx, id := range p.minHeightMappedPid {
-				if id == pid {
-					p.minHeightMappedPid = append(p.minHeightMappedPid[:idx], p.minHeightMappedPid[idx+1:]...)
-					break
+	if expireTimestamp, ok := p.proposalsTS[pid]; ok {
+		delete(p.proposalsTS, pid)
+		if p.minExpireTimestamp == expireTimestamp {
+			if len(p.minTSMappedPid) == 1 {
+				p.updateTS()
+			} else {
+				for idx, id := range p.minTSMappedPid {
+					if id == pid {
+						p.minTSMappedPid = append(p.minTSMappedPid[:idx], p.minTSMappedPid[idx+1:]...)
+						break
+					}
+				}
+			}
+		}
+	} else if expireBlockHeight, ok := p.proposalsBH[pid]; ok {
+		delete(p.proposalsBH, pid)
+		if p.minExpireBlockHeight == expireBlockHeight {
+			if len(p.minBHMappedPid) == 1 {
+				p.updateBH()
+			} else {
+				for idx, id := range p.minBHMappedPid {
+					if id == pid {
+						p.minBHMappedPid = append(p.minBHMappedPid[:idx], p.minBHMappedPid[idx+1:]...)
+						break
+					}
 				}
 			}
 		}
 	}
 }
 
-func (p *pendingProposal) update() {
+func (p *pendingProposal) updateTS() {
 	min := int64(math.MaxInt64)
 
-	for pid, ts := range p.proposals {
+	for pid, ts := range p.proposalsTS {
 		if min > ts {
 			min = ts
-			p.minHeightMappedPid = []string{pid}
+			p.minTSMappedPid = []string{pid}
 		} else if min == ts {
-			p.minHeightMappedPid = append(p.minHeightMappedPid, pid)
+			p.minTSMappedPid = append(p.minTSMappedPid, pid)
 		}
 	}
-	p.minExpire = min
+	p.minExpireTimestamp = min
 }
 
-func (p *pendingProposal) ReachMin(timestamp int64) (pids []string) {
-	if shouldBePacked(p.minExpire, timestamp) {
-		pids = p.minHeightMappedPid
+func (p *pendingProposal) updateBH() {
+	min := int64(math.MaxInt64)
+
+	for pid, bh := range p.proposalsBH {
+		if min > bh {
+			min = bh
+			p.minBHMappedPid = []string{pid}
+		} else if min == bh {
+			p.minBHMappedPid = append(p.minBHMappedPid, pid)
+		}
+	}
+	p.minExpireBlockHeight = min
+}
+
+func (p *pendingProposal) ReachMin(timestamp, blockHeight int64) (pids []string) {
+	if shouldBePacked(p.minExpireTimestamp, timestamp) {
+		pids = p.minTSMappedPid
 
 		for _, pid := range pids {
-			delete(p.proposals, pid)
+			delete(p.proposalsTS, pid)
 		}
 
-		for pid, ts := range p.proposals {
+		for pid, ts := range p.proposalsTS {
 			if shouldBePacked(ts, timestamp) {
-				delete(p.proposals, pid)
+				delete(p.proposalsTS, pid)
 				pids = append(pids, pid)
 			}
 		}
 
-		p.update()
+		p.updateTS()
 	}
+
+	if p.minExpireBlockHeight <= blockHeight {
+		pids = append(pids, p.minBHMappedPid...)
+
+		for _, pid := range p.minBHMappedPid {
+			delete(p.proposalsBH, pid)
+		}
+
+		p.updateBH()
+	}
+
 	return
 }
 
@@ -123,8 +182,10 @@ var (
 	// Transfer transaction is not allowed if the sender of which was found in this recording
 	// TODO to be removed
 	TravisTxAddrs   []*common.Address
-	NonceCheckedTx  map[common.Hash]bool = make(map[common.Hash]bool)
 	PendingProposal                      = &pendingProposal{
+		make(map[string]int64),
+		math.MaxInt64,
+		nil,
 		make(map[string]int64),
 		math.MaxInt64,
 		nil,

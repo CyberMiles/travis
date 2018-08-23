@@ -13,7 +13,6 @@ import (
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/utils"
 )
 
 func (app BaseApp) checkHandler(ctx types.Context, store state.SimpleDB, tx *ethTypes.Transaction) abci.ResponseCheckTx {
@@ -45,7 +44,6 @@ func (app BaseApp) checkHandler(ctx types.Context, store state.SimpleDB, tx *eth
 		return errors.CheckResult(err)
 	}
 
-	utils.NonceCheckedTx[tx.Hash()] = true
 	currentState.SetNonce(from, nonce+1)
 
 	return res.ToABCI()
@@ -66,6 +64,9 @@ func (app BaseApp) deliverHandler(ctx types.Context, store state.SimpleDB, tx *e
 	if err != nil {
 		return errors.DeliverResult(err)
 	}
+	// increase nonce
+	app.EthApp.DeliverTxState().SetNonce(from, tx.Nonce()+1)
+
 	ctx.WithSigners(from)
 	ctx.SetNonce(tx.Nonce())
 
@@ -88,8 +89,6 @@ func (app BaseApp) deliverHandler(ctx types.Context, store state.SimpleDB, tx *e
 		return errors.DeliverResult(err)
 	}
 
-	// no error, call ethereum app to add nonce
-	app.EthApp.backend.AddNonce(from)
 	// accumulate gasFee
 	app.StoreApp.TotalUsedGasFee.Add(app.StoreApp.TotalUsedGasFee, res.GasFee)
 	return res.ToABCI()

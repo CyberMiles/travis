@@ -1,4 +1,5 @@
 const expect = require("chai").expect
+const fs = require("fs")
 const Web3 = require("web3-cmt")
 const logger = require("./logger")
 const { Settings } = require("./constants")
@@ -23,15 +24,18 @@ before("Set default account", function() {
 
 before("Prepare 4 accounts", function() {
   logger.info(this.test.fullTitle())
-  // get or create 4 accounts. skip first 2 accounts
   let count = web3.cmt.accounts.length
   if (count > 2) {
-    Globals.Accounts = web3.cmt.accounts.slice(2, 6)
+    // get 3 accounts. skip first 2 accounts
+    Globals.Accounts = web3.cmt.accounts.slice(2, 5)
+    // last account
+    if (count > 7) Globals.Accounts.push(web3.cmt.accounts[count - 1])
     logger.debug("use existing accounts: ", Globals.Accounts)
   } else {
     Globals.Accounts = []
   }
-  for (i = 0; i < 6 - count; ++i) {
+  // create more accounts to get 4 in total
+  for (i = 0; i < 4 - Globals.Accounts.length; ++i) {
     let acc = web3.personal.newAccount(Settings.Passphrase)
     logger.debug("new account created: ", acc)
     Globals.Accounts.push(acc)
@@ -59,15 +63,24 @@ before("Load system parameters", function() {
 before("Setup a ERC20 Smart contract called ETH", function(done) {
   logger.info(this.test.fullTitle())
   // check if contract already exists
-  let first = "b6b29ef90120bec597939e0eda6b8a9164f75deb"
+  let tokenFile = "./ETHToken.json"
+  let tokenJSON = JSON.parse(fs.readFileSync(tokenFile).toString())
+  Globals.ETH.abi = tokenJSON["abi"]
+  Globals.ETH.bytecode = tokenJSON["bytecode"]
+
+  let first = Globals.ETH.contractAddress
   if (web3.cmt.getCode(first) === "0x") {
     let deployAddress = web3.cmt.accounts[0]
-    Utils.newContract(deployAddress, addr => {
-      contractAddress = addr
-      done()
-    })
+    Utils.newContract(
+      deployAddress,
+      Globals.ETH.abi,
+      Globals.ETH.bytecode,
+      addr => {
+        Globals.ETH.contractAddress = addr
+        done()
+      }
+    )
   } else {
-    contractAddress = first
     logger.debug("create new contract skipped. ")
     done()
   }

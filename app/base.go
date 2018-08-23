@@ -53,11 +53,24 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 	// init pending proposals
 	pendingProposals := governance.GetPendingProposals()
 	if len(pendingProposals) > 0 {
-		proposals := make(map[string]int64)
+		proposalsTS := make(map[string]int64)
+		proposalsBH := make(map[string]int64)
 		for _, pp := range pendingProposals {
-			proposals[pp.Id] = pp.Expire
+			if pp.ExpireTimestamp > 0 {
+				proposalsTS[pp.Id] = pp.ExpireTimestamp
+			} else {
+				proposalsBH[pp.Id] = pp.ExpireBlockHeight
+			}
+
+			if pp.Type == governance.DEPLOY_LIBENI_PROPOSAL {
+				dp := governance.GetProposalById(pp.Id)
+				if dp.Detail["status"] != "ready" {
+					governance.DownloadLibEni(dp)
+				}
+			}
 		}
-		utils.PendingProposal.BatchAdd(proposals)
+		utils.PendingProposal.BatchAddTS(proposalsTS)
+		utils.PendingProposal.BatchAddBH(proposalsBH)
 	}
 
 	b := store.Append().Get(utils.ParamKey)
@@ -223,8 +236,8 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 			}
 
 			stake.PunishByzantineValidator(pk)
-			app.ByzantineValidators = app.ByzantineValidators[:0]
 		}
+		app.ByzantineValidators = app.ByzantineValidators[:0]
 	}
 
 	// punish the absent validators

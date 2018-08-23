@@ -71,14 +71,6 @@ func (es *EthState) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDelive
 	return es.work.deliverTx(blockchain, es.ethConfig, chainConfig, blockHash, tx)
 }
 
-// called by travis tx only in deliver_tx
-func (es *EthState) AddNonce(addr common.Address) {
-	es.mtx.Lock()
-	defer es.mtx.Unlock()
-
-	es.work.state.SetNonce(addr, es.work.state.GetNonce(addr)+1)
-}
-
 // Accumulate validator rewards.
 func (es *EthState) AccumulateRewards(config *params.ChainConfig, strategy *emtTypes.Strategy) {
 	es.mtx.Lock()
@@ -211,8 +203,6 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	chainConfig *params.ChainConfig, blockHash common.Hash,
 	tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
 
-	delete(utils.NonceCheckedTx, tx.Hash())
-
 	ws.handleStateChangeQueue()
 	ws.travisTxIndex = len(utils.StateChangeQueue)
 
@@ -251,9 +241,9 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 // the ethereum blockchain. The application root hash is the hash of the
 // ethereum block.
 func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (common.Hash, error) {
-	currentHeight := ws.header.Number.Uint64()
+	currentHeight := ws.header.Number.Int64()
 
-	proposalIds := utils.PendingProposal.ReachMin(ws.parent.Time().Int64())
+	proposalIds := utils.PendingProposal.ReachMin(ws.parent.Time().Int64(), currentHeight)
 	for _, pid := range proposalIds {
 		proposal := gov.GetProposalById(pid)
 
@@ -281,50 +271,32 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 			}
 		case gov.DEPLOY_LIBENI_PROPOSAL:
 			if proposal.Result == "Approved" {
-				if proposal.Detail["status"] == "unready" {
-					result := make(chan bool)
-
-					go func() {
-						if r := <- result; r {
-							gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
-							gov.RegisterLibEni(proposal)
-						} else {
-							panic("Can't install the new libeni")
-						}
-					}()
-
-					go gov.DownloadLibEni(proposal, 5, result)
+				if proposal.Detail["status"] != "ready" {
+					gov.CancelDownload(proposal, true)
 				} else {
-					gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 					gov.RegisterLibEni(proposal)
+					gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 				}
 			} else {
 				switch gov.CheckProposal(pid, nil) {
 				case "approved":
-					if proposal.Detail["status"] == "unready" {
-						result := make(chan bool)
-
-						go func() {
-							if r := <- result; r {
-								gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
-								gov.RegisterLibEni(proposal)
-							} else {
-								panic("Can't install the new libeni")
-							}
-						}()
-
-						go gov.DownloadLibEni(proposal, 5, result)
+					if proposal.Detail["status"] != "ready" {
+						gov.CancelDownload(proposal, true)
 					} else {
-						gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 						gov.RegisterLibEni(proposal)
+						gov.UpdateDeployLibEniStatus(proposal.Id, "deployed")
 					}
 					gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 				case "rejected":
+					if proposal.Detail["status"] != "ready" {
+						gov.CancelDownload(proposal, false)
+					}
 					gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
-					gov.DestroyLibEni(proposal)
 				default:
+					if proposal.Detail["status"] != "ready" {
+						gov.CancelDownload(proposal, false)
+					}
 					gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
-					gov.DestroyLibEni(proposal)
 				}
 			}
 		}
@@ -424,6 +396,6 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 // This is miner strategy, not consensus protocol.
 func calcGasLimit(parent *types.Block) uint64 {
 	// 0xF00000000 = 64424509440
-	var  gl uint64 = 64424509440
+	var gl uint64 = 64424509440
 	return gl
 }

@@ -5,8 +5,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"fmt"
-	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/sdk/dbm"
+	"github.com/CyberMiles/travis/types"
 )
 
 var (
@@ -21,7 +21,6 @@ func ResetDeliverSqlTx() {
 	deliverSqlTx = nil
 }
 
-
 func getDb() *sql.DB {
 	db, err := dbm.Sqliter.GetDB()
 	if err != nil {
@@ -30,15 +29,14 @@ func getDb() *sql.DB {
 	return db
 }
 
-
 type SqlTxWrapper struct {
-	tx *sql.Tx
+	tx        *sql.Tx
 	withBlock bool
 }
 
-func getSqlTxWrapper() *SqlTxWrapper{
+func getSqlTxWrapper() *SqlTxWrapper {
 	var wrapper = &SqlTxWrapper{
-		tx: deliverSqlTx,
+		tx:        deliverSqlTx,
 		withBlock: true,
 	}
 	if wrapper.tx == nil {
@@ -137,16 +135,20 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 	defer txWrapper.Commit()
 
 	clause := composeQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
+	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
+	candidates = composeCandidateResults(rows)
+	return
+}
 
+func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-		var votingPower, blockHeight, rank, rankingPower int64
-		err = rows.Scan(&pubKey, &address, &shares, &votingPower, &rankingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+		var votingPower, blockHeight, rank int64
+		err := rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -163,7 +165,6 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 			OwnerAddress: address,
 			Shares:       shares,
 			VotingPower:  votingPower,
-			RankingPower: rankingPower,
 			MaxShares:    maxShares,
 			CompRate:     compRate,
 			Description:  description,
@@ -178,11 +179,9 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 		candidates = append(candidates, candidate)
 	}
 
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		panic(err)
 	}
-
 	return
 }
 
@@ -190,7 +189,7 @@ func SaveCandidate(candidate *Candidate) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, ranking_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -202,7 +201,6 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
-		candidate.RankingPower,
 		candidate.MaxShares,
 		candidate.CompRate,
 		candidate.Description.Name,
@@ -228,7 +226,7 @@ func updateCandidate(candidate *Candidate) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, ranking_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -239,7 +237,6 @@ func updateCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
-		candidate.RankingPower,
 		candidate.MaxShares,
 		candidate.CompRate,
 		candidate.Description.Name,
@@ -433,9 +430,14 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	}
 	defer rows.Close()
 
+	delegations = composeDelegationResults(rows)
+	return
+}
+
+func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation)  {
 	for rows.Next() {
 		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
-		err = rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
+		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -566,7 +568,7 @@ func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 		reqs = append(reqs, req)
 	}
 
-	if 	err := rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		panic(err)
 	}
 

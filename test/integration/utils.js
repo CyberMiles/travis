@@ -1,5 +1,4 @@
 const expect = require("chai").expect
-const fs = require("fs")
 const async = require("async")
 const logger = require("./logger")
 const { Settings } = require("./constants")
@@ -36,14 +35,9 @@ const getBalance = (index = null) => {
   return index == null ? balance : balance[index]
 }
 
-const tokenFile = "./ETHToken.json"
-const tokenJSON = JSON.parse(fs.readFileSync(tokenFile).toString())
-const abi = tokenJSON["abi"]
-const bytecode = tokenJSON["bytecode"]
-
-const newContract = function(deployAddress, cb) {
+const newContract = function(deployAddress, abi, bytecode, cb) {
   let tokenContract = web3.cmt.contract(abi)
-  tokenContract.new(
+  let contractInstance = tokenContract.new(
     {
       from: deployAddress,
       data: bytecode,
@@ -63,11 +57,12 @@ const newContract = function(deployAddress, cb) {
       }
     }
   )
+  return contractInstance
 }
 
 const tokenTransfer = function(f, t, v, gasPrice, nonce) {
-  let tokenContract = web3.cmt.contract(abi)
-  let tokenInstance = tokenContract.at(contractAddress)
+  let tokenContract = web3.cmt.contract(Globals.ETH.abi)
+  let tokenInstance = tokenContract.at(Globals.ETH.contractAddress)
   let option = {
     from: f,
     gasPrice: gasPrice || 0
@@ -86,16 +81,16 @@ const tokenTransfer = function(f, t, v, gasPrice, nonce) {
 }
 
 const tokenKill = deployAdrress => {
-  let tokenContract = web3.cmt.contract(abi)
-  let tokenInstance = tokenContract.at(contractAddress)
+  let tokenContract = web3.cmt.contract(Globals.ETH.abi)
+  let tokenInstance = tokenContract.at(Globals.ETH.contractAddress)
   let hash = tokenInstance.kill({ from: deployAdrress })
   logger.debug("token kill hash: ", hash)
   return hash
 }
 
 const getTokenBalance = () => {
-  let tokenContract = web3.cmt.contract(abi)
-  let tokenInstance = tokenContract.at(contractAddress)
+  let tokenContract = web3.cmt.contract(Globals.ETH.abi)
+  let tokenInstance = tokenContract.at(Globals.ETH.contractAddress)
 
   let balance = new Array(4)
   for (i = 0; i < 4; i++) {
@@ -266,6 +261,9 @@ const gasFee = txType => {
     case "proposeChangeParam":
       gasLimit = web3.toBigNumber(Globals.Params.change_params_proposal)
       break
+    case "proposeDeployLibEni":
+      gasLimit = web3.toBigNumber(Globals.Params.deploy_libeni_proposal)
+      break
   }
   return gasPrice.times(gasLimit)
 }
@@ -431,10 +429,47 @@ const delegatorAccept = (delegator, validator, deleAmount) => {
     validatorAddress: validator,
     amount: deleAmount,
     cubeBatch: Globals.CubeBatch,
-    sig: web3.cubeSign(delegator, nonce)
+    sig: cubeSign(delegator, nonce)
   }
   let r = web3.cmt.stake.delegator.accept(payload)
   expectTxSuccess(r)
+}
+
+const crypto = require("crypto")
+// this private key is for testing only, use it together with cubeBatch "01"
+const privateKey = `-----BEGIN RSA PRIVATE KEY-----
+MIICXQIBAAKBgQCiWpvDnwYFTqgSWPlA3VO8u+Yv9r8QGlRaYZFszUZEXUQxquGl
+FexMSVyFeqYjIokfPOEHHx2voqWgi3FKKlp6dkxwApP3T22y7Epqvtr+EfNybRta
+15snccZy47dY4UcmYxbGWFTaL66tz22pCAbjFrxY3IxaPPIjDX+FiXdJWwIDAQAB
+AoGAOc63XYz20Nbz4yyI+36S/UWOLY/W8f3eARxycmIY3eizilfE5koLDBKm/ePw
+2dvHJTdBDI8Yu9vWy3Y7DWRNOHJKdcc1gGCR36cJFc4/h02zdaK+CK4eAaZLXhdK
+H8DljEx6QAeRtxVLZGeYa4actY+3GeujYvkQ5QwNprchTSECQQDO4VMmLB+iIT/N
+jnADYOuWKe3iLBoTKHmVfAaTRMMeHATMkpgyVzTLO7jMYCWy7+S0DL4wDNUTQv+P
+Nna/hrAxAkEAyObfMAgjnW6s+CGoN+yWtdBC0LvDXDrzaT3KqmHxK2iCg2kQ9R6P
+0vCvGJytuPxmIVZn54+KpKfR6ok6RJSbSwJAF+CRxDobfI7x2juyWfF5v18fgZct
+e0CUp9gkuiKZkoQRWbshrc263ioKbiw6rahacR13ZfxVK1/0NwdGNVzKQQJBAJpw
+QGpgF2DSz8z/sp0rFsA1lOd5L7ka6Dui8MUB/a9s68exYQPNtqpls3SsHS/zd19x
+WPa9dcsV51zwmQZXZvkCQQChnQLBs6BbH6O85ePXSSbe7RUvHua6EEkmCNkIw+vT
+3Jqmk4ecxCzmEv3xbzrCdgOhfjxqjrsqLLK6BH+lJsWS
+-----END RSA PRIVATE KEY-----`
+
+const cubeSign = (address, nonce) => {
+  let message = address + "|" + nonce
+
+  let hash = crypto
+    .createHash("sha256")
+    .update(message)
+    .digest("hex")
+  let signature = crypto.privateDecrypt(
+    {
+      key: privateKey,
+      padding: crypto.constants.RSA_NO_PADDING
+    },
+    new Buffer(hash, "hex")
+  )
+  let signature_hex = signature.toString("hex")
+  logger.debug("cube sig: ", signature_hex)
+  return signature_hex
 }
 
 module.exports = {
@@ -457,5 +492,6 @@ module.exports = {
   removeFakeValidators,
   calcAwards,
   calcDeleAwards,
-  delegatorAccept
+  delegatorAccept,
+  cubeSign
 }
