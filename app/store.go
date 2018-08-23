@@ -32,18 +32,18 @@ import (
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
 const DefaultHistorySize = 10
 
-// StoreApp contains a data store and all info needed
+// StoreApp contains a data store and all chainState needed
 // to perform queries and handshakes.
 //
 // It should be embeded in another struct for CheckTx,
 // DeliverTx and initializing state from the genesis.
 type StoreApp struct {
-	// Name is what is returned from info
+	// Name is what is returned from chainState
 	Name string
 
 	// this is the database state
-	info  *sm.ChainState
-	state *sm.State
+	chainState *sm.ChainState
+	state      *sm.State
 
 	// cached validator changes from DeliverTx
 	pending []abci.Validator
@@ -69,7 +69,7 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 		Name:            appName,
 		state:           state,
 		height:          state.LatestHeight(),
-		info:            sm.NewChainState(),
+		chainState:      sm.NewChainState(),
 		TotalUsedGasFee: big.NewInt(0),
 		logger:          logger.With("module", "app"),
 	}
@@ -78,7 +78,11 @@ func NewStoreApp(appName, dbName string, cacheSize int, logger log.Logger) (*Sto
 
 // GetChainID returns the currently stored chain
 func (app *StoreApp) GetChainID() string {
-	return app.info.GetChainID(app.state.Committed())
+	return app.chainState.GetChainID(app.state.Committed())
+}
+
+func (app *StoreApp) SetChainId(chainId string) {
+	app.chainState.SetChainID(app.Append(), chainId)
 }
 
 // Logger returns the application base logger

@@ -18,16 +18,11 @@ import (
 
 // GenesisDoc defines the initial conditions for a tendermint blockchain, in particular its validator set.
 type GenesisDoc struct {
-	GenesisTime      time.Time                  `json:"genesis_time"`
-	ChainID          string                     `json:"chain_id"`
-	ConsensusParams  *types.ConsensusParams     `json:"consensus_params,omitempty"`
-	Validators       []travis.GenesisValidator  `json:"validators"`
-	AppHash          []byte                     `json:"app_hash"`
-	AppOptions       interface{}                `json:"app_options,omitempty"`
-	MaxVals          uint16                     `json:"max_vals"`
-	BackupVals       uint16                     `json:"backup_vals"`
-	SelfStakingRatio string                     `json:"self_staking_ratio"`
-	CubePubKeys      []travis.GenesisCubePubKey `json:"cube_pub_keys"`
+	GenesisTime     time.Time                 `json:"genesis_time"`
+	ChainID         string                    `json:"chain_id"`
+	ConsensusParams *types.ConsensusParams    `json:"consensus_params,omitempty"`
+	Validators      []travis.GenesisValidator `json:"validators"`
+	AppHash         []byte                    `json:"app_hash"`
 }
 
 // SaveAs is a utility method for saving GenensisDoc as a JSON file.
@@ -74,10 +69,6 @@ func (genDoc *GenesisDoc) ValidateAndComplete() error {
 		if v.Power == "0" {
 			return errors.Errorf("The genesis file cannot contain validators with no voting power: %v", v)
 		}
-	}
-
-	if len(genDoc.CubePubKeys) == 0 {
-		return errors.Errorf("The genesis file must have at least one cube pub key")
 	}
 
 	if genDoc.GenesisTime.IsZero() {

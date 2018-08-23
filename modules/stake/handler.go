@@ -47,7 +47,7 @@ func InitState(key string, value interface{}, store state.SimpleDB) error {
 	return nil
 }
 
-func SetValidator(val types.GenesisValidator, store state.SimpleDB) error {
+func SetGenesisValidator(val types.GenesisValidator, store state.SimpleDB) error {
 	if val.Address == "0000000000000000000000000000000000000000" {
 		return ErrBadValidatorAddr()
 	}

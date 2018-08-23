@@ -2,7 +2,6 @@ package app
 
 import (
 	goerr "errors"
-	"fmt"
 	"math/big"
 
 	"github.com/CyberMiles/travis/sdk"
@@ -310,30 +309,6 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.BlockEnd = true
 
 	return
-}
-
-func (app *BaseApp) InitState(module, key string, value interface{}) error {
-	state := app.Append()
-	logger := app.Logger().With("module", module, "key", key)
-
-	if module == sdk.ModuleNameBase {
-		if key == sdk.ChainKey {
-			app.info.SetChainID(state, value.(string))
-			return nil
-		}
-		logger.Error("Invalid genesis option")
-		return fmt.Errorf("unknown base option: %s", key)
-	}
-
-	if key == "validator" {
-		stake.SetValidator(value.(ttypes.GenesisValidator), state)
-	} else {
-		if set := utils.SetParam(key, value.(string)); !set {
-			return errors.ErrUnknownKey(key)
-		}
-	}
-
-	return nil
 }
 
 func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, workingHeight int64, store *state.SimpleDB) []byte {
