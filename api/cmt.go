@@ -292,6 +292,27 @@ func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.Resul
 	return s.signAndBroadcastTxCommit(txArgs)
 }
 
+type SetCompRateArgs struct {
+	Nonce            *hexutil.Uint64 `json:"nonce"`
+	From             common.Address  `json:"from"`
+	DelegatorAddress common.Address  `json:"delegatorAddress"`
+	CompRate         string          `json:"compRate"`
+}
+
+func (s *CmtRPCService) SetCompRate(args SetCompRateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	if len(args.DelegatorAddress) == 0 {
+		return nil, fmt.Errorf("must provide delegator address")
+	}
+	tx := stake.NewTxSetCompRate(args.DelegatorAddress, args.CompRate)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.signAndBroadcastTxCommit(txArgs)
+}
+
 type VerifyCandidacyArgs struct {
 	Nonce            *hexutil.Uint64 `json:"nonce"`
 	From             common.Address  `json:"from"`
