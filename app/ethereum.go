@@ -44,9 +44,6 @@ type EthermintApplication struct {
 	logger tmLog.Logger
 
 	lowPriceTransactions map[FromTo]struct{}
-
-	// record count of failed CheckTx of each from account; used to feed in the nonce check
-	checkFailedCount map[common.Address]uint64
 }
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
@@ -65,7 +62,6 @@ func NewEthermintApplication(backend *api.Backend,
 		checkTxState:         state.StateDB,
 		strategy:             strategy,
 		lowPriceTransactions: make(map[FromTo]struct{}),
-		checkFailedCount:     make(map[common.Address]uint64),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
@@ -280,13 +276,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	}
 
 	if resp := app.lowPriceTxCheck(from, tx); resp.Code != abciTypes.CodeTypeOK{
-		// add failed count
-		// this map will keep growing because the nonce check will use it ongoing
-		app.checkFailedCount[from] = app.checkFailedCount[from] + 1
 		return resp
 	}
-
-	utils.NonceCheckedTx[tx.Hash()] = true
 
 	// Update ether balances
 	// amount + gasprice * gaslimit

@@ -506,7 +506,7 @@ func (s *CmtRPCService) QueryProposals() (*StakeQueryResult, error) {
 
 func (s *CmtRPCService) QueryParams() (*StakeQueryResult, error) {
 	var params utils.Params
-	h, err := s.getParsedFromCdc("/key", utils.ParamKey, &params, 0)
+	h, err := s.getParsedFromJson("/key", utils.ParamKey, &params, 0)
 	if err != nil {
 		return nil, err
 	}

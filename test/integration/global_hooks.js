@@ -24,15 +24,19 @@ before("Set default account", function() {
 
 before("Prepare 4 accounts", function() {
   logger.info(this.test.fullTitle())
-  // get or create 4 accounts. skip first 2 accounts
   let count = web3.cmt.accounts.length
   if (count > 2) {
-    Globals.Accounts = web3.cmt.accounts.slice(2, 6)
+    // get 3 accounts. skip first 2 accounts
+    Globals.Accounts = web3.cmt.accounts.slice(2, 5)
+    // last account
+    if (count > 7) Globals.Accounts.push(web3.cmt.accounts[count - 1])
     logger.debug("use existing accounts: ", Globals.Accounts)
   } else {
     Globals.Accounts = []
   }
-  for (i = 0; i < 6 - count; ++i) {
+  // create more accounts to get 4 in total
+  let newCount = 4 - Globals.Accounts.length
+  for (i = 0; i < newCount; ++i) {
     let acc = web3.personal.newAccount(Settings.Passphrase)
     logger.debug("new account created: ", acc)
     Globals.Accounts.push(acc)

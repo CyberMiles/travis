@@ -27,7 +27,40 @@ describe("Lity Test", function() {
       expect(test).to.equal("olleh")
     })
   })
-
+  describe("Dogecoin", function() {
+    let contractInstance
+    it("new DogecoinVerifier contract", function(done) {
+      contractInstance = Utils.newContract(
+        web3.cmt.defaultAccount,
+        Globals.Dogecoin.abi,
+        Globals.Dogecoin.bytecode,
+        addr => {
+          Globals.Dogecoin.contractAddress = addr
+          done()
+        }
+      )
+    })
+    it("verify block", function() {
+      test = contractInstance.verifyBlock.call(
+        1,
+        "82bc68038f6034c0596b6e313729793a887fded6e92a31fbdf70863f89d9bea2",
+        "3b14b76d22a3f2859d73316002bc1b9bfc7f37e2c3393be9b722b62bbd786983",
+        1386474933,
+        "1e0ffff0",
+        3404207872
+      )
+      expect(test).to.equal(true)
+      test = contractInstance.verifyBlock.call(
+        1,
+        "82bc68038f6034c0596b6e313729793a887fded6e92a31fbdf70863f89d9bea2",
+        "3b14b76d22a3f2859d73316002bc1b9bfc7f37e2c3393be9b722b62bbd786983",
+        1386474933,
+        "1e0ffff0",
+        3404207871
+      )
+      expect(test).to.equal(false)
+    })
+  })
   describe("ProposeDeployLibEni", function() {
     let proposalId = ""
     let balance_old, balance_new, tx_result

@@ -89,7 +89,7 @@ func initTendermint() {
 			ChainID:          viper.GetString(FlagChainID),
 			MaxVals:          4,
 			BackupVals:       1,
-			SelfStakingRatio: "0.1",
+			SelfStakingRatio: "10/100",
 		}
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
@@ -106,7 +106,7 @@ func initTendermint() {
 			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQ8FL6/9zul+X7bFSRiWAzFiAE\n9vHYbClEHwlC7zUZ/JWzU7UT5S2qnYsseYF2WFjJtrGwHRAlTUyPtCpxV8f1uJsI\nl+/N9l6torUHwkhhib1catUSd/T72ltjvVyyg5LQjtRsskFnv3wM/yxYotrgnOs+\ndRpU6WI5XPCIyZqsGwIDAQAB\n-----END PUBLIC KEY-----",
 		}, {
 			CubeBatch: "05",
-			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQ8FL6/9zul+X7bFSRiWAzFiAE\n9vHYbClEHwlC7zUZ/JWzU7UT5S2qnYsseYF2WFjJtrGwHRAlTUyPtCpxV8f1uJsI\nl+/N9l6torUHwkhhib1catUSd/T72ltjvVyyg5LQjtRsskFnv3wM/yxYotrgnOs+\ndRpU6WI5XPCIyZqsGwIDAQAB\n-----END PUBLIC KEY-----",
+			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCZ7Fw+1ddvy5OPFftbea0MxewW\nKUTb/E7B4/MHvLz2h7f7snyveFwxxj7QwxaCoVxobEq6AigIlUFUXLM8Y598/jts\nTaN+jh4xdoQN7qKwrbz1MWGf58Aa78Vnoj54B7V0LSajVbLJSZNUEI/24HLcG2iN\nTD3dSvH0ARvRJJ9hZQIDAQAB\n-----END PUBLIC KEY-----",
 		}}
 
 		if err := genDoc.SaveAs(genFile); err != nil {
@@ -183,7 +183,7 @@ func initTravisDb() {
 	create unique index idx_candidates_pub_key on candidates(pub_key);
 	create index idx_candidates_hash on candidates(hash);
  	create table delegators(address text not null primary key, created_at text not null);
-	create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', slash_amount text not null default '0', hash text not null default '',  created_at text not null, updated_at text not null default '');
+	create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  created_at text not null, updated_at text not null default '');
 	create unique index idx_delegations_delegator_address_pub_key on delegations(delegator_address, pub_key);
 	create index idx_delegations_hash on delegations(hash);
  	create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, amount text not null default '0', op_code text not null default '', created_at text not null);
@@ -205,6 +205,7 @@ func initTravisDb() {
 	create index idx_governance_vote_voter on governance_vote(voter);
 	create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 	create index idx_governance_vote_hash on governance_vote(hash);
+	create table candidate_daily_stakes(id text not null primary key, pub_key text not null, amount text not null default '0', created_at text not null);
 	`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {
