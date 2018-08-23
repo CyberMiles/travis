@@ -118,10 +118,10 @@ Next, we need to build libENI and put it into the default Travis data directory 
 .. code:: bash
 
   sudo rm -rf ~/.travis
-  wget -O $HOME/libeni.tgz https://github.com/CyberMiles/libeni/releases/download/v1.2.0/libeni-1.2.0_ubuntu-16.04.tgz
+  wget -O $HOME/libeni.tgz https://github.com/CyberMiles/libeni/releases/download/v1.3.0/libeni-1.3.0_ubuntu-16.04.tgz
   tar zxvf $HOME/libeni.tgz -C $HOME
   mkdir -p $HOME/.travis/eni
-  cp -r $HOME/libeni-1.2.0/lib $HOME/.travis/eni/lib
+  cp -r $HOME/libeni-1.3.0/lib $HOME/.travis/eni/lib
 
 Now, we can build and install Travis binary. It will populate additional configuration files into ``~/.travis/``
 
