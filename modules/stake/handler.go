@@ -356,6 +356,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 }
 
 func (c check) setCompRate(tx TxSetCompRate) error {
+	// fixme check to see if the compensation rate is between 0 and 1
 	candidate := GetCandidateByAddress(c.sender)
 	d := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
 	if d == nil {

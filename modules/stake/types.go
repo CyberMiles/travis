@@ -27,20 +27,21 @@ import (
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
-	PubKey       types.PubKey `json:"pub_key"`       // Pubkey of candidate
-	OwnerAddress string       `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
-	Shares       string       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower  int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
-	MaxShares    string       `json:"max_shares"`
-	CompRate     string       `json:"comp_rate"`
-	CreatedAt    string       `json:"created_at"`
-	UpdatedAt    string       `json:"updated_at"`
-	Description  Description  `json:"description"`
-	Verified     string       `json:"verified"`
-	Active       string       `json:"active"`
-	BlockHeight  int64        `json:"block_height"`
-	Rank         int64        `json:"rank"`
-	State        string       `json:"state"`
+	PubKey             types.PubKey `json:"pub_key"`       // Pubkey of candidate
+	OwnerAddress       string       `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
+	Shares             string       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
+	VotingPower        int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
+	PendingVotingPower int64        `json:"pending_voting_power"`
+	MaxShares          string       `json:"max_shares"`
+	CompRate           string       `json:"comp_rate"`
+	CreatedAt          string       `json:"created_at"`
+	UpdatedAt          string       `json:"updated_at"`
+	Description        Description  `json:"description"`
+	Verified           string       `json:"verified"`
+	Active             string       `json:"active"`
+	BlockHeight        int64        `json:"block_height"`
+	Rank               int64        `json:"rank"`
+	State              string       `json:"state"`
 }
 
 type Description struct {
@@ -160,14 +161,13 @@ func (cs Candidates) Sort() {
 func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	// update voting power
 	for _, c := range cs {
-		shares := c.ParseShares()
-
 		if c.Active == "N" {
 			c.VotingPower = 0
-		} else if !sdk.NewInt(c.VotingPower).Equal(shares) {
-			c.VotingPower = shares.Div(sdk.E18Int).Int64()
+		} else if c.VotingPower != c.PendingVotingPower {
+			c.VotingPower = c.PendingVotingPower
 		}
 	}
+
 	cs.Sort()
 	for i, c := range cs {
 		// truncate the power
