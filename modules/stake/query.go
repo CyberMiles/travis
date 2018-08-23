@@ -1,8 +1,8 @@
 package stake
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"database/sql"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 func QueryCandidates() (candidates Candidates) {
@@ -30,8 +30,6 @@ func QueryDelegationsByDelegator(delegatorAddress common.Address) (delegations [
 	return queryDelegations(db, cond)
 }
 
-
-
 func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candidates) {
 	clause := composeQueryClause(cond)
 	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
@@ -43,10 +41,9 @@ func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candid
 	return
 }
 
-
 func queryDelegations(db *sql.DB, cond map[string]interface{}) (delegations []*Delegation) {
 	clause := composeQueryClause(cond)
-	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations" + clause)
+	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, created_at, updated_at from delegations" + clause)
 	if err != nil {
 		panic(err)
 	}
