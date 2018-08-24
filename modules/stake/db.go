@@ -121,7 +121,9 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 
 func GetCandidates() (candidates Candidates) {
 	cond := make(map[string]interface{})
-	return getCandidatesInternal(cond)
+	candidates = getCandidatesInternal(cond)
+	candidates.Sort()
+	return candidates
 }
 
 func GetBackupValidators() (candidates Candidates) {

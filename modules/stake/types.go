@@ -293,7 +293,7 @@ func UpdateValidatorSet(store state.SimpleDB) (change []abci.Validator, err erro
 
 	// get the validators before update
 	candidates := GetCandidates()
-	candidates.Sort()
+	//candidates.Sort()
 
 	v1 := candidates.Validators()
 	v2 := candidates.updateVotingPower(store).Validators()
