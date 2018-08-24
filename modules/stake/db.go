@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"fmt"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/types"
 )
@@ -160,6 +161,7 @@ func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 			Profile:  profile,
 			Email:    email,
 		}
+		c, _ := sdk.NewRatFromString(compRate)
 		candidate := &Candidate{
 			PubKey:             pk,
 			OwnerAddress:       address,
@@ -167,7 +169,7 @@ func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 			VotingPower:        votingPower,
 			PendingVotingPower: pendingVotingPower,
 			MaxShares:          maxShares,
-			CompRate:           compRate,
+			CompRate:           c,
 			Description:        description,
 			Verified:           verified,
 			CreatedAt:          createdAt,
@@ -204,7 +206,7 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.VotingPower,
 		candidate.PendingVotingPower,
 		candidate.MaxShares,
-		candidate.CompRate,
+		candidate.CompRate.String(),
 		candidate.Description.Name,
 		candidate.Description.Website,
 		candidate.Description.Location,
@@ -241,7 +243,7 @@ func updateCandidate(candidate *Candidate) {
 		candidate.VotingPower,
 		candidate.PendingVotingPower,
 		candidate.MaxShares,
-		candidate.CompRate,
+		candidate.CompRate.String(),
 		candidate.Description.Name,
 		candidate.Description.Website,
 		candidate.Description.Location,
@@ -361,7 +363,7 @@ func SaveDelegation(d *Delegation) {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate, common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -392,7 +394,7 @@ func UpdateDelegation(d *Delegation) {
 		panic(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate, common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
+	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -450,6 +452,7 @@ func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 			return
 		}
 
+		c, _ := sdk.NewRatFromString(compRate)
 		delegation := &Delegation{
 			DelegatorAddress: common.HexToAddress(delegatorAddress),
 			PubKey:           pk,
@@ -457,7 +460,7 @@ func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 			AwardAmount:      awardAmount,
 			WithdrawAmount:   withdrawAmount,
 			SlashAmount:      slashAmount,
-			CompRate:         compRate,
+			CompRate:         c,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		}

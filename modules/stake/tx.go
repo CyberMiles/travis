@@ -49,7 +49,7 @@ var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, 
 type TxDeclareCandidacy struct {
 	PubKey      string      `json:"pub_key"`
 	MaxAmount   string      `json:"max_amount"`
-	CompRate    string      `json:"comp_rate"`
+	CompRate    sdk.Rat     `json:"comp_rate"`
 	Description Description `json:"description"`
 }
 
@@ -63,7 +63,7 @@ func (tx TxDeclareCandidacy) SelfStakingAmount(ssr sdk.Rat) (res sdk.Int) {
 	return
 }
 
-func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount, compRate string, descrpition Description) sdk.Tx {
+func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount string, compRate sdk.Rat, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
 		PubKey:      types.PubKeyString(pubKey),
 		MaxAmount:   maxAmount,
@@ -185,14 +185,14 @@ func (tx TxWithdraw) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxSetCompRate struct {
 	DelegatorAddress common.Address `json:"delegator_address"`
-	CompRate         string         `json:"comp_rate"`
+	CompRate         sdk.Rat        `json:"comp_rate"`
 }
 
 func (tx TxSetCompRate) ValidateBasic() error {
 	return nil
 }
 
-func NewTxSetCompRate(delegatorAddress common.Address, compRate string) sdk.Tx {
+func NewTxSetCompRate(delegatorAddress common.Address, compRate sdk.Rat) sdk.Tx {
 	return TxSetCompRate{
 		DelegatorAddress: delegatorAddress,
 		CompRate:         compRate,

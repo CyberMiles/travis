@@ -33,7 +33,7 @@ type Candidate struct {
 	VotingPower        int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
 	PendingVotingPower int64        `json:"pending_voting_power"`
 	MaxShares          string       `json:"max_shares"`
-	CompRate           string       `json:"comp_rate"`
+	CompRate           sdk.Rat      `json:"comp_rate"`
 	CreatedAt          string       `json:"created_at"`
 	UpdatedAt          string       `json:"updated_at"`
 	Description        Description  `json:"description"`
@@ -66,10 +66,6 @@ func (c *Candidate) ParseMaxShares() sdk.Int {
 	return utils.ParseInt(c.MaxShares)
 }
 
-func (c *Candidate) ParseCompRate() float64 {
-	return utils.ParseFloat(c.CompRate)
-}
-
 func (c *Candidate) AddShares(value sdk.Int) (res sdk.Int) {
 	res = c.ParseShares().Add(value)
 	c.Shares = res.String()
@@ -88,7 +84,7 @@ func (c *Candidate) Hash() []byte {
 		Shares       string
 		VotingPower  int64
 		MaxShares    string
-		CompRate     string
+		CompRate     sdk.Rat
 		Description  Description
 		Verified     string
 		Active       string
@@ -323,7 +319,7 @@ type Delegation struct {
 	AwardAmount      string         `json:"award_amount"`
 	WithdrawAmount   string         `json:"withdraw_amount"`
 	SlashAmount      string         `json:"slash_amount"`
-	CompRate         string         `json:"comp_rate"`
+	CompRate         sdk.Rat        `json:"comp_rate"`
 	CreatedAt        string         `json:"created_at"`
 	UpdatedAt        string         `json:"updated_at"`
 }
@@ -347,10 +343,6 @@ func (d *Delegation) ParseWithdrawAmount() sdk.Int {
 
 func (d *Delegation) ParseSlashAmount() sdk.Int {
 	return utils.ParseInt(d.SlashAmount)
-}
-
-func (d *Delegation) ParseCompRate() float64 {
-	return utils.ParseFloat(d.CompRate)
 }
 
 func (d *Delegation) AddDelegateAmount(value sdk.Int) (res sdk.Int) {
@@ -385,7 +377,7 @@ func (d *Delegation) Hash() []byte {
 		AwardAmount      string
 		WithdrawAmount   string
 		SlashAmount      string
-		CompRate         string
+		CompRate         sdk.Rat
 	}{
 		d.DelegatorAddress,
 		d.PubKey,
@@ -506,4 +498,9 @@ func (c *CandidateDailyStake) GenId() []byte {
 	hasher := ripemd160.New()
 	hasher.Write(req)
 	return hasher.Sum(nil)
+}
+
+type CubePubKey struct {
+	CubeBatch string `json:"cube_batch"`
+	PubKey    string `json:"pub_key"`
 }

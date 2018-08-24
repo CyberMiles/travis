@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 
 	"database/sql"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
@@ -85,14 +86,14 @@ func initTendermint() {
 	if cmn.FileExists(genFile) {
 		logger.Info("Found genesis file", "path", genFile)
 	} else {
-		genDoc := GenesisDoc{
+		genDoc := types.GenesisDoc{
 			ChainID: viper.GetString(FlagChainID),
 		}
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
 			Power:     "10000",
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
-			CompRate:  "0.5",
+			CompRate:  sdk.NewRat(2, 10),
 			MaxAmount: 100000,
 		}}
 

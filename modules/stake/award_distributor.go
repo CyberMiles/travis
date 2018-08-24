@@ -159,7 +159,7 @@ func (ad *awardDistributor) calcVotingPower(rawValidators Validators) (normalize
 			s2, _ := sdk.NewIntFromString(m2)
 			d.s1 = s1.Div(sdk.E18Int).Int64()
 			d.s2 = s2.Div(sdk.E18Int).Int64()
-			d.c = sdk.NewRat(int64(delegation.ParseCompRate()*1000), 1000)
+			d.c = delegation.CompRate
 
 			t, _ := utils.Diff(delegation.CreatedAt)
 			if t > HalfYear {

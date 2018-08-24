@@ -235,7 +235,7 @@ type DeclareCandidacyArgs struct {
 	From        common.Address    `json:"from"`
 	PubKey      string            `json:"pubKey"`
 	MaxAmount   hexutil.Big       `json:"maxAmount"`
-	CompRate    string            `json:"compRate"`
+	CompRate    sdk.Rat           `json:"compRate"`
 	Description stake.Description `json:"description"`
 }
 

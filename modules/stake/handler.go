@@ -647,6 +647,10 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 }
 
 func (d deliver) setCompRate(tx TxSetCompRate) error {
+	if tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
+		return ErrBadCompRate()
+	}
+
 	candidate := GetCandidateByAddress(d.sender)
 	delegation := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
 	if delegation == nil {

@@ -17,6 +17,7 @@ import (
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/sdk/dbm"
+	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/version"
 )
 
@@ -113,13 +114,13 @@ func createBaseApp(rootDir string, storeApp *app.StoreApp, ethApp *app.Ethermint
 	return app, nil
 }
 
-func loadGenesis(filePath string) (*GenesisDoc, error) {
+func loadGenesis(filePath string) (*types.GenesisDoc, error) {
 	bytes, err := cmn.ReadFile(filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "loading genesis file")
 	}
 
-	genDoc := new(GenesisDoc)
+	genDoc := new(types.GenesisDoc)
 	err = json.Unmarshal(bytes, genDoc)
 	if err != nil {
 		return nil, errors.Wrap(err, "unmarshaling genesis file")

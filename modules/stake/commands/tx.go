@@ -11,9 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/sdk"
 	txcmd "github.com/CyberMiles/travis/sdk/client/commands/txs"
 	"github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/utils"
 )
 
 /*
@@ -175,9 +175,8 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("max-amount must be positive interger")
 	}
 
-	compRate := viper.GetString(FlagCompRate)
-	fCompRate := utils.ParseFloat(compRate)
-	if fCompRate <= 0 || fCompRate >= 1 {
+	c, ok := sdk.NewRatFromString(viper.GetString(FlagCompRate))
+	if !ok || c.LTE(sdk.ZeroRat) || c.GTE(sdk.OneRat) {
 		return fmt.Errorf("comp-rate must between 0 and 1")
 	}
 
@@ -189,7 +188,7 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 		Profile:  viper.GetString(FlagProfile),
 	}
 
-	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, compRate, description)
+	tx := stake.NewTxDeclareCandidacy(pk, maxAmount, c, description)
 	return txcmd.DoTx(tx)
 }
 
@@ -286,12 +285,11 @@ func cmdSetCompRate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("please enter delegator address using --delegator-address")
 	}
 
-	compRate := viper.GetString(FlagCompRate)
-	fCompRate := utils.ParseFloat(compRate)
-	if fCompRate <= 0 || fCompRate >= 1 {
+	c, ok := sdk.NewRatFromString(viper.GetString(FlagCompRate))
+	if !ok || c.LTE(sdk.ZeroRat) || c.GTE(sdk.OneRat) {
 		return fmt.Errorf("comp-rate must between 0 and 1")
 	}
 
-	tx := stake.NewTxSetCompRate(delegatorAddress, compRate)
+	tx := stake.NewTxSetCompRate(delegatorAddress, c)
 	return txcmd.DoTx(tx)
 }
