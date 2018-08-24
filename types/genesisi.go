@@ -27,6 +27,7 @@ type GenesisDoc struct {
 type GenesisValidator struct {
 	PubKey    PubKey  `json:"pub_key"`
 	Power     string  `json:"power"`
+	Shares    int64   `json:"shares"`
 	Name      string  `json:"name"`
 	Address   string  `json:"address"`
 	CompRate  sdk.Rat `json:"comp_rate"`

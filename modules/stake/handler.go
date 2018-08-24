@@ -76,8 +76,7 @@ func SetGenesisValidator(val types.GenesisValidator, store state.SimpleDB) error
 	}
 
 	tx := TxDeclareCandidacy{types.PubKeyString(val.PubKey), utils.ToWei(val.MaxAmount).String(), val.CompRate, desc}
-	power, _ := strconv.ParseInt(val.Power, 10, 64)
-	return deliverer.declareGenesisCandidacy(tx, power)
+	return deliverer.declareGenesisCandidacy(tx, val)
 }
 
 // CheckTx checks if the tx is properly structured
@@ -356,7 +355,11 @@ func (c check) withdraw(tx TxWithdraw) error {
 }
 
 func (c check) setCompRate(tx TxSetCompRate) error {
-	// fixme check to see if the compensation rate is between 0 and 1
+	// Check to see if the compensation rate is between 0 and 1
+	if tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
+		return ErrBadCompRate()
+	}
+
 	candidate := GetCandidateByAddress(c.sender)
 	d := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
 	if d == nil {
@@ -418,19 +421,20 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	return d.delegate(txDelegate)
 }
 
-func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int64) error {
+func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.GenesisValidator) error {
 	// create and save the empty candidate
 	pubKey, err := types.GetPubKey(tx.PubKey)
 	if err != nil {
 		return err
 	}
 
+	power, _ := strconv.ParseInt(val.Power, 10, 64)
 	now := utils.GetNow()
 	candidate := &Candidate{
 		PubKey:       pubKey,
 		OwnerAddress: d.sender.String(),
 		Shares:       "0",
-		VotingPower:  votingPower,
+		VotingPower:  power,
 		MaxShares:    tx.MaxAmount,
 		CompRate:     tx.CompRate,
 		CreatedAt:    now,
@@ -443,8 +447,8 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, votingPower int6
 	SaveCandidate(candidate)
 
 	// delegate a part of the max staked CMT amount
-	amount := new(big.Int).Mul(big.NewInt(votingPower), big.NewInt(1e18))
-	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
+	amount := sdk.NewInt(val.Shares).Mul(sdk.E18Int).String()
+	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount}
 	return d.delegate(txDelegate)
 }
 
@@ -647,10 +651,6 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 }
 
 func (d deliver) setCompRate(tx TxSetCompRate) error {
-	if tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
-		return ErrBadCompRate()
-	}
-
 	candidate := GetCandidateByAddress(d.sender)
 	delegation := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
 	if delegation == nil {
