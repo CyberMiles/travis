@@ -229,6 +229,11 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 		return err
 	}
 
+	// Check to see if the compensation rate is between 0 and 1
+	if tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
+		return ErrBadCompRate()
+	}
+
 	return nil
 }
 
