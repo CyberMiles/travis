@@ -95,8 +95,8 @@ func (ad awardDistributor) getBlockAward() (blockAward sdk.Int) {
 
 func (ad awardDistributor) Distribute() {
 	// distribute to the validators
-	vals, totalValShares, totalValVotingPower := ad.buildValidators(ad.validators)
-	backups, totalBackupShares, totalBackupVotingPower := ad.buildValidators(ad.backupValidators)
+	vals, totalValShares, totalValVotingPower := ad.calcVotingPower(ad.validators)
+	backups, totalBackupShares, totalBackupVotingPower := ad.calcVotingPower(ad.backupValidators)
 	totalVotingPower := totalValVotingPower + totalBackupVotingPower
 	var rr, rs sdk.Rat
 	if len(backups) > 0 && totalBackupShares > 0 {
@@ -122,7 +122,7 @@ func (ad awardDistributor) Distribute() {
 	utils.BlockGasFee.SetInt64(0)
 }
 
-func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares int64, totalVotingPower int64) {
+func (ad *awardDistributor) calcVotingPower(rawValidators Validators) (normalizedValidators []*validator, totalShares int64, totalVotingPower int64) {
 	totalShares = 0
 	totalVotingPower = 0
 
@@ -159,7 +159,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			s2, _ := sdk.NewIntFromString(m2)
 			d.s1 = s1.Div(sdk.E18Int).Int64()
 			d.s2 = s2.Div(sdk.E18Int).Int64()
-			d.c = sdk.NewRat(int64(delegation.ParseCompRate()*1000), 1000)
+			d.c = delegation.CompRate
 
 			t, _ := utils.Diff(delegation.CreatedAt)
 			if t > HalfYear {
@@ -178,6 +178,10 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			validator.s += d.s
 			totalShares += d.s
 		}
+
+		// update pending voting power
+		candidate.PendingVotingPower = validator.vp
+		updateCandidate(candidate)
 
 		validator.delegators = delegators
 		normalizedValidators = append(normalizedValidators, &validator)

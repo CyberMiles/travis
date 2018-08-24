@@ -47,7 +47,7 @@ func InitState(key string, value interface{}, store state.SimpleDB) error {
 	return nil
 }
 
-func SetValidator(val types.GenesisValidator, store state.SimpleDB) error {
+func SetGenesisValidator(val types.GenesisValidator, store state.SimpleDB) error {
 	if val.Address == "0000000000000000000000000000000000000000" {
 		return ErrBadValidatorAddr()
 	}
@@ -356,6 +356,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 }
 
 func (c check) setCompRate(tx TxSetCompRate) error {
+	// fixme check to see if the compensation rate is between 0 and 1
 	candidate := GetCandidateByAddress(c.sender)
 	d := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
 	if d == nil {
@@ -646,6 +647,10 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 }
 
 func (d deliver) setCompRate(tx TxSetCompRate) error {
+	if tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
+		return ErrBadCompRate()
+	}
+
 	candidate := GetCandidateByAddress(d.sender)
 	delegation := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
 	if delegation == nil {

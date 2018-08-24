@@ -121,7 +121,7 @@ func (s *CmtRPCService) GetBlockByNumber(height uint64) (*ctypes.ResultBlock, er
 type RPCTransaction struct {
 	BlockNumber      *hexutil.Big           `json:"blockNumber"`
 	From             common.Address         `json:"from"`
-	Gas              *hexutil.Big           `json:"gas"`
+	Gas              hexutil.Uint64         `json:"gas"`
 	GasPrice         *hexutil.Big           `json:"gasPrice"`
 	Hash             common.Hash            `json:"hash"`
 	CmtHash          tmcmn.HexBytes         `json:"cmtHash"`
@@ -159,7 +159,7 @@ func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
 	return &RPCTransaction{
 		BlockNumber:      (*hexutil.Big)(big.NewInt(res.Height)),
 		From:             from,
-		Gas:              (*hexutil.Big)(new(big.Int).SetUint64(tx.Gas())),
+		Gas:              hexutil.Uint64(tx.Gas()),
 		GasPrice:         (*hexutil.Big)(tx.GasPrice()),
 		Hash:             tx.Hash(),
 		CmtHash:          res.Hash,
@@ -235,7 +235,7 @@ type DeclareCandidacyArgs struct {
 	From        common.Address    `json:"from"`
 	PubKey      string            `json:"pubKey"`
 	MaxAmount   hexutil.Big       `json:"maxAmount"`
-	CompRate    string            `json:"compRate"`
+	CompRate    sdk.Rat           `json:"compRate"`
 	Description stake.Description `json:"description"`
 }
 
@@ -283,6 +283,27 @@ func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.Resul
 		maxAmount = args.MaxAmount.ToInt().String()
 	}
 	tx := stake.NewTxUpdateCandidacy(maxAmount, args.Description)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.signAndBroadcastTxCommit(txArgs)
+}
+
+type SetCompRateArgs struct {
+	Nonce            *hexutil.Uint64 `json:"nonce"`
+	From             common.Address  `json:"from"`
+	DelegatorAddress common.Address  `json:"delegatorAddress"`
+	CompRate         sdk.Rat         `json:"compRate"`
+}
+
+func (s *CmtRPCService) SetCompRate(args SetCompRateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	if len(args.DelegatorAddress) == 0 {
+		return nil, fmt.Errorf("must provide delegator address")
+	}
+	tx := stake.NewTxSetCompRate(args.DelegatorAddress, args.CompRate)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {

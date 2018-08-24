@@ -2,7 +2,6 @@ package app
 
 import (
 	goerr "errors"
-	"fmt"
 	"math/big"
 
 	"github.com/CyberMiles/travis/sdk"
@@ -217,19 +216,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 // EndBlock - ABCI - triggers Tick actions
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.EthApp.EndBlock(req)
-	// todo
 	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, app.TotalUsedGasFee)
-
-	var backups stake.Validators
-	for _, bv := range stake.GetBackupValidators() {
-		backups = append(backups, bv.Validator())
-	}
-
-	// block award
-	if app.WorkingHeight()%utils.BlocksPerHour == 0 {
-		// run once per hour
-		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
-	}
 
 	// punish Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
@@ -249,12 +236,23 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		stake.PunishAbsentValidator(k, v)
 	}
 
-	// execute tick if present
-	diff, err := tick(app.Append())
-	if err != nil {
-		panic(err)
+	var backups stake.Validators
+	for _, bv := range stake.GetBackupValidators() {
+		backups = append(backups, bv.Validator())
 	}
-	app.AddValChange(diff)
+
+	// block award
+	if app.WorkingHeight()%utils.BlocksPerHour == 0 {
+		// run once per hour
+		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
+
+		// calculate the validator set difference
+		diff, err := stake.UpdateValidatorSet(app.Append())
+		if err != nil {
+			panic(err)
+		}
+		app.AddValChange(diff)
+	}
 
 	// handle the pending unstake requests
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
@@ -310,37 +308,6 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	app.BlockEnd = true
 
-	return
-}
-
-func (app *BaseApp) InitState(module, key string, value interface{}) error {
-	state := app.Append()
-	logger := app.Logger().With("module", module, "key", key)
-
-	if module == sdk.ModuleNameBase {
-		if key == sdk.ChainKey {
-			app.info.SetChainID(state, value.(string))
-			return nil
-		}
-		logger.Error("Invalid genesis option")
-		return fmt.Errorf("unknown base option: %s", key)
-	}
-
-	if key == "validator" {
-		stake.SetValidator(value.(ttypes.GenesisValidator), state)
-	} else {
-		if set := utils.SetParam(key, value.(string)); !set {
-			return errors.ErrUnknownKey(key)
-		}
-	}
-
-	return nil
-}
-
-// Tick - Called every block even if no transaction, process all queues,
-// validator rewards, and calculate the validator set difference
-func tick(store state.SimpleDB) (change []abci.Validator, err error) {
-	change, err = stake.UpdateValidatorSet(store)
 	return
 }
 

@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"fmt"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/types"
 )
@@ -135,7 +136,7 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 	defer txWrapper.Commit()
 
 	clause := composeQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
+	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, pending_voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
 	if err != nil {
 		panic(err)
 	}
@@ -147,8 +148,8 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-		var votingPower, blockHeight, rank int64
-		err := rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+		var votingPower, pendingVotingPower, blockHeight, rank int64
+		err := rows.Scan(&pubKey, &address, &shares, &votingPower, &pendingVotingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -160,21 +161,23 @@ func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 			Profile:  profile,
 			Email:    email,
 		}
+		c, _ := sdk.NewRatFromString(compRate)
 		candidate := &Candidate{
-			PubKey:       pk,
-			OwnerAddress: address,
-			Shares:       shares,
-			VotingPower:  votingPower,
-			MaxShares:    maxShares,
-			CompRate:     compRate,
-			Description:  description,
-			Verified:     verified,
-			CreatedAt:    createdAt,
-			UpdatedAt:    updatedAt,
-			Active:       active,
-			BlockHeight:  blockHeight,
-			Rank:         rank,
-			State:        state,
+			PubKey:             pk,
+			OwnerAddress:       address,
+			Shares:             shares,
+			VotingPower:        votingPower,
+			PendingVotingPower: pendingVotingPower,
+			MaxShares:          maxShares,
+			CompRate:           c,
+			Description:        description,
+			Verified:           verified,
+			CreatedAt:          createdAt,
+			UpdatedAt:          updatedAt,
+			Active:             active,
+			BlockHeight:        blockHeight,
+			Rank:               rank,
+			State:              state,
 		}
 		candidates = append(candidates, candidate)
 	}
@@ -189,7 +192,7 @@ func SaveCandidate(candidate *Candidate) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, pending_voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -201,8 +204,9 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
+		candidate.PendingVotingPower,
 		candidate.MaxShares,
-		candidate.CompRate,
+		candidate.CompRate.String(),
 		candidate.Description.Name,
 		candidate.Description.Website,
 		candidate.Description.Location,
@@ -226,7 +230,7 @@ func updateCandidate(candidate *Candidate) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, pending_voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -237,8 +241,9 @@ func updateCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
+		candidate.PendingVotingPower,
 		candidate.MaxShares,
-		candidate.CompRate,
+		candidate.CompRate.String(),
 		candidate.Description.Name,
 		candidate.Description.Website,
 		candidate.Description.Location,
@@ -358,7 +363,7 @@ func SaveDelegation(d *Delegation) {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate, common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
@@ -389,7 +394,7 @@ func UpdateDelegation(d *Delegation) {
 		panic(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate, common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
+	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -447,6 +452,7 @@ func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 			return
 		}
 
+		c, _ := sdk.NewRatFromString(compRate)
 		delegation := &Delegation{
 			DelegatorAddress: common.HexToAddress(delegatorAddress),
 			PubKey:           pk,
@@ -454,7 +460,7 @@ func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 			AwardAmount:      awardAmount,
 			WithdrawAmount:   withdrawAmount,
 			SlashAmount:      slashAmount,
-			CompRate:         compRate,
+			CompRate:         c,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		}

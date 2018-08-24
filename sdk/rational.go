@@ -18,6 +18,15 @@ func NewRat(a, b int64) Rat {
 	return Rat{big.NewRat(a, b)}
 }
 
+func NewRatFromString(s string) (Rat, bool) {
+	r, ok := new(big.Rat).SetString(s)
+	if !ok {
+		return Rat{}, false
+	}
+
+	return Rat{r}, true
+}
+
 func (r Rat) Add(r2 Rat) Rat {
 	return Rat{new(big.Rat).Add(r.Rat, r2.Rat)}
 }

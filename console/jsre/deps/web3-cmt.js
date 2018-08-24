@@ -15180,12 +15180,14 @@ var methods = function() {
   var getCmtTransaction = new Method({
     name: "getCmtTransaction",
     call: "cmt_getTransactionByHash",
-    params: 1
+    params: 1,
+    outputFormatter: formatters.outputTransactionFormatter
   })
   var getCmtTransactionFromBlock = new Method({
     name: "getCmtTransactionFromBlock",
     call: "cmt_getTransactionFromBlock",
-    params: 2
+    params: 2,
+    outputFormatter: formatters.outputTransactionFormatter
   })
 
   return [
@@ -15473,6 +15475,12 @@ var methods = function() {
     params: 1,
     inputFormatter: [formatters.inputStakeTxFormatter]
   })
+  var setCompRate = new Method({
+    name: "setCompRate",
+    call: "cmt_setCompRate",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
 
   var list = new Method({
     name: "list",
@@ -15490,7 +15498,7 @@ var methods = function() {
     ]
   })
 
-  return [declare, withdraw, update, verify, activate, list, query]
+  return [declare, withdraw, update, verify, activate, setCompRate, list, query]
 }
 
 var properties = function() {
