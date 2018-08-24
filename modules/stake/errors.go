@@ -13,6 +13,7 @@ var (
 	errNoBondingAcct      = fmt.Errorf("No bond account for this (address, validator) pair")
 	errCommissionNegative = fmt.Errorf("Commission must be positive")
 	errCommissionHuge     = fmt.Errorf("Commission cannot be more than 100%")
+	errBadCompRate        = fmt.Errorf("Compensation rate must between 0 and 1")
 
 	errBadValidatorAddr                = fmt.Errorf("Validator does not exist for that address")
 	errCandidateExistsAddr             = fmt.Errorf("Candidate already exist, cannot re-declare candidacy")
@@ -83,4 +84,8 @@ func ErrCandidateWithdrawalDisallowed() error {
 
 func ErrInvalidCubeSignature() error {
 	return errors.WithCode(errInvalidCubeSignature, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrBadCompRate() error {
+	return errors.WithCode(errBadCompRate, errors.CodeTypeBaseInvalidOutput)
 }

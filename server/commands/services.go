@@ -57,7 +57,7 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 	ethApp.SetLogger(emtUtils.EthermintLogger().With("module", "vm"))
 
 	// Create Basecoin app
-	basecoinApp, err := createBaseCoinApp(rootDir, storeApp, ethApp, backend.Ethereum())
+	basecoinApp, err := createBaseApp(rootDir, storeApp, ethApp, backend.Ethereum())
 	if err != nil {
 		log.Warn(err.Error())
 		os.Exit(1)

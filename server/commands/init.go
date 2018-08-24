@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 
 	"database/sql"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
@@ -85,28 +86,15 @@ func initTendermint() {
 	if cmn.FileExists(genFile) {
 		logger.Info("Found genesis file", "path", genFile)
 	} else {
-		genDoc := GenesisDoc{
-			ChainID:          viper.GetString(FlagChainID),
-			MaxVals:          4,
-			BackupVals:       1,
-			SelfStakingRatio: "10/100",
+		genDoc := types.GenesisDoc{
+			ChainID: viper.GetString(FlagChainID),
 		}
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
 			Power:     "10000",
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
-			CompRate:  "0.5",
+			CompRate:  sdk.NewRat(2, 10),
 			MaxAmount: 100000,
-		}}
-		genDoc.CubePubKeys = []types.GenesisCubePubKey{{
-			CubeBatch: "01",
-			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCiWpvDnwYFTqgSWPlA3VO8u+Yv\n9r8QGlRaYZFszUZEXUQxquGlFexMSVyFeqYjIokfPOEHHx2voqWgi3FKKlp6dkxw\nApP3T22y7Epqvtr+EfNybRta15snccZy47dY4UcmYxbGWFTaL66tz22pCAbjFrxY\n3IxaPPIjDX+FiXdJWwIDAQAB\n-----END PUBLIC KEY-----",
-		}, {
-			CubeBatch: "02",
-			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQ8FL6/9zul+X7bFSRiWAzFiAE\n9vHYbClEHwlC7zUZ/JWzU7UT5S2qnYsseYF2WFjJtrGwHRAlTUyPtCpxV8f1uJsI\nl+/N9l6torUHwkhhib1catUSd/T72ltjvVyyg5LQjtRsskFnv3wM/yxYotrgnOs+\ndRpU6WI5XPCIyZqsGwIDAQAB\n-----END PUBLIC KEY-----",
-		}, {
-			CubeBatch: "05",
-			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCZ7Fw+1ddvy5OPFftbea0MxewW\nKUTb/E7B4/MHvLz2h7f7snyveFwxxj7QwxaCoVxobEq6AigIlUFUXLM8Y598/jts\nTaN+jh4xdoQN7qKwrbz1MWGf58Aa78Vnoj54B7V0LSajVbLJSZNUEI/24HLcG2iN\nTD3dSvH0ARvRJJ9hZQIDAQAB\n-----END PUBLIC KEY-----",
 		}}
 
 		if err := genDoc.SaveAs(genFile); err != nil {
@@ -179,7 +167,7 @@ func initTravisDb() {
 		defer db.Close()
 
 		sqlStmt := `
-	create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, ranking_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, created_at text not null, updated_at text not null default '');
+	create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, ranking_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, created_at text not null, updated_at text not null default '');
 	create unique index idx_candidates_pub_key on candidates(pub_key);
 	create index idx_candidates_hash on candidates(hash);
  	create table delegators(address text not null primary key, created_at text not null);
