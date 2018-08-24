@@ -296,7 +296,7 @@ type SetCompRateArgs struct {
 	Nonce            *hexutil.Uint64 `json:"nonce"`
 	From             common.Address  `json:"from"`
 	DelegatorAddress common.Address  `json:"delegatorAddress"`
-	CompRate         string          `json:"compRate"`
+	CompRate         sdk.Rat         `json:"compRate"`
 }
 
 func (s *CmtRPCService) SetCompRate(args SetCompRateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
