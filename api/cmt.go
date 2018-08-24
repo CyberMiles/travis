@@ -121,7 +121,7 @@ func (s *CmtRPCService) GetBlockByNumber(height uint64) (*ctypes.ResultBlock, er
 type RPCTransaction struct {
 	BlockNumber      *hexutil.Big           `json:"blockNumber"`
 	From             common.Address         `json:"from"`
-	Gas              *hexutil.Big           `json:"gas"`
+	Gas              hexutil.Uint64         `json:"gas"`
 	GasPrice         *hexutil.Big           `json:"gasPrice"`
 	Hash             common.Hash            `json:"hash"`
 	CmtHash          tmcmn.HexBytes         `json:"cmtHash"`
@@ -159,7 +159,7 @@ func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
 	return &RPCTransaction{
 		BlockNumber:      (*hexutil.Big)(big.NewInt(res.Height)),
 		From:             from,
-		Gas:              (*hexutil.Big)(new(big.Int).SetUint64(tx.Gas())),
+		Gas:              hexutil.Uint64(tx.Gas()),
 		GasPrice:         (*hexutil.Big)(tx.GasPrice()),
 		Hash:             tx.Hash(),
 		CmtHash:          res.Hash,
