@@ -22,14 +22,14 @@ const (
 	ByteTxDelegate          = 0x60
 	ByteTxWithdraw          = 0x61
 	ByteTxSetCompRate       = 0x62
-	TypeTxDeclareCandidacy  = stakingModuleName + "/declareCandidacy"
-	TypeTxUpdateCandidacy   = stakingModuleName + "/updateCandidacy"
-	TypeTxVerifyCandidacy   = stakingModuleName + "/verifyCandidacy"
-	TypeTxWithdrawCandidacy = stakingModuleName + "/withdrawCandidacy"
-	TypeTxActivateCandidacy = stakingModuleName + "/activateCandidacy"
-	TypeTxDelegate          = stakingModuleName + "/delegate"
-	TypeTxWithdraw          = stakingModuleName + "/withdraw"
-	TypeTxSetCompRate       = stakingModuleName + "/set-comprate"
+	TypeTxDeclareCandidacy  = "stake/declareCandidacy"
+	TypeTxUpdateCandidacy   = "stake/updateCandidacy"
+	TypeTxVerifyCandidacy   = "stake/verifyCandidacy"
+	TypeTxWithdrawCandidacy = "stake/withdrawCandidacy"
+	TypeTxActivateCandidacy = "stake/activateCandidacy"
+	TypeTxDelegate          = "stake/delegate"
+	TypeTxWithdraw          = "stake/withdraw"
+	TypeTxSetCompRate       = "stake/set-comprate"
 )
 
 func init() {

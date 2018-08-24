@@ -17,16 +17,9 @@ import (
 
 // nolint
 const (
-	stakingModuleName = "stake"
-	foundationAddress = "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc" // fixme move to config file
+	// fixme: move to config file
+	foundationAddress = "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc"
 )
-
-//var (
-//	minStakedAmount, _ = new(big.Int).SetString("1000000000000000000000", 10)   // 1000: the minimum amount of CMTs a single CMT Cube device can hold and stake
-//	maxStakedAmount, _ = new(big.Int).SetString("100000000000000000000000", 10) // 100,000: the maximum amount of CMTs a single CMT Cube device can hold and stake
-//)
-
-//_______________________________________________________________________
 
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
@@ -38,13 +31,6 @@ type delegatedProofOfStake interface {
 	delegate(TxDelegate) error
 	withdraw(TxWithdraw) error
 	setCompRate(TxSetCompRate) error
-}
-
-//_______________________________________________________________________
-
-// InitState - set genesis parameters for staking
-func InitState(key string, value interface{}, store state.SimpleDB) error {
-	return nil
 }
 
 func SetGenesisValidator(val types.GenesisValidator, store state.SimpleDB) error {
