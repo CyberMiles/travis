@@ -122,7 +122,7 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 func GetCandidates() (candidates Candidates) {
 	cond := make(map[string]interface{})
 	candidates = getCandidatesInternal(cond)
-	candidates.Sort()
+	//candidates.Sort()
 	return candidates
 }
 
