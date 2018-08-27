@@ -433,12 +433,14 @@ func (r *UnstakeRequest) GenId() []byte {
 		InitiatedBlockHeight int64
 		PerformedBlockHeight int64
 		Amount               string
+		CreatedAt            string
 	}{
 		r.DelegatorAddress,
 		r.PubKey,
 		r.InitiatedBlockHeight,
 		r.PerformedBlockHeight,
 		r.Amount,
+		r.CreatedAt,
 	})
 
 	if err != nil {
@@ -458,6 +460,7 @@ func (r *UnstakeRequest) Hash() []byte {
 		PerformedBlockHeight int64
 		Amount               string
 		State                string
+		CreatedAt            string
 	}{
 		r.DelegatorAddress,
 		r.PubKey,
@@ -465,6 +468,7 @@ func (r *UnstakeRequest) Hash() []byte {
 		r.PerformedBlockHeight,
 		r.Amount,
 		r.State,
+		r.CreatedAt,
 	})
 
 	if err != nil {
