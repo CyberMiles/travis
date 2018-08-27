@@ -220,14 +220,14 @@ describe("Stake Test", function() {
         expect(tx_result.data.state).to.not.eq("Validator")
       })
     })
-    describe("Account C stakes 12000 CMTs for D.", function() {
+    describe("Account C stakes 1200000 CMTs for D.", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(2)
         // delegation before
         delegation_before = Utils.getDelegation(2, 3)
       })
-      it("CMTs are moved from account C", function() {
+      it("CMTs are moved from account C", function(done) {
         Utils.delegatorAccept(
           Globals.Accounts[2],
           Globals.Accounts[3],
@@ -238,6 +238,7 @@ describe("Stake Test", function() {
         expect(balance_new.minus(balance_old).toNumber()).to.equal(
           Number(-amounts.dele2)
         )
+        Utils.waitBlocks(done, 1)
       })
       it("CMTs show up as staked balance for C", function() {
         let delegation_after = Utils.getDelegation(2, 3)
