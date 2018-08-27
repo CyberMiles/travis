@@ -264,6 +264,9 @@ const gasFee = txType => {
     case "proposeDeployLibEni":
       gasLimit = web3.toBigNumber(Globals.Params.deploy_libeni_proposal)
       break
+    case "setCompRate":
+      gasLimit = web3.toBigNumber(Globals.Params.set_comp_rate)
+      break
   }
   return gasPrice.times(gasLimit)
 }

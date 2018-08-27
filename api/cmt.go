@@ -322,7 +322,7 @@ type VerifyCandidacyArgs struct {
 
 func (s *CmtRPCService) VerifyCandidacy(args VerifyCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	if len(args.CandidateAddress) == 0 {
-		return nil, fmt.Errorf("must provide new address")
+		return nil, fmt.Errorf("must provide candidate address")
 	}
 	tx := stake.NewTxVerifyCandidacy(args.CandidateAddress, args.Verified)
 
@@ -401,7 +401,6 @@ type StakeQueryResult struct {
 
 func (s *CmtRPCService) QueryValidators(height uint64) (*StakeQueryResult, error) {
 	var candidates stake.Candidates
-	//key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
 	h, err := s.getParsedFromJson("/validators", []byte{0}, &candidates, height)
 	if err != nil {
 		return nil, err
@@ -516,7 +515,6 @@ func (s *CmtRPCService) Vote(args GovernanceVoteArgs) (*ctypes.ResultBroadcastTx
 
 func (s *CmtRPCService) QueryProposals() (*StakeQueryResult, error) {
 	var proposals []*governance.Proposal
-	//key := stack.PrefixedKey(stake.Name(), stake.CandidatesPubKeysKey)
 	h, err := s.getParsedFromJson("/governance/proposals", []byte{0}, &proposals, 0)
 	if err != nil {
 		return nil, err
@@ -526,11 +524,10 @@ func (s *CmtRPCService) QueryProposals() (*StakeQueryResult, error) {
 }
 
 func (s *CmtRPCService) QueryParams() (*StakeQueryResult, error) {
-	var params utils.Params
-	h, err := s.getParsedFromJson("/key", utils.ParamKey, &params, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return &StakeQueryResult{h, params}, nil
+	//var params utils.Params
+	//h, err := s.getParsedFromJson("/key", utils.ParamKey, &params, 0)
+	//if err != nil {
+	//	return nil, err
+	//}
+	return &StakeQueryResult{0, utils.GetParams()}, nil
 }
