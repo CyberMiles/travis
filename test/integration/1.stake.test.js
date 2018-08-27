@@ -24,7 +24,7 @@ describe("Stake Test", function() {
 
   before(function() {
     Utils.addFakeValidators()
-    amounts = new Amounts(20000) // 20000 cmt
+    amounts = new Amounts(2000000)
   })
 
   after(function() {
@@ -41,7 +41,7 @@ describe("Stake Test", function() {
     expect(existingValidator).be.an("object")
 
     if (Globals.TestMode == "single") {
-      amounts = new Amounts(2000) // 2000 cmt
+      amounts = new Amounts(200000)
     }
   })
 
@@ -112,7 +112,7 @@ describe("Stake Test", function() {
           balance_old = Utils.getBalance(3)
         })
 
-        it("Succeeds, the 2000 CMTs becomes D's stake after the successful declaration", function() {
+        it("Succeeds, the 200000 CMTs becomes D's stake after the successful declaration", function() {
           let payload = {
             from: Globals.Accounts[3],
             pubKey: Globals.PubKeys[3],
@@ -186,7 +186,7 @@ describe("Stake Test", function() {
   })
 
   describe("Stake Delegate", function() {
-    describe("Account B stakes 2000 CMTs for D.", function() {
+    describe("Account B stakes 200000 CMTs for D.", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(1)
