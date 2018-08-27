@@ -30,7 +30,7 @@ type delegatedProofOfStake interface {
 	activateCandidacy(TxActivateCandidacy) error
 	delegate(TxDelegate) error
 	withdraw(TxWithdraw) error
-	setCompRate(TxSetCompRate) error
+	setCompRate(TxSetCompRate, sdk.Int) error
 }
 
 func SetGenesisValidator(val types.GenesisValidator, store state.SimpleDB) error {
@@ -105,7 +105,8 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 	case TxWithdraw:
 		return res, checker.withdraw(txInner)
 	case TxSetCompRate:
-		return res, checker.setCompRate(txInner)
+		gasFee := utils.CalGasFee(params.SetCompRate, params.GasPrice)
+		return res, checker.setCompRate(txInner, gasFee)
 	}
 
 	utils.TravisTxAddrs = append(utils.TravisTxAddrs, &sender)
@@ -136,18 +137,18 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 	// Run the transaction
 	switch txInner := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
-		gasFee := utils.CalGasFee(utils.GetParams().DeclareCandidacy, utils.GetParams().GasPrice)
+		gasFee := utils.CalGasFee(params.DeclareCandidacy, params.GasPrice)
 		err := deliverer.declareCandidacy(txInner, gasFee)
 		if err == nil {
-			res.GasUsed = int64(utils.GetParams().DeclareCandidacy)
+			res.GasUsed = int64(params.DeclareCandidacy)
 			res.GasFee = gasFee.Int
 		}
 		return res, err
 	case TxUpdateCandidacy:
-		gasFee := utils.CalGasFee(utils.GetParams().UpdateCandidacy, utils.GetParams().GasPrice)
+		gasFee := utils.CalGasFee(params.UpdateCandidacy, params.GasPrice)
 		err := deliverer.updateCandidacy(txInner, gasFee)
 		if err == nil {
-			res.GasUsed = int64(utils.GetParams().UpdateCandidacy)
+			res.GasUsed = int64(params.UpdateCandidacy)
 			res.GasFee = gasFee.Int
 		}
 		return res, err
@@ -162,7 +163,13 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 	case TxWithdraw:
 		return res, deliverer.withdraw(txInner)
 	case TxSetCompRate:
-		return res, deliverer.setCompRate(txInner)
+		gasFee := utils.CalGasFee(params.SetCompRate, params.GasPrice)
+		err := deliverer.setCompRate(txInner, gasFee)
+		if err == nil {
+			res.GasUsed = int64(params.SetCompRate)
+			res.GasFee = gasFee.Int
+		}
+		return res, err
 	}
 
 	return
@@ -345,7 +352,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 	return nil
 }
 
-func (c check) setCompRate(tx TxSetCompRate) error {
+func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	// Check to see if the compensation rate is between 0 and 1
 	if tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
 		return ErrBadCompRate()
@@ -356,6 +363,12 @@ func (c check) setCompRate(tx TxSetCompRate) error {
 	if d == nil {
 		return ErrDelegationNotExists()
 	}
+
+	// check if the delegator has sufficient funds
+	if err := checkBalance(c.state, c.sender, gasFee); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -641,12 +654,19 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 	return
 }
 
-func (d deliver) setCompRate(tx TxSetCompRate) error {
+func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	candidate := GetCandidateByAddress(d.sender)
 	delegation := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
 	if delegation == nil {
 		return ErrDelegationNotExists()
 	}
+
+	// check if the delegator has sufficient funds
+	if err := checkBalance(d.state, d.sender, gasFee); err != nil {
+		return err
+	}
+	// only charge gas fee here
+	commons.Transfer(d.sender, utils.HoldAccount, gasFee)
 
 	delegation.CompRate = tx.CompRate
 	delegation.UpdatedAt = utils.GetNow()
