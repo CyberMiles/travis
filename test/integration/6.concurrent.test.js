@@ -139,6 +139,46 @@ describe("Concurrent Test", function() {
     })
   })
 
+  describe.skip("Stake: SetCompRate", function() {
+    before(function(done) {
+      // clear all balance of A
+      let balance = web3.cmt.getBalance(A, "latest")
+      if (balance > 0) Utils.transfer(A, C, balance)
+      Utils.waitBlocks(done, 1)
+    })
+    describe("A send 2 requests at the same time", function() {
+      it("if A don't have enough CMTs, fail", function(done) {
+        multiSetCompRate((err, res) => {
+          expect(res.length).to.equal(2)
+          for (let i = 0; i < TIMES; ++i) {
+            Utils.expectTxFail(res[i])
+          }
+          done()
+        })
+      })
+      it("if A has only gas fee for one tx", function(done) {
+        Utils.transfer(
+          C,
+          A,
+          Utils.gasFee("setCompRate"),
+          Globals.Params.gas_price
+        )
+        Utils.waitBlocks(done, 1)
+      })
+      it("one of the 2 requests will fail", function(done) {
+        multiSetCompRate((err, res) => {
+          logger.debug(res)
+          expect(res.length).to.equal(TIMES)
+          expect(
+            (res[0].height == 0 && res[1].height > 0) ||
+              (res[0].height > 0 && res[1].height == 0)
+          ).to.be.true
+          done()
+        })
+      })
+    })
+  })
+
   describe.skip("Stake: Delegator Withdraw", function() {
     describe("A send 2 requests at the same time", function() {
       it("one of the 2 requests will fail", function(done) {
@@ -385,4 +425,23 @@ var deleAccept = (obj, cb) => {
   }
   logger.debug(payload)
   web3.cmt.stake.delegator.accept(payload, cb)
+}
+
+const multiSetCompRate = callback => {
+  let nonce = web3.cmt.getTransactionCount(A)
+  let arr = [nonce, nonce + 1]
+  async.map(
+    arr,
+    (nonce, cb) => {
+      let payload = {
+        from: A,
+        delegatorAddress: A,
+        nonce: "0x" + nonce.toString(16),
+        compRate: "0.1"
+      }
+      logger.debug(payload)
+      web3.cmt.stake.validator.setCompRate(payload, cb)
+    },
+    callback
+  )
 }
