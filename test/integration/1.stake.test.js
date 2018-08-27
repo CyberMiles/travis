@@ -18,7 +18,7 @@ describe("Stake Test", function() {
     this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")
   }
 
-  let compRate = "0.8"
+  let compRate = "4/5"
   let existingValidator = {}
   let amounts, balance_old, balance_new, tx_result
 
