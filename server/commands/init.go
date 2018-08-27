@@ -89,9 +89,12 @@ func initTendermint() {
 		genDoc := types.GenesisDoc{
 			ChainID: viper.GetString(FlagChainID),
 		}
+
+		// fixme Use specific values instead in production
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
-			Power:     "10000",
+			Power:     "1",
+			Shares:    10000,
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
 			CompRate:  sdk.NewRat(2, 10),
 			MaxAmount: 100000,

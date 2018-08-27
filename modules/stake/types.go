@@ -190,6 +190,8 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 // the UpdateVotingPower function which is the only function which
 // is to modify the VotingPower
 func (cs Candidates) Validators() Validators {
+	cs.Sort()
+
 	//test if empty
 	if len(cs) == 1 {
 		if cs[0].VotingPower == 0 {
@@ -293,7 +295,7 @@ func UpdateValidatorSet(store state.SimpleDB) (change []abci.Validator, err erro
 
 	// get the validators before update
 	candidates := GetCandidates()
-	candidates.Sort()
+	//candidates.Sort()
 
 	v1 := candidates.Validators()
 	v2 := candidates.updateVotingPower(store).Validators()
