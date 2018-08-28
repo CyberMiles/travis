@@ -12,7 +12,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth"
-	//"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
@@ -86,14 +86,7 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 	defer es.mtx.Unlock()
 
 	blockHash, err := es.work.commit(es.ethereum.BlockChain(), es.ethereum.ChainDb(), receiver)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	err = es.resetWorkState(receiver)
-	if err != nil {
-		return common.Hash{}, err
-	}
+	es.resetWorkState(receiver)
 
 	return blockHash, err
 }
@@ -327,21 +320,18 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 	// log.Info("Committing block", "stateHash", hashArray, "blockHash", blockHash)
 	_, err = blockchain.InsertChain([]*ethTypes.Block{block})
 	if err != nil {
-		// log.Info("Error inserting ethereum block in chain", "err", err)
-		// return common.Hash{}, err
+		log.Info("Error inserting ethereum block in chain", "err", err)
 
-		err = ws.es.resetWorkState(receiver)
-		if err != nil {
-			return common.Hash{}, err
-		}
+		ws.es.resetWorkState(receiver)
+
 		pt := ws.parent.Time()
 		pt = pt.Add(pt, big.NewInt(1))
 		config := ws.es.ethereum.APIBackend.ChainConfig()
 		ws.updateHeaderWithTimeInfo(config, pt.Uint64(), 0)
 
-		hashArray, err = ws.state.Commit(false) // XXX: ugh hardforks
-		if err != nil {
-			return common.Hash{}, err
+		hashArray, er := ws.state.Commit(false) // XXX: ugh hardforks
+		if er != nil {
+			return common.Hash{}, er
 		}
 		ws.header.Root = hashArray
 
@@ -353,9 +343,9 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 		// block).
 		block = ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
 		blockHash = block.Hash()
-		_, err = blockchain.InsertChain([]*ethTypes.Block{block})
-		if err != nil {
-			return common.Hash{}, err
+		_, er = blockchain.InsertChain([]*ethTypes.Block{block})
+		if er != nil {
+			return blockHash, er
 		}
 	}
 	return blockHash, err
