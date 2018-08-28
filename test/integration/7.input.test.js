@@ -77,6 +77,9 @@ describe("API Input Parameter Test", function() {
     it("fail if empty input", function(done) {
       sendTx(D, "declare", [], Utils.expectTxFail, done)
     })
+    it.skip("fail if bad pub key", function(done) {
+      sendTx(D, "declare", ["abc", "11", "0.15"], Utils.expectTxFail, done)
+    })
     it("fail if no max_amount specified", function(done) {
       sendTx(D, "declare", [Globals.PubKeys[3]], Utils.expectTxFail, done)
     })
