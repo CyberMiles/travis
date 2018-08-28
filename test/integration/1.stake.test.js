@@ -438,13 +438,13 @@ describe("Stake Test", function() {
       // balance before
       balance_old = Utils.getBalance()
     })
-
-    it("Account D no longer a validator", function() {
-      let payload = {
-        from: Globals.Accounts[3]
-      }
+    it("Withdraw Candidacy", function(done) {
+      let payload = { from: Globals.Accounts[3] }
       tx_result = web3.cmt.stake.validator.withdraw(payload)
       Utils.expectTxSuccess(tx_result)
+      Utils.waitBlocks(done, 1)
+    })
+    it("Account D no longer a validator", function() {
       // check validators, no Globals.Accounts[3]
       tx_result = web3.cmt.stake.validator.list()
       tx_result.data.forEach(
