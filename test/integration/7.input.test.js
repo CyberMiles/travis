@@ -4,6 +4,7 @@ const Globals = require("./global_vars")
 const logger = require("./logger")
 
 let A, B, C, D
+let proposalId
 let accounts = [
   {
     addr: "0x7EFF122B94897EA5B0E2A9ABF47B86337FAFEBDC",
@@ -76,6 +77,9 @@ describe("API Input Parameter Test", function() {
   describe("stake/declareCandidacy", function() {
     it("fail if empty input", function(done) {
       sendTx(D, "declare", [], Utils.expectTxFail, done)
+    })
+    it.skip("fail if bad pub key", function(done) {
+      sendTx(D, "declare", ["abc", "11", "0.15"], Utils.expectTxFail, done)
     })
     it("fail if no max_amount specified", function(done) {
       sendTx(D, "declare", [Globals.PubKeys[3]], Utils.expectTxFail, done)
@@ -262,6 +266,15 @@ describe("API Input Parameter Test", function() {
         done
       )
     })
+    it("success if all set", function(done) {
+      sendTx(
+        A,
+        "changeParam",
+        [A.addr, "max_vals", "4"],
+        Utils.expectTxSuccess,
+        done
+      )
+    })
   })
   describe("gov/deployLibEni", function() {
     it.skip("fail if empty input", function(done) {
@@ -305,6 +318,28 @@ describe("API Input Parameter Test", function() {
         Utils.expectTxFail,
         done
       )
+    })
+  })
+  describe("gov/vote", function() {
+    before(function() {
+      let r = web3.cmt.governance.listProposals()
+      if (r.data) proposalId = r.data[0].Id
+    })
+    it("fail if empty input", function(done) {
+      sendTx(A, "vote", [], Utils.expectTxFail, done)
+    })
+    it("fail if bad proposal id", function(done) {
+      sendTx(A, "vote", ["A", A.addr], Utils.expectTxFail, done)
+    })
+    it("fail if bad voter", function(done) {
+      if (proposalId) {
+        sendTx(A, "vote", [proposalId, B.addr], Utils.expectTxFail, done)
+      } else done()
+    })
+    it("success if no answer set(default to empty string)", function(done) {
+      if (proposalId) {
+        sendTx(A, "vote", [proposalId, A.addr], Utils.expectTxSuccess, done)
+      } else done()
     })
   })
 })
@@ -398,6 +433,12 @@ function sendTx(account, op, data, fnExpect, done) {
           expire_timestamp: data[6],
           expire_block_height: data[7]
         }
+      }
+      break
+    case "vote":
+      txInner = {
+        type: "governance/vote",
+        data: { proposal_id: data[0], voter: data[1], answer: data[2] }
       }
       break
     default:
