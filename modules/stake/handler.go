@@ -647,8 +647,16 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 	performedBlockHeight := d.height + int64(utils.GetParams().UnstakeWaitingPeriod)
 	// just for test
 	//performedBlockHeight := d.height + 4
-	unstakeRequest := &UnstakeRequest{"", delegation.DelegatorAddress, candidate.PubKey, d.height, performedBlockHeight, amount.String(), "PENDING", now, now}
-	unstakeRequest.Id = common.Bytes2Hex(unstakeRequest.GenId())
+	unstakeRequest := &UnstakeRequest{
+		DelegatorAddress:     delegation.DelegatorAddress,
+		PubKey:               candidate.PubKey,
+		InitiatedBlockHeight: d.height,
+		PerformedBlockHeight: performedBlockHeight,
+		Amount:               amount.String(),
+		State:                "PENDING",
+		CreatedAt:            now,
+		UpdatedAt:            now,
+	}
 	saveUnstakeRequest(unstakeRequest)
 
 	return

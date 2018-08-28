@@ -522,14 +522,13 @@ func saveUnstakeRequest(req *UnstakeRequest) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into unstake_requests(id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into unstake_requests(delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
-		req.Id,
 		req.DelegatorAddress.String(),
 		types.PubKeyString(req.PubKey),
 		req.InitiatedBlockHeight,
@@ -555,8 +554,8 @@ func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var id, delegatorAddress, pubKey, state, amount, createdAt, updatedAt string
-		var initiatedBlockHeight, performedBlockHeight int64
+		var delegatorAddress, pubKey, state, amount, createdAt, updatedAt string
+		var id, initiatedBlockHeight, performedBlockHeight int64
 		err = rows.Scan(&id, &delegatorAddress, &pubKey, &initiatedBlockHeight, &performedBlockHeight, &amount, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)

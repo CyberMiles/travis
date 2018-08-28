@@ -415,7 +415,7 @@ type PunishHistory struct {
 }
 
 type UnstakeRequest struct {
-	Id                   string
+	Id                   int64
 	DelegatorAddress     common.Address
 	PubKey               types.PubKey
 	InitiatedBlockHeight int64
@@ -424,32 +424,6 @@ type UnstakeRequest struct {
 	State                string
 	CreatedAt            string
 	UpdatedAt            string
-}
-
-func (r *UnstakeRequest) GenId() []byte {
-	req, err := json.Marshal(struct {
-		DelegatorAddress     common.Address
-		PubKey               types.PubKey
-		InitiatedBlockHeight int64
-		PerformedBlockHeight int64
-		Amount               string
-		CreatedAt            string
-	}{
-		r.DelegatorAddress,
-		r.PubKey,
-		r.InitiatedBlockHeight,
-		r.PerformedBlockHeight,
-		r.Amount,
-		r.CreatedAt,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	hasher := ripemd160.New()
-	hasher.Write(req)
-	return hasher.Sum(nil)
 }
 
 func (r *UnstakeRequest) Hash() []byte {
