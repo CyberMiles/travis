@@ -72,14 +72,20 @@ func (i Int) Equal(i2 Int) bool {
 	return equal(i.Int, i2.Int)
 }
 
-// GT returns true if first Int is greater than second
 func (i Int) GT(i2 Int) bool {
 	return gt(i.Int, i2.Int)
 }
 
-// LT returns true if first Int is lesser than second
+func (i Int) GTE(i2 Int) bool {
+	return !lt(i.Int, i2.Int)
+}
+
 func (i Int) LT(i2 Int) bool {
 	return lt(i.Int, i2.Int)
+}
+
+func (i Int) LTE(i2 Int) bool {
+	return !gt(i.Int, i2.Int)
 }
 
 func (i Int) Neg() Int {

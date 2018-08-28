@@ -209,8 +209,8 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	}
 
 	// check to see if the associated account has 10%(ssr, short for self-staking ratio, configurable) of the max staked CMT amount
-	maxAmount, ok := new(big.Int).SetString(tx.MaxAmount, 10)
-	if !ok || maxAmount.Cmp(big.NewInt(0)) < 0 {
+	maxAmount, ok := sdk.NewIntFromString(tx.MaxAmount)
+	if !ok || maxAmount.LTE(sdk.ZeroInt) {
 		return ErrBadAmount()
 	}
 
@@ -241,7 +241,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	// and the different will be charged
 	if tx.MaxAmount != "" {
 		maxAmount, ok := sdk.NewIntFromString(tx.MaxAmount)
-		if !ok || maxAmount.LT(sdk.ZeroInt) {
+		if !ok || maxAmount.LTE(sdk.ZeroInt) {
 			return ErrBadAmount()
 		}
 
@@ -311,7 +311,7 @@ func (c check) delegate(tx TxDelegate) error {
 
 	// check if the delegator has sufficient funds
 	amount, ok := sdk.NewIntFromString(tx.Amount)
-	if !ok || amount.LT(sdk.ZeroInt) {
+	if !ok || amount.LTE(sdk.ZeroInt) {
 		return ErrBadAmount()
 	}
 
@@ -336,7 +336,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 	}
 
 	amount, ok := sdk.NewIntFromString(tx.Amount)
-	if !ok || amount.Cmp(big.NewInt(0)) < 0 {
+	if !ok || amount.LTE(sdk.ZeroInt) {
 		return ErrBadAmount()
 	}
 
