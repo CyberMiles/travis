@@ -744,7 +744,6 @@ func RecordCandidateDailyStakes() error {
 	now := utils.GetNow()
 	for _, candidate := range candidates {
 		cds := &CandidateDailyStake{PubKey: candidate.PubKey, Amount: candidate.Shares, CreatedAt: now}
-		cds.Id = common.Bytes2Hex(cds.GenId())
 		SaveCandidateDailyStake(cds)
 
 		// remove expired records

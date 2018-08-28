@@ -196,7 +196,7 @@ func initTravisDb() {
 	create index idx_governance_vote_voter on governance_vote(voter);
 	create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 	create index idx_governance_vote_hash on governance_vote(hash);
-	create table candidate_daily_stakes(id text not null primary key, pub_key text not null, amount text not null default '0', created_at text not null);
+	create table candidate_daily_stakes(id integer not null primary key autoincrement, pub_key text not null, amount text not null default '0', created_at text not null);
 	`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {

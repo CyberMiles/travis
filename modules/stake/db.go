@@ -613,13 +613,13 @@ func SaveCandidateDailyStake(cds *CandidateDailyStake) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into candidate_daily_stakes(id, pub_key, amount, created_at) values(?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into candidate_daily_stakes(pub_key, amount, created_at) values(?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(cds.Id, types.PubKeyString(cds.PubKey), cds.Amount, cds.CreatedAt)
+	_, err = stmt.Exec(types.PubKeyString(cds.PubKey), cds.Amount, cds.CreatedAt)
 	if err != nil {
 		panic(err)
 	}

@@ -159,7 +159,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	for _, c := range cs {
 		if c.Active == "N" {
 			c.VotingPower = 0
-		} else if c.VotingPower != c.PendingVotingPower {
+		} else if c.VotingPower != c.PendingVotingPower && c.PendingVotingPower != 0 {
 			c.VotingPower = c.PendingVotingPower
 		}
 	}
@@ -454,30 +454,10 @@ func (r *UnstakeRequest) Hash() []byte {
 }
 
 type CandidateDailyStake struct {
-	Id        string
+	Id        int64
 	PubKey    types.PubKey
 	Amount    string
 	CreatedAt string
-}
-
-func (c *CandidateDailyStake) GenId() []byte {
-	req, err := json.Marshal(struct {
-		PubKey  types.PubKey
-		Amount  string
-		Created string
-	}{
-		c.PubKey,
-		c.Amount,
-		c.CreatedAt,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	hasher := ripemd160.New()
-	hasher.Write(req)
-	return hasher.Sum(nil)
 }
 
 type CubePubKey struct {
