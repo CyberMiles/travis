@@ -197,6 +197,11 @@ type check struct {
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
 func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
+	_, err := types.GetPubKey(tx.PubKey)
+	if err != nil {
+		return err
+	}
+
 	// check to see if the pubkey or address has been registered before
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate != nil {
@@ -411,7 +416,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	// delegate a part of the max staked CMT amount
 	amount := tx.SelfStakingAmount(d.params.SelfStakingRatio)
 	totalCost := amount.Add(gasFee)
-	fmt.Println("deliver.declareCandidancy--totalCost: ", totalCost)
+
 	// check if the delegator has sufficient funds
 	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
 		return err

@@ -292,14 +292,10 @@ func (vs Validators) Remove(i int) Validators {
 // UpdateValidatorSet - Updates the voting power for the candidate set and
 // returns the subset of validators which have changed for Tendermint
 func UpdateValidatorSet(store state.SimpleDB) (change []abci.Validator, err error) {
-
 	// get the validators before update
 	candidates := GetCandidates()
-	//candidates.Sort()
-
 	v1 := candidates.Validators()
 	v2 := candidates.updateVotingPower(store).Validators()
-
 	change = v1.validatorsChanged(v2)
 
 	// clean all of the candidates had been withdrawed
