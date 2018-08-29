@@ -118,6 +118,9 @@ func (b *Backend) Config() *eth.Config {
 func (b *Backend) SetTMNode(tmNode *tmn.Node) {
 	b.chainID = tmNode.GenesisDoc().ChainID
 	b.localClient = rpcClient.NewLocal(tmNode)
+	if _, err := b.localClient.Status(); err != nil {
+		b.localClient = nil
+	}
 }
 
 func (b *Backend) PeerCount() int {
