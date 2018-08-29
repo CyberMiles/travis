@@ -300,9 +300,6 @@ type SetCompRateArgs struct {
 }
 
 func (s *CmtRPCService) SetCompRate(args SetCompRateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	if len(args.DelegatorAddress) == 0 {
-		return nil, fmt.Errorf("must provide delegator address")
-	}
 	tx := stake.NewTxSetCompRate(args.DelegatorAddress, args.CompRate)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -321,9 +318,6 @@ type VerifyCandidacyArgs struct {
 }
 
 func (s *CmtRPCService) VerifyCandidacy(args VerifyCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	if len(args.CandidateAddress) == 0 {
-		return nil, fmt.Errorf("must provide candidate address")
-	}
 	tx := stake.NewTxVerifyCandidacy(args.CandidateAddress, args.Verified)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -360,9 +354,6 @@ type DelegateArgs struct {
 }
 
 func (s *CmtRPCService) Delegate(args DelegateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	if len(args.ValidatorAddress) == 0 {
-		return nil, fmt.Errorf("must provide validator address")
-	}
 	tx := stake.NewTxDelegate(args.ValidatorAddress, args.Amount.ToInt().String(), args.CubeBatch, args.Sig)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -381,9 +372,6 @@ type WithdrawArgs struct {
 }
 
 func (s *CmtRPCService) Withdraw(args WithdrawArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	if len(args.ValidatorAddress) == 0 {
-		return nil, fmt.Errorf("must provide validator address")
-	}
 	tx := stake.NewTxWithdraw(args.ValidatorAddress, args.Amount.ToInt().String())
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
