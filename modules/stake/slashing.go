@@ -71,7 +71,7 @@ func PunishAbsentValidator(pubKey types.PubKey, absence *Absence) (err error) {
 }
 
 func punish(pubKey types.PubKey, reason string) (err error) {
-	totalDeduction := sdk.NewInt(0)
+	totalSlashed := sdk.NewInt(0)
 	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
 	if v == nil {
 		return ErrNoCandidateForAddress()
@@ -87,11 +87,11 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 	for _, d := range delegations {
 		slash := d.Shares().MulRat(slashingRatio)
 		punishDelegator(d, common.HexToAddress(v.OwnerAddress), slash)
-		totalDeduction.Add(slash)
+		totalSlashed = totalSlashed.Add(slash)
 	}
 
 	// Save punishment history
-	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: slashingRatio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
+	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: slashingRatio, SlashAmount: totalSlashed, Reason: reason, CreatedAt: utils.GetNow()}
 	savePunishHistory(punishHistory)
 
 	return
