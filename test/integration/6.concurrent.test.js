@@ -179,15 +179,33 @@ describe("Concurrent Test", function() {
     })
   })
 
-  describe.skip("Stake: Delegator Withdraw", function() {
-    describe("A send 2 requests at the same time", function() {
+  describe("Stake: Delegator Withdraw", function() {
+    describe("B send 2 requests at the same time", function() {
+      before(function(done) {
+        // clear all balance of B
+        let balance = web3.cmt.getBalance(B, "latest")
+        if (balance > 0) Utils.transfer(B, C, balance)
+        Utils.waitBlocks(done, 1)
+      })
+      before(function(done) {
+        // make balance of B = CMT1
+        Utils.transfer(C, B, CMT1, Globals.Params.gas_price)
+        Utils.waitBlocks(done, 1)
+      })
+      before(function(done) {
+        // B delegate CMT1 to A
+        Utils.delegatorAccept(B, A, CMT1)
+        Utils.waitBlocks(done, 1)
+      })
       it("one of the 2 requests will fail", function(done) {
         multiDeleWithdraw((err, res) => {
           logger.debug(res)
           expect(res.length).to.equal(TIMES)
           expect(
-            (res[0].height == 0 && res[1].height > 0) ||
-              (res[0].height > 0 && res[1].height == 0)
+            (res[1].height > 0 &&
+              (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
+              (res[0].height > 0 &&
+                (res[1].height == 0 || res[1].deliver_tx.code > 0))
           ).to.be.true
           done()
         })
@@ -349,13 +367,13 @@ const multiUpdateCandidacy = callback => {
 }
 
 const multiDeleWithdraw = callback => {
-  let nonce = web3.cmt.getTransactionCount(A)
+  let nonce = web3.cmt.getTransactionCount(B)
   let arr = [nonce, nonce + 1]
   async.map(
     arr,
     (nonce, cb) => {
       let payload = {
-        from: A,
+        from: B,
         validatorAddress: A,
         amount: CMT1,
         nonce: "0x" + nonce.toString(16)
