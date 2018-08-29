@@ -31,8 +31,8 @@ func QueryDelegationsByDelegator(delegatorAddress common.Address) (delegations [
 }
 
 func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candidates) {
-	clause := composeQueryClause(cond)
-	rows, err := db.Query("select pub_key, address, shares, voting_power, pending_voting_power,  max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
+	clause, params := buildQueryClause(cond)
+	rows, err := db.Query("select pub_key, address, shares, voting_power, pending_voting_power,  max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -42,8 +42,8 @@ func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candid
 }
 
 func queryDelegations(db *sql.DB, cond map[string]interface{}) (delegations []*Delegation) {
-	clause := composeQueryClause(cond)
-	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, created_at, updated_at from delegations" + clause)
+	clause, params := buildQueryClause(cond)
+	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, created_at, updated_at from delegations"+clause, params...)
 	if err != nil {
 		panic(err)
 	}

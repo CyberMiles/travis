@@ -68,33 +68,28 @@ func (wrapper *SqlTxWrapper) Rollback() {
 	}
 }
 
-func composeQueryClause(cond map[string]interface{}) string {
+func buildQueryClause(cond map[string]interface{}) (clause string, params []interface{}) {
 	if cond == nil || len(cond) == 0 {
-		return ""
+		return "", nil
 	}
 
-	clause := ""
+	clause = ""
 	for k, v := range cond {
-		s := ""
-		switch v.(type) {
-		case string:
-			s = fmt.Sprintf("%s = '%s'", k, v)
-		default:
-			s = fmt.Sprintf("%s = %v", k, v)
-		}
+		s := fmt.Sprintf("%s = ?", k)
 
 		if len(clause) == 0 {
 			clause = s
 		} else {
 			clause = fmt.Sprintf("%s and %s", clause, s)
 		}
+		params = append(params, v)
 	}
 
 	if len(clause) != 0 {
 		clause = fmt.Sprintf(" where %s", clause)
 	}
 
-	return clause
+	return
 }
 
 func GetCandidateByAddress(address common.Address) *Candidate {
@@ -137,8 +132,8 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	clause := composeQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, pending_voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
+	clause, params := buildQueryClause(cond)
+	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, pending_voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -430,8 +425,8 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	clause := composeQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, created_at, updated_at from delegations" + clause)
+	clause, params := buildQueryClause(cond)
+	rows, err := txWrapper.tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, created_at, updated_at from delegations"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
