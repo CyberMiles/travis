@@ -264,6 +264,9 @@ const gasFee = txType => {
     case "proposeDeployLibEni":
       gasLimit = web3.toBigNumber(Globals.Params.deploy_libeni_proposal)
       break
+    case "setCompRate":
+      gasLimit = web3.toBigNumber(Globals.Params.set_comp_rate)
+      break
   }
   return gasPrice.times(gasLimit)
 }
@@ -276,7 +279,7 @@ const addFakeValidators = () => {
     if (valsToAdd > 0) {
       Globals.Accounts.forEach((acc, idx) => {
         if (idx >= valsToAdd) return
-        let initAmount = 10000,
+        let initAmount = 1000000,
           compRate = "0.8"
         let payload = {
           from: acc,

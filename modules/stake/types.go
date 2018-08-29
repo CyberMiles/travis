@@ -159,7 +159,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	for _, c := range cs {
 		if c.Active == "N" {
 			c.VotingPower = 0
-		} else if c.VotingPower != c.PendingVotingPower {
+		} else if c.VotingPower != c.PendingVotingPower && c.PendingVotingPower != 0 {
 			c.VotingPower = c.PendingVotingPower
 		}
 	}
@@ -415,7 +415,7 @@ type PunishHistory struct {
 }
 
 type UnstakeRequest struct {
-	Id                   string
+	Id                   int64
 	DelegatorAddress     common.Address
 	PubKey               types.PubKey
 	InitiatedBlockHeight int64
@@ -426,30 +426,6 @@ type UnstakeRequest struct {
 	UpdatedAt            string
 }
 
-func (r *UnstakeRequest) GenId() []byte {
-	req, err := json.Marshal(struct {
-		DelegatorAddress     common.Address
-		PubKey               types.PubKey
-		InitiatedBlockHeight int64
-		PerformedBlockHeight int64
-		Amount               string
-	}{
-		r.DelegatorAddress,
-		r.PubKey,
-		r.InitiatedBlockHeight,
-		r.PerformedBlockHeight,
-		r.Amount,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	hasher := ripemd160.New()
-	hasher.Write(req)
-	return hasher.Sum(nil)
-}
-
 func (r *UnstakeRequest) Hash() []byte {
 	req, err := json.Marshal(struct {
 		DelegatorAddress     common.Address
@@ -458,6 +434,7 @@ func (r *UnstakeRequest) Hash() []byte {
 		PerformedBlockHeight int64
 		Amount               string
 		State                string
+		CreatedAt            string
 	}{
 		r.DelegatorAddress,
 		r.PubKey,
@@ -465,6 +442,7 @@ func (r *UnstakeRequest) Hash() []byte {
 		r.PerformedBlockHeight,
 		r.Amount,
 		r.State,
+		r.CreatedAt,
 	})
 
 	if err != nil {
@@ -476,30 +454,10 @@ func (r *UnstakeRequest) Hash() []byte {
 }
 
 type CandidateDailyStake struct {
-	Id        string
+	Id        int64
 	PubKey    types.PubKey
 	Amount    string
 	CreatedAt string
-}
-
-func (c *CandidateDailyStake) GenId() []byte {
-	req, err := json.Marshal(struct {
-		PubKey  types.PubKey
-		Amount  string
-		Created string
-	}{
-		c.PubKey,
-		c.Amount,
-		c.CreatedAt,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	hasher := ripemd160.New()
-	hasher.Write(req)
-	return hasher.Sum(nil)
 }
 
 type CubePubKey struct {

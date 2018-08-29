@@ -94,10 +94,10 @@ func initTendermint() {
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
 			Power:     "1",
-			Shares:    10000,
+			Shares:    1000000,
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
 			CompRate:  sdk.NewRat(2, 10),
-			MaxAmount: 100000,
+			MaxAmount: 10000000,
 		}}
 
 		if err := genDoc.SaveAs(genFile); err != nil {
@@ -183,7 +183,7 @@ func initTravisDb() {
 	
 	create table punish_history(pub_key text not null, slashing_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null);
 	create index idx_punish_history_pub_key on punish_history(pub_key);
- 	create table unstake_requests(id text not null primary key, delegator_address text not null, pub_key text not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', hash text not null default '', created_at text not null, updated_at text not null default '');
+ 	create table unstake_requests(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', hash text not null default '', created_at text not null, updated_at text not null default '');
  	create table governance_proposal(id text not null primary key, type text not null, proposer text not null, block_height integer not null, expire_timestamp integer not null, expire_block_height integer not null, hash text not null default '', created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 	create index idx_governance_proposal_hash on governance_proposal(hash);
  	create table governance_transfer_fund_detail(proposal_id text not null, from_address text not null, to_address text not null, amount text not null, reason text not null);
@@ -196,7 +196,7 @@ func initTravisDb() {
 	create index idx_governance_vote_voter on governance_vote(voter);
 	create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 	create index idx_governance_vote_hash on governance_vote(hash);
-	create table candidate_daily_stakes(id text not null primary key, pub_key text not null, amount text not null default '0', created_at text not null);
+	create table candidate_daily_stakes(id integer not null primary key autoincrement, pub_key text not null, amount text not null default '0', created_at text not null);
 	`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {

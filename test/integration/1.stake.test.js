@@ -18,17 +18,18 @@ describe("Stake Test", function() {
     this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")
   }
 
-  let compRate = "0.8"
+  let compRate = "4/5"
   let existingValidator = {}
   let amounts, balance_old, balance_new, tx_result
 
   before(function() {
     Utils.addFakeValidators()
-    amounts = new Amounts(20000) // 20000 cmt
+    amounts = new Amounts(2000000)
   })
 
-  after(function() {
+  after(function(done) {
     Utils.removeFakeValidators()
+    Utils.waitBlocks(done, 1)
   })
 
   before(function() {
@@ -41,7 +42,7 @@ describe("Stake Test", function() {
     expect(existingValidator).be.an("object")
 
     if (Globals.TestMode == "single") {
-      amounts = new Amounts(2000) // 2000 cmt
+      amounts = new Amounts(200000)
     }
   })
 
@@ -112,7 +113,7 @@ describe("Stake Test", function() {
           balance_old = Utils.getBalance(3)
         })
 
-        it("Succeeds, the 2000 CMTs becomes D's stake after the successful declaration", function() {
+        it("Succeeds, the 200000 CMTs becomes D's stake after the successful declaration", function() {
           let payload = {
             from: Globals.Accounts[3],
             pubKey: Globals.PubKeys[3],
@@ -180,13 +181,14 @@ describe("Stake Test", function() {
           .minus(amounts.self)
           .toNumber()
       ).to.gte(0)
+      if (Globals.TestMode == "single") this.skip()
       expect(tx_result.data.state).to.not.eq("Validator")
       delegation_after = Utils.getDelegation(3, 3)
     })
   })
 
   describe("Stake Delegate", function() {
-    describe("Account B stakes 2000 CMTs for D.", function() {
+    describe("Account B stakes 200000 CMTs for D.", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(1)
@@ -215,19 +217,20 @@ describe("Stake Test", function() {
         ).to.eq(Number(amounts.dele1))
       })
       it("D is still a backup", function() {
+        if (Globals.TestMode == "single") this.skip()
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.eq(0)
         expect(tx_result.data.state).to.not.eq("Validator")
       })
     })
-    describe("Account C stakes 12000 CMTs for D.", function() {
+    describe("Account C stakes 1200000 CMTs for D.", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(2)
         // delegation before
         delegation_before = Utils.getDelegation(2, 3)
       })
-      it("CMTs are moved from account C", function() {
+      it("CMTs are moved from account C", function(done) {
         Utils.delegatorAccept(
           Globals.Accounts[2],
           Globals.Accounts[3],
@@ -238,6 +241,7 @@ describe("Stake Test", function() {
         expect(balance_new.minus(balance_old).toNumber()).to.equal(
           Number(-amounts.dele2)
         )
+        Utils.waitBlocks(done, 1)
       })
       it("CMTs show up as staked balance for C", function() {
         let delegation_after = Utils.getDelegation(2, 3)
@@ -248,13 +252,14 @@ describe("Stake Test", function() {
         ).to.eq(Number(amounts.dele2))
       })
       it("D is now a validator", function() {
+        if (Globals.TestMode == "single") this.skip()
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.be.above(0)
         expect(tx_result.data.state).to.eq("Validator")
       })
       it("One of the genesis validators now drops off", function() {
         tx_result = web3.cmt.stake.validator.list()
-        let vals = tx_result.data.filter(d => d.voting_power > 0)
+        let vals = tx_result.data.filter(d => d.state == "Validator")
         expect(vals.length).to.eq(Globals.Params.max_vals)
       })
     })
@@ -437,13 +442,13 @@ describe("Stake Test", function() {
       // balance before
       balance_old = Utils.getBalance()
     })
-
-    it("Account D no longer a validator", function() {
-      let payload = {
-        from: Globals.Accounts[3]
-      }
+    it("Withdraw Candidacy", function(done) {
+      let payload = { from: Globals.Accounts[3] }
       tx_result = web3.cmt.stake.validator.withdraw(payload)
       Utils.expectTxSuccess(tx_result)
+      Utils.waitBlocks(done, 1)
+    })
+    it("Account D no longer a validator", function() {
       // check validators, no Globals.Accounts[3]
       tx_result = web3.cmt.stake.validator.list()
       tx_result.data.forEach(
