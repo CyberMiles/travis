@@ -133,16 +133,16 @@ describe("API Input Parameter Test", function() {
     it.skip("fail if empty input", function(done) {
       sendTx(A, "compRate", [], Utils.expectTxFail, done)
     })
-    it.skip("failed if bad validator", function(done) {
+    it.skip("fail if bad validator", function(done) {
       sendTx(D, "compRate", [A.addr, "0.1"], Utils.expectTxFail, done)
     })
-    it("failed if bad delegator", function(done) {
-      sendTx(A, "compRate", [B.addr, "0.1"], Utils.expectTxFail, done)
+    it("fail if bad delegator", function(done) {
+      sendTx(A, "compRate", [C.addr, "0.1"], Utils.expectTxFail, done)
     })
-    it("failed if bad comp_rate format", function(done) {
+    it("fail if bad comp_rate format", function(done) {
       sendTx(A, "compRate", [A.addr, "A"], Utils.expectTxFail, done)
     })
-    it("failed if wrong comp_rate scope", function(done) {
+    it("fail if wrong comp_rate scope", function(done) {
       sendTx(A, "compRate", [A.addr, "-1"], Utils.expectTxFail, done)
     })
   })
@@ -193,7 +193,7 @@ describe("API Input Parameter Test", function() {
     it("fail if bad amount format", function(done) {
       sendTx(D, "withdraw", [A.addr, "A"], Utils.expectTxFail, done)
     })
-    it("fail if amount<0", function(done) {
+    it("fail if amount<=0", function(done) {
       sendTx(D, "withdraw", [A.addr, "-1"], Utils.expectTxFail, done)
     })
     it("fail if bad delegator", function(done) {
