@@ -287,7 +287,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		var pk crypto.PubKeyEd25519
 		copy(pk[:], app.proposer.PubKey.Data)
 		pubKey := ttypes.PubKey{pk}
-		stake.SlashByzantineValidator(pubKey)
+		stake.SlashBadProposer(pubKey)
 	} else {
 		if app.deliverSqlTx != nil {
 			// Commit transaction
