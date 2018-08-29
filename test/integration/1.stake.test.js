@@ -27,8 +27,9 @@ describe("Stake Test", function() {
     amounts = new Amounts(2000000)
   })
 
-  after(function() {
+  after(function(done) {
     Utils.removeFakeValidators()
+    Utils.waitBlocks(done, 1)
   })
 
   before(function() {
@@ -180,6 +181,7 @@ describe("Stake Test", function() {
           .minus(amounts.self)
           .toNumber()
       ).to.gte(0)
+      if (Globals.TestMode == "single") this.skip()
       expect(tx_result.data.state).to.not.eq("Validator")
       delegation_after = Utils.getDelegation(3, 3)
     })
@@ -215,6 +217,7 @@ describe("Stake Test", function() {
         ).to.eq(Number(amounts.dele1))
       })
       it("D is still a backup", function() {
+        if (Globals.TestMode == "single") this.skip()
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.eq(0)
         expect(tx_result.data.state).to.not.eq("Validator")
@@ -249,13 +252,14 @@ describe("Stake Test", function() {
         ).to.eq(Number(amounts.dele2))
       })
       it("D is now a validator", function() {
+        if (Globals.TestMode == "single") this.skip()
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.be.above(0)
         expect(tx_result.data.state).to.eq("Validator")
       })
       it("One of the genesis validators now drops off", function() {
         tx_result = web3.cmt.stake.validator.list()
-        let vals = tx_result.data.filter(d => d.voting_power > 0)
+        let vals = tx_result.data.filter(d => d.state == "Validator")
         expect(vals.length).to.eq(Globals.Params.max_vals)
       })
     })

@@ -87,7 +87,7 @@ describe("API Input Parameter Test", function() {
     it("fail if bad max_amount format", function(done) {
       sendTx(D, "declare", [Globals.PubKeys[3], "A"], Utils.expectTxFail, done)
     })
-    it("fail if max_amount<0", function(done) {
+    it("fail if max_amount<=0", function(done) {
       sendTx(D, "declare", [Globals.PubKeys[3], "-1"], Utils.expectTxFail, done)
     })
     it("fail if bad comp_rate format", function(done) {
@@ -99,7 +99,7 @@ describe("API Input Parameter Test", function() {
         done
       )
     })
-    it("fail if bad comp_rate scope", function(done) {
+    it("fail if wrong comp_rate scope", function(done) {
       sendTx(
         D,
         "declare",
@@ -122,7 +122,7 @@ describe("API Input Parameter Test", function() {
     it("success if empty input(nothing changed)", function(done) {
       sendTx(A, "update", [], Utils.expectTxSuccess, done)
     })
-    it("fail if max_amount<0", function(done) {
+    it("fail if max_amount<=0", function(done) {
       sendTx(A, "update", ["-1"], Utils.expectTxFail, done)
     })
     it("fail if bad max_amount format", function(done) {
@@ -139,10 +139,10 @@ describe("API Input Parameter Test", function() {
     it("failed if bad delegator", function(done) {
       sendTx(A, "compRate", [B.addr, "0.1"], Utils.expectTxFail, done)
     })
-    it("failed if bad comp rate format", function(done) {
+    it("failed if bad comp_rate format", function(done) {
       sendTx(A, "compRate", [A.addr, "A"], Utils.expectTxFail, done)
     })
-    it("failed if comp rate<0", function(done) {
+    it("failed if wrong comp_rate scope", function(done) {
       sendTx(A, "compRate", [A.addr, "-1"], Utils.expectTxFail, done)
     })
   })
@@ -170,10 +170,10 @@ describe("API Input Parameter Test", function() {
     it("fail if bad cube batch", function(done) {
       sendTx(D, "accept", [A.addr, "10", "AA"], Utils.expectTxFail, done)
     })
-    it("fail if bad amount amount", function(done) {
+    it("fail if bad amount format", function(done) {
       sendTx(D, "accept", [A.addr, "A", "01"], Utils.expectTxFail, done)
     })
-    it("fail if amount<0", function(done) {
+    it("fail if amount<=0", function(done) {
       sendTx(D, "accept", [A.addr, "-1", "01"], Utils.expectTxFail, done)
     })
     it("success if all set", function(done) {
@@ -222,7 +222,7 @@ describe("API Input Parameter Test", function() {
         done
       )
     })
-    it.skip("fail if amount<0", function(done) {
+    it.skip("fail if amount<=0", function(done) {
       sendTx(
         A,
         "transFund",
@@ -277,6 +277,12 @@ describe("API Input Parameter Test", function() {
     })
   })
   describe("gov/deployLibEni", function() {
+    before(function() {
+      if (process.platform == "darwin") {
+        logger.debug("mac os is not supported. ")
+        this.skip()
+      }
+    })
     it.skip("fail if empty input", function(done) {
       sendTx(A, "deployLibEni", [], Utils.expectTxFail, done)
     })
@@ -323,7 +329,9 @@ describe("API Input Parameter Test", function() {
   describe("gov/vote", function() {
     before(function() {
       let r = web3.cmt.governance.listProposals()
-      if (r.data) proposalId = r.data[0].Id
+      if (r.data && r.data.length > 0) {
+        proposalId = r.data[r.data.length - 1].Id
+      }
     })
     it("fail if empty input", function(done) {
       sendTx(A, "vote", [], Utils.expectTxFail, done)
