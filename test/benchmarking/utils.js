@@ -3,6 +3,11 @@ const Tx = require("ethereumjs-tx")
 const async = require("async")
 const config = require("config")
 
+const http = require("http")
+http.globalAgent.keepAlive = true
+http.globalAgent.keepAliveMsecs = 60000
+// http.globalAgent.maxFreeSockets = 1500
+
 const blockTimeout = config.get("blockTimeout") || 20
 const waitInterval = config.get("waitInterval") || 100
 const concurrency = config.get("concurrency") || 100
