@@ -66,7 +66,7 @@ describe("API Input Parameter Test", function() {
     it("fail if empty input", function(done) {
       sendTx(D, "declare", [], Utils.expectTxFail, done)
     })
-    it.skip("fail if bad pub key", function(done) {
+    it("fail if bad pub key", function(done) {
       sendTx(D, "declare", ["abc", "11", "0.15"], Utils.expectTxFail, done)
     })
     it("fail if no max_amount specified", function(done) {
@@ -251,7 +251,7 @@ describe("API Input Parameter Test", function() {
         done
       )
     })
-    it("fail if bad expire timestamp", function(done) {
+    it("fail if bad expire block", function(done) {
       sendTx(
         A,
         "changeParam",
