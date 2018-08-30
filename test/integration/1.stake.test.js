@@ -445,9 +445,9 @@ describe("Stake Test", function() {
       let payload = { from: Globals.Accounts[3] }
       tx_result = web3.cmt.stake.validator.withdraw(payload)
       Utils.expectTxSuccess(tx_result)
-      Utils.waitBlocks(done, 1)
+      Utils.waitBlocks(done, 3) // wait for voting power calc
     })
-    it("Account D no longer a validator", function() {
+    it("Account D no longer a validator, and genesis validator restored", function() {
       // check validators, no Globals.Accounts[3]
       tx_result = web3.cmt.stake.validator.list()
       tx_result.data.forEach(
@@ -456,6 +456,13 @@ describe("Stake Test", function() {
       expect(tx_result.data).to.not.containSubset([
         { owner_address: Globals.Accounts[3] }
       ])
+      if (Globals.TestMode != "single") {
+        // check validators restored
+        let vals = tx_result.data.filter(
+          d => d.state == "Validator" && d.voting_power > 0
+        )
+        expect(vals.length).to.eq(Globals.Params.max_vals)
+      }
     })
     it("account balance no change", function() {
       // balance after
