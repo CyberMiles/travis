@@ -2,18 +2,11 @@ const chai = require("chai")
 const expect = chai.expect
 
 const logger = require("./logger")
-const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
+let V = web3.cmt.defaultAccount
 describe("Governance Test", function() {
-  before(function() {
-    Utils.addFakeValidators()
-  })
-  after(function() {
-    Utils.removeFakeValidators()
-  })
-
   let proposalId = ""
   let balance_old, balance_new, tx_result
 
@@ -28,10 +21,10 @@ describe("Governance Test", function() {
       logger.debug(tx_result.data)
     })
 
-    describe("Validator A proposes to move 500 CMTs from account #1 to #2. ", function() {
+    describe("Validator V proposes to move 500 CMTs from account #1 to #2. ", function() {
       it("The proposal TX returns an error. ", function() {
         tx_result = web3.cmt.governance.proposeRecoverFund({
-          from: Globals.Accounts[0],
+          from: V,
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
           amount: web3.toWei(500, "cmt"),
@@ -71,9 +64,9 @@ describe("Governance Test", function() {
         balance_old = Utils.getBalance()
       })
 
-      it("Validators A propose to double max_slashing_blocks. ", function() {
+      it("Validators V propose to double max_slashing_blocks. ", function() {
         tx_result = web3.cmt.governance.proposeChangeParam({
-          from: Globals.Accounts[0],
+          from: V,
           name: "max_slashing_blocks",
           value: (old_params.data.max_slashing_blocks * 2).toString()
         })
@@ -103,7 +96,7 @@ describe("Governance Test", function() {
           // balance after
           balance_new = Utils.getBalance()
           let gasFee = Utils.gasFee("proposeChangeParam")
-          expect(balance_new[0].minus(balance_old[0]).toNumber()).to.eq(
+          expect(balance_new[4].minus(balance_old[4]).toNumber()).to.eq(
             -gasFee.toNumber()
           )
         })
@@ -119,7 +112,7 @@ describe("Governance Test", function() {
       })
     })
 
-    describe("Validator A proposes to move 500 CMTs from account #1 to #2. ", function() {
+    describe("Validator V proposes to move 500 CMTs from account #1 to #2. ", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance()
@@ -127,7 +120,7 @@ describe("Governance Test", function() {
       it("Verify that 500 CMTs are removed from account #1 and show up as frozen amount for this account. ", function() {
         let amount = web3.toWei(500, "cmt")
         tx_result = web3.cmt.governance.proposeRecoverFund({
-          from: Globals.Accounts[0],
+          from: V,
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
           amount: amount,
@@ -149,7 +142,7 @@ describe("Governance Test", function() {
         // balance after
         balance_new = Utils.getBalance()
         let gasFee = Utils.gasFee("proposeTransferFund")
-        expect(balance_new[0].minus(balance_old[0]).toNumber()).to.eq(
+        expect(balance_new[4].minus(balance_old[4]).toNumber()).to.eq(
           -gasFee.toNumber()
         )
         expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
@@ -167,14 +160,12 @@ describe("Governance Test", function() {
         //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
         // )
       })
-      describe("Validators A, B, and C votes for the proposal. The total vote (A+B+C) now exceeds 2/3. ", function() {
+      describe("Validators V, B, and C votes for the proposal. The total vote (V+B+C) now exceeds 2/3. ", function() {
         it("Verify that the 500 CMTs are transfered to account #2. ", function() {
+          Utils.vote(proposalId, V, "Y")
           if (Globals.TestMode == "cluster") {
-            Utils.vote(proposalId, Globals.Accounts[0], "Y")
             Utils.vote(proposalId, Globals.Accounts[1], "Y")
             Utils.vote(proposalId, Globals.Accounts[2], "Y")
-          } else {
-            Utils.vote(proposalId, web3.cmt.defaultAccount, "Y")
           }
           // check proposal
           let p = Utils.getProposal(proposalId)
@@ -191,7 +182,7 @@ describe("Governance Test", function() {
       })
     })
 
-    describe("Validator A proposes to move 500 CMTs from account #1 to #2. ", function() {
+    describe("Validator V proposes to move 500 CMTs from account #1 to #2. ", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance()
@@ -199,7 +190,7 @@ describe("Governance Test", function() {
       it("Verify that 500 CMTs are removed from account #1 and show up as frozen amount for this account. ", function() {
         let amount = web3.toWei(500, "cmt")
         tx_result = web3.cmt.governance.proposeRecoverFund({
-          from: Globals.Accounts[0],
+          from: V,
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
           amount: amount,
@@ -220,7 +211,7 @@ describe("Governance Test", function() {
         // balance after
         balance_new = Utils.getBalance()
         let gasFee = Utils.gasFee("proposeTransferFund")
-        expect(balance_new[0].minus(balance_old[0]).toNumber()).to.eq(
+        expect(balance_new[4].minus(balance_old[4]).toNumber()).to.eq(
           -gasFee.toNumber()
         )
         expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
@@ -238,13 +229,15 @@ describe("Governance Test", function() {
         //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
         // )
       })
-      describe("Validator A votes for the proposal, but defaultAccount, B and C vote against the proposal. The total vote (default+B+C) now exceeds 2/3.", function() {
+      describe("Validator V votes for the proposal, but A, B and C vote against the proposal. The total vote (A+B+C) now exceeds 2/3.", function() {
         it("Verify that the 500 CMTs are transfered back to account #1. ", function() {
-          Utils.vote(proposalId, Globals.Accounts[0], "Y")
-          Utils.vote(proposalId, web3.cmt.defaultAccount, "N")
           if (Globals.TestMode == "cluster") {
+            Utils.vote(proposalId, V, "Y")
+            Utils.vote(proposalId, Globals.Accounts[0], "N")
             Utils.vote(proposalId, Globals.Accounts[1], "N")
             Utils.vote(proposalId, Globals.Accounts[2], "N")
+          } else {
+            Utils.vote(proposalId, V, "N")
           }
           // check proposal
           let p = Utils.getProposal(proposalId)
@@ -257,7 +250,7 @@ describe("Governance Test", function() {
       })
     })
 
-    describe("Validator A proposes to move 500 CMTs from account #1 to #2. And he specifies expireTimeStamp = now+20s. ", function() {
+    describe("Validator V proposes to move 500 CMTs from account #1 to #2. And he specifies expireTimeStamp = now+20s. ", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance()
@@ -267,7 +260,7 @@ describe("Governance Test", function() {
         let expire = web3.cmt.getBlock("latest").timestamp + 2 * 10 // about 2 blocks
 
         tx_result = web3.cmt.governance.proposeRecoverFund({
-          from: Globals.Accounts[0],
+          from: V,
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
           amount: amount,
@@ -286,7 +279,7 @@ describe("Governance Test", function() {
         // balance after
         balance_new = Utils.getBalance()
         let gasFee = Utils.gasFee("proposeTransferFund")
-        expect(balance_new[0].minus(balance_old[0]).toNumber()).to.eq(
+        expect(balance_new[4].minus(balance_old[4]).toNumber()).to.eq(
           -gasFee.toNumber()
         )
         expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
@@ -305,8 +298,10 @@ describe("Governance Test", function() {
         // )
       })
 
-      it("Validator A votes for the proposal, but no one else votes(wait for 2 blocks).", function(done) {
-        Utils.vote(proposalId, Globals.Accounts[0], "Y")
+      it("Validator V votes for the proposal, but no one else votes(wait for 2 blocks).", function(done) {
+        if (Globals.TestMode == "cluster") {
+          Utils.vote(proposalId, V, "Y")
+        }
         Utils.waitBlocks(done, 2)
       })
 
@@ -321,7 +316,7 @@ describe("Governance Test", function() {
       })
     })
 
-    describe("Validator A proposes to move 500 CMTs from account #1 to #2. And he specifies expireBlockHeight = current+2. ", function() {
+    describe("Validator V proposes to move 500 CMTs from account #1 to #2. And he specifies expireBlockHeight = current+2. ", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance()
@@ -331,7 +326,7 @@ describe("Governance Test", function() {
         let expire = web3.cmt.blockNumber + 2 // 2 blocks
 
         tx_result = web3.cmt.governance.proposeRecoverFund({
-          from: Globals.Accounts[0],
+          from: V,
           transferFrom: Globals.Accounts[1],
           transferTo: Globals.Accounts[2],
           amount: amount,
@@ -350,7 +345,7 @@ describe("Governance Test", function() {
         // balance after
         balance_new = Utils.getBalance()
         let gasFee = Utils.gasFee("proposeTransferFund")
-        expect(balance_new[0].minus(balance_old[0]).toNumber()).to.eq(
+        expect(balance_new[4].minus(balance_old[4]).toNumber()).to.eq(
           -gasFee.toNumber()
         )
         expect(balance_new[1].minus(balance_old[1]).toNumber()).to.equal(
@@ -369,8 +364,10 @@ describe("Governance Test", function() {
         // )
       })
 
-      it("Validator A votes for the proposal, but no one else votes(wait for 2 blocks).", function(done) {
-        Utils.vote(proposalId, Globals.Accounts[0], "Y")
+      it("Validator V votes for the proposal, but no one else votes(wait for 2 blocks).", function(done) {
+        if (Globals.TestMode == "cluster") {
+          Utils.vote(proposalId, V, "Y")
+        }
         Utils.waitBlocks(done, 2)
       })
 

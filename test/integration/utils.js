@@ -31,6 +31,7 @@ const getBalance = (index = null) => {
       balance[i] = web3.cmt.getBalance(Globals.Accounts[i], "latest")
     }
   }
+  balance[4] = web3.cmt.getBalance(web3.cmt.defaultAccount, "latest")
   logger.debug(`balance in wei: --> ${balance}`)
   return index == null ? balance : balance[index]
 }

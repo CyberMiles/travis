@@ -114,7 +114,7 @@ func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadc
 // GetBlockByNumber returns the requested block by height.
 func (s *CmtRPCService) GetBlockByNumber(height uint64) (*ctypes.ResultBlock, error) {
 	h := cast.ToInt64(height)
-	return s.backend.localClient.Block(&h)
+	return s.backend.GetLocalClient().Block(&h)
 }
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
@@ -180,7 +180,7 @@ func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
 func (s *CmtRPCService) GetTransactionFromBlock(height uint64, index uint64) (*RPCTransaction, error) {
 	// get block
 	h := cast.ToInt64(height)
-	block, err := s.backend.localClient.Block(&h)
+	block, err := s.backend.GetLocalClient().Block(&h)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (s *CmtRPCService) GetTransactionByHash(hash string) (*RPCTransaction, erro
 		return nil, err
 	}
 	// get transaction
-	res, err := s.backend.localClient.Tx(bkey, false)
+	res, err := s.backend.GetLocalClient().Tx(bkey, false)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ func (s *CmtRPCService) DecodeRawTx(raw string) (*RPCTransaction, error) {
 
 // Info about the node's syncing state
 func (s *CmtRPCService) Syncing() (*ctypes.SyncInfo, error) {
-	status, err := s.backend.localClient.Status()
+	status, err := s.backend.GetLocalClient().Status()
 	if err != nil {
 		return nil, err
 	}
@@ -300,9 +300,6 @@ type SetCompRateArgs struct {
 }
 
 func (s *CmtRPCService) SetCompRate(args SetCompRateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	if len(args.DelegatorAddress) == 0 {
-		return nil, fmt.Errorf("must provide delegator address")
-	}
 	tx := stake.NewTxSetCompRate(args.DelegatorAddress, args.CompRate)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -321,9 +318,6 @@ type VerifyCandidacyArgs struct {
 }
 
 func (s *CmtRPCService) VerifyCandidacy(args VerifyCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	if len(args.CandidateAddress) == 0 {
-		return nil, fmt.Errorf("must provide candidate address")
-	}
 	tx := stake.NewTxVerifyCandidacy(args.CandidateAddress, args.Verified)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -360,9 +354,6 @@ type DelegateArgs struct {
 }
 
 func (s *CmtRPCService) Delegate(args DelegateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	if len(args.ValidatorAddress) == 0 {
-		return nil, fmt.Errorf("must provide validator address")
-	}
 	tx := stake.NewTxDelegate(args.ValidatorAddress, args.Amount.ToInt().String(), args.CubeBatch, args.Sig)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -381,9 +372,6 @@ type WithdrawArgs struct {
 }
 
 func (s *CmtRPCService) Withdraw(args WithdrawArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	if len(args.ValidatorAddress) == 0 {
-		return nil, fmt.Errorf("must provide validator address")
-	}
 	tx := stake.NewTxWithdraw(args.ValidatorAddress, args.Amount.ToInt().String())
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -441,7 +429,9 @@ type GovernanceTransferFundProposalArgs struct {
 }
 
 func (s *CmtRPCService) ProposeTransferFund(args GovernanceTransferFundProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxTransferFundPropose(&args.From, &args.TransferFrom, &args.TransferTo, args.Amount.ToInt().String(), args.Reason, args.ExpireTimestamp, args.ExpireBlockHeight)
+	tx := governance.NewTxTransferFundPropose(&args.From, &args.TransferFrom, &args.TransferTo,
+		args.Amount.ToInt().String(), args.Reason,
+		args.ExpireTimestamp, args.ExpireBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -462,7 +452,8 @@ type GovernanceChangeParamProposalArgs struct {
 }
 
 func (s *CmtRPCService) ProposeChangeParam(args GovernanceChangeParamProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxChangeParamPropose(&args.From, args.Name, args.Value, args.Reason, args.ExpireTimestamp, args.ExpireBlockHeight)
+	tx := governance.NewTxChangeParamPropose(&args.From, args.Name, args.Value, args.Reason,
+		args.ExpireTimestamp, args.ExpireBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -485,7 +476,8 @@ type GovernanceDeployLibEniProposalArgs struct {
 }
 
 func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxDeployLibEniPropose(&args.From, args.Name, args.Version, args.FileUrl, args.Md5, args.Reason, args.ExpireTimestamp, args.ExpireBlockHeight)
+	tx := governance.NewTxDeployLibEniPropose(&args.From, args.Name, args.Version, args.FileUrl, args.Md5, args.Reason,
+		args.ExpireTimestamp, args.ExpireBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {

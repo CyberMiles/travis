@@ -4,7 +4,6 @@ chai.use(chaiSubset)
 const expect = chai.expect
 
 const logger = require("./logger")
-const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 

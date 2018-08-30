@@ -62,18 +62,6 @@ describe("API Input Parameter Test", function() {
     })
   })
 
-  describe.skip("sql injection", function() {
-    it("sql injection", function(done) {
-      sendTx(
-        D,
-        "declare",
-        ["a'; delete from candidates where '1'='1"],
-        Utils.expectTxFail,
-        done
-      )
-    })
-  })
-
   describe("stake/declareCandidacy", function() {
     it("fail if empty input", function(done) {
       sendTx(D, "declare", [], Utils.expectTxFail, done)
@@ -89,6 +77,9 @@ describe("API Input Parameter Test", function() {
     })
     it("fail if max_amount<=0", function(done) {
       sendTx(D, "declare", [Globals.PubKeys[3], "-1"], Utils.expectTxFail, done)
+    })
+    it.skip("fail if no comp_rate specified", function(done) {
+      sendTx(D, "declare", [Globals.PubKeys[3], "1"], Utils.expectTxFail, done)
     })
     it("fail if bad comp_rate format", function(done) {
       sendTx(
@@ -138,6 +129,9 @@ describe("API Input Parameter Test", function() {
     })
     it("fail if bad delegator", function(done) {
       sendTx(A, "compRate", [C.addr, "0.1"], Utils.expectTxFail, done)
+    })
+    it.skip("fail if no comp_rate specified", function(done) {
+      sendTx(A, "compRate", [A.addr], Utils.expectTxFail, done)
     })
     it("fail if bad comp_rate format", function(done) {
       sendTx(A, "compRate", [A.addr, "A"], Utils.expectTxFail, done)
