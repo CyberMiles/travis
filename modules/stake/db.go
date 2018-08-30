@@ -103,9 +103,9 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	}
 }
 
-func GetCandidateByPubKey(pubKey string) *Candidate {
+func GetCandidateByPubKey(pubKey types.PubKey) *Candidate {
 	cond := make(map[string]interface{})
-	cond["pub_key"] = pubKey
+	cond["pub_key"] = types.PubKeyString(pubKey)
 	candidates := getCandidatesInternal(cond)
 	if len(candidates) == 0 {
 		return nil
@@ -132,7 +132,7 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 	defer txWrapper.Commit()
 
 	clause, params := buildQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, pending_voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates"+clause, params...)
+	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, pending_voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, num_of_delegators, created_at, updated_at from candidates"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -144,8 +144,8 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-		var votingPower, pendingVotingPower, blockHeight, rank int64
-		err := rows.Scan(&pubKey, &address, &shares, &votingPower, &pendingVotingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+		var votingPower, pendingVotingPower, blockHeight, rank, numOfDelegators int64
+		err := rows.Scan(&pubKey, &address, &shares, &votingPower, &pendingVotingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &numOfDelegators, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -174,6 +174,7 @@ func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 			BlockHeight:        blockHeight,
 			Rank:               rank,
 			State:              state,
+			NumOfDelegator:     numOfDelegators,
 		}
 		candidates = append(candidates, candidate)
 	}
@@ -635,7 +636,7 @@ func RemoveCandidateDailyStakes(pubKey types.PubKey, startDate string) {
 	}
 }
 
-func GetCandidateDailyStakeMax(pubKey types.PubKey, startDate string) string {
+func GetCandidateDailyStakeMaxValue(pubKey types.PubKey, startDate string) (res sdk.Int) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
@@ -649,8 +650,11 @@ func GetCandidateDailyStakeMax(pubKey types.PubKey, startDate string) string {
 	err = stmt.QueryRow(types.PubKeyString(pubKey), startDate).Scan(&maxAmount)
 
 	if err != nil {
-		panic(err)
+		// If no records found
+		res = sdk.E18Int
+		return
 	}
 
-	return maxAmount
+	res, _ = sdk.NewIntFromString(maxAmount)
+	return
 }

@@ -84,7 +84,6 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 		ethereum:         ethereum,
 		AbsentValidators: stake.NewAbsentValidators(),
 	}
-
 	return app, nil
 }
 
@@ -198,7 +197,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		if !sv.SignedLastBlock {
 			app.AbsentValidators.Add(pubKey, app.WorkingHeight())
 		} else {
-			v := stake.GetCandidateByPubKey(ttypes.PubKeyString(pubKey))
+			v := stake.GetCandidateByPubKey(pubKey)
 			if v != nil {
 				app.PresentValidators = append(app.PresentValidators, v.Validator())
 			}
