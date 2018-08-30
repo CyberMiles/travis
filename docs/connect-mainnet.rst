@@ -2,4 +2,4 @@
 Deploy a MainNet Node
 =====
 
-Please wait for the launch of the MainNet in Q3 2018.
+Please wait for the launch of the MainNet in Oct 2018.
