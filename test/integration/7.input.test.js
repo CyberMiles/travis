@@ -99,15 +99,6 @@ describe("API Input Parameter Test", function() {
         done
       )
     })
-    it("success if all set", function(done) {
-      sendTx(
-        D,
-        "declare",
-        [Globals.PubKeys[3], "11", "0.15"],
-        Utils.expectTxSuccess,
-        done
-      )
-    })
   })
   describe("stake/updateCandidacy", function() {
     it("success if empty input(nothing changed)", function(done) {
@@ -170,12 +161,11 @@ describe("API Input Parameter Test", function() {
     it("fail if amount<=0", function(done) {
       sendTx(D, "accept", [A.addr, "-1", "01"], Utils.expectTxFail, done)
     })
-    it("success if all set", function(done) {
-      sendTx(D, "accept", [A.addr, "1", "01"], Utils.expectTxSuccess, done)
-    })
   })
   describe("stake/withdraw", function() {
     before(function(done) {
+      let balance = web3.cmt.getBalance(D.addr)
+      if (balance < 1) Utils.transfer(A.addr, D.addr, 1)
       sendTx(D, "accept", [A.addr, "1", "01"], Utils.expectTxSuccess, done)
     })
     it("fail if empty input", function(done) {
@@ -197,17 +187,17 @@ describe("API Input Parameter Test", function() {
       sendTx(D, "withdraw", [A.addr, "1"], Utils.expectTxSuccess, done)
     })
   })
-  describe("gov/transFund", function() {
-    it.skip("fail if empty input", function(done) {
+  describe.skip("gov/transFund", function() {
+    it("fail if empty input", function(done) {
       sendTx(A, "transFund", [], Utils.expectTxFail, done)
     })
-    it.skip("fail if no proposer", function(done) {
+    it("fail if no proposer", function(done) {
       sendTx(A, "transFund", [null, A.addr, B.addr], Utils.expectTxFail, done)
     })
-    it.skip("fail if no from/to", function(done) {
+    it("fail if no from/to", function(done) {
       sendTx(A, "transFund", [A.addr], Utils.expectTxFail, done)
     })
-    it.skip("fail if bad amount format", function(done) {
+    it("fail if bad amount format", function(done) {
       sendTx(
         A,
         "transFund",
@@ -216,7 +206,7 @@ describe("API Input Parameter Test", function() {
         done
       )
     })
-    it.skip("fail if amount<=0", function(done) {
+    it("fail if amount<=0", function(done) {
       sendTx(
         A,
         "transFund",

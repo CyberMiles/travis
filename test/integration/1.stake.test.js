@@ -66,8 +66,7 @@ describe("Stake Test", function() {
       Utils.expectTxFail(tx_result)
     })
 
-    describe(`Declare to be a validator with 20000 CMTs max and ${compRate *
-      100}% compRate`, function() {
+    describe(`Declare to be a validator with 20000 CMTs max and ${compRate} compRate`, function() {
       describe("Account D does not have enough CMTs.", function() {
         before(function() {
           balance = Utils.getBalance(3)
