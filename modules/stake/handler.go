@@ -217,7 +217,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	ss := tx.SelfStakingAmount(c.params.SelfStakingRatio)
 	totalCost := ss.Add(gasFee)
 
-	// check if the simpleDelegator has sufficient funds
+	// check if the delegator has sufficient funds
 	if err := checkBalance(c.state, c.sender, totalCost); err != nil {
 		return err
 	}
@@ -251,7 +251,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		}
 	}
 
-	// check if the simpleDelegator has sufficient funds
+	// check if the delegator has sufficient funds
 	if err := checkBalance(c.state, c.sender, totalCost); err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (c check) delegate(tx TxDelegate) error {
 		return ErrNoCandidateForAddress()
 	}
 
-	// check if the simpleDelegator has sufficient funds
+	// check if the delegator has sufficient funds
 	amount, ok := sdk.NewIntFromString(tx.Amount)
 	if !ok || amount.LTE(sdk.ZeroInt) {
 		return ErrBadAmount()
@@ -364,7 +364,7 @@ func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 		return ErrDelegationNotExists()
 	}
 
-	// check if the simpleDelegator has sufficient funds
+	// check if the delegator has sufficient funds
 	if err := checkBalance(c.state, c.sender, gasFee); err != nil {
 		return err
 	}
@@ -412,7 +412,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	amount := tx.SelfStakingAmount(d.params.SelfStakingRatio)
 	totalCost := amount.Add(gasFee)
 
-	// check if the simpleDelegator has sufficient funds
+	// check if the delegator has sufficient funds
 	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
 		return err
 	}
@@ -459,6 +459,7 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.Genesi
 	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount}
 	d.delegate(txDelegate)
 
+	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
 	candidate.PendingVotingPower = candidate.CalcVotingPower()
 	updateCandidate(candidate)
 	return nil
@@ -503,7 +504,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		candidate.Description = tx.Description
 	}
 
-	// check if the simpleDelegator has sufficient funds
+	// check if the delegator has sufficient funds
 	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
 		return err
 	}
@@ -523,7 +524,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 		return ErrNoCandidateForAddress()
 	}
 
-	// All staked tokens will be distributed back to simpleDelegator addresses.
+	// All staked tokens will be distributed back to delegator addresses.
 	// Self-staked CMTs will be refunded back to the simpleValidator address.
 	delegations := GetDelegationsByPubKey(candidate.PubKey)
 	for _, delegation := range delegations {
@@ -573,7 +574,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 		return ErrBadAmount()
 	}
 
-	// Move coins from the simpleDelegator account to the pubKey lock account
+	// Move coins from the delegator account to the pubKey lock account
 	err := commons.Transfer(d.sender, d.params.HoldAccount, delegateAmount)
 	if err != nil {
 		return err
@@ -602,9 +603,12 @@ func (d deliver) delegate(tx TxDelegate) error {
 	}
 
 	// Add delegateAmount to candidate
+	candidate.NumOfDelegator += 1
 	candidate.AddShares(delegateAmount)
-	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, delegateAmount, "delegate", now}
+	candidate.UpdatedAt = now
 	updateCandidate(candidate)
+
+	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, delegateAmount, "delegate", now}
 	saveDelegateHistory(delegateHistory)
 	return nil
 }
@@ -636,6 +640,10 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	// deduct shares from the candidate
 	candidate.AddShares(amount.Neg())
 	now := utils.GetNow()
+	candidate.NumOfDelegator -= 1
+	if candidate.NumOfDelegator < 0 {
+		candidate.NumOfDelegator = 0
+	}
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
@@ -677,7 +685,7 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 		return ErrDelegationNotExists()
 	}
 
-	// check if the simpleDelegator has sufficient funds
+	// check if the delegator has sufficient funds
 	if err := checkBalance(d.state, d.sender, gasFee); err != nil {
 		return err
 	}

@@ -242,15 +242,17 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	// block award
 	if app.WorkingHeight()%utils.BlocksPerHour == 0 {
-		// run once per hour
-		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
-
 		// calculate the validator set difference
 		diff, err := stake.UpdateValidatorSet(app.Append())
 		if err != nil {
 			panic(err)
 		}
 		app.AddValChange(diff)
+
+		// run once per hour
+		if len(app.PresentValidators) > 0 {
+			stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
+		}
 	}
 
 	// handle the pending unstake requests

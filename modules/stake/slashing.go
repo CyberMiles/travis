@@ -98,7 +98,7 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 }
 
 func punishDelegator(d *Delegation, validatorAddress common.Address, amount sdk.Int) {
-	//fmt.Printf("punish simpleDelegator, address: %s, amount: %d\n", d.DelegatorAddress.String(), amount)
+	//fmt.Printf("Slash delegator, address: %s, amount: %d\n", d.DelegatorAddress.String(), amount)
 	now := utils.GetNow()
 	d.AddSlashAmount(amount)
 	d.UpdatedAt = now

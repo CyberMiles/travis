@@ -8,7 +8,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"encoding/json"
-	"fmt"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
@@ -127,8 +126,7 @@ func (c *Candidate) CalcVotingPower() (res int64) {
 		}
 
 		vp := d.CalcVotingPower()
-		fmt.Printf("########## %d\n", vp)
-		UpdateDelegation(d) // update simpleDelegator's voting power
+		UpdateDelegation(d) // update delegator's voting power
 		res += vp
 	}
 	return
