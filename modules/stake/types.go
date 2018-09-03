@@ -486,7 +486,6 @@ func (r *UnstakeRequest) Hash() []byte {
 		PerformedBlockHeight int64
 		Amount               string
 		State                string
-		CreatedAt            string
 	}{
 		r.DelegatorAddress,
 		r.PubKey,
@@ -494,7 +493,6 @@ func (r *UnstakeRequest) Hash() []byte {
 		r.PerformedBlockHeight,
 		r.Amount,
 		r.State,
-		r.CreatedAt,
 	})
 
 	if err != nil {
