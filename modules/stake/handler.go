@@ -645,10 +645,6 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	// deduct shares from the candidate
 	candidate.AddShares(amount.Neg())
 	now := utils.GetNow()
-	candidate.NumOfDelegator -= 1
-	if candidate.NumOfDelegator < 0 {
-		candidate.NumOfDelegator = 0
-	}
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
@@ -663,6 +659,15 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 	delegation.AddWithdrawAmount(amount)
 	UpdateDelegation(delegation)
 	now := utils.GetNow()
+
+	// update the number of candidate
+	if delegation.Shares().LT(sdk.NewInt(10)) {
+		candidate.NumOfDelegator -= 1
+		if candidate.NumOfDelegator < 0 {
+			candidate.NumOfDelegator = 0
+		}
+		updateCandidate(candidate)
+	}
 
 	// record unstake requests, waiting 7 days
 	performedBlockHeight := d.height + int64(utils.GetParams().UnstakeWaitingPeriod)
