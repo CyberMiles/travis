@@ -19,6 +19,7 @@ func SimulateGenesisBlock() *core.Genesis {
 			HomesteadBlock: big.NewInt(0),
 			EIP155Block:    big.NewInt(0),
 			EIP158Block:    big.NewInt(0),
+			ByzantiumBlock:    big.NewInt(0),
 		},
 		Nonce:      uint64(0xdeadbeefdeadbeef),
 		ExtraData:  hexutil.MustDecode("0x"),
@@ -30,7 +31,7 @@ func SimulateGenesisBlock() *core.Genesis {
 
 // DefaultGenesisBlock returns the Ethereum main net genesis block.
 func DefaultGenesisBlock() *core.Genesis {
-	return &core.Genesis{
+	genesis := &core.Genesis{
 		Config:     params.MainnetChainConfig,
 		Nonce:      66,
 		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
@@ -38,6 +39,8 @@ func DefaultGenesisBlock() *core.Genesis {
 		Difficulty: big.NewInt(17179869184),
 		Alloc:      decodePrealloc(mainnetAllocData),
 	}
+	genesis.Config.ByzantiumBlock = big.NewInt(0)
+	return genesis
 }
 
 // DevGenesisBlock returns the 'geth --dev' genesis block.
@@ -48,6 +51,7 @@ func DevGenesisBlock() *core.Genesis {
 			HomesteadBlock: big.NewInt(0),
 			EIP155Block:    big.NewInt(0),
 			EIP158Block:    big.NewInt(0),
+			ByzantiumBlock:    big.NewInt(0),
 		},
 		Nonce:      uint64(0xdeadbeefdeadbeef),
 		ExtraData:  hexutil.MustDecode("0x"),
