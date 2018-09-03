@@ -32,7 +32,7 @@ func QueryDelegationsByDelegator(delegatorAddress common.Address) (delegations [
 
 func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candidates) {
 	clause, params := buildQueryClause(cond)
-	rows, err := db.Query("select pub_key, address, shares, voting_power, pending_voting_power,  max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates"+clause, params...)
+	rows, err := db.Query("select pub_key, address, shares, voting_power, pending_voting_power,  max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, num_of_delegators, created_at, updated_at from candidates"+clause, params...)
 	if err != nil {
 		panic(err)
 	}

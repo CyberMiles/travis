@@ -55,7 +55,7 @@ func (av AbsentValidators) Clear(currentBlockHeight int64) {
 }
 
 func PunishByzantineValidator(pubKey types.PubKey) (err error) {
-	return punish(pubKey, "Byzantine validator")
+	return punish(pubKey, "Byzantine simpleValidator")
 }
 
 func PunishAbsentValidator(pubKey types.PubKey, absence *Absence) (err error) {
@@ -72,7 +72,7 @@ func PunishAbsentValidator(pubKey types.PubKey, absence *Absence) (err error) {
 
 func punish(pubKey types.PubKey, reason string) (err error) {
 	totalSlashed := sdk.NewInt(0)
-	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
+	v := GetCandidateByPubKey(pubKey)
 	if v == nil {
 		return ErrNoCandidateForAddress()
 	}
@@ -81,7 +81,7 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 		return nil
 	}
 
-	// Get all of the delegators(includes the validator itself)
+	// Get all of the delegators(includes the simpleValidator itself)
 	delegations := GetDelegationsByPubKey(v.PubKey)
 	slashingRatio := utils.GetParams().SlashingRatio
 	for _, d := range delegations {
@@ -98,13 +98,13 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 }
 
 func punishDelegator(d *Delegation, validatorAddress common.Address, amount sdk.Int) {
-	//fmt.Printf("punish delegator, address: %s, amount: %d\n", d.DelegatorAddress.String(), amount)
+	//fmt.Printf("Slash delegator, address: %s, amount: %d\n", d.DelegatorAddress.String(), amount)
 	now := utils.GetNow()
 	d.AddSlashAmount(amount)
 	d.UpdatedAt = now
 	UpdateDelegation(d)
 
-	// accumulate shares of the validator
+	// accumulate shares of the simpleValidator
 	val := GetCandidateByAddress(validatorAddress)
 	val.AddShares(amount.Neg())
 	val.UpdatedAt = now
@@ -112,7 +112,7 @@ func punishDelegator(d *Delegation, validatorAddress common.Address, amount sdk.
 }
 
 func RemoveAbsentValidator(pubKey types.PubKey) (err error) {
-	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
+	v := GetCandidateByPubKey(pubKey)
 	if v == nil {
 		return ErrNoCandidateForAddress()
 	}

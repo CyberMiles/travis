@@ -14,6 +14,7 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
+	"math"
 )
 
 //_________________________________________________________________________
@@ -30,7 +31,7 @@ type Candidate struct {
 	PubKey             types.PubKey `json:"pub_key"`       // Pubkey of candidate
 	OwnerAddress       string       `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
 	Shares             string       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower        int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
+	VotingPower        int64        `json:"voting_power"`  // Voting power if pubKey is a considered a simpleValidator
 	PendingVotingPower int64        `json:"pending_voting_power"`
 	MaxShares          string       `json:"max_shares"`
 	CompRate           sdk.Rat      `json:"comp_rate"`
@@ -42,6 +43,7 @@ type Candidate struct {
 	BlockHeight        int64        `json:"block_height"`
 	Rank               int64        `json:"rank"`
 	State              string       `json:"state"`
+	NumOfDelegator     int64        `json:"num_of_delegators"`
 }
 
 type Description struct {
@@ -53,7 +55,7 @@ type Description struct {
 }
 
 // Validator returns a copy of the Candidate as a Validator.
-// Should only be called when the Candidate qualifies as a validator.
+// Should only be called when the Candidate qualifies as a simpleValidator.
 func (c *Candidate) Validator() Validator {
 	return Validator(*c)
 }
@@ -113,10 +115,27 @@ func (c *Candidate) Hash() []byte {
 	return hasher.Sum(nil)
 }
 
+func (c *Candidate) CalcVotingPower() (res int64) {
+	res = 0
+	minStakingAmount := sdk.NewInt(utils.GetParams().MinStakingAmount).Mul(sdk.E18Int)
+	delegations := GetDelegationsByPubKey(c.PubKey)
+	for _, d := range delegations {
+		// if the amount of staked CMTs is less than 1000, no awards will be distributed.
+		if d.Shares().LT(minStakingAmount) {
+			continue
+		}
+
+		vp := d.CalcVotingPower()
+		UpdateDelegation(d) // update delegator's voting power
+		res += vp
+	}
+	return
+}
+
 // Validator is one of the top Candidates
 type Validator Candidate
 
-// ABCIValidator - Get the validator from a bond value
+// ABCIValidator - Get the simpleValidator from a bond value
 func (v Validator) ABCIValidator() abci.Validator {
 	pk := v.PubKey.PubKey.(crypto.PubKeyEd25519)
 	return abci.Validator{
@@ -157,6 +176,8 @@ func (cs Candidates) Sort() {
 func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	// update voting power
 	for _, c := range cs {
+		c.PendingVotingPower = c.CalcVotingPower()
+
 		if c.Active == "N" {
 			c.VotingPower = 0
 		} else if c.VotingPower != c.PendingVotingPower && c.PendingVotingPower != 0 {
@@ -185,7 +206,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	return cs
 }
 
-// Validators - get the most recent updated validator set from the
+// Validators - get the most recent updated simpleValidator set from the
 // Candidates. These bonds are already sorted by VotingPower from
 // the UpdateVotingPower function which is the only function which
 // is to modify the VotingPower
@@ -233,10 +254,10 @@ func (vs Validators) Sort() {
 	sort.Sort(vs)
 }
 
-// determine all changed validators between two validator sets
+// determine all changed validators between two simpleValidator sets
 func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator) {
 
-	//first sort the validator sets
+	//first sort the simpleValidator sets
 	vs.Sort()
 	vs2.Sort()
 
@@ -247,14 +268,14 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 	for i < len(vs) && j < len(vs2) {
 
 		if !vs[i].PubKey.Equals(vs2[j].PubKey) {
-			// pk1 > pk2, a new validator was introduced between these pubkeys
+			// pk1 > pk2, a new simpleValidator was introduced between these pubkeys
 			//if bytes.Compare(vs[i].PubKey.Bytes(), vs2[j].PubKey.Bytes()) == 1 {
 			if bytes.Compare(vs[i].PubKey.Address(), vs2[j].PubKey.Address()) == 1 {
 				changed[n] = vs2[j].ABCIValidator()
 				n++
 				j++
 				continue
-			} // else, the old validator has been removed
+			} // else, the old simpleValidator has been removed
 			pk := vs[i].PubKey.PubKey.(crypto.PubKeyEd25519)
 			changed[n] = abci.Ed25519Validator(pk[:], 0)
 			n++
@@ -318,6 +339,7 @@ type Delegation struct {
 	WithdrawAmount   string         `json:"withdraw_amount"`
 	SlashAmount      string         `json:"slash_amount"`
 	CompRate         sdk.Rat        `json:"comp_rate"`
+	VotingPower      int64          `json:"voting_power"`
 	CreatedAt        string         `json:"created_at"`
 	UpdatedAt        string         `json:"updated_at"`
 }
@@ -365,6 +387,40 @@ func (d *Delegation) AddSlashAmount(value sdk.Int) (res sdk.Int) {
 	res = d.ParseSlashAmount().Add(value)
 	d.SlashAmount = res.String()
 	return
+}
+
+func (d *Delegation) CalcVotingPower() int64 {
+	candidate := GetCandidateByPubKey(d.PubKey)
+	tenDaysAgo, _ := utils.GetTimeBefore(10 * 24)
+	ninetyDaysAgo, _ := utils.GetTimeBefore(90 * 24)
+	s1 := GetCandidateDailyStakeMaxValue(d.PubKey, tenDaysAgo)
+	s2 := GetCandidateDailyStakeMaxValue(d.PubKey, ninetyDaysAgo)
+	snum := s1.Div(sdk.E18Int).Int64()
+	sdenom := s2.Div(sdk.E18Int).Int64()
+	s := d.Shares().Div(sdk.E18Int).Int64()
+
+	t, _ := utils.Diff(d.CreatedAt)
+	if t > utils.HalfYear {
+		t = utils.HalfYear
+	}
+
+	one := sdk.OneRat
+	r1 := sdk.NewRat(snum, sdenom)
+	r2 := sdk.NewRat(t, 180)
+	r3 := sdk.NewRat(candidate.NumOfDelegator, 10)
+	r4 := sdk.NewRat(s, 1)
+
+	r1 = r1.Mul(r1)
+	r2 = r2.Add(one)
+	r3 = one.Sub(one.Quo(r3.Add(one)))
+	r3 = r3.Mul(r3)
+	x, _ := r1.Mul(r3).Mul(r4).Float64()
+	f2, _ := r2.Float64()
+	f2 = utils.RoundFloat(f2, 2)
+	l := math.Log2(f2)
+	vp := int64(x * l)
+	d.VotingPower = vp
+	return vp
 }
 
 func (d *Delegation) Hash() []byte {

@@ -15,12 +15,6 @@ import (
 	"strconv"
 )
 
-// nolint
-const (
-	// fixme: move to config file
-	foundationAddress = "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc"
-)
-
 // DelegatedProofOfStake - interface to enforce delegation stake
 type delegatedProofOfStake interface {
 	declareCandidacy(TxDeclareCandidacy, sdk.Int) error
@@ -134,6 +128,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		height: ctx.BlockHeight(),
 	}
 	res.GasFee = big.NewInt(0)
+
 	// Run the transaction
 	switch txInner := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
@@ -197,7 +192,7 @@ type check struct {
 var _ delegatedProofOfStake = check{} // enforce interface at compile time
 
 func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
-	_, err := types.GetPubKey(tx.PubKey)
+	pk, err := types.GetPubKey(tx.PubKey)
 	if err != nil {
 		return err
 	}
@@ -208,7 +203,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 		return fmt.Errorf("address has been declared")
 	}
 
-	candidate = GetCandidateByPubKey(tx.PubKey)
+	candidate = GetCandidateByPubKey(pk)
 	if candidate != nil {
 		return fmt.Errorf("pubkey has been declared")
 	}
@@ -282,7 +277,7 @@ func (c check) verifyCandidacy(tx TxVerifyCandidacy) error {
 	}
 
 	// check to see if the request was initiated by a special account
-	if c.sender != common.HexToAddress(foundationAddress) {
+	if c.sender != common.HexToAddress(utils.GetParams().FoundationAddress) {
 		return ErrVerificationDisallowed()
 	}
 
@@ -325,7 +320,7 @@ func (c check) delegate(tx TxDelegate) error {
 		return err
 	}
 
-	// check to see if the validator has reached its declared max amount CMTs to be staked.
+	// check to see if the simpleValidator has reached its declared max amount CMTs to be staked.
 	if candidate.ParseShares().Add(amount).GT(candidate.ParseMaxShares()) {
 		return ErrReachMaxAmount()
 	}
@@ -427,7 +422,11 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	SaveCandidate(candidate)
 
 	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
-	return d.delegate(txDelegate)
+	d.delegate(txDelegate)
+
+	candidate.PendingVotingPower = candidate.CalcVotingPower()
+	updateCandidate(candidate)
+	return nil
 }
 
 func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.GenesisValidator) error {
@@ -458,7 +457,12 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.Genesi
 	// delegate a part of the max staked CMT amount
 	amount := sdk.NewInt(val.Shares).Mul(sdk.E18Int).String()
 	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount}
-	return d.delegate(txDelegate)
+	d.delegate(txDelegate)
+
+	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
+	candidate.PendingVotingPower = candidate.CalcVotingPower()
+	updateCandidate(candidate)
+	return nil
 }
 
 func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
@@ -521,7 +525,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	}
 
 	// All staked tokens will be distributed back to delegator addresses.
-	// Self-staked CMTs will be refunded back to the validator address.
+	// Self-staked CMTs will be refunded back to the simpleValidator address.
 	delegations := GetDelegationsByPubKey(candidate.PubKey)
 	for _, delegation := range delegations {
 		txWithdraw := TxWithdraw{ValidatorAddress: validatorAddress, Amount: delegation.Shares().String()}
@@ -599,9 +603,12 @@ func (d deliver) delegate(tx TxDelegate) error {
 	}
 
 	// Add delegateAmount to candidate
+	candidate.NumOfDelegator += 1
 	candidate.AddShares(delegateAmount)
-	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, delegateAmount, "delegate", now}
+	candidate.UpdatedAt = now
 	updateCandidate(candidate)
+
+	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, delegateAmount, "delegate", now}
 	saveDelegateHistory(delegateHistory)
 	return nil
 }
@@ -633,6 +640,10 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	// deduct shares from the candidate
 	candidate.AddShares(amount.Neg())
 	now := utils.GetNow()
+	candidate.NumOfDelegator -= 1
+	if candidate.NumOfDelegator < 0 {
+		candidate.NumOfDelegator = 0
+	}
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
 
@@ -692,7 +703,7 @@ func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
 	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
 		// get pubKey candidate
-		candidate := GetCandidateByPubKey(types.PubKeyString(req.PubKey))
+		candidate := GetCandidateByPubKey(req.PubKey)
 		if candidate == nil {
 			continue
 		}

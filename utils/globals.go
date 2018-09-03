@@ -15,7 +15,10 @@ const (
 	// fixme just for test
 	BlocksPerHour = 2
 	//BlocksPerDay  = 24 * 60 * 60 / 10
-	BlocksPerDay = 1
+	BlocksPerDay        = 1
+	HalfYear            = 180
+	YearlyBlockNumber   = 365 * 24 * 3600 / 10
+	BasicMintableAmount = "1000000000000000000000000000"
 )
 
 type StateChangeObject struct {
@@ -188,7 +191,7 @@ var (
 	// Transfer transaction is not allowed if the sender of which was found in this recording
 	// TODO to be removed
 	TravisTxAddrs   []*common.Address
-	PendingProposal                      = &pendingProposal{
+	PendingProposal = &pendingProposal{
 		make(map[string]int64),
 		math.MaxInt64,
 		nil,
