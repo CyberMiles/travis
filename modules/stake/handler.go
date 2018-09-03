@@ -424,6 +424,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
 	d.delegate(txDelegate)
 
+	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
 	candidate.PendingVotingPower = candidate.CalcVotingPower()
 	updateCandidate(candidate)
 	return nil
