@@ -364,6 +364,10 @@ func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 		return ErrDelegationNotExists()
 	}
 
+	if tx.CompRate.GTE(candidate.CompRate) {
+		return ErrBadCompRate()
+	}
+
 	// check if the delegator has sufficient funds
 	if err := checkBalance(c.state, c.sender, gasFee); err != nil {
 		return err
