@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.1.0-rc.6
+
+_August 31st, 2018_
+
+### FEATURES
+
+- Continue with the development of DPOS 1.4. Ranking and block rewards of Validator is directly correlated to their participation, contribution, loyalty and governance. For detailed algorithm, please refer to the DPOS document on https://www.cybermiles.io/validator/.
+- Improve governance mechanism to incentivise worthy delegators. With an interface of setCompRate, Validator can reward an individual delegator by setting a higher compensation rate for him/her. 
+
+### IMPROVEMENTS
+
+- Make transaction more efficient: Use local client to replace rpc client to communicate with Tendermint Core.
+- Make transaction more convenient: Support array style json in system parameters. 
+- Improve System testability:
+  - Add concurrent test and input check test cases 
+  - Benchmark test supports KeepAlive mode
+
+### FIXES
+- Fixed some small bugs 
+
 ## v0.1.0-rc.5
 
 _August 17th, 2018_

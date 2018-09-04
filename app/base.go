@@ -85,7 +85,6 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 		ethereum:         ethereum,
 		AbsentValidators: stake.NewAbsentValidators(),
 	}
-
 	return app, nil
 }
 
@@ -199,7 +198,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		if !sv.SignedLastBlock {
 			app.AbsentValidators.Add(pubKey, app.WorkingHeight())
 		} else {
-			v := stake.GetCandidateByPubKey(ttypes.PubKeyString(pubKey))
+			v := stake.GetCandidateByPubKey(pubKey)
 			if v != nil {
 				app.PresentValidators = append(app.PresentValidators, v.Validator())
 			}
@@ -245,15 +244,17 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	// block award
 	if app.WorkingHeight()%utils.BlocksPerHour == 0 {
-		// run once per hour
-		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
-
 		// calculate the validator set difference
 		diff, err := stake.UpdateValidatorSet(app.Append())
 		if err != nil {
 			panic(err)
 		}
 		app.AddValChange(diff)
+
+		// run once per hour
+		if len(app.PresentValidators) > 0 {
+			stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
+		}
 	}
 
 	// handle the pending unstake requests

@@ -88,7 +88,7 @@ func SlashBadProposer(pubKey types.PubKey) (err error) {
 
 func slash(pubKey types.PubKey, reason string, slashingRatio sdk.Rat) (err error) {
 	totalDeduction := sdk.NewInt(0)
-	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
+	v := GetCandidateByPubKey(pubKey)
 	if v == nil {
 		return ErrNoCandidateForAddress()
 	}
@@ -97,7 +97,7 @@ func slash(pubKey types.PubKey, reason string, slashingRatio sdk.Rat) (err error
 		return nil
 	}
 
-	// Get all of the delegators(includes the validator itself)
+	// Get all of the delegators(includes the simpleValidator itself)
 	delegations := GetDelegationsByPubKey(v.PubKey)
 	for _, d := range delegations {
 		slash := d.Shares().MulRat(slashingRatio)
@@ -119,7 +119,7 @@ func slashDelegator(d *Delegation, validatorAddress common.Address, amount sdk.I
 	d.UpdatedAt = now
 	UpdateDelegation(d)
 
-	// accumulate shares of the validator
+	// accumulate shares of the simpleValidator
 	val := GetCandidateByAddress(validatorAddress)
 	val.AddShares(amount.Neg())
 	val.UpdatedAt = now
@@ -127,7 +127,7 @@ func slashDelegator(d *Delegation, validatorAddress common.Address, amount sdk.I
 }
 
 func RemoveValidator(pubKey types.PubKey) (err error) {
-	v := GetCandidateByPubKey(types.PubKeyString(pubKey))
+	v := GetCandidateByPubKey(pubKey)
 	if v == nil {
 		return ErrNoCandidateForAddress()
 	}

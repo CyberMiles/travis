@@ -10,17 +10,12 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	rpcClient "github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/CyberMiles/travis/utils"
-)
-
-var (
-	local = false
 )
 
 const defaultGas = 90000
@@ -88,54 +83,6 @@ func (args *SendTxArgs) toTransaction() *ethTypes.Transaction {
 	return ethTypes.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
 }
 
-//----------------------------------------------------------------------
-// Transactions sent via the go-ethereum rpc need to be routed to tendermint
-
-// listen for txs and forward to tendermint
-func (b *Backend) txBroadcastLoop() {
-	//b.txSub = b.ethereum.EventMux().Subscribe(core.TxPreEvent{})
-
-	b.txsCh = make(chan core.NewTxsEvent, 10)
-	b.txsSub = b.ethereum.TxPool().SubscribeNewTxsEvent(b.txsCh)
-
-	for tries := 0; tries < 3; tries++ { // wait a moment for localClient initialized properly
-		time.Sleep(time.Second)
-		if b.localClient != nil {
-			if _, err := b.localClient.Status(); err != nil {
-				log.Info("Using local client for forwarding tx to tendermint!")
-				local = true
-				break
-			}
-		}
-	}
-
-	if !local {
-		waitForServer(b.client)
-	}
-
-	for {
-		select {
-		// Handle NewTxsEvent
-		case ev := <-b.txsCh:
-			for _, tx := range ev.Txs {
-				result, err := b.BroadcastTxSync(tx)
-				if err != nil {
-					log.Error("Broadcast error", "err", err)
-				} else {
-					if result.Code != uint32(0) {
-						go removeTx(b, tx)
-					} else {
-						// TODO: do something else?
-					}
-				}
-			}
-			// System stopped
-		case <-b.txsSub.Err():
-			return
-		}
-	}
-}
-
 // BroadcastTx broadcasts a transaction to tendermint core
 // #unstable
 func (b *Backend) BroadcastTxSync(tx *ethTypes.Transaction) (*ctypes.ResultBroadcastTx, error) {
@@ -144,12 +91,7 @@ func (b *Backend) BroadcastTxSync(tx *ethTypes.Transaction) (*ctypes.ResultBroad
 		return nil, err
 	}
 
-	if local {
-		return b.localClient.BroadcastTxSync(buf.Bytes())
-	} else {
-		return b.client.BroadcastTxSync(buf.Bytes())
-	}
-
+	return b.GetLocalClient().BroadcastTxSync(buf.Bytes())
 }
 
 func (b *Backend) BroadcastTxCommit(tx *ethTypes.Transaction) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -158,11 +100,7 @@ func (b *Backend) BroadcastTxCommit(tx *ethTypes.Transaction) (*ctypes.ResultBro
 		return nil, err
 	}
 
-	if local {
-		return b.localClient.BroadcastTxCommit(buf.Bytes())
-	} else {
-		return b.client.BroadcastTxCommit(buf.Bytes())
-	}
+	return b.GetLocalClient().BroadcastTxCommit(buf.Bytes())
 }
 
 // signTransaction sets defaults and signs the given transaction
@@ -194,7 +132,7 @@ func (b *Backend) signTransaction(args *SendTxArgs) (*ethTypes.Transaction, erro
 //----------------------------------------------------------------------
 // wait for Tendermint to open the socket and run http endpoint
 
-func waitForServer(c *rpcClient.HTTP) {
+func waitForServer(c *rpcClient.Local) {
 	for {
 		_, err := c.Status()
 		if err == nil {
@@ -204,9 +142,4 @@ func waitForServer(c *rpcClient.HTTP) {
 		log.Info("Waiting for tendermint endpoint to start", "err", err)
 		time.Sleep(time.Second * 3)
 	}
-}
-
-func removeTx(b *Backend, tx *ethTypes.Transaction) {
-	// TODO: add Remove in txPool ???
-	//b.Ethereum().TxPool().Remove(tx.Hash())
 }

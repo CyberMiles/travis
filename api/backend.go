@@ -39,8 +39,6 @@ type Backend struct {
 	// EthState
 	es *ethereum.EthState
 
-	// client for forwarding txs to Tendermint over http
-	client *rpcClient.HTTP
 	// local client for in-proc app to execute the rpc functions without the overhead of http
 	localClient *rpcClient.Local
 
@@ -53,8 +51,7 @@ type Backend struct {
 
 // NewBackend creates a new Backend
 // #stable - 0.4.0
-func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
-	client *rpcClient.HTTP) (*Backend, error) {
+func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config) (*Backend, error) {
 
 	// Create working ethereum state.
 	es := ethereum.NewEthState()
@@ -80,7 +77,6 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config,
 		ethereum:  ethereum,
 		ethConfig: ethConfig,
 		es:        es,
-		client:    client,
 	}
 	ethBackend.ResetState()
 	return ethBackend, nil
@@ -118,19 +114,23 @@ func (b *Backend) Config() *eth.Config {
 func (b *Backend) SetTMNode(tmNode *tmn.Node) {
 	b.chainID = tmNode.GenesisDoc().ChainID
 	b.localClient = rpcClient.NewLocal(tmNode)
+	waitForServer(b.localClient)
 }
 
 func (b *Backend) PeerCount() int {
 	var net *ctypes.ResultNetInfo
-	if b.localClient != nil {
-		net, _ = b.localClient.NetInfo()
-	} else if b.client != nil {
-		net, _ = b.client.NetInfo()
-	}
+	net, _ = b.GetLocalClient().NetInfo()
 	if net != nil {
 		return len(net.Peers)
 	}
 	return 0
+}
+
+func (b *Backend) GetLocalClient() *rpcClient.Local {
+	if b.localClient == nil {
+		panic("Error getting local client")
+	}
+	return b.localClient
 }
 
 //----------------------------------------------------------------------
@@ -221,7 +221,6 @@ func (b *Backend) APIs() []rpc.API {
 // Ethereum protocol implementation.
 // #stable
 func (b *Backend) Start(_ *p2p.Server) error {
-	go b.txBroadcastLoop()
 	return nil
 }
 
@@ -229,7 +228,6 @@ func (b *Backend) Start(_ *p2p.Server) error {
 // Ethereum protocol.
 // #stable
 func (b *Backend) Stop() error {
-	b.txsSub.Unsubscribe()
 	b.ethereum.Stop() // nolint: errcheck
 	return nil
 }

@@ -4,7 +4,6 @@ chai.use(chaiSubset)
 const expect = chai.expect
 
 const logger = require("./logger")
-const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
@@ -67,8 +66,7 @@ describe("Stake Test", function() {
       Utils.expectTxFail(tx_result)
     })
 
-    describe(`Declare to be a validator with 20000 CMTs max and ${compRate *
-      100}% compRate`, function() {
+    describe(`Declare to be a validator with 20000 CMTs max and ${compRate} compRate`, function() {
       describe("Account D does not have enough CMTs.", function() {
         before(function() {
           balance = Utils.getBalance(3)
@@ -446,9 +444,9 @@ describe("Stake Test", function() {
       let payload = { from: Globals.Accounts[3] }
       tx_result = web3.cmt.stake.validator.withdraw(payload)
       Utils.expectTxSuccess(tx_result)
-      Utils.waitBlocks(done, 1)
+      Utils.waitBlocks(done, 3) // wait for voting power calc
     })
-    it("Account D no longer a validator", function() {
+    it("Account D no longer a validator, and genesis validator restored", function() {
       // check validators, no Globals.Accounts[3]
       tx_result = web3.cmt.stake.validator.list()
       tx_result.data.forEach(
@@ -457,6 +455,13 @@ describe("Stake Test", function() {
       expect(tx_result.data).to.not.containSubset([
         { owner_address: Globals.Accounts[3] }
       ])
+      if (Globals.TestMode != "single") {
+        // check validators restored
+        let vals = tx_result.data.filter(
+          d => d.state == "Validator" && d.voting_power > 0
+        )
+        expect(vals.length).to.eq(Globals.Params.max_vals)
+      }
     })
     it("account balance no change", function() {
       // balance after

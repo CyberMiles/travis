@@ -31,6 +31,7 @@ const getBalance = (index = null) => {
       balance[i] = web3.cmt.getBalance(Globals.Accounts[i], "latest")
     }
   }
+  balance[4] = web3.cmt.getBalance(web3.cmt.defaultAccount, "latest")
   logger.debug(`balance in wei: --> ${balance}`)
   return index == null ? balance : balance[index]
 }
@@ -214,13 +215,20 @@ const waitMultiple = function(arrTxhash, cb) {
 const waitBlocks = (done, blocks = 1) => {
   let startingBlock = web3.cmt.blockNumber
   logger.debug("waiting start: ", startingBlock)
+  let startingTime = Math.round(new Date().getTime() / 1000)
   let interval = setInterval(() => {
     let blocksGone = web3.cmt.blockNumber - startingBlock
+    let timeGone = Math.round(new Date().getTime() / 1000) - startingTime
     logger.debug(`Blocks Passed ${blocksGone}`)
     if (blocksGone == blocks) {
       logger.debug("waiting end. ")
       clearInterval(interval)
       done()
+    }
+    if (timeGone > Settings.WaitTimeout) {
+      clearInterval(interval)
+      logger.error(`Pending full after ${Settings.WaitTimeout} seconds`)
+      process.exit(1)
     }
   }, Settings.IntervalMs || 100)
 }

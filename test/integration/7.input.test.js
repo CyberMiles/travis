@@ -62,23 +62,11 @@ describe("API Input Parameter Test", function() {
     })
   })
 
-  describe.skip("sql injection", function() {
-    it("sql injection", function(done) {
-      sendTx(
-        D,
-        "declare",
-        ["a'; delete from candidates where '1'='1"],
-        Utils.expectTxFail,
-        done
-      )
-    })
-  })
-
   describe("stake/declareCandidacy", function() {
     it("fail if empty input", function(done) {
       sendTx(D, "declare", [], Utils.expectTxFail, done)
     })
-    it.skip("fail if bad pub key", function(done) {
+    it("fail if bad pub key", function(done) {
       sendTx(D, "declare", ["abc", "11", "0.15"], Utils.expectTxFail, done)
     })
     it("fail if no max_amount specified", function(done) {
@@ -89,6 +77,9 @@ describe("API Input Parameter Test", function() {
     })
     it("fail if max_amount<=0", function(done) {
       sendTx(D, "declare", [Globals.PubKeys[3], "-1"], Utils.expectTxFail, done)
+    })
+    it.skip("fail if no comp_rate specified", function(done) {
+      sendTx(D, "declare", [Globals.PubKeys[3], "1"], Utils.expectTxFail, done)
     })
     it("fail if bad comp_rate format", function(done) {
       sendTx(
@@ -108,15 +99,6 @@ describe("API Input Parameter Test", function() {
         done
       )
     })
-    it("success if all set", function(done) {
-      sendTx(
-        D,
-        "declare",
-        [Globals.PubKeys[3], "11", "0.15"],
-        Utils.expectTxSuccess,
-        done
-      )
-    })
   })
   describe("stake/updateCandidacy", function() {
     it("success if empty input(nothing changed)", function(done) {
@@ -133,16 +115,19 @@ describe("API Input Parameter Test", function() {
     it.skip("fail if empty input", function(done) {
       sendTx(A, "compRate", [], Utils.expectTxFail, done)
     })
-    it.skip("failed if bad validator", function(done) {
+    it.skip("fail if bad validator", function(done) {
       sendTx(D, "compRate", [A.addr, "0.1"], Utils.expectTxFail, done)
     })
-    it("failed if bad delegator", function(done) {
-      sendTx(A, "compRate", [B.addr, "0.1"], Utils.expectTxFail, done)
+    it("fail if bad delegator", function(done) {
+      sendTx(A, "compRate", [C.addr, "0.1"], Utils.expectTxFail, done)
     })
-    it("failed if bad comp_rate format", function(done) {
+    it.skip("fail if no comp_rate specified", function(done) {
+      sendTx(A, "compRate", [A.addr], Utils.expectTxFail, done)
+    })
+    it("fail if bad comp_rate format", function(done) {
       sendTx(A, "compRate", [A.addr, "A"], Utils.expectTxFail, done)
     })
-    it("failed if wrong comp_rate scope", function(done) {
+    it("fail if wrong comp_rate scope", function(done) {
       sendTx(A, "compRate", [A.addr, "-1"], Utils.expectTxFail, done)
     })
   })
@@ -176,12 +161,11 @@ describe("API Input Parameter Test", function() {
     it("fail if amount<=0", function(done) {
       sendTx(D, "accept", [A.addr, "-1", "01"], Utils.expectTxFail, done)
     })
-    it("success if all set", function(done) {
-      sendTx(D, "accept", [A.addr, "1", "01"], Utils.expectTxSuccess, done)
-    })
   })
   describe("stake/withdraw", function() {
     before(function(done) {
+      let balance = web3.cmt.getBalance(D.addr)
+      if (balance < 1) Utils.transfer(A.addr, D.addr, 1)
       sendTx(D, "accept", [A.addr, "1", "01"], Utils.expectTxSuccess, done)
     })
     it("fail if empty input", function(done) {
@@ -193,7 +177,7 @@ describe("API Input Parameter Test", function() {
     it("fail if bad amount format", function(done) {
       sendTx(D, "withdraw", [A.addr, "A"], Utils.expectTxFail, done)
     })
-    it("fail if amount<0", function(done) {
+    it("fail if amount<=0", function(done) {
       sendTx(D, "withdraw", [A.addr, "-1"], Utils.expectTxFail, done)
     })
     it("fail if bad delegator", function(done) {
@@ -203,17 +187,17 @@ describe("API Input Parameter Test", function() {
       sendTx(D, "withdraw", [A.addr, "1"], Utils.expectTxSuccess, done)
     })
   })
-  describe("gov/transFund", function() {
-    it.skip("fail if empty input", function(done) {
+  describe.skip("gov/transFund", function() {
+    it("fail if empty input", function(done) {
       sendTx(A, "transFund", [], Utils.expectTxFail, done)
     })
-    it.skip("fail if no proposer", function(done) {
+    it("fail if no proposer", function(done) {
       sendTx(A, "transFund", [null, A.addr, B.addr], Utils.expectTxFail, done)
     })
-    it.skip("fail if no from/to", function(done) {
+    it("fail if no from/to", function(done) {
       sendTx(A, "transFund", [A.addr], Utils.expectTxFail, done)
     })
-    it.skip("fail if bad amount format", function(done) {
+    it("fail if bad amount format", function(done) {
       sendTx(
         A,
         "transFund",
@@ -222,7 +206,7 @@ describe("API Input Parameter Test", function() {
         done
       )
     })
-    it.skip("fail if amount<=0", function(done) {
+    it("fail if amount<=0", function(done) {
       sendTx(
         A,
         "transFund",
@@ -257,7 +241,7 @@ describe("API Input Parameter Test", function() {
         done
       )
     })
-    it("fail if bad expire timestamp", function(done) {
+    it("fail if bad expire block", function(done) {
       sendTx(
         A,
         "changeParam",

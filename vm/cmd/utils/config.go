@@ -7,11 +7,10 @@ import (
 	cli "gopkg.in/urfave/cli.v1"
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
+	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	rpcClient "github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/vm/ethereum"
@@ -45,9 +44,8 @@ type gethConfig struct {
 func MakeFullNode(ctx *cli.Context) *ethereum.Node {
 	stack, cfg := makeConfigNode(ctx)
 
-	tendermintLAddr := ctx.GlobalString(TendermintAddrFlag.Name)
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return api.NewBackend(ctx, &cfg.Eth, rpcClient.NewHTTP(tendermintLAddr, "/websocket"))
+		return api.NewBackend(ctx, &cfg.Eth)
 	}); err != nil {
 		ethUtils.Fatalf("Failed to register the ABCI application service: %v", err)
 	}

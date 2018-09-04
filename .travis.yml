@@ -48,7 +48,11 @@ after_success:
 
 after_failure:
   - curl -i "http://localhost:26657/dump_consensus_state"
-  - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t --tail 100
+  - |
+    curl -X POST http://localhost:8545
+    -H 'Content-Type: application/json'
+    -d '{"jsonrpc":"2.0","id":1,"method":"cmt_queryValidators", "params": [0]}'
+  - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t --tail 50
 
 before_deploy:
   - BUILD_TAG=$TRAVIS_TAG make dist
