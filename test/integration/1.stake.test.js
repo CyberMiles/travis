@@ -41,7 +41,7 @@ describe("Stake Test", function() {
     expect(existingValidator).be.an("object")
 
     if (Globals.TestMode == "single") {
-      amounts = new Amounts(200000)
+      amounts = new Amounts(20000)
     }
   })
 
@@ -66,7 +66,7 @@ describe("Stake Test", function() {
       Utils.expectTxFail(tx_result)
     })
 
-    describe(`Declare to be a validator with 20000 CMTs max and ${compRate} compRate`, function() {
+    describe(`Declare to be a validator with 2000000 CMTs max and ${compRate} compRate`, function() {
       describe("Account D does not have enough CMTs.", function() {
         before(function() {
           balance = Utils.getBalance(3)
@@ -270,15 +270,14 @@ describe("Stake Test", function() {
 
     before(function(done) {
       if (Globals.TestMode == "single") {
+        // skips current and all nested describes
+        this.test.parent.pending = true
         this.skip()
       }
       Utils.waitBlocks(done, 1)
     })
 
     before(function(done) {
-      if (Globals.TestMode == "single") {
-        this.skip()
-      }
       // validators
       const getShares = (vals, acc) => {
         let v = vals.find(v => v.owner_address == acc)
