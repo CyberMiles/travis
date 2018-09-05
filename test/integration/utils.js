@@ -107,7 +107,8 @@ const getDelegation = (acc_index, pk_index) => {
     award_amount: web3.toBigNumber(0),
     withdraw_amount: web3.toBigNumber(0),
     slash_amount: web3.toBigNumber(0),
-    shares: web3.toBigNumber(0)
+    shares: web3.toBigNumber(0),
+    voting_power: 0
   }
   result = web3.cmt.stake.delegator.query(Globals.Accounts[acc_index], 0)
   if (result && result.data) {
@@ -119,7 +120,8 @@ const getDelegation = (acc_index, pk_index) => {
         delegate_amount: web3.toBigNumber(data.delegate_amount),
         award_amount: web3.toBigNumber(data.award_amount),
         withdraw_amount: web3.toBigNumber(data.withdraw_amount),
-        slash_amount: web3.toBigNumber(data.slash_amount)
+        slash_amount: web3.toBigNumber(data.slash_amount),
+        voting_power: Number(data.voting_power)
       }
     delegation.shares = delegation.delegate_amount
       .plus(delegation.award_amount)
@@ -132,7 +134,8 @@ const getDelegation = (acc_index, pk_index) => {
     `award_amount: ${delegation.award_amount.toString(10)}`,
     `withdraw_amount: ${delegation.withdraw_amount.toString(10)}`,
     `slash_amount: ${delegation.slash_amount.toString(10)}`,
-    `shares: ${delegation.shares.toString(10)}`
+    `shares: ${delegation.shares.toString(10)}`,
+    `voting_power: ${delegation.voting_power}`
   )
   return delegation
 }
@@ -374,6 +377,22 @@ const calcValAward = (award, vals) => {
   return vals
 }
 
+// n: number of delegators; s: delegator's current stake
+const calcVotingPower = (n, s) => {
+  let s10 = 1,
+    s90 = 1,
+    t = 1 // simplfied.
+  let r1 = Math.pow(s10 / s90, 2)
+  let r2 = (t / 180 + 1).toFixed(2)
+  let r3 = Math.pow(1 - 1 / (n / 10 + 1), 2)
+  let r4 = parseInt(s / 1e18)
+  let x = r1 * r3 * r4
+  let l = Math.log2(r2)
+  let vp = parseInt(l * x)
+  logger.debug("r1,r2,r3,r4,x,l,vp:", r1, r2, r3, r4, x, l, vp)
+  return vp
+}
+
 const calcAwards = (nodes, blocks) => {
   // block award -> validators and backups
   let blockAward = getBlockAward()
@@ -504,5 +523,6 @@ module.exports = {
   calcAwards,
   calcDeleAwards,
   delegatorAccept,
-  cubeSign
+  cubeSign,
+  calcVotingPower
 }

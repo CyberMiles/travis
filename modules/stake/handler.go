@@ -364,7 +364,7 @@ func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 		return ErrDelegationNotExists()
 	}
 
-	if tx.CompRate.GTE(candidate.CompRate) {
+	if tx.CompRate.GT(candidate.CompRate) {
 		return ErrBadCompRate()
 	}
 
