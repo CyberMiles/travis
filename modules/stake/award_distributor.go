@@ -204,16 +204,17 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 }
 
 func (ad *awardDistributor) distribute(vals []*simpleValidator, totalShares int64, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
-	award := sdk.NewInt(0)
+	award, remaining := sdk.ZeroInt, totalAward
+
 	for _, val := range vals {
 		p := val.computeTotalSharesPercentage(totalShares, false)
 		award = totalAward.MulRat(p)
 		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward, "p", p, "award", award)
 		val.distributeToAll(award, totalVotingPower, rr, rs)
+		remaining = remaining.Sub(award)
 	}
 
 	// If there is remaining, distribute a second round.
-	remaining := totalAward.Sub(award)
 	if remaining.GT(sdk.ZeroInt) {
 		ad.logger.Debug("there is remaining award, distribute a second round.", "remaining", remaining)
 		for _, val := range vals {
