@@ -388,7 +388,7 @@ const calcVotingPower = (n, s) => {
   let r4 = parseInt(s / 1e18)
   let x = r1 * r3 * r4
   let l = Math.log2(r2)
-  let vp = parseInt(l * x)
+  let vp = Math.ceil(l * x)
   logger.debug("r1,r2,r3,r4,x,l,vp:", r1, r2, r3, r4, x, l, vp)
   return vp
 }
