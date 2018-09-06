@@ -418,7 +418,7 @@ func (d *Delegation) CalcVotingPower() int64 {
 	f2, _ := r2.Float64()
 	f2 = utils.RoundFloat(f2, 2)
 	l := math.Log2(f2)
-	vp := int64(x * l)
+	vp := int64(math.Ceil(x * l))
 	d.VotingPower = vp
 	return vp
 }
