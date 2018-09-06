@@ -11,6 +11,7 @@ import (
 	"database/sql"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/core"
@@ -90,6 +91,7 @@ func initTendermint() {
 	} else {
 		genDoc := types.GenesisDoc{
 			ChainID: viper.GetString(FlagChainID),
+			Params: utils.DefaultParams(),
 		}
 
 		// fixme Use specific values instead in production

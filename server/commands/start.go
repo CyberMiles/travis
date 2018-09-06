@@ -18,6 +18,7 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/version"
 )
 
@@ -100,6 +101,7 @@ func createBaseApp(rootDir string, storeApp *app.StoreApp, ethApp *app.Ethermint
 			}
 
 			app.SetChainId(genDoc.ChainID)
+			utils.SetParams(genDoc.Params)
 			for _, val := range genDoc.Validators {
 				stake.SetGenesisValidator(val, app.Append())
 			}

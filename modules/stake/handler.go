@@ -580,7 +580,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := commons.Transfer(d.sender, d.params.HoldAccount, delegateAmount)
+	err := commons.Transfer(d.sender, utils.HoldAccount, delegateAmount)
 	if err != nil {
 		return err
 	}
@@ -709,7 +709,6 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 }
 
 func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
-	params := utils.GetParams()
 	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
 		// get pubKey candidate
@@ -738,7 +737,7 @@ func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
 
 		// transfer coins back to account
 		amount, _ := sdk.NewIntFromString(req.Amount)
-		commons.Transfer(params.HoldAccount, req.DelegatorAddress, amount)
+		commons.Transfer(utils.HoldAccount, req.DelegatorAddress, amount)
 	}
 
 	return nil
