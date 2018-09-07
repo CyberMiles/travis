@@ -62,7 +62,7 @@ func (av AbsentValidators) Contains(pk types.PubKey) bool {
 }
 
 func PunishByzantineValidator(pubKey types.PubKey) (err error) {
-	return punish(pubKey, "Byzantine simpleValidator")
+	return punish(pubKey, "Byzantine Validator")
 }
 
 func PunishAbsentValidator(pubKey types.PubKey, absence *Absence) (err error) {
@@ -88,7 +88,7 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 		return nil
 	}
 
-	// Get all of the delegators(includes the simpleValidator itself)
+	// Get all of the delegators(includes the validator itself)
 	delegations := GetDelegationsByPubKey(v.PubKey)
 	slashingRatio := utils.GetParams().SlashingRatio
 	for _, d := range delegations {
@@ -111,7 +111,7 @@ func punishDelegator(d *Delegation, validatorAddress common.Address, amount sdk.
 	d.UpdatedAt = now
 	UpdateDelegation(d)
 
-	// accumulate shares of the simpleValidator
+	// accumulate shares of the validator
 	val := GetCandidateByAddress(validatorAddress)
 	val.AddShares(amount.Neg())
 	val.UpdatedAt = now

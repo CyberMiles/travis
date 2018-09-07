@@ -9,7 +9,6 @@ import (
 
 	"encoding/json"
 	"github.com/CyberMiles/travis/sdk"
-	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
@@ -31,7 +30,7 @@ type Candidate struct {
 	PubKey             types.PubKey `json:"pub_key"`       // Pubkey of candidate
 	OwnerAddress       string       `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
 	Shares             string       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower        int64        `json:"voting_power"`  // Voting power if pubKey is a considered a simpleValidator
+	VotingPower        int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
 	PendingVotingPower int64        `json:"pending_voting_power"`
 	MaxShares          string       `json:"max_shares"`
 	CompRate           sdk.Rat      `json:"comp_rate"`
@@ -55,7 +54,7 @@ type Description struct {
 }
 
 // Validator returns a copy of the Candidate as a Validator.
-// Should only be called when the Candidate qualifies as a simpleValidator.
+// Should only be called when the Candidate qualifies as a validator.
 func (c *Candidate) Validator() Validator {
 	return Validator(*c)
 }
@@ -135,7 +134,7 @@ func (c *Candidate) CalcVotingPower() (res int64) {
 // Validator is one of the top Candidates
 type Validator Candidate
 
-// ABCIValidator - Get the simpleValidator from a bond value
+// ABCIValidator - Get the validator from a bond value
 func (v Validator) ABCIValidator() abci.Validator {
 	pk := v.PubKey.PubKey.(crypto.PubKeyEd25519)
 	return abci.Validator{
@@ -173,14 +172,14 @@ func (cs Candidates) Sort() {
 }
 
 // update the voting power and save
-func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
+func (cs Candidates) updateVotingPower() Candidates {
 	// update voting power
 	for _, c := range cs {
 		c.PendingVotingPower = c.CalcVotingPower()
 
 		if c.Active == "N" {
 			c.VotingPower = 0
-		} else if c.VotingPower != c.PendingVotingPower && c.PendingVotingPower != 0 {
+		} else if c.VotingPower != c.PendingVotingPower {
 			c.VotingPower = c.PendingVotingPower
 		}
 	}
@@ -206,7 +205,7 @@ func (cs Candidates) updateVotingPower(store state.SimpleDB) Candidates {
 	return cs
 }
 
-// Validators - get the most recent updated simpleValidator set from the
+// Validators - get the most recent updated validator set from the
 // Candidates. These bonds are already sorted by VotingPower from
 // the UpdateVotingPower function which is the only function which
 // is to modify the VotingPower
@@ -254,10 +253,10 @@ func (vs Validators) Sort() {
 	sort.Sort(vs)
 }
 
-// determine all changed validators between two simpleValidator sets
+// determine all changed validators between two validator sets
 func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator) {
 
-	//first sort the simpleValidator sets
+	//first sort the validator sets
 	vs.Sort()
 	vs2.Sort()
 
@@ -268,14 +267,14 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 	for i < len(vs) && j < len(vs2) {
 
 		if !vs[i].PubKey.Equals(vs2[j].PubKey) {
-			// pk1 > pk2, a new simpleValidator was introduced between these pubkeys
+			// pk1 > pk2, a new validator was introduced between these pubkeys
 			//if bytes.Compare(vs[i].PubKey.Bytes(), vs2[j].PubKey.Bytes()) == 1 {
 			if bytes.Compare(vs[i].PubKey.Address(), vs2[j].PubKey.Address()) == 1 {
 				changed[n] = vs2[j].ABCIValidator()
 				n++
 				j++
 				continue
-			} // else, the old simpleValidator has been removed
+			} // else, the old validator has been removed
 			pk := vs[i].PubKey.PubKey.(crypto.PubKeyEd25519)
 			changed[n] = abci.Ed25519Validator(pk[:], 0)
 			n++
@@ -312,11 +311,11 @@ func (vs Validators) Remove(i int) Validators {
 
 // UpdateValidatorSet - Updates the voting power for the candidate set and
 // returns the subset of validators which have changed for Tendermint
-func UpdateValidatorSet(store state.SimpleDB) (change []abci.Validator, err error) {
+func UpdateValidatorSet() (change []abci.Validator, err error) {
 	// get the validators before update
 	candidates := GetCandidates()
 	v1 := candidates.Validators()
-	v2 := candidates.updateVotingPower(store).Validators()
+	v2 := candidates.updateVotingPower().Validators()
 	change = v1.validatorsChanged(v2)
 
 	// clean all of the candidates had been withdrawed

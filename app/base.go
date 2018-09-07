@@ -246,7 +246,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	// block award
 	if app.WorkingHeight()%utils.BlocksPerHour == 0 {
 		// calculate the validator set difference
-		diff, err := stake.UpdateValidatorSet(app.Append())
+		diff, err := stake.UpdateValidatorSet()
 		if err != nil {
 			panic(err)
 		}

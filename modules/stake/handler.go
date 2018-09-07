@@ -530,7 +530,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	}
 
 	// All staked tokens will be distributed back to delegator addresses.
-	// Self-staked CMTs will be refunded back to the simpleValidator address.
+	// Self-staked CMTs will be refunded back to the validator address.
 	delegations := GetDelegationsByPubKey(candidate.PubKey)
 	for _, delegation := range delegations {
 		txWithdraw := TxWithdraw{ValidatorAddress: validatorAddress, Amount: delegation.Shares().String()}
@@ -717,10 +717,10 @@ func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
 			continue
 		}
 
-		if candidate.Shares == "0" {
-			//candidate.State = "N"
-			removeCandidate(candidate)
-		}
+		//if candidate.Shares == "0" {
+		//	//candidate.State = "N"
+		//	removeCandidate(candidate)
+		//}
 
 		delegation := GetDelegation(req.DelegatorAddress, candidate.PubKey)
 		if delegation == nil {
