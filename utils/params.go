@@ -68,7 +68,7 @@ var (
 	// Keys for store prefixes
 	ParamKey = []byte{0x01} // key for global parameters
 	dirty    = false
-	params *Params
+	params   = new(Params)
 )
 
 // load/save the global params

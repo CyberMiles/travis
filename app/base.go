@@ -286,12 +286,13 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		}
 		return abci.ResponseCommit{}
 	}
-	if dirty := utils.CleanParams(); dirty {
+
+	workingHeight := app.WorkingHeight()
+
+	if  dirty := utils.CleanParams(); workingHeight == 1 || dirty {
 		state := app.Append()
 		state.Set(utils.ParamKey, utils.UnloadParams())
 	}
-
-	workingHeight := app.WorkingHeight()
 
 	// reset store app
 	app.TotalUsedGasFee = big.NewInt(0)

@@ -30,7 +30,7 @@ import (
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
-const DefaultHistorySize = 10
+const DefaultHistorySize = -1
 
 // StoreApp contains a data store and all chainState needed
 // to perform queries and handshakes.
@@ -189,7 +189,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 			resQuery.Value = value
 			resQuery.Proof = proof.ComputeRootHash()
 		} else {
-			value := tree.Get(key)
+			_, value := tree.GetVersioned(key, height)
 			resQuery.Value = value
 		}
 	case "/validators":
