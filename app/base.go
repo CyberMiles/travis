@@ -237,7 +237,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	var backups stake.Validators
 	for _, bv := range stake.GetBackupValidators() {
-		backups = append(backups, bv.Validator())
+		// exclude the absent validators
+		if !app.AbsentValidators.Contains(bv.PubKey) {
+			backups = append(backups, bv.Validator())
+		}
 	}
 
 	// block award

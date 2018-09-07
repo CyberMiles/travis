@@ -54,6 +54,13 @@ func (av AbsentValidators) Clear(currentBlockHeight int64) {
 	}
 }
 
+func (av AbsentValidators) Contains(pk types.PubKey) bool {
+	if _, exists := av.Validators[pk]; exists {
+		return true
+	}
+	return false
+}
+
 func PunishByzantineValidator(pubKey types.PubKey) (err error) {
 	return punish(pubKey, "Byzantine simpleValidator")
 }
