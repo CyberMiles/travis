@@ -306,7 +306,7 @@ func (c check) delegate(tx TxDelegate) error {
 
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	// check if the delegator has sufficient funds
@@ -474,7 +474,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	// create and save the empty candidate
 	candidate := GetCandidateByAddress(d.sender)
 	if candidate == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	totalCost := gasFee
@@ -526,7 +526,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	validatorAddress := d.sender
 	candidate := GetCandidateByAddress(validatorAddress)
 	if candidate == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	// All staked tokens will be distributed back to delegator addresses.
@@ -622,7 +622,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	// get pubKey candidate
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	amount, ok := sdk.NewIntFromString(tx.Amount)

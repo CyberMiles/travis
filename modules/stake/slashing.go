@@ -81,7 +81,7 @@ func punish(pubKey types.PubKey, reason string) (err error) {
 	totalSlashed := sdk.NewInt(0)
 	v := GetCandidateByPubKey(pubKey)
 	if v == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	if v.ParseShares().Cmp(big.NewInt(0)) <= 0 {
@@ -121,7 +121,7 @@ func punishDelegator(d *Delegation, validatorAddress common.Address, amount sdk.
 func RemoveAbsentValidator(pubKey types.PubKey) (err error) {
 	v := GetCandidateByPubKey(pubKey)
 	if v == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	v.Active = "N"
