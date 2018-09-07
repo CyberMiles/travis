@@ -6,11 +6,9 @@ import (
 	"strconv"
 
 	"github.com/CyberMiles/travis/sdk"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type Params struct {
-	HoldAccount               common.Address `json:"hold_account"`            // PubKey where all bonded coins are held
 	MaxVals                   uint16         `json:"max_vals" type:"uint"`    // maximum number of validators
 	BackupVals                uint16         `json:"backup_vals" type:"uint"` // number of backup validators
 	SelfStakingRatio          sdk.Rat        `json:"self_staking_ratio" type:"rat"`
@@ -35,9 +33,8 @@ type Params struct {
 	FoundationAddress         string         `json:"foundation_address"`
 }
 
-func defaultParams() *Params {
+func DefaultParams() *Params {
 	return &Params{
-		HoldAccount:               HoldAccount,
 		MaxVals:                   4,
 		BackupVals:                1,
 		SelfStakingRatio:          sdk.NewRat(10, 100),
@@ -66,8 +63,8 @@ func defaultParams() *Params {
 var (
 	// Keys for store prefixes
 	ParamKey = []byte{0x01} // key for global parameters
-	params   = defaultParams()
 	dirty    = false
+	params *Params
 )
 
 // load/save the global params
@@ -82,6 +79,10 @@ func UnloadParams() (b []byte) {
 
 func GetParams() *Params {
 	return params
+}
+
+func SetParams(p *Params) {
+	params = p
 }
 
 func CleanParams() (before bool) {

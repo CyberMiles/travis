@@ -11,6 +11,7 @@ import (
 	"database/sql"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/core"
@@ -24,8 +25,9 @@ import (
 )
 
 const (
-	FlagChainID = "chain-id"
-	FlagENV     = "env"
+	FlagChainID   = "chain-id"
+	FlagENV       = "env"
+	FlagVMGenesis = "vm-genesis"
 
 	defaultEnv = "private"
 )
@@ -47,6 +49,7 @@ func GetInitCmd() *cobra.Command {
 	}
 	initCmd.Flags().String(FlagChainID, "local", "Chain ID")
 	initCmd.Flags().String(FlagENV, defaultEnv, "Environment (mainnet|staging|testnet|private)")
+	initCmd.Flags().String(FlagVMGenesis, "", "VM genesis file")
 	return initCmd
 }
 
@@ -88,6 +91,7 @@ func initTendermint() {
 	} else {
 		genDoc := types.GenesisDoc{
 			ChainID: viper.GetString(FlagChainID),
+			Params: utils.DefaultParams(),
 		}
 
 		// fixme Use specific values instead in production
@@ -108,7 +112,7 @@ func initTendermint() {
 }
 
 func initEthermint() error {
-	genesisPath := context.Args().First()
+	genesisPath := viper.GetString(FlagVMGenesis)
 	genesis, err := emtUtils.ParseGenesisOrDefault(genesisPath)
 	if err != nil {
 		ethUtils.Fatalf("genesisJSON err: %v", err)
