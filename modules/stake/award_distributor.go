@@ -134,22 +134,23 @@ func (ad awardDistributor) Distribute() {
 	vals, totalValShares, totalValVotingPower := ad.buildValidators(ad.validators)
 	backups, totalBackupShares, totalBackupVotingPower := ad.buildValidators(ad.backupValidators)
 	totalVotingPower := totalValVotingPower + totalBackupVotingPower
+	totalShares := totalValShares + totalBackupShares
 	var rr, rs sdk.Rat
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = utils.GetParams().ValidatorsBlockAwardRatio
-		rs = sdk.NewRat(totalValShares, totalValShares+totalBackupShares)
+		rs = sdk.NewRat(totalValShares, totalShares)
 	} else {
 		rr = sdk.OneRat
 		rs = sdk.OneRat
 	}
 
-	ad.distribute(vals, totalValShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+	ad.distribute(vals, totalShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
 
 	// distribute to the backup validators
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = sdk.OneRat.Sub(utils.GetParams().ValidatorsBlockAwardRatio)
 		rs = sdk.NewRat(totalBackupShares, totalValShares+totalBackupShares)
-		ad.distribute(backups, totalBackupShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+		ad.distribute(backups, totalShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
 	}
 
 	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)))
