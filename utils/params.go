@@ -32,6 +32,7 @@ type Params struct {
 	SetCompRate               uint64         `json:"set_comp_rate" type:"uint"`
 	FoundationAddress         string         `json:"foundation_address"`
 	RewardInterval			  uint64		 `json:"reward_interval" type:"uint"`
+	CalStakeInterval		  uint64		 `json:"cal_stake_interval" type:"uint"`
 }
 
 func DefaultParams() *Params {
@@ -59,6 +60,7 @@ func DefaultParams() *Params {
 		SetCompRate:               21000,  // gas setting for setCompRate
 		FoundationAddress:         "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
 		RewardInterval:			   DefaultRewardInterval, // accumulate reward interval, default per block
+		CalStakeInterval:		   DefaultCalStateInterval, // calculate stake interval, default per block
 	}
 }
 
@@ -169,4 +171,23 @@ func CheckParamType(name, value string) bool {
 	}
 
 	return false
+}
+
+
+// GetCalStakeInterval helper function of getting calculate stake interval
+func GetCalStakeInterval() int64 {
+	var interval = int64(GetParams().CalStakeInterval)
+	if interval  <= 0 {
+		interval = int64(DefaultCalStateInterval)
+	}
+	return interval
+}
+
+// GetRewardInterval helper function fo getting reward interval
+func GetRewardInterval() int64 {
+	var interval = int64(GetParams().RewardInterval)
+	if interval  <= 0 {
+		interval = int64(DefaultRewardInterval)
+	}
+	return interval
 }
