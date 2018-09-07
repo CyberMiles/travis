@@ -193,10 +193,10 @@ Next, you can paste the following script into the Travis client console, at the 
     console.log("  Total balance: " + totalBal + "CMT");
   };
   
- You can now run the script in the console, and see the results.
- 
- .. code:: bash
- 
+You can now run the script in the console, and see the results.
+
+.. code:: bash
+
   > checkAllBalances();
   cmt.accounts[0]: 	0x6....................................230 	balance: 466.798526 CMT
   cmt.accounts[1]: 	0x6....................................244 	balance: 1531 CMT
