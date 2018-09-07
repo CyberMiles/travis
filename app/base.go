@@ -262,7 +262,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
 
 	// record candidates stakes daily
-	if app.WorkingHeight()%utils.BlocksPerDay == 0 {
+	if rewardCheck(app.WorkingHeight())  {
 		// run once per day
 		stake.RecordCandidateDailyStakes()
 	}
@@ -329,4 +329,13 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 	//	// TODO: save to DB
 	//}
 	return hash
+}
+
+func rewardCheck(height int64) bool {
+	var interval = int64(utils.GetParams().RewardInterval)
+	if interval  <= 0 {
+		interval = int64(utils.DefaultRewardInterval)
+	}
+
+	return height % interval == 0
 }
