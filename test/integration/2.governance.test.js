@@ -80,7 +80,7 @@ describe("Governance Test", function() {
         )
       })
 
-      it("Proposal passed. ", function() {
+      it("Proposal passed. ", function(done) {
         if (Globals.TestMode == "cluster") {
           Utils.vote(proposalId, Globals.Accounts[0], "Y")
           Utils.vote(proposalId, Globals.Accounts[1], "Y")
@@ -100,6 +100,7 @@ describe("Governance Test", function() {
             -gasFee.toNumber()
           )
         })
+        Utils.waitBlocks(done, 1)
       })
       it("Verify the max_slashing_blocks is doubled. ", function() {
         new_params = web3.cmt.governance.getParams()

@@ -138,7 +138,6 @@ describe("Stake Test", function() {
           // )
         })
         it("D is not a validator yet", function() {
-          // if (Globals.TestMode == "single") this.skip()
           tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
           expect(tx_result.data.voting_power).to.eq(0)
           expect(tx_result.data.state).to.not.eq("Validator")
@@ -185,7 +184,6 @@ describe("Stake Test", function() {
           .minus(amounts.self)
           .toNumber()
       ).to.gte(0)
-      // if (Globals.TestMode == "single") this.skip()
       expect(tx_result.data.state).to.not.eq("Validator")
       delegation_after = Utils.getDelegation(3, 3)
     })
@@ -250,7 +248,6 @@ describe("Stake Test", function() {
         ).to.eq(Number(amounts.dele2))
       })
       it("D is now a validator", function() {
-        // if (Globals.TestMode == "single") this.skip()
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.be.above(0)
         expect(tx_result.data.state).to.eq("Validator")
@@ -473,7 +470,7 @@ describe("Stake Test", function() {
       let payload = { from: Globals.Accounts[3] }
       tx_result = web3.cmt.stake.validator.withdraw(payload)
       Utils.expectTxSuccess(tx_result)
-      Utils.waitBlocks(done, 3) // wait for voting power calc
+      Utils.waitBlocks(done, 1)
     })
     it("Account D no longer a validator, and genesis validator restored", function() {
       // check validators, no Globals.Accounts[3]
@@ -484,11 +481,8 @@ describe("Stake Test", function() {
       expect(tx_result.data).to.not.containSubset([
         { owner_address: Globals.Accounts[3] }
       ])
-      // if (Globals.TestMode == "single") this.skip()
       // check validators restored
-      let vals = tx_result.data.filter(
-        d => d.state == "Validator" && d.voting_power > 0
-      )
+      let vals = tx_result.data.filter(d => d.state == "Validator")
       expect(vals.length).to.eq(Globals.Params.max_vals)
     })
     it("account balance no change", function() {
