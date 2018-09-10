@@ -31,7 +31,6 @@ type Params struct {
 	LowPriceTxSlotsCap        int            `json:"low_price_tx_slots_cap" type:"int"`
 	SetCompRate               uint64         `json:"set_comp_rate" type:"uint"`
 	FoundationAddress         string         `json:"foundation_address"`
-	RewardInterval			  uint64		 `json:"reward_interval" type:"uint"`
 	CalStakeInterval		  uint64		 `json:"cal_stake_interval" type:"uint"`
 }
 
@@ -59,7 +58,6 @@ func DefaultParams() *Params {
 		LowPriceTxSlotsCap:        100,    // Maximum number of low-price transaction slots per block
 		SetCompRate:               21000,  // gas setting for setCompRate
 		FoundationAddress:         "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
-		RewardInterval:			   DefaultRewardInterval, // accumulate reward interval, default per block
 		CalStakeInterval:		   DefaultCalStateInterval, // calculate stake interval, default per block
 	}
 }
@@ -179,15 +177,6 @@ func GetCalStakeInterval() int64 {
 	var interval = int64(GetParams().CalStakeInterval)
 	if interval  <= 0 {
 		interval = int64(DefaultCalStateInterval)
-	}
-	return interval
-}
-
-// GetRewardInterval helper function fo getting reward interval
-func GetRewardInterval() int64 {
-	var interval = int64(GetParams().RewardInterval)
-	if interval  <= 0 {
-		interval = int64(DefaultRewardInterval)
 	}
 	return interval
 }

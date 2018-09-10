@@ -153,7 +153,7 @@ func (ad awardDistributor) Distribute() {
 		ad.distribute(backups, totalShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
 	}
 
-	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Mul(sdk.NewInt(utils.GetRewardInterval())))
+	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
 
 	// reset block gas fee
 	utils.BlockGasFee.SetInt64(0)
@@ -225,5 +225,5 @@ func (ad *awardDistributor) distribute(vals []*simpleValidator, totalShares int6
 }
 
 func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {
-	return ad.getBlockAward().Mul(sdk.NewInt(utils.GetRewardInterval())).Add(ad.transactionFees)
+	return ad.getBlockAward().Add(ad.transactionFees)
 }
