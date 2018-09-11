@@ -299,7 +299,8 @@ imports:
 - name: github.com/tendermint/iavl
   version: 35f66e53d9b01e83b30de68b931f54b2477a94c9
 - name: github.com/tendermint/tendermint
-  version: dfa9a9a30a666132425b29454e90a472aa579a48
+  version: 15386f79b3f9de5a917b8311703d466f2ffd3602
+  repo: https://github.com/CyberMiles/tendermint.git
   subpackages:
   - abci/client
   - abci/example/code

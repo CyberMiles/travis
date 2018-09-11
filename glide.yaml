@@ -24,7 +24,8 @@ import:
   subpackages:
   - data
 - package: github.com/tendermint/tendermint
-  version: v0.22.0
+  repo: https://github.com/CyberMiles/tendermint.git
+  version: 15386f79b3f9de5a917b8311703d466f2ffd3602
   subpackages:
   - config
   - node

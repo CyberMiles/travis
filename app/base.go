@@ -35,6 +35,7 @@ type BaseApp struct {
 	PresentValidators   stake.Validators
 	blockTime           int64
 	deliverSqlTx        *sql.Tx
+	proposer            abci.Validator
 }
 
 const (
@@ -208,6 +209,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.logger.Info("BeginBlock", "absent_validators", app.AbsentValidators)
 	app.ByzantineValidators = req.ByzantineValidators
+	app.proposer = req.Header.Proposer
 
 	return abci.ResponseBeginBlock{}
 }
@@ -225,14 +227,14 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 				continue
 			}
 
-			stake.PunishByzantineValidator(pk)
+			stake.SlashByzantineValidator(pk)
 		}
 		app.ByzantineValidators = app.ByzantineValidators[:0]
 	}
 
 	// punish the absent validators
 	for k, v := range app.AbsentValidators.Validators {
-		stake.PunishAbsentValidator(k, v)
+		stake.SlashAbsentValidator(k, v)
 	}
 
 	var backups stake.Validators
@@ -271,8 +273,8 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
-	ethAppCommit := app.EthApp.Commit()
-	if len(ethAppCommit.Data) == 0 {
+	ethAppCommit, err := app.EthApp.Commit()
+	if err != nil {
 		// Rollback transaction
 		if app.deliverSqlTx != nil {
 			err := app.deliverSqlTx.Rollback()
@@ -283,7 +285,23 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 			stake.ResetDeliverSqlTx()
 			governance.ResetDeliverSqlTx()
 		}
-		return abci.ResponseCommit{}
+
+		// slash block proposer
+		var pk crypto.PubKeyEd25519
+		copy(pk[:], app.proposer.PubKey.Data)
+		pubKey := ttypes.PubKey{pk}
+		stake.SlashBadProposer(pubKey)
+	} else {
+		if app.deliverSqlTx != nil {
+			// Commit transaction
+			err := app.deliverSqlTx.Commit()
+			if err != nil {
+				// TODO: wrapper error
+				panic(err)
+			}
+			stake.ResetDeliverSqlTx()
+			governance.ResetDeliverSqlTx()
+		}
 	}
 
 	workingHeight := app.WorkingHeight()
@@ -297,16 +315,6 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.TotalUsedGasFee = big.NewInt(0)
 
 	res = app.StoreApp.Commit()
-	if app.deliverSqlTx != nil {
-		// Commit transaction
-		err := app.deliverSqlTx.Commit()
-		if err != nil {
-			// TODO: wrapper error
-			panic(err)
-		}
-		stake.ResetDeliverSqlTx()
-		governance.ResetDeliverSqlTx()
-	}
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
 
