@@ -118,16 +118,32 @@ func (c *Candidate) CalcVotingPower() (res int64) {
 	res = 0
 	minStakingAmount := sdk.NewInt(utils.GetParams().MinStakingAmount).Mul(sdk.E18Int)
 	delegations := GetDelegationsByPubKey(c.PubKey)
+	sharesPercentage := c.computeTotalSharesPercentage()
+
 	for _, d := range delegations {
 		// if the amount of staked CMTs is less than 1000, no awards will be distributed.
 		if d.Shares().LT(minStakingAmount) {
 			continue
 		}
 
-		vp := d.CalcVotingPower()
+		vp := d.CalcVotingPower(sharesPercentage)
 		UpdateDelegation(d) // update delegator's voting power
 		res += vp
 	}
+	return
+}
+
+func (c *Candidate) computeTotalSharesPercentage() (res sdk.Rat) {
+	totalShares := GetCandidatesTotalShares()
+	shares, _ := sdk.NewIntFromString(c.Shares)
+	p := sdk.NewRat(shares.Div(sdk.E18Int).Int64(), totalShares.Div(sdk.E18Int).Int64())
+	threshold := utils.GetParams().ValidatorSizeThreshold
+	if p.GT(threshold) {
+		res = threshold.Quo(p)
+	} else {
+		res = sdk.OneRat
+	}
+
 	return
 }
 
@@ -388,7 +404,7 @@ func (d *Delegation) AddSlashAmount(value sdk.Int) (res sdk.Int) {
 	return
 }
 
-func (d *Delegation) CalcVotingPower() int64 {
+func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat) int64 {
 	candidate := GetCandidateByPubKey(d.PubKey)
 	tenDaysAgo, _ := utils.GetTimeBefore(10 * 24)
 	ninetyDaysAgo, _ := utils.GetTimeBefore(90 * 24)
@@ -396,7 +412,7 @@ func (d *Delegation) CalcVotingPower() int64 {
 	s2 := GetCandidateDailyStakeMaxValue(d.PubKey, ninetyDaysAgo)
 	snum := s1.Div(sdk.E18Int).Int64()
 	sdenom := s2.Div(sdk.E18Int).Int64()
-	s := d.Shares().Div(sdk.E18Int).Int64()
+	s := d.Shares().Div(sdk.E18Int).MulRat(sharesPercentage).Int64()
 
 	t, _ := utils.Diff(d.CreatedAt)
 	if t > utils.HalfYear {

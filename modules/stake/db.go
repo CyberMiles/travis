@@ -2,12 +2,11 @@ package stake
 
 import (
 	"database/sql"
-	"github.com/ethereum/go-ethereum/common"
-
 	"fmt"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var (
@@ -293,6 +292,34 @@ func cleanCandidates() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func GetCandidatesTotalShares() (res sdk.Int) {
+	res = sdk.ZeroInt
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	rows, err := txWrapper.tx.Query("select shares from candidates where active = 'Y' and state in ('Validator', 'Backup Validator')")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var shares string
+		err = rows.Scan(&shares)
+		if err != nil {
+			panic(err)
+		}
+
+		s, ok := sdk.NewIntFromString(shares)
+		if !ok {
+			panic(err)
+		}
+		res = res.Add(s)
+	}
+
+	return
 }
 
 func SaveDelegator(delegator *Delegator) {

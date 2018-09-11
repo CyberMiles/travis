@@ -411,6 +411,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 		Verified:     "N",
 		Active:       "Y",
 		BlockHeight:  d.height,
+		State:        "Candidate",
 	}
 	// delegate a part of the max staked CMT amount
 	amount := tx.SelfStakingAmount(d.params.SelfStakingRatio)
@@ -456,6 +457,7 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.Genesi
 		Verified:     "N",
 		Active:       "Y",
 		BlockHeight:  1,
+		State:        "Validator",
 	}
 	SaveCandidate(candidate)
 

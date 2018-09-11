@@ -19,16 +19,6 @@ type simpleValidator struct {
 	vp           int64
 }
 
-func (v *simpleValidator) computeTotalSharesPercentage(totalShares int64, redistribute bool) sdk.Rat {
-	p := sdk.NewRat(v.s, totalShares)
-	threshold := utils.GetParams().ValidatorSizeThreshold
-	if !redistribute && p.Cmp(threshold) > 0 {
-		p = threshold
-	}
-
-	return p
-}
-
 func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
 	//ad.logger.Debug("Distribute", "ownerAddress", val.ownerAddress, "totalAward", totalAward, "totalVotingPower", totalVotingPower, "rr", rr, "rs", rs)
 	t := sdk.ZeroRat
@@ -144,13 +134,13 @@ func (ad awardDistributor) Distribute() {
 		rs = sdk.OneRat
 	}
 
-	ad.distribute(vals, totalShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+	ad.distribute(vals, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
 
 	// distribute to the backup validators
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = sdk.OneRat.Sub(utils.GetParams().ValidatorsBlockAwardRatio)
 		rs = sdk.NewRat(totalBackupShares, totalValShares+totalBackupShares)
-		ad.distribute(backups, totalShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+		ad.distribute(backups, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
 	}
 
 	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
@@ -204,23 +194,10 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 	return
 }
 
-func (ad *awardDistributor) distribute(vals []*simpleValidator, totalShares int64, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
-	award, remaining := sdk.ZeroInt, totalAward
-
+func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
 	for _, val := range vals {
-		p := val.computeTotalSharesPercentage(totalShares, false)
-		award = totalAward.MulRat(p)
-		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward, "p", p, "award", award)
-		val.distributeToAll(award, totalVotingPower, rr, rs)
-		remaining = remaining.Sub(award)
-	}
-
-	// If there is remaining, distribute a second round.
-	if remaining.GT(sdk.ZeroInt) {
-		ad.logger.Debug("there is remaining award, distribute a second round.", "remaining", remaining)
-		for _, val := range vals {
-			val.distributeToAll(remaining, totalVotingPower, rr, rs)
-		}
+		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward)
+		val.distributeToAll(totalAward, totalVotingPower, rr, rs)
 	}
 }
 

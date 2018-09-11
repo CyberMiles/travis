@@ -1,6 +1,10 @@
 package sdk
 
-import "math/big"
+import (
+	"math/big"
+	"strconv"
+	"strings"
+)
 
 type Int struct {
 	*big.Int `json:"int"`
@@ -21,6 +25,13 @@ func NewIntFromBigInt(i *big.Int) Int {
 }
 
 func NewIntFromString(s string) (res Int, ok bool) {
+	s = strings.ToLower(s)
+	if strings.Index(s, "e+") >= 0 {
+		arr := strings.Split(s, "e+")
+		b, _ := strconv.Atoi(arr[1])
+		s = arr[0] + strings.Repeat("0", b)
+	}
+
 	i, ok := new(big.Int).SetString(s, 0)
 	if !ok {
 		return
