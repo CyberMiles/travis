@@ -19,7 +19,6 @@ var (
 	errCandidateExistsAddr             = fmt.Errorf("Candidate already exist, cannot re-declare candidacy")
 	errMissingSignature                = fmt.Errorf("Missing signature")
 	errBondNotNominated                = fmt.Errorf("Cannot bond to non-nominated account")
-	errNoCandidateForAddress           = fmt.Errorf("Validator does not exist for that address")
 	errNoDelegatorForAddress           = fmt.Errorf("Delegator does not contain validator bond")
 	errInsufficientFunds               = fmt.Errorf("Insufficient bond shares")
 	errBadRemoveValidator              = fmt.Errorf("Error removing validator")
@@ -42,12 +41,6 @@ func ErrCandidateExistsAddr() error {
 }
 func ErrMissingSignature() error {
 	return errors.WithCode(errMissingSignature, errors.CodeTypeUnauthorized)
-}
-func ErrBondNotNominated() error {
-	return errors.WithCode(errBondNotNominated, errors.CodeTypeBaseInvalidOutput)
-}
-func ErrNoCandidateForAddress() error {
-	return errors.WithCode(errNoCandidateForAddress, errors.CodeTypeBaseUnknownAddress)
 }
 
 func ErrInsufficientFunds() error {

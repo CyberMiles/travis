@@ -134,25 +134,26 @@ func (ad awardDistributor) Distribute() {
 	vals, totalValShares, totalValVotingPower := ad.buildValidators(ad.validators)
 	backups, totalBackupShares, totalBackupVotingPower := ad.buildValidators(ad.backupValidators)
 	totalVotingPower := totalValVotingPower + totalBackupVotingPower
+	totalShares := totalValShares + totalBackupShares
 	var rr, rs sdk.Rat
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = utils.GetParams().ValidatorsBlockAwardRatio
-		rs = sdk.NewRat(totalValShares, totalValShares+totalBackupShares)
+		rs = sdk.NewRat(totalValShares, totalShares)
 	} else {
 		rr = sdk.OneRat
 		rs = sdk.OneRat
 	}
 
-	ad.distribute(vals, totalValShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+	ad.distribute(vals, totalShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
 
 	// distribute to the backup validators
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = sdk.OneRat.Sub(utils.GetParams().ValidatorsBlockAwardRatio)
 		rs = sdk.NewRat(totalBackupShares, totalValShares+totalBackupShares)
-		ad.distribute(backups, totalBackupShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+		ad.distribute(backups, totalShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
 	}
 
-	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)))
+	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
 
 	// reset block gas fee
 	utils.BlockGasFee.SetInt64(0)
@@ -204,16 +205,17 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 }
 
 func (ad *awardDistributor) distribute(vals []*simpleValidator, totalShares int64, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
-	award := sdk.NewInt(0)
+	award, remaining := sdk.ZeroInt, totalAward
+
 	for _, val := range vals {
 		p := val.computeTotalSharesPercentage(totalShares, false)
 		award = totalAward.MulRat(p)
 		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward, "p", p, "award", award)
 		val.distributeToAll(award, totalVotingPower, rr, rs)
+		remaining = remaining.Sub(award)
 	}
 
 	// If there is remaining, distribute a second round.
-	remaining := totalAward.Sub(award)
 	if remaining.GT(sdk.ZeroInt) {
 		ad.logger.Debug("there is remaining award, distribute a second round.", "remaining", remaining)
 		for _, val := range vals {
@@ -223,5 +225,5 @@ func (ad *awardDistributor) distribute(vals []*simpleValidator, totalShares int6
 }
 
 func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {
-	return ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)).Add(ad.transactionFees)
+	return ad.getBlockAward().Add(ad.transactionFees)
 }

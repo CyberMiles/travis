@@ -11,11 +11,8 @@ import (
 
 const (
 	CommitSeconds = 10
-	//BlocksPerHour = 60 * 60 / 10
-	// fixme just for test
-	BlocksPerHour = 2
-	//BlocksPerDay  = 24 * 60 * 60 / 10
-	BlocksPerDay        = 1
+	// calculate candidate stakes interval
+	DefaultCalStateInterval = 1
 	HalfYear            = 180
 	YearlyBlockNumber   = 365 * 24 * 3600 / 10
 	BasicMintableAmount = "1000000000000000000000000000"

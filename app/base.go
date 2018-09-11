@@ -239,29 +239,31 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	var backups stake.Validators
 	for _, bv := range stake.GetBackupValidators() {
-		backups = append(backups, bv.Validator())
+		// exclude the absent validators
+		if !app.AbsentValidators.Contains(bv.PubKey) {
+			backups = append(backups, bv.Validator())
+		}
 	}
 
 	// block award
-	if app.WorkingHeight()%utils.BlocksPerHour == 0 {
-		// calculate the validator set difference
-		diff, err := stake.UpdateValidatorSet(app.Append())
-		if err != nil {
-			panic(err)
-		}
-		app.AddValChange(diff)
-
-		// run once per hour
-		if len(app.PresentValidators) > 0 {
-			stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
-		}
+	// calculate the validator set difference
+	diff, err := stake.UpdateValidatorSet()
+	if err != nil {
+		panic(err)
 	}
+	app.AddValChange(diff)
+
+	// run once per hour
+	if len(app.PresentValidators) > 0 {
+		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
+	}
+	// block award end
 
 	// handle the pending unstake requests
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
 
 	// record candidates stakes daily
-	if app.WorkingHeight()%utils.BlocksPerDay == 0 {
+	if calStakeCheck(app.WorkingHeight())  {
 		// run once per day
 		stake.RecordCandidateDailyStakes()
 	}
@@ -302,12 +304,12 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		}
 	}
 
-	if dirty := utils.CleanParams(); dirty {
+	workingHeight := app.WorkingHeight()
+
+	if  dirty := utils.CleanParams(); workingHeight == 1 || dirty {
 		state := app.Append()
 		state.Set(utils.ParamKey, utils.UnloadParams())
 	}
-
-	workingHeight := app.WorkingHeight()
 
 	// reset store app
 	app.TotalUsedGasFee = big.NewInt(0)
@@ -335,4 +337,8 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 	//	// TODO: save to DB
 	//}
 	return hash
+}
+
+func calStakeCheck(height int64) bool {
+	return height % utils.GetCalStakeInterval() == 0
 }

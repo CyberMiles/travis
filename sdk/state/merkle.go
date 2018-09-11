@@ -82,7 +82,7 @@ func (s *State) Commit(version int64) ([]byte, error) {
 	}
 
 	// release an old version
-	if version > s.historySize {
+	if s.historySize > 0 && version > s.historySize {
 		s.committed.Tree.DeleteVersion(version - s.historySize)
 	}
 

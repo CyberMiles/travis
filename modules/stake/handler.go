@@ -306,7 +306,7 @@ func (c check) delegate(tx TxDelegate) error {
 
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	// check if the delegator has sufficient funds
@@ -474,7 +474,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	// create and save the empty candidate
 	candidate := GetCandidateByAddress(d.sender)
 	if candidate == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	totalCost := gasFee
@@ -526,11 +526,11 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	validatorAddress := d.sender
 	candidate := GetCandidateByAddress(validatorAddress)
 	if candidate == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	// All staked tokens will be distributed back to delegator addresses.
-	// Self-staked CMTs will be refunded back to the simpleValidator address.
+	// Self-staked CMTs will be refunded back to the validator address.
 	delegations := GetDelegationsByPubKey(candidate.PubKey)
 	for _, delegation := range delegations {
 		txWithdraw := TxWithdraw{ValidatorAddress: validatorAddress, Amount: delegation.Shares().String()}
@@ -580,7 +580,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 	}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := commons.Transfer(d.sender, d.params.HoldAccount, delegateAmount)
+	err := commons.Transfer(d.sender, utils.HoldAccount, delegateAmount)
 	if err != nil {
 		return err
 	}
@@ -622,7 +622,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	// get pubKey candidate
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
-		return ErrNoCandidateForAddress()
+		return ErrBadValidatorAddr()
 	}
 
 	amount, ok := sdk.NewIntFromString(tx.Amount)
@@ -709,7 +709,6 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 }
 
 func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
-	params := utils.GetParams()
 	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
 		// get pubKey candidate
@@ -718,10 +717,10 @@ func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
 			continue
 		}
 
-		if candidate.Shares == "0" {
-			//candidate.State = "N"
-			removeCandidate(candidate)
-		}
+		//if candidate.Shares == "0" {
+		//	//candidate.State = "N"
+		//	removeCandidate(candidate)
+		//}
 
 		delegation := GetDelegation(req.DelegatorAddress, candidate.PubKey)
 		if delegation == nil {
@@ -738,7 +737,7 @@ func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
 
 		// transfer coins back to account
 		amount, _ := sdk.NewIntFromString(req.Amount)
-		commons.Transfer(params.HoldAccount, req.DelegatorAddress, amount)
+		commons.Transfer(utils.HoldAccount, req.DelegatorAddress, amount)
 	}
 
 	return nil
