@@ -13,6 +13,8 @@ const (
 	CommitSeconds = 10
 	// calculate candidate stakes interval
 	DefaultCalStateInterval = 1
+	// calculate voting power interval
+	DefaultCalVPInterval = 1
 	HalfYear            = 180
 	YearlyBlockNumber   = 365 * 24 * 3600 / 10
 	BasicMintableAmount = "1000000000000000000000000000"

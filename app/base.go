@@ -245,14 +245,16 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		}
 	}
 
-	// block award
 	// calculate the validator set difference
-	diff, err := stake.UpdateValidatorSet()
-	if err != nil {
-		panic(err)
+	if calVPCheck(app.WorkingHeight()) {
+		diff, err := stake.UpdateValidatorSet()
+		if err != nil {
+			panic(err)
+		}
+		app.AddValChange(diff)
 	}
-	app.AddValChange(diff)
 
+	// block award
 	// run once per hour
 	if len(app.PresentValidators) > 0 {
 		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
@@ -341,4 +343,8 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 
 func calStakeCheck(height int64) bool {
 	return height % utils.GetCalStakeInterval() == 0
+}
+
+func calVPCheck(height int64) bool {
+	return height % utils.GetCalVPInterval() == 0
 }
