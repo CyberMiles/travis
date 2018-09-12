@@ -41,7 +41,7 @@ describe("Stake Test", function() {
     expect(existingValidator).be.an("object")
 
     if (Globals.TestMode == "single") {
-      amounts = new Amounts(20000)
+      amounts = new Amounts(5000)
     }
   })
 
@@ -261,10 +261,27 @@ describe("Stake Test", function() {
   })
   describe("Voting Power", function() {
     let val_D, dele_B, dele_C, dele_D
+    let p = 1
     let vp_B, vp_C, vp_D
     before(function() {
+      // get validators
+      let vals = web3.cmt.stake.validator.list()
+      let totalShares = parseInt(
+        web3.fromWei(
+          vals.data.reduce((s, v) => {
+            return s.plus(v.shares)
+          }, web3.toBigNumber(0)),
+          "cmt"
+        )
+      )
       // get validator D
       val_D = web3.cmt.stake.validator.query(Globals.Accounts[3], 0).data
+      // calc share percentage
+      let shares = parseInt(web3.fromWei(val_D.shares, "cmt"))
+      let threshold = eval(Globals.Params.validator_size_threshold)
+      if (shares / totalShares > threshold) {
+        p = threshold / (shares / totalShares)
+      }
       // get delegator B, C, D of D
       dele_B = Utils.getDelegation(1, 3)
       dele_C = Utils.getDelegation(2, 3)
@@ -272,17 +289,17 @@ describe("Stake Test", function() {
     })
     it("check delegator B's voting power", function() {
       let n = val_D.num_of_delegators
-      vp_B = Utils.calcVotingPower(n, dele_B.shares)
+      vp_B = Utils.calcVotingPower(n, dele_B.shares, p)
       expect(dele_B.voting_power).to.eq(vp_B)
     })
     it("check delegator C's voting power", function() {
       let n = val_D.num_of_delegators
-      vp_C = Utils.calcVotingPower(n, dele_C.shares)
+      vp_C = Utils.calcVotingPower(n, dele_C.shares, p)
       expect(dele_C.voting_power).to.eq(vp_C)
     })
     it("check delegator D's voting power", function() {
       let n = val_D.num_of_delegators
-      vp_D = Utils.calcVotingPower(n, dele_D.shares)
+      vp_D = Utils.calcVotingPower(n, dele_D.shares, p)
       expect(dele_D.voting_power).to.eq(vp_D)
     })
     it("check validator D's voting power", function() {

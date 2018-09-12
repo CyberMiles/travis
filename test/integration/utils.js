@@ -290,7 +290,7 @@ const addFakeValidators = () => {
     if (valsToAdd > 0) {
       Globals.Accounts.forEach((acc, idx) => {
         if (idx >= valsToAdd) return
-        let initAmount = 1000000,
+        let initAmount = 100000,
           compRate = "0.8"
         let payload = {
           from: acc,
@@ -378,14 +378,19 @@ const calcValAward = (award, vals) => {
 }
 
 // n: number of delegators; s: delegator's current stake
-const calcVotingPower = (n, s) => {
+const calcVotingPower = (n, s, p) => {
+  // no awards if less than 1000cmt
+  if (parseInt(s / 1e18) < Number(Globals.Params.min_staking_amount)) {
+    return 0
+  }
+
   let s10 = 1,
     s90 = 1,
     t = 1 // simplfied.
   let r1 = Math.pow(s10 / s90, 2)
   let r2 = (t / 180 + 1).toFixed(2)
   let r3 = Math.pow(1 - 1 / (n / 10 + 1), 2)
-  let r4 = parseInt(s / 1e18)
+  let r4 = parseInt((s / 1e18) * p)
   let x = r1 * r3 * r4
   let l = Math.log2(r2)
   let vp = Math.ceil(l * x)
