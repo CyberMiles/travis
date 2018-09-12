@@ -710,7 +710,7 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	return nil
 }
 
-func HandlePendingUnstakeRequests(height int64, store state.SimpleDB) error {
+func HandlePendingUnstakeRequests(height int64) error {
 	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
 		// get pubKey candidate

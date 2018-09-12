@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	"os"
 )
 
@@ -18,6 +19,11 @@ The stake/query/delegator is to query the current stake status of a delegator. N
 
 * Delegator address
 */
+
+//nolint
+const (
+	FlagHeight = "height"
+)
 
 //nolint
 var (
@@ -38,6 +44,12 @@ var (
 		RunE:  cmdQueryDelegator,
 		Short: "Query the current stake status of a delegator",
 	}
+
+	CmdQueryAwardInfo = &cobra.Command{
+		Use:   "awardInfo",
+		RunE:  cmdQueryAwardInfo,
+		Short: "Query the award info of a block",
+	}
 )
 
 func init() {
@@ -47,6 +59,11 @@ func init() {
 
 	CmdQueryValidator.Flags().AddFlagSet(fsAddr)
 	CmdQueryDelegator.Flags().AddFlagSet(fsAddr)
+
+	//fsHeight := flag.NewFlagSet("", flag.ContinueOnError)
+	//fsHeight.String(FlagHeight, "", "block height")
+
+	//CmdQueryAwardInfo.Flags().AddFlagSet(fsHeight)
 }
 
 func cmdQueryValidators(cmd *cobra.Command, args []string) error {
@@ -79,9 +96,27 @@ func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
 	return Foutput(b)
 }
 
+func cmdQueryAwardInfo(cmd *cobra.Command, args []string) error {
+	height := viper.GetString(FlagHeight)
+	b, err := GetByHeight("/awardInfo", []byte(height), int64(viper.GetInt(FlagHeight)))
+	if err != nil {
+		return err
+	}
+	return Foutput(b)
+}
+
 func Get(path string, params []byte) ([]byte, error) {
 	node := commands.GetNode()
 	resp, err := node.ABCIQuery(path, params)
+	if resp == nil {
+		return nil, err
+	}
+	return resp.Response.Value, err
+}
+
+func GetByHeight(path string, params []byte, height int64) ([]byte, error) {
+	node := commands.GetNode()
+	resp, err := node.ABCIQueryWithOptions(path, params, rpcclient.ABCIQueryOptions{Trusted: true, Height: int64(height)})
 	if resp == nil {
 		return nil, err
 	}
