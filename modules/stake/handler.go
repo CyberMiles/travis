@@ -602,6 +602,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 			CreatedAt:        now,
 			UpdatedAt:        now,
 		}
+		candidate.NumOfDelegator += 1
 		SaveDelegation(delegation)
 	} else {
 		delegation.AddDelegateAmount(delegateAmount)
@@ -610,7 +611,6 @@ func (d deliver) delegate(tx TxDelegate) error {
 	}
 
 	// Add delegateAmount to candidate
-	candidate.NumOfDelegator += 1
 	candidate.AddShares(delegateAmount)
 	candidate.UpdatedAt = now
 	updateCandidate(candidate)
