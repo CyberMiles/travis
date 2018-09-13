@@ -70,15 +70,6 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 		srvs.tmNode.Stop()
 		srvs.emNode.Stop()
 		dbm.Sqliter.CloseDB()
-		//for {
-		//	if storeApp.BlockEnd {
-		//		srvs.tmNode.Stop()
-		//		break
-		//	} else {
-		//		fmt.Println("Wait 500 milliseconds until the commit is completed")
-		//		time.Sleep(500 * time.Microsecond)
-		//	}
-		//}
 	})
 
 	return nil

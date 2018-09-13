@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/go-wire"
 	"github.com/tendermint/tendermint/libs/log"
 	"math"
 )
@@ -19,9 +21,9 @@ type simpleValidator struct {
 	vp           int64
 }
 
-func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
-	//ad.logger.Debug("Distribute", "ownerAddress", val.ownerAddress, "totalAward", totalAward, "totalVotingPower", totalVotingPower, "rr", rr, "rs", rs)
+func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) (res sdk.Int) {
 	t := sdk.ZeroRat
+	res = sdk.ZeroInt
 
 	// distribute to the delegators
 	for _, d := range v.delegators {
@@ -29,14 +31,14 @@ func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower i
 		b := sdk.NewRat(d.vp*a.Num().Int64(), a.Denom().Int64())
 		c := totalAward.MulRat(b.Mul(rr).Quo(rs).Quo(sdk.NewRat(totalVotingPower, 1)))
 		d.distributeAward(v, c)
+		res = res.Add(c)
 		t = t.Add(sdk.NewRat(d.vp*d.c.Num().Int64(), d.c.Denom().Int64()))
-		//ad.logger.Debug("Distribute to simpleDelegator", "address", d.address, "award", c)
 	}
 
 	// distribute to the validator self
 	c := totalAward.MulRat(t.Mul(rr).Quo(rs).Quo(sdk.NewRat(totalVotingPower, 1)))
 	v.distributeAwardToSelf(c)
-	//ad.logger.Debug("Distribute to simpleValidator", "address", val.ownerAddress, "award", c)
+	res = res.Add(c)
 	return
 }
 
@@ -83,9 +85,18 @@ func (d simpleDelegator) String() string {
 	return fmt.Sprintf("[simpleDeligator] address: %s, s: %d, c: %vp, vp: %d", d.address.String(), d.s, d.c, d.vp)
 }
 
+type AwardInfo struct {
+	Address common.Address `json:"address"`
+	State   string         `json:"state"`
+	Amount  string         `json:"amount"`
+}
+
+type AwardInfos []AwardInfo
+
 //_______________________________________________________________________
 
 type awardDistributor struct {
+	store            state.SimpleDB
 	height           int64
 	validators       Validators
 	backupValidators Validators
@@ -93,8 +104,8 @@ type awardDistributor struct {
 	logger           log.Logger
 }
 
-func NewAwardDistributor(height int64, validators, backupValidators Validators, logger log.Logger) *awardDistributor {
-	return &awardDistributor{height, validators, backupValidators, sdk.NewIntFromBigInt(utils.BlockGasFee), logger}
+func NewAwardDistributor(store state.SimpleDB, height int64, validators, backupValidators Validators, logger log.Logger) *awardDistributor {
+	return &awardDistributor{store, height, validators, backupValidators, sdk.NewIntFromBigInt(utils.BlockGasFee), logger}
 }
 
 func (ad awardDistributor) getMintableAmount() (amount sdk.Int) {
@@ -195,12 +206,24 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 }
 
 func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
+	var awardInfos AwardInfos
 	for _, val := range vals {
 		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward)
-		val.distributeToAll(totalAward, totalVotingPower, rr, rs)
+		award := val.distributeToAll(totalAward, totalVotingPower, rr, rs)
+
+		// fixme state
+		ai := AwardInfo{Address: val.ownerAddress, State: "", Amount: award.String()}
+		awardInfos = append(awardInfos, ai)
 	}
+
+	saveAwardInfo(ad.store, awardInfos)
 }
 
 func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {
 	return ad.getBlockAward().Add(ad.transactionFees)
+}
+
+func saveAwardInfo(store state.SimpleDB, awardInfos AwardInfos) {
+	b := wire.BinaryBytes(awardInfos)
+	store.Set(utils.AwardInfosKey, b)
 }

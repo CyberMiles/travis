@@ -38,13 +38,8 @@ type BaseApp struct {
 	proposer            abci.Validator
 }
 
-const (
-	BLOCK_AWARD_STR = "10000000000000000000000"
-)
-
 var (
-	blockAward, _                  = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
-	_             abci.Application = &BaseApp{}
+	_ abci.Application = &BaseApp{}
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
@@ -168,7 +163,6 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 
 // BeginBlock - ABCI
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	app.BlockEnd = false
 	app.blockTime = req.GetHeader().Time
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
@@ -257,15 +251,15 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	// block award
 	// run once per hour
 	if len(app.PresentValidators) > 0 {
-		stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
+		stake.NewAwardDistributor(app.Append(), app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
 	}
 	// block award end
 
 	// handle the pending unstake requests
-	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
+	stake.HandlePendingUnstakeRequests(app.WorkingHeight())
 
 	// record candidates stakes daily
-	if calStakeCheck(app.WorkingHeight())  {
+	if calStakeCheck(app.WorkingHeight()) {
 		// run once per day
 		stake.RecordCandidateDailyStakes()
 	}
@@ -281,7 +275,6 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		if app.deliverSqlTx != nil {
 			err := app.deliverSqlTx.Rollback()
 			if err != nil {
-				// TODO: wrapper error
 				panic(err)
 			}
 			stake.ResetDeliverSqlTx()
@@ -298,7 +291,6 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 			// Commit transaction
 			err := app.deliverSqlTx.Commit()
 			if err != nil {
-				// TODO: wrapper error
 				panic(err)
 			}
 			stake.ResetDeliverSqlTx()
@@ -308,7 +300,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	workingHeight := app.WorkingHeight()
 
-	if  dirty := utils.CleanParams(); workingHeight == 1 || dirty {
+	if dirty := utils.CleanParams(); workingHeight == 1 || dirty {
 		state := app.Append()
 		state.Set(utils.ParamKey, utils.UnloadParams())
 	}
@@ -319,8 +311,6 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	res = app.StoreApp.Commit()
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
-
-	app.BlockEnd = true
 
 	return
 }
@@ -342,7 +332,7 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 }
 
 func calStakeCheck(height int64) bool {
-	return height % utils.GetCalStakeInterval() == 0
+	return height%utils.GetCalStakeInterval() == 0
 }
 
 func calVPCheck(height int64) bool {

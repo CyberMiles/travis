@@ -91,7 +91,7 @@ func initTendermint() {
 	} else {
 		genDoc := types.GenesisDoc{
 			ChainID: viper.GetString(FlagChainID),
-			Params: utils.DefaultParams(),
+			Params:  utils.DefaultParams(),
 		}
 
 		// fixme Use specific values instead in production
@@ -174,7 +174,7 @@ func initTravisDb() {
 		defer db.Close()
 
 		sqlStmt := `
-	create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, ranking_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, num_of_delegators integer not null default 0, created_at text not null, updated_at text not null default '');
+	create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, num_of_delegators integer not null default 0, created_at text not null, updated_at text not null default '');
 	create unique index idx_candidates_pub_key on candidates(pub_key);
 	create index idx_candidates_hash on candidates(hash);
  	create table delegators(address text not null primary key, created_at text not null);

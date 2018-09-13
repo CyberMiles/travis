@@ -66,9 +66,10 @@ func DefaultParams() *Params {
 
 var (
 	// Keys for store prefixes
-	ParamKey = []byte{0x01} // key for global parameters
-	dirty    = false
-	params   = new(Params)
+	ParamKey      = []byte{0x01} // key for global parameters
+	AwardInfosKey = []byte{0x02} // key for award infos
+	dirty         = false
+	params        = new(Params)
 )
 
 // load/save the global params
@@ -187,7 +188,7 @@ func GetCalVPInterval() int64 {
 // GetCalStakeInterval helper function of getting calculate stake interval
 func GetCalStakeInterval() int64 {
 	var interval = int64(GetParams().CalStakeInterval)
-	if interval  <= 0 {
+	if interval <= 0 {
 		interval = int64(DefaultCalStateInterval)
 	}
 	return interval
