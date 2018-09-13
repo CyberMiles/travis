@@ -55,10 +55,15 @@ before("Unlock all accounts", function() {
   })
 })
 
-before("Load system parameters", function() {
-  let params = web3.cmt.governance.getParams()
-  Globals.Params = params.data
-  logger.debug(Globals.Params)
+before("Load system parameters", function(done) {
+  web3.cmt.governance.getParams((err, res) => {
+    if (err) {
+      logger.error(err)
+      done(err)
+    }
+    Globals.Params = res.data
+    logger.debug(Globals.Params)
+  })
 })
 
 before("Setup a ERC20 Smart contract called ETH", function(done) {
