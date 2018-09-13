@@ -46,7 +46,7 @@ var (
 	}
 
 	CmdQueryAwardInfo = &cobra.Command{
-		Use:   "awardInfo",
+		Use:   "award-info",
 		RunE:  cmdQueryAwardInfo,
 		Short: "Query the award info of a block",
 	}
@@ -59,11 +59,6 @@ func init() {
 
 	CmdQueryValidator.Flags().AddFlagSet(fsAddr)
 	CmdQueryDelegator.Flags().AddFlagSet(fsAddr)
-
-	//fsHeight := flag.NewFlagSet("", flag.ContinueOnError)
-	//fsHeight.String(FlagHeight, "", "block height")
-
-	//CmdQueryAwardInfo.Flags().AddFlagSet(fsHeight)
 }
 
 func cmdQueryValidators(cmd *cobra.Command, args []string) error {

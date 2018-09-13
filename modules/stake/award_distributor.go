@@ -86,12 +86,12 @@ func (d simpleDelegator) String() string {
 }
 
 type AwardInfo struct {
-	address common.Address `json:"address"`
-	state   string         `json:"state"`
-	amount  sdk.Int        `json:"amount"`
+	Address common.Address `json:"address"`
+	State   string         `json:"state"`
+	Amount  string         `json:"amount"`
 }
 
-type AwardInfos []*AwardInfo
+type AwardInfos []AwardInfo
 
 //_______________________________________________________________________
 
@@ -212,8 +212,8 @@ func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.I
 		award := val.distributeToAll(totalAward, totalVotingPower, rr, rs)
 
 		// fixme state
-		ai := AwardInfo{address: val.ownerAddress, state: "", amount: award}
-		awardInfos = append(awardInfos, &ai)
+		ai := AwardInfo{Address: val.ownerAddress, State: "", Amount: award.String()}
+		awardInfos = append(awardInfos, ai)
 	}
 
 	saveAwardInfo(ad.store, awardInfos)
@@ -226,5 +226,4 @@ func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {
 func saveAwardInfo(store state.SimpleDB, awardInfos AwardInfos) {
 	b := wire.BinaryBytes(awardInfos)
 	store.Set(utils.AwardInfosKey, b)
-	fmt.Printf("##### saveAwardInfo: %d\n", len(awardInfos))
 }
