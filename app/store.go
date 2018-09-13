@@ -223,7 +223,6 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 
 		b, _ := json.Marshal(awardInfos)
 		resQuery.Value = b
-		resQuery.Height = int64(height)
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest
 		resQuery.Log = cmn.Fmt("Unexpected Query path: %v", reqQuery.Path)
