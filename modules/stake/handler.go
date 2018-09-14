@@ -533,7 +533,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 
 	// All staked tokens will be distributed back to delegator addresses.
 	// Self-staked CMTs will be refunded back to the validator address.
-	delegations := GetDelegationsByPubKey(candidate.PubKey)
+	delegations := GetDelegationsByPubKey(candidate.PubKey, "Y")
 	for _, delegation := range delegations {
 		txWithdraw := TxWithdraw{ValidatorAddress: validatorAddress, Amount: delegation.Shares().String()}
 		d.doWithdraw(delegation, delegation.Shares(), candidate, txWithdraw)
@@ -598,6 +598,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 			AwardAmount:      "0",
 			WithdrawAmount:   "0",
 			SlashAmount:      "0",
+			State:            "Y",
 			CompRate:         candidate.CompRate,
 			CreatedAt:        now,
 			UpdatedAt:        now,
@@ -607,6 +608,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 	} else {
 		delegation.AddDelegateAmount(delegateAmount)
 		delegation.UpdatedAt = now
+		delegation.State = "Y"
 		UpdateDelegation(delegation)
 	}
 
@@ -730,7 +732,7 @@ func HandlePendingUnstakeRequests(height int64) error {
 		}
 
 		if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
-			RemoveDelegation(delegation)
+			RemoveDelegation(delegation.DelegatorAddress, delegation.PubKey)
 		}
 
 		req.State = "COMPLETED"

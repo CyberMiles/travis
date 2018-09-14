@@ -417,6 +417,17 @@ func (s *CmtRPCService) QueryDelegator(address common.Address, height uint64) (*
 	return &StakeQueryResult{h, slotDelegates}, nil
 }
 
+func (s *CmtRPCService) QueryAwardInfos(height uint64) (*StakeQueryResult, error) {
+	var awardInfos stake.AwardInfos
+	key := fmt.Sprintf("%d", height)
+	h, err := s.getParsedFromJson("/awardInfo", []byte(key), &awardInfos, height)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StakeQueryResult{h, awardInfos}, nil
+}
+
 type GovernanceTransferFundProposalArgs struct {
 	Nonce             *hexutil.Uint64 `json:"nonce"`
 	From              common.Address  `json:"from"`

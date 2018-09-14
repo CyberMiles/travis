@@ -63,6 +63,7 @@ before("Load system parameters", function(done) {
     }
     Globals.Params = res.data
     logger.debug(Globals.Params)
+    done()
   })
 })
 
