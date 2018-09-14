@@ -176,7 +176,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		validator.pk = candidate.PubKey
 
 		// Get all delegators
-		delegations := GetDelegationsByPubKey(candidate.PubKey)
+		delegations := GetDelegationsByPubKey(candidate.PubKey, "Y")
 		for _, delegation := range delegations {
 			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
 			if delegation.VotingPower == 0 {

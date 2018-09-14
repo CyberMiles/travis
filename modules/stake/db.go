@@ -6,6 +6,7 @@ import (
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -382,31 +383,31 @@ func SaveDelegation(d *Delegation) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, hash, voting_power, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, hash, voting_power, state, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.CreatedAt, d.UpdatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.State, d.CreatedAt, d.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func RemoveDelegation(delegation *Delegation) {
+func RemoveDelegation(delegatorAddress common.Address, pubKey types.PubKey) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("delete from delegations where delegator_address = ? and pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("update delegations set status = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.DelegatorAddress.String(), types.PubKeyString(delegation.PubKey))
+	_, err = stmt.Exec("N", utils.GetNow(), delegatorAddress.String(), types.PubKeyString(pubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -415,12 +416,12 @@ func RemoveDelegation(delegation *Delegation) {
 func UpdateDelegation(d *Delegation) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
-	stmt, err := txWrapper.tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, comp_rate = ?, hash = ?, voting_power = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, comp_rate = ?, hash = ?, voting_power = ?, state = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
+	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.State, d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -438,15 +439,13 @@ func GetDelegation(delegatorAddress common.Address, pubKey types.PubKey) *Delega
 	}
 }
 
-func GetDelegationsByPubKey(pubKey types.PubKey) (delegations []*Delegation) {
+func GetDelegationsByPubKey(pubKey types.PubKey, state string) (delegations []*Delegation) {
 	cond := make(map[string]interface{})
 	cond["pub_key"] = types.PubKeyString(pubKey)
-	return getDelegationsInternal(cond)
-}
+	if state != "" {
+		cond["state"] = state
+	}
 
-func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*Delegation) {
-	cond := make(map[string]interface{})
-	cond["delegator_address"] = delegatorAddress.String()
 	return getDelegationsInternal(cond)
 }
 
@@ -455,7 +454,7 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	defer txWrapper.Commit()
 
 	clause, params := buildQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, voting_power, created_at, updated_at from delegations"+clause, params...)
+	rows, err := txWrapper.tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, voting_power, state, created_at, updated_at from delegations"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -467,9 +466,9 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 
 func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 	for rows.Next() {
-		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, compRate, createdAt, updatedAt string
+		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, compRate, state, createdAt, updatedAt string
 		var votingPower int64
-		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &compRate, &votingPower, &createdAt, &updatedAt)
+		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &compRate, &votingPower, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -489,6 +488,7 @@ func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 			SlashAmount:      slashAmount,
 			CompRate:         c,
 			VotingPower:      votingPower,
+			State:            state,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		}

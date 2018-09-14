@@ -105,7 +105,7 @@ func slash(pubKey types.PubKey, reason string, slashingRatio sdk.Rat) (err error
 	}
 
 	// Get all of the delegators(includes the validator itself)
-	delegations := GetDelegationsByPubKey(v.PubKey)
+	delegations := GetDelegationsByPubKey(v.PubKey, "Y")
 	for _, d := range delegations {
 		slash := d.Shares().MulRat(slashingRatio)
 		slashDelegator(d, common.HexToAddress(v.OwnerAddress), slash)

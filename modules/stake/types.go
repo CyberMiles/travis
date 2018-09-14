@@ -117,7 +117,7 @@ func (c *Candidate) Hash() []byte {
 func (c *Candidate) CalcVotingPower() (res int64) {
 	res = 0
 	minStakingAmount := sdk.NewInt(utils.GetParams().MinStakingAmount).Mul(sdk.E18Int)
-	delegations := GetDelegationsByPubKey(c.PubKey)
+	delegations := GetDelegationsByPubKey(c.PubKey, "Y")
 	sharesPercentage := c.computeTotalSharesPercentage()
 
 	for _, d := range delegations {
@@ -357,6 +357,7 @@ type Delegation struct {
 	VotingPower      int64          `json:"voting_power"`
 	CreatedAt        string         `json:"created_at"`
 	UpdatedAt        string         `json:"updated_at"`
+	State            string         `json:"state"`
 }
 
 func (d *Delegation) Shares() (res sdk.Int) {
