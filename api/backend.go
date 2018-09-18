@@ -73,6 +73,8 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config) (*Backend, erro
 	// We don't need PoW/Uncle validation.
 	ethereum.BlockChain().SetValidator(NullBlockProcessor{})
 
+	ethereum.BlockChain().SetUmbrella(&EthUmbrella{})
+
 	ethBackend := &Backend{
 		ethereum:  ethereum,
 		ethConfig: ethConfig,
