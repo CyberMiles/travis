@@ -217,7 +217,6 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/awardInfo":
 		_, value := tree.GetVersioned(utils.AwardInfosKey, height)
 		var awardInfos stake.AwardInfos
-		//err := wire.ReadBinaryBytes(value, &awardInfos)
 		err := cdc.UnmarshalBinary(value, &awardInfos)
 		if err != nil {
 			resQuery.Log = err.Error()

@@ -20,7 +20,7 @@ type simpleValidator struct {
 	vp           int64
 }
 
-func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) (res sdk.Int) {
+func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower int64, rr sdk.Rat) (res sdk.Int) {
 	t := sdk.ZeroRat
 	res = sdk.ZeroInt
 
@@ -28,14 +28,14 @@ func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower i
 	for _, d := range v.delegators {
 		a := sdk.OneRat.Sub(d.c)
 		b := sdk.NewRat(d.vp*a.Num().Int64(), a.Denom().Int64())
-		c := totalAward.MulRat(b.Mul(rr).Quo(rs).Quo(sdk.NewRat(totalVotingPower, 1)))
+		c := totalAward.MulRat(b.Mul(rr).Quo(sdk.NewRat(totalVotingPower, 1)))
 		d.distributeAward(v, c)
 		res = res.Add(c)
 		t = t.Add(sdk.NewRat(d.vp*d.c.Num().Int64(), d.c.Denom().Int64()))
 	}
 
 	// distribute to the validator self
-	c := totalAward.MulRat(t.Mul(rr).Quo(rs).Quo(sdk.NewRat(totalVotingPower, 1)))
+	c := totalAward.MulRat(t.Mul(rr).Quo(sdk.NewRat(totalVotingPower, 1)))
 	v.distributeAwardToSelf(c)
 	res = res.Add(c)
 	return
@@ -131,26 +131,22 @@ func (ad awardDistributor) getBlockAward() (blockAward sdk.Int) {
 }
 
 func (ad awardDistributor) Distribute() {
-	vals, totalValShares, totalValVotingPower := ad.buildValidators(ad.validators)
+	vals, _, totalValVotingPower := ad.buildValidators(ad.validators)
 	backups, totalBackupShares, totalBackupVotingPower := ad.buildValidators(ad.backupValidators)
 	totalVotingPower := totalValVotingPower + totalBackupVotingPower
-	totalShares := totalValShares + totalBackupShares
-	var rr, rs sdk.Rat
+	var rr sdk.Rat
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = utils.GetParams().ValidatorsBlockAwardRatio
-		rs = sdk.NewRat(totalValShares, totalShares)
 	} else {
 		rr = sdk.OneRat
-		rs = sdk.OneRat
 	}
 
-	ad.distribute(vals, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+	ad.distribute(vals, ad.getBlockAwardAndTxFees(), totalVotingPower, rr)
 
 	// distribute to the backup validators
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = sdk.OneRat.Sub(utils.GetParams().ValidatorsBlockAwardRatio)
-		rs = sdk.NewRat(totalBackupShares, totalValShares+totalBackupShares)
-		ad.distribute(backups, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+		ad.distribute(backups, ad.getBlockAwardAndTxFees(), totalVotingPower, rr)
 	}
 
 	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
@@ -204,11 +200,11 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 	return
 }
 
-func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
+func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.Int, totalVotingPower int64, rr sdk.Rat) {
 	var awardInfos AwardInfos
 	for _, val := range vals {
 		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward)
-		award := val.distributeToAll(totalAward, totalVotingPower, rr, rs)
+		award := val.distributeToAll(totalAward, totalVotingPower, rr)
 
 		// fixme state
 		ai := AwardInfo{Address: val.ownerAddress, State: "", Amount: award.String()}
@@ -223,7 +219,6 @@ func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {
 }
 
 func saveAwardInfo(store state.SimpleDB, awardInfos AwardInfos) {
-	//b := wire.BinaryBytes(awardInfos)
 	b, err := cdc.MarshalBinary(&awardInfos)
 	if err != nil {
 		panic(err)
