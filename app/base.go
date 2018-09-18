@@ -74,11 +74,10 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 	}
 
 	app := &BaseApp{
-		StoreApp:         store,
-		EthApp:           ethApp,
-		checkedTx:        make(map[common.Hash]*types.Transaction),
-		ethereum:         ethereum,
-		AbsentValidators: stake.NewAbsentValidators(),
+		StoreApp:  store,
+		EthApp:    ethApp,
+		checkedTx: make(map[common.Hash]*types.Transaction),
+		ethereum:  ethereum,
 	}
 	return app, nil
 }
@@ -166,6 +165,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.blockTime = req.GetHeader().Time
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
+	app.AbsentValidators = stake.LoadAbsentValidators(app.Append())
 
 	// init deliver sql tx for statke
 	db, err := dbm.Sqliter.GetDB()
@@ -200,6 +200,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 
 	app.AbsentValidators.Clear(app.WorkingHeight())
+	stake.SaveAbsentValidators(app.Append(), app.AbsentValidators)
 
 	app.logger.Info("BeginBlock", "absent_validators", app.AbsentValidators)
 	app.ByzantineValidators = req.ByzantineValidators
@@ -226,9 +227,14 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		app.ByzantineValidators = app.ByzantineValidators[:0]
 	}
 
-	// punish the absent validators
+	// slash the absent validators
 	for k, v := range app.AbsentValidators.Validators {
-		stake.SlashAbsentValidator(k, v)
+		pk, err := ttypes.GetPubKey(k)
+		if err != nil {
+			continue
+		}
+
+		stake.SlashAbsentValidator(pk, v)
 	}
 
 	var backups stake.Validators
@@ -336,5 +342,5 @@ func calStakeCheck(height int64) bool {
 }
 
 func calVPCheck(height int64) bool {
-	return height % utils.GetCalVPInterval() == 0
+	return height%utils.GetCalVPInterval() == 0
 }

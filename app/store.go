@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/CyberMiles/travis/utils"
-	"github.com/tendermint/go-wire"
 	"math/big"
 	"path"
 	"path/filepath"
@@ -27,10 +26,13 @@ import (
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	sm "github.com/CyberMiles/travis/sdk/state"
+	"github.com/tendermint/go-amino"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
 const DefaultHistorySize = -1
+
+var cdc = amino.NewCodec()
 
 // StoreApp contains a data store and all chainState needed
 // to perform queries and handshakes.
@@ -215,7 +217,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/awardInfo":
 		_, value := tree.GetVersioned(utils.AwardInfosKey, height)
 		var awardInfos stake.AwardInfos
-		err := wire.ReadBinaryBytes(value, &awardInfos)
+		err := cdc.UnmarshalBinary(value, &awardInfos)
 		if err != nil {
 			resQuery.Log = err.Error()
 			break

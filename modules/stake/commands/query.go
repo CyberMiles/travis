@@ -92,8 +92,7 @@ func cmdQueryDelegator(cmd *cobra.Command, args []string) error {
 }
 
 func cmdQueryAwardInfo(cmd *cobra.Command, args []string) error {
-	height := viper.GetString(FlagHeight)
-	b, err := GetByHeight("/awardInfo", []byte(height), int64(viper.GetInt(FlagHeight)))
+	b, err := GetByHeight("/awardInfo", []byte{0x00}, int64(viper.GetInt(FlagHeight)))
 	if err != nil {
 		return err
 	}
