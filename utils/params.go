@@ -26,6 +26,7 @@ type Params struct {
 	ValidatorsBlockAwardRatio sdk.Rat `json:"validators_block_award_ratio" type:"rat"`
 	MaxSlashingBlocks         int16   `json:"max_slashing_blocks" type:"uint"`
 	SlashingRatio             sdk.Rat `json:"slashing_ratio" type:"rat"`
+	SlashingEnabled           bool    `json:"slashing_enabled" type:"bool"`
 	CubePubKeys               string  `json:"cube_pub_keys" type:"json"`
 	LowPriceTxGasLimit        uint64  `json:"low_price_tx_gas_limit" type:"uint"`
 	LowPriceTxSlotsCap        int     `json:"low_price_tx_slots_cap" type:"int"`
@@ -54,6 +55,7 @@ func DefaultParams() *Params {
 		ValidatorsBlockAwardRatio: sdk.NewRat(90, 100),
 		MaxSlashingBlocks:         12,
 		SlashingRatio:             sdk.NewRat(1, 1000),
+		SlashingEnabled:           false,
 		CubePubKeys:               `[{"cube_batch":"01","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCiWpvDnwYFTqgSWPlA3VO8u+Yv\n9r8QGlRaYZFszUZEXUQxquGlFexMSVyFeqYjIokfPOEHHx2voqWgi3FKKlp6dkxw\nApP3T22y7Epqvtr+EfNybRta15snccZy47dY4UcmYxbGWFTaL66tz22pCAbjFrxY\n3IxaPPIjDX+FiXdJWwIDAQAB\n-----END PUBLIC KEY-----"},{"cube_batch":"02","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQ8FL6/9zul+X7bFSRiWAzFiAE\n9vHYbClEHwlC7zUZ/JWzU7UT5S2qnYsseYF2WFjJtrGwHRAlTUyPtCpxV8f1uJsI\nl+/N9l6torUHwkhhib1catUSd/T72ltjvVyyg5LQjtRsskFnv3wM/yxYotrgnOs+\ndRpU6WI5XPCIyZqsGwIDAQAB\n-----END PUBLIC KEY-----"},{"cube_batch":"05","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCZ7Fw+1ddvy5OPFftbea0MxewW\nKUTb/E7B4/MHvLz2h7f7snyveFwxxj7QwxaCoVxobEq6AigIlUFUXLM8Y598/jts\nTaN+jh4xdoQN7qKwrbz1MWGf58Aa78Vnoj54B7V0LSajVbLJSZNUEI/24HLcG2iN\nTD3dSvH0ARvRJJ9hZQIDAQAB\n-----END PUBLIC KEY-----"}]`,
 		LowPriceTxGasLimit:        500000, // Maximum gas limit for low-price transaction
 		LowPriceTxSlotsCap:        100,    // Maximum number of low-price transaction slots per block
@@ -114,6 +116,10 @@ func SetParam(name, value string) bool {
 				}
 			case reflect.String:
 				fv.SetString(value)
+			case reflect.Bool:
+				if iv, err := strconv.ParseBool(value); err == nil {
+					fv.SetBool(iv)
+				}
 			case reflect.Struct:
 				switch reflect.TypeOf(fv.Interface()).Name() {
 				case "Rat":
@@ -137,6 +143,10 @@ func CheckParamType(name, value string) bool {
 	for i := 0; i < pv.NumField(); i++ {
 		if top.Field(i).Tag.Get("json") == name {
 			switch top.Field(i).Tag.Get("type") {
+			case "bool":
+				if _, err := strconv.ParseBool(value); err == nil {
+					return true
+				}
 			case "int":
 				if _, err := strconv.ParseInt(value, 10, 64); err == nil {
 					return true

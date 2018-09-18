@@ -32,10 +32,6 @@ type AbsentValidators struct {
 	Validators map[string]*Absence
 }
 
-//func NewAbsentValidators() *AbsentValidators {
-//	return &AbsentValidators{Validators: make(map[types.PubKey]*Absence)}
-//}
-
 func (av AbsentValidators) Add(pk types.PubKey, height int64) {
 	pkStr := types.PubKeyString(pk)
 	absence := av.Validators[pkStr]
@@ -113,10 +109,13 @@ func slash(pubKey types.PubKey, reason string, slashingRatio sdk.Rat) (err error
 
 	// Get all of the delegators(includes the validator itself)
 	delegations := GetDelegationsByPubKey(v.PubKey, "Y")
+	slashingAmount := sdk.ZeroInt
 	for _, d := range delegations {
-		slash := d.Shares().MulRat(slashingRatio)
-		slashDelegator(d, common.HexToAddress(v.OwnerAddress), slash)
-		totalDeduction.Add(slash)
+		if utils.GetParams().SlashingEnabled {
+			slashingAmount = d.Shares().MulRat(slashingRatio)
+		}
+		slashDelegator(d, common.HexToAddress(v.OwnerAddress), slashingAmount)
+		totalDeduction = totalDeduction.Add(slashingAmount)
 	}
 
 	// Save punishment history
