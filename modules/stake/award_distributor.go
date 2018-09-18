@@ -8,7 +8,6 @@ import (
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/go-wire"
 	"github.com/tendermint/tendermint/libs/log"
 	"math"
 )
@@ -224,6 +223,11 @@ func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {
 }
 
 func saveAwardInfo(store state.SimpleDB, awardInfos AwardInfos) {
-	b := wire.BinaryBytes(awardInfos)
+	//b := wire.BinaryBytes(awardInfos)
+	b, err := cdc.MarshalBinary(&awardInfos)
+	if err != nil {
+		panic(err)
+	}
+
 	store.Set(utils.AwardInfosKey, b)
 }
