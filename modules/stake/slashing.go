@@ -1,6 +1,8 @@
 package stake
 
 import (
+	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/tendermint/go-amino"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -10,52 +12,57 @@ import (
 	"github.com/CyberMiles/travis/utils"
 )
 
+var cdc = amino.NewCodec()
+
 type Absence struct {
-	count           int16
-	lastBlockHeight int64
+	Count           int16
+	LastBlockHeight int64
 }
 
 func (a *Absence) Accumulate() {
-	a.count++
-	a.lastBlockHeight++
+	a.Count++
+	a.LastBlockHeight++
 }
 
 func (a Absence) GetCount() int16 {
-	return a.count
+	return a.Count
 }
 
 type AbsentValidators struct {
-	Validators map[types.PubKey]*Absence
+	Validators map[string]*Absence
 }
 
-func NewAbsentValidators() *AbsentValidators {
-	return &AbsentValidators{Validators: make(map[types.PubKey]*Absence)}
-}
+//func NewAbsentValidators() *AbsentValidators {
+//	return &AbsentValidators{Validators: make(map[types.PubKey]*Absence)}
+//}
 
 func (av AbsentValidators) Add(pk types.PubKey, height int64) {
-	absence := av.Validators[pk]
+	pkStr := types.PubKeyString(pk)
+	absence := av.Validators[pkStr]
 	if absence == nil {
-		absence = &Absence{count: 1, lastBlockHeight: height}
+		absence = &Absence{Count: 1, LastBlockHeight: height}
 	} else {
 		absence.Accumulate()
 	}
-	av.Validators[pk] = absence
+	av.Validators[pkStr] = absence
 }
 
 func (av AbsentValidators) Remove(pk types.PubKey) {
-	delete(av.Validators, pk)
+	pkStr := types.PubKeyString(pk)
+	delete(av.Validators, pkStr)
 }
 
 func (av AbsentValidators) Clear(currentBlockHeight int64) {
 	for k, v := range av.Validators {
-		if v.lastBlockHeight != currentBlockHeight {
+		if v.LastBlockHeight != currentBlockHeight {
 			delete(av.Validators, k)
 		}
 	}
 }
 
 func (av AbsentValidators) Contains(pk types.PubKey) bool {
-	if _, exists := av.Validators[pk]; exists {
+	pkStr := types.PubKeyString(pk)
+	if _, exists := av.Validators[pkStr]; exists {
 		return true
 	}
 	return false
@@ -147,4 +154,31 @@ func RemoveValidator(pubKey types.PubKey) (err error) {
 	punishHistory := &PunishHistory{PubKey: pubKey, SlashingRatio: sdk.ZeroRat, SlashAmount: sdk.ZeroInt, Reason: "Absent for up to 12 consecutive blocks", CreatedAt: utils.GetNow()}
 	savePunishHistory(punishHistory)
 	return
+}
+
+func LoadAbsentValidators(store state.SimpleDB) *AbsentValidators {
+	b := store.Get(utils.AbsentValidatorsKey)
+	if b == nil {
+		return &AbsentValidators{Validators: make(map[string]*Absence)}
+	}
+
+	absentValidators := new(AbsentValidators)
+	err := cdc.UnmarshalJSON(b, absentValidators)
+	if err != nil {
+		panic(err) // This error should never occure big problem if does
+	}
+
+	return absentValidators
+}
+
+func SaveAbsentValidators(store state.SimpleDB, absentValidators *AbsentValidators) {
+	if len(absentValidators.Validators) == 0 {
+		return
+	}
+
+	b, err := cdc.MarshalJSON(AbsentValidators{Validators: absentValidators.Validators})
+	if err != nil {
+		panic(err)
+	}
+	store.Set(utils.AbsentValidatorsKey, b)
 }
