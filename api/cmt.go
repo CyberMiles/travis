@@ -419,8 +419,7 @@ func (s *CmtRPCService) QueryDelegator(address common.Address, height uint64) (*
 
 func (s *CmtRPCService) QueryAwardInfos(height uint64) (*StakeQueryResult, error) {
 	var awardInfos stake.AwardInfos
-	key := fmt.Sprintf("%d", height)
-	h, err := s.getParsedFromJson("/awardInfo", []byte(key), &awardInfos, height)
+	h, err := s.getParsedFromJson("/awardInfo", utils.AwardInfosKey, &awardInfos, height)
 	if err != nil {
 		return nil, err
 	}
