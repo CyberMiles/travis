@@ -23,7 +23,7 @@ func SimulateGenesisBlock() *core.Genesis {
 		},
 		Nonce:      uint64(0xdeadbeefdeadbeef),
 		ExtraData:  hexutil.MustDecode("0x"),
-		GasLimit:   uint64(0xF00000000),
+		GasLimit:   uint64(0x1e8480000),
 		Difficulty: big.NewInt(0x40),
 		Alloc:      decodePrealloc(simulateAllocData),
 	}
@@ -55,7 +55,7 @@ func DevGenesisBlock() *core.Genesis {
 		},
 		Nonce:      uint64(0xdeadbeefdeadbeef),
 		ExtraData:  hexutil.MustDecode("0x"),
-		GasLimit:   uint64(0xF00000000),
+		GasLimit:   uint64(0x1e8480000),
 		Difficulty: big.NewInt(0x40),
 		Alloc:      decodePrealloc(devAllocData),
 	}

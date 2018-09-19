@@ -33,7 +33,7 @@ func main() {
 		Nonce: uint64(0xdeadbeefdeadbeef),
 		Timestamp: uint64(0x0),
 		ExtraData: nil,
-		GasLimit: uint64(0xF00000000),
+		GasLimit: uint64(0x1e8480000),
 		Difficulty: big.NewInt(0x40),
 		Mixhash: common.HexToHash("0x0"),
 		Alloc: *(devAllocs()),

@@ -404,7 +404,6 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 	return &ethTypes.Header{
 		Number:     prevBlock.Number().Add(prevBlock.Number(), big.NewInt(1)),
 		ParentHash: prevBlock.Hash(),
-		//GasLimit:   core.CalcGasLimit(prevBlock),
 		GasLimit: calcGasLimit(prevBlock),
 		Coinbase: receiver,
 	}
@@ -414,7 +413,7 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 // The result may be modified by the caller.
 // This is miner strategy, not consensus protocol.
 func calcGasLimit(parent *types.Block) uint64 {
-	// 0xF00000000 = 64424509440
-	var gl uint64 = 64424509440
+	// Ethereum average block gasLimit * 1000
+	var gl uint64 = 8192000000 // 8192m
 	return gl
 }
