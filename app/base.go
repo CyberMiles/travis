@@ -266,8 +266,14 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	// record candidates stakes daily
 	if calStakeCheck(app.WorkingHeight()) {
-		// run once per day
+		// run once a day
 		stake.RecordCandidateDailyStakes()
+	}
+
+	// Accumulates the average staking date of all delegations
+	if calAvgStakingDateCheck(app.WorkingHeight()) {
+		// run once a day
+		stake.AccumulateDelegationsAverageStakingDate()
 	}
 
 	return app.StoreApp.EndBlock(req)
@@ -338,9 +344,13 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 }
 
 func calStakeCheck(height int64) bool {
-	return height%utils.GetCalStakeInterval() == 0
+	return height%int64(utils.GetParams().CalStakeInterval) == 0
 }
 
 func calVPCheck(height int64) bool {
-	return height%utils.GetCalVPInterval() == 0
+	return height%int64(utils.GetParams().CalVPInterval) == 0
+}
+
+func calAvgStakingDateCheck(height int64) bool {
+	return height%int64(utils.GetParams().CalAverageStakingDateInterval) == 0
 }

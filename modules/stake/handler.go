@@ -600,6 +600,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 			SlashAmount:      "0",
 			State:            "Y",
 			CompRate:         candidate.CompRate,
+			BlockHeight:      d.height,
 			CreatedAt:        now,
 			UpdatedAt:        now,
 		}
@@ -661,6 +662,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *Candidate, tx TxWithdraw) {
 	// update delegation withdraw amount
 	delegation.AddWithdrawAmount(amount)
+	delegation.ReduceAverageStakingDate(amount)
 	UpdateDelegation(delegation)
 	now := utils.GetNow()
 
@@ -782,6 +784,15 @@ func RecordCandidateDailyStakes() error {
 		}
 
 		RemoveCandidateDailyStakes(candidate.PubKey, startDate)
+	}
+	return nil
+}
+
+func AccumulateDelegationsAverageStakingDate() error {
+	delegations := GetDelegations("Y")
+	for _, d := range delegations {
+		d.AccumulateAverageStakingDate()
+		UpdateDelegation(d)
 	}
 	return nil
 }
