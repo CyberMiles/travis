@@ -9,7 +9,7 @@ While we highly recommend you to run your own Travis node, you can also ask for 
 Binary
 ======
 
-make sure your os is Ubuntu 16.04 or CentOS 7
+Make sure your os is Ubuntu 16.04 or CentOS 7
 
 Download pre-built binaries from `release page <https://github.com/CyberMiles/travis/releases/tag/vTestnet>`_
 -----------------------------------------------------------------------------------------------------------
