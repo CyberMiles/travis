@@ -6,6 +6,65 @@ In this document, we will discuss how to connect to the CyberMiles Travis Testne
 
 While we highly recommend you to run your own Travis node, you can also ask for direct access to one of the nodes maintained by the CyberMiles Foundation. Send an email to travis@cybermiles.io to apply for access credentials. You still need the ``travis`` client either from Docker or source to access the node.
 
+Binary
+======
+
+make sure your os is Ubuntu 16.04 or CentOS 7
+
+Download pre-built binaries from `release page <https://github.com/CyberMiles/travis/releases/tag/vTestnet>`_
+-----------------------------------------------------------------------------------------------------------
+
+::
+
+  mkdir -p $HOME/release
+  cd $HOME/release
+  
+  # if your os is Ubuntu
+  wget https://github.com/CyberMiles/travis/releases/download/vTestnet/travis_vTestnet_ubuntu-16.04.zip
+  unzip travis_vTestnet_ubuntu-16.04.zip
+
+  # or if your os is CentOS
+  wget https://github.com/CyberMiles/travis/releases/download/vTestnet/travis_vTestnet_centos-7.zip
+  unzip travis_vTestnet_centos-7.zip
+
+Getting Travis TestNet Config
+-----------------------------
+
+::
+
+  rm -rf $HOME/.travis
+  cd $HOME/release
+  ./travis node init --env testnet
+  curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/config.toml > $HOME/.travis/config/config.toml
+  curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/genesis.json > $HOME/.travis/config/genesis.json
+
+
+Change your name from default name `local`
+
+::
+
+  cd $HOME/.travis
+  vim $HOME/.travis/config/config.toml
+  # moniker = "<your_custom_name>"
+  # here you can change your name
+
+Copy libeni into the default Travis data directory
+--------------------------------------------------
+
+::
+
+  mkdir -p $HOME/.travis/eni
+  cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
+
+Start the Node and Join Travis TestNet
+--------------------------------------
+
+::
+
+  cd $HOME/release
+  ./travis node start
+
+
 Docker
 ======
 
