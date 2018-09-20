@@ -121,12 +121,14 @@ func (c *Candidate) CalcVotingPower() (res int64) {
 	sharesPercentage := c.computeTotalSharesPercentage()
 
 	for _, d := range delegations {
+		var vp int64
 		// if the amount of staked CMTs is less than 1000, no awards will be distributed.
 		if d.Shares().LT(minStakingAmount) {
-			continue
+			vp = 0
+			d.ResetVotingPower()
+		} else {
+			vp = d.CalcVotingPower(sharesPercentage)
 		}
-
-		vp := d.CalcVotingPower(sharesPercentage)
 		UpdateDelegation(d) // update delegator's voting power
 		res += vp
 	}
@@ -405,6 +407,10 @@ func (d *Delegation) AddSlashAmount(value sdk.Int) (res sdk.Int) {
 	return
 }
 
+func (d *Delegation) ResetVotingPower() {
+	d.VotingPower = 0
+}
+
 func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat) int64 {
 	candidate := GetCandidateByPubKey(d.PubKey)
 	tenDaysAgo, _ := utils.GetTimeBefore(10 * 24)
@@ -423,7 +429,7 @@ func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat) int64 {
 	one := sdk.OneRat
 	r1 := sdk.NewRat(snum, sdenom)
 	r2 := sdk.NewRat(t, 180)
-	r3 := sdk.NewRat(candidate.NumOfDelegator, 10)
+	r3 := sdk.NewRat(candidate.NumOfDelegator*4, 1)
 	r4 := sdk.NewRat(s, 1)
 
 	r1 = r1.Mul(r1)
