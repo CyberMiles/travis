@@ -349,17 +349,19 @@ type Delegator struct {
 }
 
 type Delegation struct {
-	DelegatorAddress common.Address `json:"delegator_address"`
-	PubKey           types.PubKey   `json:"pub_key"`
-	DelegateAmount   string         `json:"delegate_amount"`
-	AwardAmount      string         `json:"award_amount"`
-	WithdrawAmount   string         `json:"withdraw_amount"`
-	SlashAmount      string         `json:"slash_amount"`
-	CompRate         sdk.Rat        `json:"comp_rate"`
-	VotingPower      int64          `json:"voting_power"`
-	CreatedAt        string         `json:"created_at"`
-	UpdatedAt        string         `json:"updated_at"`
-	State            string         `json:"state"`
+	DelegatorAddress   common.Address `json:"delegator_address"`
+	PubKey             types.PubKey   `json:"pub_key"`
+	DelegateAmount     string         `json:"delegate_amount"`
+	AwardAmount        string         `json:"award_amount"`
+	WithdrawAmount     string         `json:"withdraw_amount"`
+	SlashAmount        string         `json:"slash_amount"`
+	CompRate           sdk.Rat        `json:"comp_rate"`
+	VotingPower        int64          `json:"voting_power"`
+	CreatedAt          string         `json:"created_at"`
+	UpdatedAt          string         `json:"updated_at"`
+	State              string         `json:"state"`
+	BlockHeight        int64          `json:"block_height"`
+	AverageStakingDate int64          `json:"average_staking_date"`
 }
 
 func (d *Delegation) Shares() (res sdk.Int) {
@@ -421,8 +423,10 @@ func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat) int64 {
 	sdenom := s2.Div(sdk.E18Int).Int64()
 	s := d.Shares().Div(sdk.E18Int).MulRat(sharesPercentage).Int64()
 
-	t, _ := utils.Diff(d.CreatedAt)
-	if t > utils.HalfYear {
+	t := d.AverageStakingDate
+	if t == 0 {
+		t = 1
+	} else if t > utils.HalfYear {
 		t = utils.HalfYear
 	}
 
@@ -469,6 +473,20 @@ func (d *Delegation) Hash() []byte {
 	hasher := ripemd160.New()
 	hasher.Write(delegation)
 	return hasher.Sum(nil)
+}
+
+func (d *Delegation) AccumulateAverageStakingDate() {
+	minStakingAmount := sdk.NewInt(utils.GetParams().MinStakingAmount).Mul(sdk.E18Int)
+	if d.Shares().GTE(minStakingAmount) {
+		d.AverageStakingDate += 1
+	}
+}
+
+func (d *Delegation) ReduceAverageStakingDate(withdrawAmount sdk.Int) {
+	num := withdrawAmount.Div(sdk.E18Int).Int64()
+	denom := d.Shares().Div(sdk.E18Int).Int64()
+	p := sdk.NewRat(num, denom)
+	d.AverageStakingDate = sdk.NewInt(d.AverageStakingDate).MulRat(sdk.OneRat.Sub(p)).Int64()
 }
 
 type DelegateHistory struct {
