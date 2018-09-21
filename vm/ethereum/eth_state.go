@@ -125,7 +125,6 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 		gp:              new(core.GasPool).AddGas(ethHeader.GasLimit),
 	}
 	utils.StateChangeQueue = make([]utils.StateChangeObject, 0)
-	utils.TravisTxAddrs = make([]*common.Address, 0)
 	return nil
 }
 

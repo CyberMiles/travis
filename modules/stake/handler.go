@@ -103,7 +103,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		return res, checker.setCompRate(txInner, gasFee)
 	}
 
-	utils.TravisTxAddrs = append(utils.TravisTxAddrs, &sender)
 	return res, errors.ErrUnknownTxType(tx)
 }
 

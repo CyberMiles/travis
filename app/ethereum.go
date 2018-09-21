@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -242,16 +241,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	currentState, from, nonce, resp := app.basicCheck(tx)
 	if resp.Code != abciTypes.CodeTypeOK {
 		return resp
-	}
-
-	// Iterate TravisTxAddrs to prevent transfer transaction
-	for _, tAddr := range utils.TravisTxAddrs {
-		if bytes.Equal(from[:], tAddr.Bytes()) {
-			return abciTypes.ResponseCheckTx{
-				Code: errors.CodeTypeInternalErr,
-				Log: fmt.Sprintf(
-					"Failed as there has been a stake/governance operation in current block")}
-		}
 	}
 
 	// Transactor should have enough funds to cover the costs
