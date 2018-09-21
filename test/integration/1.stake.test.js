@@ -41,7 +41,7 @@ describe("Stake Test", function() {
     expect(existingValidator).be.an("object")
 
     if (Globals.TestMode == "single") {
-      amounts = new Amounts(5000)
+      amounts = new Amounts(20000)
     }
   })
 

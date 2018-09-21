@@ -389,7 +389,7 @@ const calcVotingPower = (n, s, p) => {
     t = 1 // simplfied.
   let r1 = Math.pow(s10 / s90, 2)
   let r2 = (t / 180 + 1).toFixed(2)
-  let r3 = Math.pow(1 - 1 / (n / 10 + 1), 2)
+  let r3 = Math.pow(1 - 1 / (n * 4 + 1), 2)
   let r4 = parseInt((s / 1e18) * p)
   let x = r1 * r3 * r4
   let l = Math.log2(r2)
