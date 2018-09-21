@@ -486,8 +486,12 @@ func (d *Delegation) AccumulateAverageStakingDate() {
 func (d *Delegation) ReduceAverageStakingDate(withdrawAmount sdk.Int) {
 	num := withdrawAmount.Div(sdk.E18Int).Int64()
 	denom := d.Shares().Div(sdk.E18Int).Int64()
-	p := sdk.NewRat(num, denom)
-	d.AverageStakingDate = sdk.NewInt(d.AverageStakingDate).MulRat(sdk.OneRat.Sub(p)).Int64()
+	if denom == 0 {
+		d.AverageStakingDate = 0
+	} else {
+		p := sdk.NewRat(num, denom)
+		d.AverageStakingDate = sdk.NewInt(d.AverageStakingDate).MulRat(sdk.OneRat.Sub(p)).Int64()
+	}
 }
 
 type DelegateHistory struct {
