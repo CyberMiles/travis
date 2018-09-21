@@ -351,6 +351,7 @@ type Delegator struct {
 type Delegation struct {
 	DelegatorAddress   common.Address `json:"delegator_address"`
 	PubKey             types.PubKey   `json:"pub_key"`
+	ValidatorAddress   string         `json:"validator_address"`
 	DelegateAmount     string         `json:"delegate_amount"`
 	AwardAmount        string         `json:"award_amount"`
 	WithdrawAmount     string         `json:"withdraw_amount"`

@@ -539,7 +539,6 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 		d.doWithdraw(delegation, delegation.Shares(), candidate, txWithdraw)
 	}
 
-	//removeCandidate(candidate)
 	candidate.Shares = "0"
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)
