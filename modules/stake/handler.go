@@ -45,6 +45,7 @@ func SetGenesisValidator(val types.GenesisValidator, store state.SimpleDB) error
 		store:  store,
 		sender: addr,
 		params: params,
+		height: 1,
 	}
 
 	desc := Description{
