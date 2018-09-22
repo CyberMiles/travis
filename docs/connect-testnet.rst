@@ -55,6 +55,10 @@ Copy libeni into the default Travis data directory
 
   mkdir -p $HOME/.travis/eni
   cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
+  
+  # set env variables for eni lib
+  export ENI_LIBRARY_PATH=$HOME/.travis/eni/lib
+  export LD_LIBRARY_PATH=$HOME/.travis/eni/lib
 
 Start the Node and Join Travis TestNet
 --------------------------------------
