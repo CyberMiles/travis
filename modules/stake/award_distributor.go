@@ -18,6 +18,7 @@ type simpleValidator struct {
 	pk           types.PubKey
 	delegators   []*simpleDelegator
 	vp           int64
+	state        string
 }
 
 func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower int64, rr sdk.Rat) (res sdk.Int) {
@@ -131,6 +132,7 @@ func (ad awardDistributor) getBlockAward() (blockAward sdk.Int) {
 }
 
 func (ad awardDistributor) Distribute() {
+	var awardInfos AwardInfos
 	vals, _, totalValVotingPower := ad.buildValidators(ad.validators)
 	backups, totalBackupShares, totalBackupVotingPower := ad.buildValidators(ad.backupValidators)
 	totalVotingPower := totalValVotingPower + totalBackupVotingPower
@@ -141,18 +143,19 @@ func (ad awardDistributor) Distribute() {
 		rr = sdk.OneRat
 	}
 
-	ad.distribute(vals, ad.getBlockAwardAndTxFees(), totalVotingPower, rr)
+	awardInfos = ad.distribute(vals, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, awardInfos)
 
 	// distribute to the backup validators
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = sdk.OneRat.Sub(utils.GetParams().ValidatorsBlockAwardRatio)
-		ad.distribute(backups, ad.getBlockAwardAndTxFees(), totalVotingPower, rr)
+		awardInfos = ad.distribute(backups, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, awardInfos)
 	}
 
 	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
 
 	// reset block gas fee
 	utils.BlockGasFee.SetInt64(0)
+	saveAwardInfo(ad.store, awardInfos)
 }
 
 func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*simpleValidator, totalShares int64, totalVotingPower int64) {
@@ -169,6 +172,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 
 		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
 		validator.pk = candidate.PubKey
+		validator.state = candidate.State
 
 		// Get all delegators
 		delegations := GetDelegationsByPubKey(candidate.PubKey, "Y")
@@ -200,18 +204,14 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 	return
 }
 
-func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.Int, totalVotingPower int64, rr sdk.Rat) {
-	var awardInfos AwardInfos
+func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.Int, totalVotingPower int64, rr sdk.Rat, awardInfos AwardInfos) AwardInfos {
 	for _, val := range vals {
 		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward)
 		award := val.distributeToAll(totalAward, totalVotingPower, rr)
-
-		// fixme state
-		ai := AwardInfo{Address: val.ownerAddress, State: "", Amount: award.String()}
+		ai := AwardInfo{Address: val.ownerAddress, State: val.state, Amount: award.String()}
 		awardInfos = append(awardInfos, ai)
 	}
-
-	saveAwardInfo(ad.store, awardInfos)
+	return awardInfos
 }
 
 func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {

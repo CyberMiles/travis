@@ -38,7 +38,11 @@ install:
   - npm install
 
 script:
-  - make docker_image && ./test/integration/test.sh
+  - make docker_image
+  - |
+    if [ -z "$TRAVIS_TAG" ]; then
+      ./test/integration/test.sh
+    fi
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
 
 after_success:
