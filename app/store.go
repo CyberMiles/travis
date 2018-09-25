@@ -208,10 +208,12 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	case "/delegator":
 		address := common.HexToAddress(string(reqQuery.Data))
 		delegations := stake.QueryDelegationsByAddress(address)
-		//for _, d := range delegations {
-		//	validator := stake.QueryCandidateByPubKey(d.PubKey)
-		//	d.ValidatorAddress = validator.OwnerAddress
-		//}
+		for _, d := range delegations {
+			validator := stake.QueryCandidateByPubKey(d.PubKey)
+			if validator != nil {
+				d.ValidatorAddress = validator.OwnerAddress
+			}
+		}
 
 		b, _ := json.Marshal(delegations)
 		resQuery.Value = b
