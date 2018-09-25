@@ -185,8 +185,8 @@ func initTravisDb() {
 	create index idx_delegate_history_delegator_address on delegate_history(delegator_address);
 	create index idx_delegate_history_pub_key on delegate_history(pub_key);
 	
-	create table punish_history(pub_key text not null, slashing_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null);
-	create index idx_punish_history_pub_key on punish_history(pub_key);
+	create table slashes(pub_key text not null, slash_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null);
+	create index idx_slashes_pub_key on slashes(pub_key);
  	create table unstake_requests(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', hash text not null default '', created_at text not null, updated_at text not null default '');
  	create table governance_proposal(id text not null primary key, type text not null, proposer text not null, block_height integer not null, expire_timestamp integer not null, expire_block_height integer not null, hash text not null default '', created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 	create index idx_governance_proposal_hash on governance_proposal(hash);

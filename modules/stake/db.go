@@ -532,22 +532,22 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 	}
 }
 
-func savePunishHistory(punishHistory *PunishHistory) {
+func saveSlash(slash *Slash) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into punish_history(pub_key, slashing_ratio, slash_amount, reason, created_at) values(?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into slashes(pub_key, slash_ratio, slash_amount, reason, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
-		types.PubKeyString(punishHistory.PubKey),
-		punishHistory.SlashingRatio.String(),
-		punishHistory.SlashAmount.String(),
-		punishHistory.Reason,
-		punishHistory.CreatedAt,
+		types.PubKeyString(slash.PubKey),
+		slash.SlashRatio.String(),
+		slash.SlashAmount.String(),
+		slash.Reason,
+		slash.CreatedAt,
 	)
 	if err != nil {
 		panic(err)

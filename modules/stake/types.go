@@ -503,12 +503,12 @@ type DelegateHistory struct {
 	CreatedAt        string
 }
 
-type PunishHistory struct {
-	PubKey        types.PubKey
-	SlashingRatio sdk.Rat
-	SlashAmount   sdk.Int
-	Reason        string
-	CreatedAt     string
+type Slash struct {
+	PubKey      types.PubKey
+	SlashRatio  sdk.Rat
+	SlashAmount sdk.Int
+	Reason      string
+	CreatedAt   string
 }
 
 type UnstakeRequest struct {

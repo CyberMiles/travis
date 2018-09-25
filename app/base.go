@@ -214,7 +214,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	app.EthApp.EndBlock(req)
 	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, app.TotalUsedGasFee)
 
-	// punish Byzantine validators
+	// slash Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
 		for _, bv := range app.ByzantineValidators {
 			pk, err := ttypes.GetPubKey(string(bv.Validator.PubKey.Data))
