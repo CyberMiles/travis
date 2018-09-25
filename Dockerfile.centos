@@ -1,25 +1,10 @@
 # build docker image
-# > docker build -t ywonline/travis.centos -f Dockerfile.centos .
-FROM centos:7
-
-RUN yum update -y \
-  && yum install -y wget git curl openssl-devel \
-  && yum group install -y "Development Tools"
-
-# install go
-RUN set -eux; \
-	url="https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz"; \
-	wget -O go.tgz "$url"; \
-	tar -C /usr/local -xzf go.tgz; \
-	rm go.tgz; \
-	\
-	export PATH="/usr/local/go/bin:$PATH"; \
-	go version
-
-ENV GOPATH /go
-ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
-
-RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
+# > docker build -t ywonline/travis:centos -f Dockerfile.centos .
+# initialize:
+# > docker run --rm -v $HOME/.travis:/travis ywonline/travis:centos node init --home /travis
+# node start:
+# > docker run --rm -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 ywonline/travis:centos node start --home /travis
+FROM ywonline/travis-build:centos
 
 # libeni
 WORKDIR /app/lib
