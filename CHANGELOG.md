@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.1.0-rc.7
+
+_September 14th, 2018_
+
+### FEATURES
+
+- Improve block award system and its effectiveness: Block reward will be released when a block is committed. 
+
+### IMPROVEMENTS
+
+- Complete the staking system:
+  - Check time stamp when a block is proposed. The time stamp won’t be earlier than the previous block. 
+  - The reward information of each block will be stored in leveldb.
+  - Add an interface to check the reward information of each block. 
+- Improve system flexibility: Configuration parameters are stored in a genesis.json file.
+- Add test cases and modify the test scripts. 
+
+### FIXES
+- Fixed some small bugs 
+
 ## v0.1.0-rc.6
 
 _August 31st, 2018_

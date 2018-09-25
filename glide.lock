@@ -30,7 +30,7 @@ imports:
   subpackages:
   - sys/windows
 - name: github.com/ethereum/go-ethereum
-  version: a1f9d1e971caad25101f620d39ccc137e69c0aa4
+  version: 328e7d3a07ac1f90fbfc5f554fd9cea70c6381c7
   repo: https://github.com/CyberMiles/go-ethereum.git
   subpackages:
   - accounts
@@ -299,7 +299,8 @@ imports:
 - name: github.com/tendermint/iavl
   version: 35f66e53d9b01e83b30de68b931f54b2477a94c9
 - name: github.com/tendermint/tendermint
-  version: dfa9a9a30a666132425b29454e90a472aa579a48
+  version: 15386f79b3f9de5a917b8311703d466f2ffd3602
+  repo: https://github.com/CyberMiles/tendermint.git
   subpackages:
   - abci/client
   - abci/example/code

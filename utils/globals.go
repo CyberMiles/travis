@@ -10,12 +10,7 @@ import (
 )
 
 const (
-	CommitSeconds = 10
-	//BlocksPerHour = 60 * 60 / 10
-	// fixme just for test
-	BlocksPerHour = 2
-	//BlocksPerDay  = 24 * 60 * 60 / 10
-	BlocksPerDay        = 1
+	CommitSeconds       = 10
 	HalfYear            = 180
 	YearlyBlockNumber   = 365 * 24 * 3600 / 10
 	BasicMintableAmount = "1000000000000000000000000000"
@@ -187,10 +182,6 @@ func CalGasFee(gasUsed uint64, gasPrice uint64) sdk.Int {
 var (
 	BlockGasFee      = big.NewInt(0)
 	StateChangeQueue []StateChangeObject
-	// Recording addresses associated with travis tx (stake/governance) in one block
-	// Transfer transaction is not allowed if the sender of which was found in this recording
-	// TODO to be removed
-	TravisTxAddrs   []*common.Address
 	PendingProposal = &pendingProposal{
 		make(map[string]int64),
 		math.MaxInt64,

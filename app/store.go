@@ -5,19 +5,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/CyberMiles/travis/utils"
 	"math/big"
 	"path"
 	"path/filepath"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/ripemd160"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/cli"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	tDB "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
@@ -27,10 +26,13 @@ import (
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	sm "github.com/CyberMiles/travis/sdk/state"
+	"github.com/tendermint/go-amino"
 )
 
 // DefaultHistorySize is how many blocks of history to store for ABCI queries
-const DefaultHistorySize = 10
+const DefaultHistorySize = -1
+
+var cdc = amino.NewCodec()
 
 // StoreApp contains a data store and all chainState needed
 // to perform queries and handshakes.
@@ -54,8 +56,6 @@ type StoreApp struct {
 	TotalUsedGasFee *big.Int
 
 	logger log.Logger
-
-	BlockEnd bool
 }
 
 // NewStoreApp creates a data store to handle queries
@@ -161,7 +161,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 	if height == 0 {
 		// TODO: once the rpc actually passes in non-zero
 		// heights we can use to query right after a tx
-		// we must retrun most recent, even if apphash
+		// we must return most recent, even if apphash
 		// is not yet in the blockchain
 
 		withProof := app.CommittedHeight() - 1
@@ -189,7 +189,7 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 			resQuery.Value = value
 			resQuery.Proof = proof.ComputeRootHash()
 		} else {
-			value := tree.Get(key)
+			_, value := tree.GetVersioned(key, height)
 			resQuery.Value = value
 		}
 	case "/validators":
@@ -207,12 +207,30 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		}
 	case "/delegator":
 		address := common.HexToAddress(string(reqQuery.Data))
-		delegations := stake.QueryDelegationsByDelegator(address)
+		delegations := stake.QueryDelegationsByAddress(address)
+		for _, d := range delegations {
+			validator := stake.QueryCandidateByPubKey(d.PubKey)
+			if validator != nil {
+				d.ValidatorAddress = validator.OwnerAddress
+			}
+		}
+
 		b, _ := json.Marshal(delegations)
 		resQuery.Value = b
 	case "/governance/proposals":
 		proposals := governance.QueryProposals()
 		b, _ := json.Marshal(proposals)
+		resQuery.Value = b
+	case "/awardInfo":
+		_, value := tree.GetVersioned(utils.AwardInfosKey, height)
+		var awardInfos stake.AwardInfos
+		err := cdc.UnmarshalBinary(value, &awardInfos)
+		if err != nil {
+			resQuery.Log = err.Error()
+			break
+		}
+
+		b, _ := json.Marshal(awardInfos)
 		resQuery.Value = b
 	default:
 		resQuery.Code = errors.CodeTypeUnknownRequest
@@ -247,7 +265,6 @@ func (app *StoreApp) Commit() (res abci.ResponseCommit) {
 // EndBlock - ABCI
 // Returns a list of all validator changes made in this block
 func (app *StoreApp) EndBlock(_ abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-	// TODO: cleanup in case a validator exists multiple times in the list
 	res.ValidatorUpdates = app.pending
 	app.pending = nil
 	return
@@ -305,17 +322,6 @@ func loadState(dbName string, cacheSize int, historySize int64) (*sm.State, erro
 	}
 
 	return sm.NewState(tree, historySize), nil
-}
-
-func getDb() *sql.DB {
-	rootDir := viper.GetString(cli.HomeFlag)
-	dbPath := path.Join(rootDir, "data", "travis.db")
-
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		panic(err)
-	}
-	return db
 }
 
 func (app *StoreApp) GetDbHash() []byte {

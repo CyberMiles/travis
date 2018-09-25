@@ -67,9 +67,19 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
+		amount := big.NewInt(0)
+		amount.SetString(txInner.Amount, 10)
+		if amount.Cmp(big.NewInt(0)) <= 0 {
+			return sdk.NewCheck(0, ""), ErrInvalidParameter()
+		}
+
 		balance, err := commons.GetBalance(app_state, *txInner.From)
 		if err != nil {
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
+		}
+
+		if balance.Cmp(amount) < 0 {
+			return sdk.NewCheck(0, ""), ErrInsufficientBalance()
 		}
 
 		if txInner.ExpireTimestamp != nil && txInner.ExpireBlockHeight != nil {
@@ -84,12 +94,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
-		amount := big.NewInt(0)
-		amount.SetString(txInner.Amount, 10)
-		if balance.Cmp(amount) < 0 {
-			return sdk.NewCheck(0, ""), ErrInsufficientBalance()
-		}
-
 		// Transfer gasFee
 		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposal)
 		if err != nil {
@@ -98,7 +102,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		app_state.SubBalance(*txInner.From, amount)
 		app_state.SubBalance(sender, gasFee.Int)
 
-		utils.TravisTxAddrs = append(utils.TravisTxAddrs, txInner.From)
 	case TxChangeParamPropose:
 		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
@@ -237,9 +240,6 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			} else {
 				return sdk.NewCheck(0, ""), ErrRejectedProposal()
 			}
-		}
-		if proposal.Type == TRANSFER_FUND_PROPOSAL {
-			utils.TravisTxAddrs = append(utils.TravisTxAddrs, proposal.Detail["to"].(*common.Address))
 		}
 	}
 

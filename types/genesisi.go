@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/pkg/errors"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/types"
@@ -21,6 +22,7 @@ type GenesisDoc struct {
 	ConsensusParams *types.ConsensusParams `json:"consensus_params,omitempty"`
 	Validators      []GenesisValidator     `json:"validators"`
 	AppHash         []byte                 `json:"app_hash"`
+	Params          *utils.Params          `json:"params"`
 }
 
 // GenesisValidator is an initial validator.
@@ -40,7 +42,7 @@ type GenesisValidator struct {
 
 // SaveAs is a utility method for saving GenensisDoc as a JSON file.
 func (genDoc *GenesisDoc) SaveAs(file string) error {
-	genDocBytes, err := json.Marshal(genDoc)
+	genDocBytes, err := json.MarshalIndent(genDoc, "", "\t")
 	if err != nil {
 		return err
 	}

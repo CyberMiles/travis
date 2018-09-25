@@ -1,31 +1,29 @@
-FROM centos:7
+# build docker image
+# > docker build -t ywonline/travis:centos -f Dockerfile.centos .
+# initialize:
+# > docker run --rm -v $HOME/.travis:/travis ywonline/travis:centos node init --home /travis
+# node start:
+# > docker run --rm -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 ywonline/travis:centos node start --home /travis
+FROM ywonline/travis-build:centos
 
-# Setup environment
-ENV GOPATH=$HOME/go
-ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
+# libeni
+WORKDIR /app/lib
+ENV ENI_LIBRARY_PATH=/app/lib
+ENV LD_LIBRARY_PATH=/app/lib
 
-RUN yum update -y \
-    && yum group install -y "Development Tools" \
-    && yum install -y \
-        epel-release \
-        cmake3 \
-        boost-devel \
-        openssl-devel \
-        curl \
-        git \
-        make \
-        sudo \
-        wget \
-        which
+RUN mkdir -p libeni \
+  && wget https://github.com/CyberMiles/libeni/releases/download/v1.3.2/libeni-1.3.2_centos-7.tgz -P libeni \
+  && tar zxvf libeni/*.tgz -C libeni \
+  && cp libeni/*/lib/* .
 
-# Install golang
-RUN wget https://dl.google.com/go/go1.10.2.linux-amd64.tar.gz \
-    && tar -C /usr/local -xzf go1.10.2.linux-amd64.tar.gz
+# travis
+WORKDIR /go/src/github.com/CyberMiles/travis
+# copy travis source code from local
+ADD . .
 
-# Install glide
-RUN mkdir -p $GOPATH/bin && curl https://glide.sh/get | sh
+RUN ENI_LIB=$ENI_LIBRARY_PATH make build && cp build/travis /app/
 
-# Install nodejs & yarn
-RUN curl --silent --location https://rpm.nodesource.com/setup_10.x | bash - \
-    && yum install -y nodejs \
-    && npm install -g yarn
+WORKDIR /app
+EXPOSE 8545 26656 26657
+
+ENTRYPOINT ["./travis"]

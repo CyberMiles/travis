@@ -18,6 +18,7 @@ import (
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/version"
 )
 
@@ -69,15 +70,6 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 		srvs.tmNode.Stop()
 		srvs.emNode.Stop()
 		dbm.Sqliter.CloseDB()
-		//for {
-		//	if storeApp.BlockEnd {
-		//		srvs.tmNode.Stop()
-		//		break
-		//	} else {
-		//		fmt.Println("Wait 500 milliseconds until the commit is completed")
-		//		time.Sleep(500 * time.Microsecond)
-		//	}
-		//}
 	})
 
 	return nil
@@ -100,6 +92,7 @@ func createBaseApp(rootDir string, storeApp *app.StoreApp, ethApp *app.Ethermint
 			}
 
 			app.SetChainId(genDoc.ChainID)
+			utils.SetParams(genDoc.Params)
 			for _, val := range genDoc.Validators {
 				stake.SetGenesisValidator(val, app.Append())
 			}

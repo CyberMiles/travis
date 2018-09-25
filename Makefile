@@ -41,18 +41,20 @@ LATEST := ${NAME}:latest
 #IMAGE := ${NAME}:${GIT_COMMIT}
 
 docker_image:
-	@docker build -t ${LATEST} .
+	docker build -t ${LATEST} .
 
 push_tag_image:
-	@docker tag ${LATEST} ${NAME}:${TAG}
-	@docker push ${NAME}:${TAG}
+	docker tag ${LATEST} ${NAME}:${TAG}
+	docker push ${NAME}:${TAG}
 
 push_image:
-	@docker push ${LATEST}
+	docker push ${LATEST}
 
 dist:
-	@docker run --rm -e "BUILD_TAG=${BUILD_TAG}" -v "${CURDIR}/scripts":/scripts --entrypoint /bin/sh -t ${LATEST} /scripts/dist.sh
-	@rm -rf build/dist && mkdir -p build/dist && mv -f scripts/*.zip build/dist/
+	docker run --rm -e "BUILD_TAG=${BUILD_TAG}" -v "${CURDIR}/scripts":/scripts --entrypoint /bin/sh -t ${LATEST} /scripts/dist.ubuntu.sh
+	docker build -t ywonline/travis:centos -f Dockerfile.centos .
+	docker run --rm -e "BUILD_TAG=${BUILD_TAG}" -v "${CURDIR}/scripts":/scripts --entrypoint /bin/sh -t ywonline/travis:centos /scripts/dist.centos.sh
+	rm -rf build/dist && mkdir -p build/dist && mv -f scripts/*.zip build/dist/
 
 print_cybermiles_logo:
 	@echo "\n\n"

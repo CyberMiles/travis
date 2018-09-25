@@ -41,7 +41,7 @@ describe("Stake Test", function() {
     expect(existingValidator).be.an("object")
 
     if (Globals.TestMode == "single") {
-      amounts = new Amounts(200000)
+      amounts = new Amounts(20000)
     }
   })
 
@@ -66,7 +66,7 @@ describe("Stake Test", function() {
       Utils.expectTxFail(tx_result)
     })
 
-    describe(`Declare to be a validator with 20000 CMTs max and ${compRate} compRate`, function() {
+    describe(`Declare to be a validator with 2000000 CMTs max and ${compRate} compRate`, function() {
       describe("Account D does not have enough CMTs.", function() {
         before(function() {
           balance = Utils.getBalance(3)
@@ -137,6 +137,11 @@ describe("Stake Test", function() {
           //   web3.toBigNumber(Globals.Params.declare_candidacy).toString()
           // )
         })
+        it("D is not a validator yet", function() {
+          tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
+          expect(tx_result.data.voting_power).to.eq(0)
+          expect(tx_result.data.state).to.not.eq("Validator")
+        })
       })
     })
   })
@@ -179,7 +184,6 @@ describe("Stake Test", function() {
           .minus(amounts.self)
           .toNumber()
       ).to.gte(0)
-      if (Globals.TestMode == "single") this.skip()
       expect(tx_result.data.state).to.not.eq("Validator")
       delegation_after = Utils.getDelegation(3, 3)
     })
@@ -214,12 +218,6 @@ describe("Stake Test", function() {
             .toNumber()
         ).to.eq(Number(amounts.dele1))
       })
-      it("D is still a backup", function() {
-        if (Globals.TestMode == "single") this.skip()
-        tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-        expect(tx_result.data.voting_power).to.eq(0)
-        expect(tx_result.data.state).to.not.eq("Validator")
-      })
     })
     describe("Account C stakes 1200000 CMTs for D.", function() {
       before(function() {
@@ -250,7 +248,6 @@ describe("Stake Test", function() {
         ).to.eq(Number(amounts.dele2))
       })
       it("D is now a validator", function() {
-        if (Globals.TestMode == "single") this.skip()
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.be.above(0)
         expect(tx_result.data.state).to.eq("Validator")
@@ -262,6 +259,53 @@ describe("Stake Test", function() {
       })
     })
   })
+  describe("Voting Power", function() {
+    let val_D, dele_B, dele_C, dele_D
+    let p = 1
+    let vp_B, vp_C, vp_D
+    before(function() {
+      // get validators
+      let vals = web3.cmt.stake.validator.list()
+      let totalShares = parseInt(
+        web3.fromWei(
+          vals.data.reduce((s, v) => {
+            return s.plus(v.shares)
+          }, web3.toBigNumber(0)),
+          "cmt"
+        )
+      )
+      // get validator D
+      val_D = web3.cmt.stake.validator.query(Globals.Accounts[3], 0).data
+      // calc share percentage
+      let shares = parseInt(web3.fromWei(val_D.shares, "cmt"))
+      let threshold = eval(Globals.Params.validator_size_threshold)
+      if (shares / totalShares > threshold) {
+        p = threshold / (shares / totalShares)
+      }
+      // get delegator B, C, D of D
+      dele_B = Utils.getDelegation(1, 3)
+      dele_C = Utils.getDelegation(2, 3)
+      dele_D = Utils.getDelegation(3, 3)
+    })
+    it("check delegator B's voting power", function() {
+      let n = val_D.num_of_delegators
+      vp_B = Utils.calcVotingPower(n, dele_B.shares, p)
+      expect(dele_B.voting_power).to.eq(vp_B)
+    })
+    it("check delegator C's voting power", function() {
+      let n = val_D.num_of_delegators
+      vp_C = Utils.calcVotingPower(n, dele_C.shares, p)
+      expect(dele_C.voting_power).to.eq(vp_C)
+    })
+    it("check delegator D's voting power", function() {
+      let n = val_D.num_of_delegators
+      vp_D = Utils.calcVotingPower(n, dele_D.shares, p)
+      expect(dele_D.voting_power).to.eq(vp_D)
+    })
+    it("check validator D's voting power", function() {
+      expect(val_D.voting_power).to.eq(vp_B + vp_C + vp_D)
+    })
+  })
 
   describe.skip("Block awards", function() {
     let blocks = 1,
@@ -270,15 +314,14 @@ describe("Stake Test", function() {
 
     before(function(done) {
       if (Globals.TestMode == "single") {
+        // skips current and all nested describes
+        this.test.parent.pending = true
         this.skip()
       }
       Utils.waitBlocks(done, 1)
     })
 
     before(function(done) {
-      if (Globals.TestMode == "single") {
-        this.skip()
-      }
       // validators
       const getShares = (vals, acc) => {
         let v = vals.find(v => v.owner_address == acc)
@@ -444,7 +487,7 @@ describe("Stake Test", function() {
       let payload = { from: Globals.Accounts[3] }
       tx_result = web3.cmt.stake.validator.withdraw(payload)
       Utils.expectTxSuccess(tx_result)
-      Utils.waitBlocks(done, 3) // wait for voting power calc
+      Utils.waitBlocks(done, 1)
     })
     it("Account D no longer a validator, and genesis validator restored", function() {
       // check validators, no Globals.Accounts[3]
@@ -455,13 +498,9 @@ describe("Stake Test", function() {
       expect(tx_result.data).to.not.containSubset([
         { owner_address: Globals.Accounts[3] }
       ])
-      if (Globals.TestMode != "single") {
-        // check validators restored
-        let vals = tx_result.data.filter(
-          d => d.state == "Validator" && d.voting_power > 0
-        )
-        expect(vals.length).to.eq(Globals.Params.max_vals)
-      }
+      // check validators restored
+      let vals = tx_result.data.filter(d => d.state == "Validator")
+      expect(vals.length).to.eq(Globals.Params.max_vals)
     })
     it("account balance no change", function() {
       // balance after

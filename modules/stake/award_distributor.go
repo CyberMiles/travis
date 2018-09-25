@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -19,34 +20,24 @@ type simpleValidator struct {
 	vp           int64
 }
 
-func (v *simpleValidator) computeTotalSharesPercentage(totalShares int64, redistribute bool) sdk.Rat {
-	p := sdk.NewRat(v.s, totalShares)
-	threshold := utils.GetParams().ValidatorSizeThreshold
-	if !redistribute && p.Cmp(threshold) > 0 {
-		p = threshold
-	}
-
-	return p
-}
-
-func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
-	//ad.logger.Debug("Distribute", "ownerAddress", val.ownerAddress, "totalAward", totalAward, "totalVotingPower", totalVotingPower, "rr", rr, "rs", rs)
+func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower int64, rr sdk.Rat) (res sdk.Int) {
 	t := sdk.ZeroRat
+	res = sdk.ZeroInt
 
 	// distribute to the delegators
 	for _, d := range v.delegators {
 		a := sdk.OneRat.Sub(d.c)
 		b := sdk.NewRat(d.vp*a.Num().Int64(), a.Denom().Int64())
-		c := totalAward.MulRat(b.Mul(rr).Quo(rs).Quo(sdk.NewRat(totalVotingPower, 1)))
+		c := totalAward.MulRat(b.Mul(rr).Quo(sdk.NewRat(totalVotingPower, 1)))
 		d.distributeAward(v, c)
+		res = res.Add(c)
 		t = t.Add(sdk.NewRat(d.vp*d.c.Num().Int64(), d.c.Denom().Int64()))
-		//ad.logger.Debug("Distribute to simpleDelegator", "address", d.address, "award", c)
 	}
 
 	// distribute to the validator self
-	c := totalAward.MulRat(t.Mul(rr).Quo(rs).Quo(sdk.NewRat(totalVotingPower, 1)))
+	c := totalAward.MulRat(t.Mul(rr).Quo(sdk.NewRat(totalVotingPower, 1)))
 	v.distributeAwardToSelf(c)
-	//ad.logger.Debug("Distribute to simpleValidator", "address", val.ownerAddress, "award", c)
+	res = res.Add(c)
 	return
 }
 
@@ -93,9 +84,18 @@ func (d simpleDelegator) String() string {
 	return fmt.Sprintf("[simpleDeligator] address: %s, s: %d, c: %vp, vp: %d", d.address.String(), d.s, d.c, d.vp)
 }
 
+type AwardInfo struct {
+	Address common.Address `json:"address"`
+	State   string         `json:"state"`
+	Amount  string         `json:"amount"`
+}
+
+type AwardInfos []AwardInfo
+
 //_______________________________________________________________________
 
 type awardDistributor struct {
+	store            state.SimpleDB
 	height           int64
 	validators       Validators
 	backupValidators Validators
@@ -103,8 +103,8 @@ type awardDistributor struct {
 	logger           log.Logger
 }
 
-func NewAwardDistributor(height int64, validators, backupValidators Validators, logger log.Logger) *awardDistributor {
-	return &awardDistributor{height, validators, backupValidators, sdk.NewIntFromBigInt(utils.BlockGasFee), logger}
+func NewAwardDistributor(store state.SimpleDB, height int64, validators, backupValidators Validators, logger log.Logger) *awardDistributor {
+	return &awardDistributor{store, height, validators, backupValidators, sdk.NewIntFromBigInt(utils.BlockGasFee), logger}
 }
 
 func (ad awardDistributor) getMintableAmount() (amount sdk.Int) {
@@ -131,28 +131,25 @@ func (ad awardDistributor) getBlockAward() (blockAward sdk.Int) {
 }
 
 func (ad awardDistributor) Distribute() {
-	vals, totalValShares, totalValVotingPower := ad.buildValidators(ad.validators)
+	vals, _, totalValVotingPower := ad.buildValidators(ad.validators)
 	backups, totalBackupShares, totalBackupVotingPower := ad.buildValidators(ad.backupValidators)
 	totalVotingPower := totalValVotingPower + totalBackupVotingPower
-	var rr, rs sdk.Rat
+	var rr sdk.Rat
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = utils.GetParams().ValidatorsBlockAwardRatio
-		rs = sdk.NewRat(totalValShares, totalValShares+totalBackupShares)
 	} else {
 		rr = sdk.OneRat
-		rs = sdk.OneRat
 	}
 
-	ad.distribute(vals, totalValShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+	ad.distribute(vals, ad.getBlockAwardAndTxFees(), totalVotingPower, rr)
 
 	// distribute to the backup validators
 	if len(backups) > 0 && totalBackupShares > 0 {
 		rr = sdk.OneRat.Sub(utils.GetParams().ValidatorsBlockAwardRatio)
-		rs = sdk.NewRat(totalBackupShares, totalValShares+totalBackupShares)
-		ad.distribute(backups, totalBackupShares, ad.getBlockAwardAndTxFees(), totalVotingPower, rr, rs)
+		ad.distribute(backups, ad.getBlockAwardAndTxFees(), totalVotingPower, rr)
 	}
 
-	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)))
+	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
 
 	// reset block gas fee
 	utils.BlockGasFee.SetInt64(0)
@@ -174,7 +171,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		validator.pk = candidate.PubKey
 
 		// Get all delegators
-		delegations := GetDelegationsByPubKey(candidate.PubKey)
+		delegations := GetDelegationsByPubKey(candidate.PubKey, "Y")
 		for _, delegation := range delegations {
 			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
 			if delegation.VotingPower == 0 {
@@ -203,25 +200,29 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 	return
 }
 
-func (ad *awardDistributor) distribute(vals []*simpleValidator, totalShares int64, totalAward sdk.Int, totalVotingPower int64, rr, rs sdk.Rat) {
-	award := sdk.NewInt(0)
+func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.Int, totalVotingPower int64, rr sdk.Rat) {
+	var awardInfos AwardInfos
 	for _, val := range vals {
-		p := val.computeTotalSharesPercentage(totalShares, false)
-		award = totalAward.MulRat(p)
-		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward, "p", p, "award", award)
-		val.distributeToAll(award, totalVotingPower, rr, rs)
+		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward)
+		award := val.distributeToAll(totalAward, totalVotingPower, rr)
+
+		// fixme state
+		ai := AwardInfo{Address: val.ownerAddress, State: "", Amount: award.String()}
+		awardInfos = append(awardInfos, ai)
 	}
 
-	// If there is remaining, distribute a second round.
-	remaining := totalAward.Sub(award)
-	if remaining.GT(sdk.ZeroInt) {
-		ad.logger.Debug("there is remaining award, distribute a second round.", "remaining", remaining)
-		for _, val := range vals {
-			val.distributeToAll(remaining, totalVotingPower, rr, rs)
-		}
-	}
+	saveAwardInfo(ad.store, awardInfos)
 }
 
 func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {
-	return ad.getBlockAward().Mul(sdk.NewInt(utils.BlocksPerHour)).Add(ad.transactionFees)
+	return ad.getBlockAward().Add(ad.transactionFees)
+}
+
+func saveAwardInfo(store state.SimpleDB, awardInfos AwardInfos) {
+	b, err := cdc.MarshalBinary(&awardInfos)
+	if err != nil {
+		panic(err)
+	}
+
+	store.Set(utils.AwardInfosKey, b)
 }

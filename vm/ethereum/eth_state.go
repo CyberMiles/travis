@@ -12,7 +12,7 @@ import (
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth"
-	//"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
@@ -85,15 +85,8 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
-	blockHash, err := es.work.commit(es.ethereum.BlockChain(), es.ethereum.ChainDb())
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	err = es.resetWorkState(receiver)
-	if err != nil {
-		return common.Hash{}, err
-	}
+	blockHash, err := es.work.commit(es.ethereum.BlockChain(), es.ethereum.ChainDb(), receiver)
+	es.resetWorkState(receiver)
 
 	return blockHash, err
 }
@@ -121,6 +114,7 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 	ethHeader := newBlockHeader(receiver, currentBlock)
 
 	es.work = workState{
+		es:              es,
 		header:          ethHeader,
 		parent:          currentBlock,
 		state:           state,
@@ -131,7 +125,6 @@ func (es *EthState) resetWorkState(receiver common.Address) error {
 		gp:              new(core.GasPool).AddGas(ethHeader.GasLimit),
 	}
 	utils.StateChangeQueue = make([]utils.StateChangeObject, 0)
-	utils.TravisTxAddrs = make([]*common.Address, 0)
 	return nil
 }
 
@@ -175,6 +168,7 @@ func (es *EthState) Pending() (*ethTypes.Block, *state.StateDB) {
 // The work struct handles block processing.
 // It's updated with each DeliverTx and reset on Commit.
 type workState struct {
+	es            *EthState
 	header        *ethTypes.Header
 	parent        *ethTypes.Block
 	state         *state.StateDB
@@ -240,7 +234,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 // Commit the ethereum state, update the header, make a new block and add it to
 // the ethereum blockchain. The application root hash is the hash of the
 // ethereum block.
-func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (common.Hash, error) {
+func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, receiver common.Address) (common.Hash, error) {
 	currentHeight := ws.header.Number.Int64()
 
 	proposalIds := utils.PendingProposal.ReachMin(ws.parent.Time().Int64(), currentHeight)
@@ -325,8 +319,33 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database) (com
 	// log.Info("Committing block", "stateHash", hashArray, "blockHash", blockHash)
 	_, err = blockchain.InsertChain([]*ethTypes.Block{block})
 	if err != nil {
-		// log.Info("Error inserting ethereum block in chain", "err", err)
-		return common.Hash{}, err
+		log.Info("Error inserting ethereum block in chain", "err", err)
+
+		ws.es.resetWorkState(receiver)
+
+		pt := ws.parent.Time()
+		pt = pt.Add(pt, big.NewInt(1))
+		config := ws.es.ethereum.APIBackend.ChainConfig()
+		ws.updateHeaderWithTimeInfo(config, pt.Uint64(), 0)
+
+		hashArray, er := ws.state.Commit(false) // XXX: ugh hardforks
+		if er != nil {
+			return common.Hash{}, er
+		}
+		ws.header.Root = hashArray
+
+		for _, log := range ws.allLogs {
+			log.BlockHash = hashArray
+		}
+
+		// Create block object and compute final commit hash (hash of the ethereum
+		// block).
+		block = ethTypes.NewBlock(ws.header, ws.transactions, nil, ws.receipts)
+		blockHash = block.Hash()
+		_, er = blockchain.InsertChain([]*ethTypes.Block{block})
+		if er != nil {
+			return blockHash, er
+		}
 	}
 	return blockHash, err
 }
@@ -384,7 +403,6 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 	return &ethTypes.Header{
 		Number:     prevBlock.Number().Add(prevBlock.Number(), big.NewInt(1)),
 		ParentHash: prevBlock.Hash(),
-		//GasLimit:   core.CalcGasLimit(prevBlock),
 		GasLimit: calcGasLimit(prevBlock),
 		Coinbase: receiver,
 	}
@@ -394,7 +412,7 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 // The result may be modified by the caller.
 // This is miner strategy, not consensus protocol.
 func calcGasLimit(parent *types.Block) uint64 {
-	// 0xF00000000 = 64424509440
-	var gl uint64 = 64424509440
+	// Ethereum average block gasLimit * 1000
+	var gl uint64 = 8192000000 // 8192m
 	return gl
 }

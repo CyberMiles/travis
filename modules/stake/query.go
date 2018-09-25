@@ -2,6 +2,7 @@ package stake
 
 import (
 	"database/sql"
+	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -23,7 +24,19 @@ func QueryCandidateByAddress(address common.Address) *Candidate {
 	}
 }
 
-func QueryDelegationsByDelegator(delegatorAddress common.Address) (delegations []*Delegation) {
+func QueryCandidateByPubKey(pubKey types.PubKey) *Candidate {
+	db := getDb()
+	cond := make(map[string]interface{})
+	cond["pub_key"] = types.PubKeyString(pubKey)
+	candidates := queryCandidates(db, cond)
+	if len(candidates) == 0 {
+		return nil
+	} else {
+		return candidates[0]
+	}
+}
+
+func QueryDelegationsByAddress(delegatorAddress common.Address) (delegations []*Delegation) {
 	db := getDb()
 	cond := make(map[string]interface{})
 	cond["delegator_address"] = delegatorAddress.String()
@@ -43,7 +56,7 @@ func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candid
 
 func queryDelegations(db *sql.DB, cond map[string]interface{}) (delegations []*Delegation) {
 	clause, params := buildQueryClause(cond)
-	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, voting_power, created_at, updated_at from delegations"+clause, params...)
+	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at, updated_at from delegations"+clause, params...)
 	if err != nil {
 		panic(err)
 	}

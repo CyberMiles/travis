@@ -417,6 +417,16 @@ func (s *CmtRPCService) QueryDelegator(address common.Address, height uint64) (*
 	return &StakeQueryResult{h, slotDelegates}, nil
 }
 
+func (s *CmtRPCService) QueryAwardInfos(height uint64) (*StakeQueryResult, error) {
+	var awardInfos stake.AwardInfos
+	h, err := s.getParsedFromJson("/awardInfo", utils.AwardInfosKey, &awardInfos, height)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StakeQueryResult{h, awardInfos}, nil
+}
+
 type GovernanceTransferFundProposalArgs struct {
 	Nonce             *hexutil.Uint64 `json:"nonce"`
 	From              common.Address  `json:"from"`
@@ -515,11 +525,11 @@ func (s *CmtRPCService) QueryProposals() (*StakeQueryResult, error) {
 	return &StakeQueryResult{h, proposals}, nil
 }
 
-func (s *CmtRPCService) QueryParams() (*StakeQueryResult, error) {
-	//var params utils.Params
-	//h, err := s.getParsedFromJson("/key", utils.ParamKey, &params, 0)
-	//if err != nil {
-	//	return nil, err
-	//}
-	return &StakeQueryResult{0, utils.GetParams()}, nil
+func (s *CmtRPCService) QueryParams(height uint64) (*StakeQueryResult, error) {
+	var params utils.Params
+	h, err := s.getParsedFromJson("/key", utils.ParamKey, &params, height)
+	if err != nil {
+		return nil, err
+	}
+	return &StakeQueryResult{h, params}, nil
 }

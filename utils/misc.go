@@ -5,6 +5,7 @@ import (
 	"github.com/CyberMiles/travis/sdk"
 	"math/big"
 	"strconv"
+	"strings"
 )
 
 func ParseFloat(str string) float64 {
@@ -35,4 +36,9 @@ func RoundFloat(f float64, n int) float64 {
 	format := "%." + strconv.Itoa(n) + "f"
 	res, _ := strconv.ParseFloat(fmt.Sprintf(format, f), 64)
 	return res
+}
+
+func LeftPad(str string, count int) string {
+	padding := strings.Repeat("0", count)
+	return fmt.Sprintf("%s%s", padding, str)
 }
