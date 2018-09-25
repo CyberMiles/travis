@@ -44,7 +44,7 @@ func VerifyCubeSignature(address common.Address, nonce uint64, cubeBatch string,
 	m.SetBytes(bs)
 	c := encrypt(new(big.Int), pk, m)
 
-	if !bytes.Equal(c.Bytes(), hashed[:]) {
+	if !bytes.Equal(c.Bytes(), bytes.TrimLeft(hashed[:], "\x00")) {
 		return ErrInvalidCubeSignature()
 	}
 
