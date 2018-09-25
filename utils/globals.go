@@ -4,16 +4,22 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-const CommitSeconds = 10
+const (
+	CommitSeconds       = 10
+	HalfYear            = 180
+	YearlyBlockNumber   = 365 * 24 * 3600 / 10
+	BasicMintableAmount = "1000000000000000000000000000"
+)
 
 type StateChangeObject struct {
 	From   common.Address
 	To     common.Address
-	Amount *big.Int
+	Amount sdk.Int
 
 	Reactor StateChangeReactor
 }
@@ -23,9 +29,9 @@ type StateChangeReactor interface {
 }
 
 type pendingProposal struct {
-	proposalsTS          map[string]int64
-	minExpireTimestamp   int64
-	minTSMappedPid       []string
+	proposalsTS        map[string]int64
+	minExpireTimestamp int64
+	minTSMappedPid     []string
 
 	proposalsBH          map[string]int64
 	minExpireBlockHeight int64
@@ -154,7 +160,7 @@ func (p *pendingProposal) ReachMin(timestamp, blockHeight int64) (pids []string)
 }
 
 func shouldBePacked(timestamp, lastTs int64) bool {
-	if timestamp < lastTs || timestamp - lastTs < CommitSeconds {
+	if timestamp < lastTs || timestamp-lastTs < CommitSeconds {
 		return true
 	}
 	return false
@@ -169,20 +175,14 @@ func IsEthTx(tx *types.Transaction) bool {
 		tx.To() != nil
 }
 
-func CalGasFee(gasUsed uint64, gasPrice uint64) *big.Int {
-	gasFee := big.NewInt(int64(0))
-	gasFee = gasFee.Mul(big.NewInt(int64(gasUsed)), big.NewInt(int64(gasPrice)))
-	return gasFee
+func CalGasFee(gasUsed uint64, gasPrice uint64) sdk.Int {
+	return sdk.NewInt(int64(gasUsed)).Mul(sdk.NewInt(int64(gasPrice)))
 }
 
 var (
-	BlockGasFee      *big.Int
+	BlockGasFee      = big.NewInt(0)
 	StateChangeQueue []StateChangeObject
-	// Recording addresses associated with travis tx (stake/governance) in one block
-	// Transfer transaction is not allowed if the sender of which was found in this recording
-	// TODO to be removed
-	TravisTxAddrs   []*common.Address
-	PendingProposal                      = &pendingProposal{
+	PendingProposal = &pendingProposal{
 		make(map[string]int64),
 		math.MaxInt64,
 		nil,

@@ -9,7 +9,9 @@ import (
 	"github.com/spf13/viper"
 
 	"database/sql"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/core"
@@ -23,8 +25,9 @@ import (
 )
 
 const (
-	FlagChainID = "chain-id"
-	FlagENV     = "env"
+	FlagChainID   = "chain-id"
+	FlagENV       = "env"
+	FlagVMGenesis = "vm-genesis"
 
 	defaultEnv = "private"
 )
@@ -46,6 +49,7 @@ func GetInitCmd() *cobra.Command {
 	}
 	initCmd.Flags().String(FlagChainID, "local", "Chain ID")
 	initCmd.Flags().String(FlagENV, defaultEnv, "Environment (mainnet|staging|testnet|private)")
+	initCmd.Flags().String(FlagVMGenesis, "", "VM genesis file")
 	return initCmd
 }
 
@@ -85,28 +89,19 @@ func initTendermint() {
 	if cmn.FileExists(genFile) {
 		logger.Info("Found genesis file", "path", genFile)
 	} else {
-		genDoc := GenesisDoc{
-			ChainID:          viper.GetString(FlagChainID),
-			MaxVals:          4,
-			BackupVals:       1,
-			SelfStakingRatio: "0.1",
+		genDoc := types.GenesisDoc{
+			ChainID: viper.GetString(FlagChainID),
+			Params:  utils.DefaultParams(),
 		}
+
+		// fixme Use specific values instead in production
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
-			Power:     "10000",
+			Power:     "1",
+			Shares:    1000000,
 			Address:   "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
-			CompRate:  "0.5",
-			MaxAmount: 100000,
-		}}
-		genDoc.CubePubKeys = []types.GenesisCubePubKey{{
-			CubeBatch: "01",
-			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCiWpvDnwYFTqgSWPlA3VO8u+Yv\n9r8QGlRaYZFszUZEXUQxquGlFexMSVyFeqYjIokfPOEHHx2voqWgi3FKKlp6dkxw\nApP3T22y7Epqvtr+EfNybRta15snccZy47dY4UcmYxbGWFTaL66tz22pCAbjFrxY\n3IxaPPIjDX+FiXdJWwIDAQAB\n-----END PUBLIC KEY-----",
-		}, {
-			CubeBatch: "02",
-			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQ8FL6/9zul+X7bFSRiWAzFiAE\n9vHYbClEHwlC7zUZ/JWzU7UT5S2qnYsseYF2WFjJtrGwHRAlTUyPtCpxV8f1uJsI\nl+/N9l6torUHwkhhib1catUSd/T72ltjvVyyg5LQjtRsskFnv3wM/yxYotrgnOs+\ndRpU6WI5XPCIyZqsGwIDAQAB\n-----END PUBLIC KEY-----",
-		}, {
-			CubeBatch: "05",
-			PubKey:    "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCZ7Fw+1ddvy5OPFftbea0MxewW\nKUTb/E7B4/MHvLz2h7f7snyveFwxxj7QwxaCoVxobEq6AigIlUFUXLM8Y598/jts\nTaN+jh4xdoQN7qKwrbz1MWGf58Aa78Vnoj54B7V0LSajVbLJSZNUEI/24HLcG2iN\nTD3dSvH0ARvRJJ9hZQIDAQAB\n-----END PUBLIC KEY-----",
+			CompRate:  sdk.NewRat(2, 10),
+			MaxAmount: 10000000,
 		}}
 
 		if err := genDoc.SaveAs(genFile); err != nil {
@@ -117,7 +112,7 @@ func initTendermint() {
 }
 
 func initEthermint() error {
-	genesisPath := context.Args().First()
+	genesisPath := viper.GetString(FlagVMGenesis)
 	genesis, err := emtUtils.ParseGenesisOrDefault(genesisPath)
 	if err != nil {
 		ethUtils.Fatalf("genesisJSON err: %v", err)
@@ -179,20 +174,20 @@ func initTravisDb() {
 		defer db.Close()
 
 		sqlStmt := `
-	create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, ranking_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, created_at text not null, updated_at text not null default '');
+	create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, num_of_delegators integer not null default 0, created_at text not null, updated_at text not null default '');
 	create unique index idx_candidates_pub_key on candidates(pub_key);
 	create index idx_candidates_hash on candidates(hash);
  	create table delegators(address text not null primary key, created_at text not null);
-	create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', slash_amount text not null default '0', hash text not null default '',  created_at text not null, updated_at text not null default '');
+	create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  voting_power integer not null default 0, state text not null default 'Y', block_height integer not null, average_staking_date integer not null default 0, created_at text not null, updated_at text not null default '');
 	create unique index idx_delegations_delegator_address_pub_key on delegations(delegator_address, pub_key);
 	create index idx_delegations_hash on delegations(hash);
  	create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, amount text not null default '0', op_code text not null default '', created_at text not null);
 	create index idx_delegate_history_delegator_address on delegate_history(delegator_address);
 	create index idx_delegate_history_pub_key on delegate_history(pub_key);
 	
-	create table punish_history(pub_key text not null, slashing_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null);
-	create index idx_punish_history_pub_key on punish_history(pub_key);
- 	create table unstake_requests(id text not null primary key, delegator_address text not null, pub_key text not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', hash text not null default '', created_at text not null, updated_at text not null default '');
+	create table slashes(pub_key text not null, slash_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null);
+	create index idx_slashes_pub_key on slashes(pub_key);
+ 	create table unstake_requests(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', hash text not null default '', created_at text not null, updated_at text not null default '');
  	create table governance_proposal(id text not null primary key, type text not null, proposer text not null, block_height integer not null, expire_timestamp integer not null, expire_block_height integer not null, hash text not null default '', created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
 	create index idx_governance_proposal_hash on governance_proposal(hash);
  	create table governance_transfer_fund_detail(proposal_id text not null, from_address text not null, to_address text not null, amount text not null, reason text not null);
@@ -205,6 +200,7 @@ func initTravisDb() {
 	create index idx_governance_vote_voter on governance_vote(voter);
 	create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 	create index idx_governance_vote_hash on governance_vote(hash);
+	create table candidate_daily_stakes(id integer not null primary key autoincrement, pub_key text not null, amount text not null default '0', created_at text not null);
 	`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {

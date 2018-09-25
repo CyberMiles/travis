@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	travis "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
@@ -45,7 +44,7 @@ func VerifyCubeSignature(address common.Address, nonce uint64, cubeBatch string,
 	m.SetBytes(bs)
 	c := encrypt(new(big.Int), pk, m)
 
-	if !bytes.Equal(c.Bytes(), hashed[:]) {
+	if !bytes.Equal(c.Bytes(), bytes.TrimLeft(hashed[:], "\x00")) {
 		return ErrInvalidCubeSignature()
 	}
 
@@ -54,7 +53,7 @@ func VerifyCubeSignature(address common.Address, nonce uint64, cubeBatch string,
 
 func getCubePublicKeyString(cubeBatch string) (string, error) {
 	pksBytes := utils.GetParams().CubePubKeys
-	var pks []travis.GenesisCubePubKey
+	var pks []CubePubKey
 	err := json.Unmarshal([]byte(pksBytes), &pks)
 	if err != nil {
 		return "", err

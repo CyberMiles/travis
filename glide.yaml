@@ -24,7 +24,8 @@ import:
   subpackages:
   - data
 - package: github.com/tendermint/tendermint
-  version: v0.22.0
+  repo: https://github.com/CyberMiles/tendermint.git
+  version: 15386f79b3f9de5a917b8311703d466f2ffd3602
   subpackages:
   - config
   - node
@@ -36,7 +37,7 @@ import:
   - types
 - package: github.com/ethereum/go-ethereum
   repo: https://github.com/CyberMiles/go-ethereum.git
-  version: 8b72416b64a0717b031e6efaebf12bbe97df1a2e
+  version: 328e7d3a07ac1f90fbfc5f554fd9cea70c6381c7
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
 - package: github.com/mattn/go-sqlite3

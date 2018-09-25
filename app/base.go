@@ -2,13 +2,12 @@ package app
 
 import (
 	goerr "errors"
-	"fmt"
 	"math/big"
 
 	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
-	"github.com/CyberMiles/travis/sdk/dbm"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -16,13 +15,13 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"bytes"
+	"database/sql"
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
-	"database/sql"
 )
 
 // BaseApp - The ABCI application
@@ -35,16 +34,12 @@ type BaseApp struct {
 	ByzantineValidators []abci.Evidence
 	PresentValidators   stake.Validators
 	blockTime           int64
-	deliverSqlTx *sql.Tx
+	deliverSqlTx        *sql.Tx
+	proposer            abci.Validator
 }
 
-const (
-	BLOCK_AWARD_STR = "10000000000000000000000"
-)
-
 var (
-	blockAward, _                  = big.NewInt(0).SetString(BLOCK_AWARD_STR, 10)
-	_             abci.Application = &BaseApp{}
+	_ abci.Application = &BaseApp{}
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
@@ -79,13 +74,11 @@ func NewBaseApp(store *StoreApp, ethApp *EthermintApplication, ethereum *eth.Eth
 	}
 
 	app := &BaseApp{
-		StoreApp:         store,
-		EthApp:           ethApp,
-		checkedTx:        make(map[common.Hash]*types.Transaction),
-		ethereum:         ethereum,
-		AbsentValidators: stake.NewAbsentValidators(),
+		StoreApp:  store,
+		EthApp:    ethApp,
+		checkedTx: make(map[common.Hash]*types.Transaction),
+		ethereum:  ethereum,
 	}
-
 	return app, nil
 }
 
@@ -169,10 +162,10 @@ func (app *BaseApp) CheckTx(txBytes []byte) abci.ResponseCheckTx {
 
 // BeginBlock - ABCI
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	app.BlockEnd = false
 	app.blockTime = req.GetHeader().Time
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
+	app.AbsentValidators = stake.LoadAbsentValidators(app.Append())
 
 	// init deliver sql tx for statke
 	db, err := dbm.Sqliter.GetDB()
@@ -199,7 +192,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		if !sv.SignedLastBlock {
 			app.AbsentValidators.Add(pubKey, app.WorkingHeight())
 		} else {
-			v := stake.GetCandidateByPubKey(ttypes.PubKeyString(pubKey))
+			v := stake.GetCandidateByPubKey(pubKey)
 			if v != nil {
 				app.PresentValidators = append(app.PresentValidators, v.Validator())
 			}
@@ -207,9 +200,11 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 
 	app.AbsentValidators.Clear(app.WorkingHeight())
+	stake.SaveAbsentValidators(app.Append(), app.AbsentValidators)
 
 	app.logger.Info("BeginBlock", "absent_validators", app.AbsentValidators)
 	app.ByzantineValidators = req.ByzantineValidators
+	app.proposer = req.Header.Proposer
 
 	return abci.ResponseBeginBlock{}
 }
@@ -219,15 +214,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	app.EthApp.EndBlock(req)
 	utils.BlockGasFee = big.NewInt(0).Add(utils.BlockGasFee, app.TotalUsedGasFee)
 
-	var backups stake.Validators
-	for _, bv := range stake.GetBackupValidators() {
-		backups = append(backups, bv.Validator())
-	}
-
-	// block award
-	stake.NewAwardDistributor(app.WorkingHeight(), app.PresentValidators, backups, utils.BlockGasFee, app.logger).Distribute()
-
-	// punish Byzantine validators
+	// slash Byzantine validators
 	if len(app.ByzantineValidators) > 0 {
 		for _, bv := range app.ByzantineValidators {
 			pk, err := ttypes.GetPubKey(string(bv.Validator.PubKey.Data))
@@ -235,102 +222,108 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 				continue
 			}
 
-			stake.PunishByzantineValidator(pk)
+			stake.SlashByzantineValidator(pk)
 		}
 		app.ByzantineValidators = app.ByzantineValidators[:0]
 	}
 
-	// punish the absent validators
+	// slash the absent validators
 	for k, v := range app.AbsentValidators.Validators {
-		stake.PunishAbsentValidator(k, v)
+		pk, err := ttypes.GetPubKey(k)
+		if err != nil {
+			continue
+		}
+
+		stake.SlashAbsentValidator(pk, v)
 	}
 
-	// execute tick if present
-	diff, err := tick(app.Append())
-	if err != nil {
-		panic(err)
+	var backups stake.Validators
+	for _, bv := range stake.GetBackupValidators() {
+		// exclude the absent validators
+		if !app.AbsentValidators.Contains(bv.PubKey) {
+			backups = append(backups, bv.Validator())
+		}
 	}
-	app.AddValChange(diff)
+
+	// calculate the validator set difference
+	if calVPCheck(app.WorkingHeight()) {
+		diff, err := stake.UpdateValidatorSet()
+		if err != nil {
+			panic(err)
+		}
+		app.AddValChange(diff)
+	}
+
+	// block award
+	// run once per hour
+	if len(app.PresentValidators) > 0 {
+		stake.NewAwardDistributor(app.Append(), app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
+	}
+	// block award end
 
 	// handle the pending unstake requests
-	stake.HandlePendingUnstakeRequests(app.WorkingHeight(), app.Append())
+	stake.HandlePendingUnstakeRequests(app.WorkingHeight())
+
+	// record candidates stakes daily
+	if calStakeCheck(app.WorkingHeight()) {
+		// run once a day
+		stake.RecordCandidateDailyStakes()
+	}
+
+	// Accumulates the average staking date of all delegations
+	if calAvgStakingDateCheck(app.WorkingHeight()) {
+		// run once a day
+		stake.AccumulateDelegationsAverageStakingDate()
+	}
 
 	return app.StoreApp.EndBlock(req)
 }
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
-	ethAppCommit := app.EthApp.Commit()
-	if len(ethAppCommit.Data) == 0 {
+	ethAppCommit, err := app.EthApp.Commit()
+	if err != nil {
 		// Rollback transaction
 		if app.deliverSqlTx != nil {
 			err := app.deliverSqlTx.Rollback()
 			if err != nil {
-				// TODO: wrapper error
 				panic(err)
 			}
 			stake.ResetDeliverSqlTx()
 			governance.ResetDeliverSqlTx()
 		}
-		return abci.ResponseCommit{}
-	}
-	if dirty := utils.CleanParams(); dirty {
-		state := app.Append()
-		state.Set(utils.ParamKey, utils.UnloadParams())
+
+		// slash block proposer
+		var pk crypto.PubKeyEd25519
+		copy(pk[:], app.proposer.PubKey.Data)
+		pubKey := ttypes.PubKey{pk}
+		stake.SlashBadProposer(pubKey)
+	} else {
+		if app.deliverSqlTx != nil {
+			// Commit transaction
+			err := app.deliverSqlTx.Commit()
+			if err != nil {
+				panic(err)
+			}
+			stake.ResetDeliverSqlTx()
+			governance.ResetDeliverSqlTx()
+		}
 	}
 
 	workingHeight := app.WorkingHeight()
+
+	if dirty := utils.CleanParams(); workingHeight == 1 || dirty {
+		state := app.Append()
+		state.Set(utils.ParamKey, utils.UnloadParams())
+	}
 
 	// reset store app
 	app.TotalUsedGasFee = big.NewInt(0)
 
 	res = app.StoreApp.Commit()
-	if app.deliverSqlTx != nil {
-		// Commit transaction
-		err := app.deliverSqlTx.Commit()
-		if err != nil {
-			// TODO: wrapper error
-			panic(err)
-		}
-		stake.ResetDeliverSqlTx()
-		governance.ResetDeliverSqlTx()
-	}
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
 
-	app.BlockEnd = true
-
-	return
-}
-
-func (app *BaseApp) InitState(module, key string, value interface{}) error {
-	state := app.Append()
-	logger := app.Logger().With("module", module, "key", key)
-
-	if module == sdk.ModuleNameBase {
-		if key == sdk.ChainKey {
-			app.info.SetChainID(state, value.(string))
-			return nil
-		}
-		logger.Error("Invalid genesis option")
-		return fmt.Errorf("unknown base option: %s", key)
-	}
-
-	if key == "validator" {
-		stake.SetValidator(value.(ttypes.GenesisValidator), state)
-	} else {
-		if set := utils.SetParam(key, value.(string)); !set {
-			return errors.ErrUnknownKey(key)
-		}
-	}
-
-	return nil
-}
-
-// Tick - Called every block even if no transaction, process all queues,
-// validator rewards, and calculate the validator set difference
-func tick(store state.SimpleDB) (change []abci.Validator, err error) {
-	change, err = stake.UpdateValidatorSet(store)
 	return
 }
 
@@ -348,4 +341,16 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 	//	// TODO: save to DB
 	//}
 	return hash
+}
+
+func calStakeCheck(height int64) bool {
+	return height%int64(utils.GetParams().CalStakeInterval) == 0
+}
+
+func calVPCheck(height int64) bool {
+	return height%int64(utils.GetParams().CalVPInterval) == 0
+}
+
+func calAvgStakingDateCheck(height int64) bool {
+	return height%int64(utils.GetParams().CalAverageStakingDateInterval) == 0
 }

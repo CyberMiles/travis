@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ethereum/go-ethereum/node"
+	"github.com/ethereum/go-ethereum/cmd/utils"
 )
 
 var dummyApp = &cli.App{
@@ -17,10 +18,12 @@ var dummyApp = &cli.App{
 	Author: "Tendermint",
 }
 
-var dummyContext = cli.NewContext(dummyApp, flag.NewFlagSet("test", flag.ContinueOnError), nil)
+var set = flag.NewFlagSet("test", flag.ContinueOnError)
+var dummyContext = cli.NewContext(dummyApp, set, nil)
 var dummyNode, _ = node.New(&node.DefaultConfig)
 
 func TestNewNodeConfig(t *testing.T) {
+	utils.GCModeFlag.Apply(set)
 	defer func() {
 		err := recover()
 		assert.Nil(t, err, "expecting no panics")

@@ -2,11 +2,12 @@ package stake
 
 import (
 	"database/sql"
-	"github.com/ethereum/go-ethereum/common"
-
 	"fmt"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var (
@@ -67,33 +68,28 @@ func (wrapper *SqlTxWrapper) Rollback() {
 	}
 }
 
-func composeQueryClause(cond map[string]interface{}) string {
+func buildQueryClause(cond map[string]interface{}) (clause string, params []interface{}) {
 	if cond == nil || len(cond) == 0 {
-		return ""
+		return "", nil
 	}
 
-	clause := ""
+	clause = ""
 	for k, v := range cond {
-		s := ""
-		switch v.(type) {
-		case string:
-			s = fmt.Sprintf("%s = '%s'", k, v)
-		default:
-			s = fmt.Sprintf("%s = %v", k, v)
-		}
+		s := fmt.Sprintf("%s = ?", k)
 
 		if len(clause) == 0 {
 			clause = s
 		} else {
 			clause = fmt.Sprintf("%s and %s", clause, s)
 		}
+		params = append(params, v)
 	}
 
 	if len(clause) != 0 {
 		clause = fmt.Sprintf(" where %s", clause)
 	}
 
-	return clause
+	return
 }
 
 func GetCandidateByAddress(address common.Address) *Candidate {
@@ -107,9 +103,9 @@ func GetCandidateByAddress(address common.Address) *Candidate {
 	}
 }
 
-func GetCandidateByPubKey(pubKey string) *Candidate {
+func GetCandidateByPubKey(pubKey types.PubKey) *Candidate {
 	cond := make(map[string]interface{})
-	cond["pub_key"] = pubKey
+	cond["pub_key"] = types.PubKeyString(pubKey)
 	candidates := getCandidatesInternal(cond)
 	if len(candidates) == 0 {
 		return nil
@@ -120,7 +116,8 @@ func GetCandidateByPubKey(pubKey string) *Candidate {
 
 func GetCandidates() (candidates Candidates) {
 	cond := make(map[string]interface{})
-	return getCandidatesInternal(cond)
+	candidates = getCandidatesInternal(cond)
+	return candidates
 }
 
 func GetBackupValidators() (candidates Candidates) {
@@ -134,8 +131,8 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	clause := composeQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
+	clause, params := buildQueryClause(cond)
+	rows, err := txWrapper.tx.Query("select pub_key, address, shares, voting_power, pending_voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, num_of_delegators, created_at, updated_at from candidates"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -147,8 +144,8 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 	for rows.Next() {
 		var pubKey, address, createdAt, updatedAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-		var votingPower, blockHeight, rank int64
-		err := rows.Scan(&pubKey, &address, &shares, &votingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &createdAt, &updatedAt)
+		var votingPower, pendingVotingPower, blockHeight, rank, numOfDelegators int64
+		err := rows.Scan(&pubKey, &address, &shares, &votingPower, &pendingVotingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &numOfDelegators, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -160,21 +157,24 @@ func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 			Profile:  profile,
 			Email:    email,
 		}
+		c, _ := sdk.NewRatFromString(compRate)
 		candidate := &Candidate{
-			PubKey:       pk,
-			OwnerAddress: address,
-			Shares:       shares,
-			VotingPower:  votingPower,
-			MaxShares:    maxShares,
-			CompRate:     compRate,
-			Description:  description,
-			Verified:     verified,
-			CreatedAt:    createdAt,
-			UpdatedAt:    updatedAt,
-			Active:       active,
-			BlockHeight:  blockHeight,
-			Rank:         rank,
-			State:        state,
+			PubKey:             pk,
+			OwnerAddress:       address,
+			Shares:             shares,
+			VotingPower:        votingPower,
+			PendingVotingPower: pendingVotingPower,
+			MaxShares:          maxShares,
+			CompRate:           c,
+			Description:        description,
+			Verified:           verified,
+			CreatedAt:          createdAt,
+			UpdatedAt:          updatedAt,
+			Active:             active,
+			BlockHeight:        blockHeight,
+			Rank:               rank,
+			State:              state,
+			NumOfDelegator:     numOfDelegators,
 		}
 		candidates = append(candidates, candidate)
 	}
@@ -189,7 +189,7 @@ func SaveCandidate(candidate *Candidate) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into candidates(pub_key, address, shares, voting_power, pending_voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, hash, block_height, rank, state, num_of_delegators, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -201,8 +201,9 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
+		candidate.PendingVotingPower,
 		candidate.MaxShares,
-		candidate.CompRate,
+		candidate.CompRate.String(),
 		candidate.Description.Name,
 		candidate.Description.Website,
 		candidate.Description.Location,
@@ -214,6 +215,7 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.BlockHeight,
 		candidate.Rank,
 		candidate.State,
+		candidate.NumOfDelegator,
 		candidate.CreatedAt,
 		candidate.UpdatedAt,
 	)
@@ -226,7 +228,7 @@ func updateCandidate(candidate *Candidate) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, updated_at = ? where pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, pending_voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, num_of_delegators = ?, updated_at = ? where pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -237,8 +239,9 @@ func updateCandidate(candidate *Candidate) {
 		candidate.OwnerAddress,
 		candidate.Shares,
 		candidate.VotingPower,
+		candidate.PendingVotingPower,
 		candidate.MaxShares,
-		candidate.CompRate,
+		candidate.CompRate.String(),
 		candidate.Description.Name,
 		candidate.Description.Website,
 		candidate.Description.Location,
@@ -249,6 +252,7 @@ func updateCandidate(candidate *Candidate) {
 		common.Bytes2Hex(candidate.Hash()),
 		candidate.Rank,
 		candidate.State,
+		candidate.NumOfDelegator,
 		candidate.UpdatedAt,
 		types.PubKeyString(candidate.PubKey),
 	)
@@ -291,7 +295,35 @@ func cleanCandidates() {
 	}
 }
 
-func SaveDelegator(delegator *Delegator) {
+func GetCandidatesTotalShares() (res sdk.Int) {
+	res = sdk.ZeroInt
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	rows, err := txWrapper.tx.Query("select shares from candidates where active = 'Y' and state in ('Validator', 'Backup Validator')")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var shares string
+		err = rows.Scan(&shares)
+		if err != nil {
+			panic(err)
+		}
+
+		s, ok := sdk.NewIntFromString(shares)
+		if !ok {
+			panic(err)
+		}
+		res = res.Add(s)
+	}
+
+	return
+}
+
+/*func SaveDelegator(delegator *Delegator) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
@@ -345,37 +377,37 @@ func GetDelegator(address string) *Delegator {
 	}
 
 	return &Delegator{common.HexToAddress(address), updatedAt}
-}
+}*/
 
 func SaveDelegation(d *Delegation) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, hash, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into delegations(delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, hash, voting_power, state, block_height, average_staking_date, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, common.Bytes2Hex(d.Hash()), d.CreatedAt, d.UpdatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), types.PubKeyString(d.PubKey), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.State, d.BlockHeight, d.AverageStakingDate, d.CreatedAt, d.UpdatedAt)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func RemoveDelegation(delegation *Delegation) {
+func RemoveDelegation(delegatorAddress common.Address, pubKey types.PubKey) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("delete from delegations where delegator_address = ? and pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("update delegations set state = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(delegation.DelegatorAddress.String(), types.PubKeyString(delegation.PubKey))
+	_, err = stmt.Exec("N", utils.GetNow(), delegatorAddress.String(), types.PubKeyString(pubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -384,12 +416,12 @@ func RemoveDelegation(delegation *Delegation) {
 func UpdateDelegation(d *Delegation) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
-	stmt, err := txWrapper.tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, hash = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
+	stmt, err := txWrapper.tx.Prepare("update delegations set delegate_amount = ?, award_amount =?, withdraw_amount = ?, slash_amount = ?, comp_rate = ?, hash = ?, voting_power = ?, state = ?, average_staking_date = ?, updated_at = ? where delegator_address = ? and pub_key = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, common.Bytes2Hex(d.Hash()), d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
+	_, err = stmt.Exec(d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.State, d.AverageStakingDate, d.UpdatedAt, d.DelegatorAddress.String(), types.PubKeyString(d.PubKey))
 	if err != nil {
 		panic(err)
 	}
@@ -407,15 +439,21 @@ func GetDelegation(delegatorAddress common.Address, pubKey types.PubKey) *Delega
 	}
 }
 
-func GetDelegationsByPubKey(pubKey types.PubKey) (delegations []*Delegation) {
+func GetDelegations(state string) (delegations []*Delegation) {
 	cond := make(map[string]interface{})
-	cond["pub_key"] = types.PubKeyString(pubKey)
+	if state != "" {
+		cond["state"] = state
+	}
 	return getDelegationsInternal(cond)
 }
 
-func GetDelegationsByDelegator(delegatorAddress common.Address) (delegations []*Delegation) {
+func GetDelegationsByPubKey(pubKey types.PubKey, state string) (delegations []*Delegation) {
 	cond := make(map[string]interface{})
-	cond["delegator_address"] = delegatorAddress.String()
+	cond["pub_key"] = types.PubKeyString(pubKey)
+	if state != "" {
+		cond["state"] = state
+	}
+
 	return getDelegationsInternal(cond)
 }
 
@@ -423,8 +461,8 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	clause := composeQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations" + clause)
+	clause, params := buildQueryClause(cond)
+	rows, err := txWrapper.tx.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at, updated_at from delegations"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -434,10 +472,11 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	return
 }
 
-func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation)  {
+func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 	for rows.Next() {
-		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, createdAt, updatedAt string
-		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &createdAt, &updatedAt)
+		var delegatorAddress, pubKey, delegateAmount, awardAmount, withdrawAmount, slashAmount, compRate, state, createdAt, updatedAt string
+		var votingPower, blockHeight, averageStakingDate int64
+		err := rows.Scan(&delegatorAddress, &pubKey, &delegateAmount, &awardAmount, &withdrawAmount, &slashAmount, &compRate, &votingPower, &state, &blockHeight, &averageStakingDate, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
 		}
@@ -447,15 +486,21 @@ func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation)  {
 			return
 		}
 
+		c, _ := sdk.NewRatFromString(compRate)
 		delegation := &Delegation{
-			DelegatorAddress: common.HexToAddress(delegatorAddress),
-			PubKey:           pk,
-			DelegateAmount:   delegateAmount,
-			AwardAmount:      awardAmount,
-			WithdrawAmount:   withdrawAmount,
-			SlashAmount:      slashAmount,
-			CreatedAt:        createdAt,
-			UpdatedAt:        updatedAt,
+			DelegatorAddress:   common.HexToAddress(delegatorAddress),
+			PubKey:             pk,
+			DelegateAmount:     delegateAmount,
+			AwardAmount:        awardAmount,
+			WithdrawAmount:     withdrawAmount,
+			SlashAmount:        slashAmount,
+			CompRate:           c,
+			VotingPower:        votingPower,
+			State:              state,
+			BlockHeight:        blockHeight,
+			AverageStakingDate: averageStakingDate,
+			CreatedAt:          createdAt,
+			UpdatedAt:          updatedAt,
 		}
 		delegations = append(delegations, delegation)
 	}
@@ -487,22 +532,22 @@ func saveDelegateHistory(delegateHistory *DelegateHistory) {
 	}
 }
 
-func savePunishHistory(punishHistory *PunishHistory) {
+func saveSlash(slash *Slash) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into punish_history(pub_key, slashing_ratio, slash_amount, reason, created_at) values(?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into slashes(pub_key, slash_ratio, slash_amount, reason, created_at) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
-		types.PubKeyString(punishHistory.PubKey),
-		punishHistory.SlashingRatio,
-		punishHistory.SlashAmount.String(),
-		punishHistory.Reason,
-		punishHistory.CreatedAt,
+		types.PubKeyString(slash.PubKey),
+		slash.SlashRatio.String(),
+		slash.SlashAmount.String(),
+		slash.Reason,
+		slash.CreatedAt,
 	)
 	if err != nil {
 		panic(err)
@@ -513,14 +558,13 @@ func saveUnstakeRequest(req *UnstakeRequest) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into unstake_requests(id, delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into unstake_requests(delegator_address, pub_key, initiated_block_height, performed_block_height, amount, state, hash, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
 	_, err = stmt.Exec(
-		req.Id,
 		req.DelegatorAddress.String(),
 		types.PubKeyString(req.PubKey),
 		req.InitiatedBlockHeight,
@@ -546,8 +590,8 @@ func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var id, delegatorAddress, pubKey, state, amount, createdAt, updatedAt string
-		var initiatedBlockHeight, performedBlockHeight int64
+		var delegatorAddress, pubKey, state, amount, createdAt, updatedAt string
+		var id, initiatedBlockHeight, performedBlockHeight int64
 		err = rows.Scan(&id, &delegatorAddress, &pubKey, &initiatedBlockHeight, &performedBlockHeight, &amount, &state, &createdAt, &updatedAt)
 		if err != nil {
 			panic(err)
@@ -599,4 +643,59 @@ func updateUnstakeRequest(req *UnstakeRequest) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func SaveCandidateDailyStake(cds *CandidateDailyStake) {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("insert into candidate_daily_stakes(pub_key, amount, created_at) values(?, ?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(types.PubKeyString(cds.PubKey), cds.Amount, cds.CreatedAt)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func RemoveCandidateDailyStakes(pubKey types.PubKey, startDate string) {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("delete from candidate_daily_stakes where pub_key = ? and created_at < ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(types.PubKeyString(pubKey), startDate)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GetCandidateDailyStakeMaxValue(pubKey types.PubKey, startDate string) (res sdk.Int) {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("select max(amount) from candidate_daily_stakes where pub_key = ? and created_at >= ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var maxAmount string
+	err = stmt.QueryRow(types.PubKeyString(pubKey), startDate).Scan(&maxAmount)
+
+	if err != nil {
+		// If no records found
+		res = sdk.E18Int
+		return
+	}
+
+	res, _ = sdk.NewIntFromString(maxAmount)
+	return
 }

@@ -54,6 +54,10 @@ func (b *Bonsai) GetWithProof(key []byte) ([]byte, *iavl.RangeProof, error) {
 	return b.Tree.GetWithProof(key)
 }
 
+func (b *Bonsai) GetVersioned(key []byte, version int64) (int, []byte) {
+	return b.Tree.GetVersioned(key, version)
+}
+
 func (b *Bonsai) GetVersionedWithProof(key []byte, version int64) ([]byte, *iavl.RangeProof, error) {
 	return b.Tree.GetVersionedWithProof(key, version)
 }

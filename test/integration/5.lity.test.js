@@ -2,11 +2,19 @@ const chai = require("chai")
 const expect = chai.expect
 
 const logger = require("./logger")
-const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
 describe("Lity Test", function() {
+  before(function() {
+    if (process.platform == "darwin") {
+      // skips current and all nested describes
+      logger.debug("mac os is not supported. ")
+      this.test.parent.pending = true
+      this.skip()
+    }
+  })
+
   describe("Reverse hello world", function() {
     let contractInstance
     it("new reverse contract", function(done) {

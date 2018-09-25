@@ -25,6 +25,7 @@ func prepareClientCommands() {
 		stakecmd.CmdQueryValidator,
 		stakecmd.CmdQueryValidators,
 		stakecmd.CmdQueryDelegator,
+		stakecmd.CmdQueryAwardInfo,
 	)
 
 	// set up the middleware
@@ -39,6 +40,7 @@ func prepareClientCommands() {
 		stakecmd.CmdActivateCandidacy,
 		stakecmd.CmdDelegate,
 		stakecmd.CmdWithdraw,
+		stakecmd.CmdSetCompRate,
 	)
 
 	clientCmd.AddCommand(

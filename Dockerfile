@@ -13,7 +13,7 @@ ENV LIBENI_PATH=/app/lib
 RUN mkdir -p libeni \
   && wget https://github.com/CyberMiles/libeni/releases/download/v1.3.2/libeni-1.3.2_ubuntu-16.04.tgz -P libeni \
   && tar zxvf libeni/*.tgz -C libeni \
-  && mkdir -p $LIBENI_PATH && cp libeni/*/lib/*.so $LIBENI_PATH
+  && mkdir -p $LIBENI_PATH && cp libeni/*/lib/* $LIBENI_PATH
 
 # get travis source code
 WORKDIR /go/src/github.com/CyberMiles/travis

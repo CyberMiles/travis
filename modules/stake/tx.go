@@ -1,8 +1,6 @@
 package stake
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/CyberMiles/travis/sdk"
@@ -23,13 +21,15 @@ const (
 	ByteTxActivateCandidacy = 0x59
 	ByteTxDelegate          = 0x60
 	ByteTxWithdraw          = 0x61
-	TypeTxDeclareCandidacy  = stakingModuleName + "/declareCandidacy"
-	TypeTxUpdateCandidacy   = stakingModuleName + "/updateCandidacy"
-	TypeTxVerifyCandidacy   = stakingModuleName + "/verifyCandidacy"
-	TypeTxWithdrawCandidacy = stakingModuleName + "/withdrawCandidacy"
-	TypeTxActivateCandidacy = stakingModuleName + "/activateCandidacy"
-	TypeTxDelegate          = stakingModuleName + "/delegate"
-	TypeTxWithdraw          = stakingModuleName + "/withdraw"
+	ByteTxSetCompRate       = 0x62
+	TypeTxDeclareCandidacy  = "stake/declareCandidacy"
+	TypeTxUpdateCandidacy   = "stake/updateCandidacy"
+	TypeTxVerifyCandidacy   = "stake/verifyCandidacy"
+	TypeTxWithdrawCandidacy = "stake/withdrawCandidacy"
+	TypeTxActivateCandidacy = "stake/activateCandidacy"
+	TypeTxDelegate          = "stake/delegate"
+	TypeTxWithdraw          = "stake/withdraw"
+	TypeTxSetCompRate       = "stake/set-comprate"
 )
 
 func init() {
@@ -40,6 +40,7 @@ func init() {
 	sdk.TxMapper.RegisterImplementation(TxActivateCandidacy{}, TypeTxActivateCandidacy, ByteTxActivateCandidacy)
 	sdk.TxMapper.RegisterImplementation(TxDelegate{}, TypeTxDelegate, ByteTxDelegate)
 	sdk.TxMapper.RegisterImplementation(TxWithdraw{}, TypeTxWithdraw, ByteTxWithdraw)
+	sdk.TxMapper.RegisterImplementation(TxSetCompRate{}, TypeTxSetCompRate, ByteTxSetCompRate)
 }
 
 //Verify interface at compile time
@@ -48,7 +49,7 @@ var _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, 
 type TxDeclareCandidacy struct {
 	PubKey      string      `json:"pub_key"`
 	MaxAmount   string      `json:"max_amount"`
-	CompRate    string      `json:"comp_rate"`
+	CompRate    sdk.Rat     `json:"comp_rate"`
 	Description Description `json:"description"`
 }
 
@@ -56,17 +57,13 @@ func (tx TxDeclareCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func (tx TxDeclareCandidacy) SelfStakingAmount(ratio string) (amount *big.Int) {
-	amount = new(big.Int)
-	maxAmount, _ := new(big.Float).SetString(tx.MaxAmount)
-	z := new(big.Float)
-	r, _ := new(big.Float).SetString(ratio)
-	z.Mul(maxAmount, r)
-	z.Int(amount)
+func (tx TxDeclareCandidacy) SelfStakingAmount(ssr sdk.Rat) (res sdk.Int) {
+	maxAmount, _ := sdk.NewIntFromString(tx.MaxAmount)
+	res = maxAmount.MulRat(ssr)
 	return
 }
 
-func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount, compRate string, descrpition Description) sdk.Tx {
+func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount string, compRate sdk.Rat, descrpition Description) sdk.Tx {
 	return TxDeclareCandidacy{
 		PubKey:      types.PubKeyString(pubKey),
 		MaxAmount:   maxAmount,
@@ -185,3 +182,22 @@ func NewTxWithdraw(validatorAddress common.Address, amount string) sdk.Tx {
 
 // Wrap - Wrap a Tx as a Travis Tx
 func (tx TxWithdraw) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
+type TxSetCompRate struct {
+	DelegatorAddress common.Address `json:"delegator_address"`
+	CompRate         sdk.Rat        `json:"comp_rate"`
+}
+
+func (tx TxSetCompRate) ValidateBasic() error {
+	return nil
+}
+
+func NewTxSetCompRate(delegatorAddress common.Address, compRate sdk.Rat) sdk.Tx {
+	return TxSetCompRate{
+		DelegatorAddress: delegatorAddress,
+		CompRate:         compRate,
+	}.Wrap()
+}
+
+// Wrap - Wrap a Tx as a Travis Tx
+func (tx TxSetCompRate) Wrap() sdk.Tx { return sdk.Tx{tx} }

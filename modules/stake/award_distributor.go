@@ -1,290 +1,70 @@
 package stake
 
 import (
-	"math"
-	"math/big"
-	"strconv"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/tendermint/libs/log"
-
+	"fmt"
 	"github.com/CyberMiles/travis/commons"
+	"github.com/CyberMiles/travis/sdk"
+	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/tendermint/libs/log"
+	"math"
 )
 
-const (
-	yearlyBlockNumber   = 365 * 24 * 3600 / 10
-	basicMintableAmount = "1000000000000000000000000000"
-)
-
-type validator struct {
-	shares           *big.Int
-	ownerAddress     common.Address
-	pubKey           types.PubKey
-	delegators       []*delegator
-	compRate         float64
-	sharesPercentage *big.Float
-	selfDelegator    *delegator
-	exceedLimit      bool
-	totalShares      *big.Int
+type simpleValidator struct {
+	s            int64
+	ownerAddress common.Address
+	pk           types.PubKey
+	delegators   []*simpleDelegator
+	vp           int64
 }
 
-func (v validator) getAwardForValidatorSelf(totalAward *big.Int, ac *awardDistributor) (award *big.Int) {
-	award = new(big.Int)
-	x := new(big.Int)
-	z := new(big.Float).SetInt(totalAward)
-	p := v.computeSelfSharesPercentage()
-	z.Mul(z, p)
-	z.Int(x)
+func (v *simpleValidator) distributeToAll(totalAward sdk.Int, totalVotingPower int64, rr sdk.Rat) (res sdk.Int) {
+	t := sdk.ZeroRat
+	res = sdk.ZeroInt
 
-	d := new(big.Int)
-	d.Sub(totalAward, x)
-	r := new(big.Float).SetFloat64(v.compRate)
-	tmp := new(big.Float).SetInt(d)
-	tmp.Mul(tmp, r)
-	y := new(big.Int)
-	tmp.Int(y)
+	// distribute to the delegators
+	for _, d := range v.delegators {
+		a := sdk.OneRat.Sub(d.c)
+		b := sdk.NewRat(d.vp*a.Num().Int64(), a.Denom().Int64())
+		c := totalAward.MulRat(b.Mul(rr).Quo(sdk.NewRat(totalVotingPower, 1)))
+		d.distributeAward(v, c)
+		res = res.Add(c)
+		t = t.Add(sdk.NewRat(d.vp*d.c.Num().Int64(), d.c.Denom().Int64()))
+	}
 
-	award.Add(x, y)
+	// distribute to the validator self
+	c := totalAward.MulRat(t.Mul(rr).Quo(sdk.NewRat(totalVotingPower, 1)))
+	v.distributeAwardToSelf(c)
+	res = res.Add(c)
 	return
 }
 
-func (v validator) getTotalAwardForValidator(totalAward *big.Int, ac *awardDistributor) (award *big.Int) {
-	award = new(big.Int)
-	z := new(big.Float).SetInt(totalAward)
-	z.Mul(z, v.sharesPercentage)
-	z.Int(award)
-	return
+func (v *simpleValidator) distributeAwardToSelf(award sdk.Int) {
+	// A simpleValidator is also a simpleDelegator
+	d := simpleDelegator{address: v.ownerAddress}
+	d.distributeAward(v, award)
 }
 
-func (v validator) computeSelfSharesPercentage() *big.Float {
-	x := new(big.Float).SetInt(v.selfDelegator.shares)
-	y := new(big.Float).SetInt(v.shares)
-	result := new(big.Float).Quo(x, y)
-	return result
-}
-
-func (v *validator) computeTotalSharesPercentage(redistribute bool) {
-	x := new(big.Float).SetInt(v.shares)
-	y := new(big.Float).SetInt(v.totalShares)
-	v.sharesPercentage = new(big.Float).Quo(x, y)
-	v.exceedLimit = false
-
-	slf, err := strconv.ParseFloat(utils.GetParams().ValidatorSizeThreshold, 64)
-	if err != nil {
-		panic(err)
-	}
-	threshold := big.NewFloat(slf)
-	if !redistribute && v.sharesPercentage.Cmp(threshold) > 0 {
-		v.sharesPercentage = threshold
-		v.exceedLimit = true
-	}
+func (v simpleValidator) String() string {
+	return fmt.Sprintf("[simpleValidator] ownerAddress: %s, delegators: %d, vp: %d", v.ownerAddress.String(), len(v.delegators), v.vp)
 }
 
 //_______________________________________________________________________
 
-type delegator struct {
-	address          common.Address
-	shares           *big.Int
-	sharesPercentage *big.Float
+type simpleDelegator struct {
+	address common.Address
+	s       int64
+	c       sdk.Rat
+	vp      int64
 }
 
-func (d *delegator) computeSharesPercentage(val *validator) {
-	d.sharesPercentage = new(big.Float)
-	x := new(big.Float).SetInt(d.shares) // shares of the delegator
-	tmp := new(big.Int)
-	tmp.Sub(val.shares, val.selfDelegator.shares)
-	y := new(big.Float).SetInt(tmp) // total shares of the validator
-	d.sharesPercentage.Quo(x, y)
-}
-
-func (d delegator) getAwardForDelegator(totalShares, totalAward *big.Int, ac *awardDistributor, val *validator) (award *big.Int) {
-	award = new(big.Int)
-	tmp := new(big.Float)
-	ta := new(big.Float).SetInt(totalAward)
-	tmp.Mul(ta, d.sharesPercentage)
-	tmp.Int(award)
-	return
-}
-
-//_______________________________________________________________________
-
-type awardDistributor struct {
-	height           int64
-	validators       Validators
-	backupValidators Validators
-	transactionFees  *big.Int
-	logger           log.Logger
-}
-
-func NewAwardDistributor(height int64, validators, backupValidators Validators, transactionFees *big.Int, logger log.Logger) *awardDistributor {
-	return &awardDistributor{height, validators, backupValidators, transactionFees, logger}
-}
-
-func (ad awardDistributor) getMintableAmount() (amount *big.Int) {
-	amount = new(big.Int)
-	base, ok := new(big.Float).SetString(basicMintableAmount)
-	if !ok {
-		return
-	}
-
-	year := ad.height / yearlyBlockNumber
-	pow := big.NewFloat(math.Pow(float64(1+utils.GetParams().InflationRate/100), float64(year)))
-	new(big.Float).Mul(base, pow).Int(amount)
-	ad.logger.Debug("getMintableAmount", "height", ad.height, "year", year, "amount", amount)
-	return
-}
-
-func (ad awardDistributor) getBlockAward() (blockAward *big.Int) {
-	ybn := big.NewInt(yearlyBlockNumber)
-	blockAward = new(big.Int)
-	blockAward.Mul(ad.getMintableAmount(), big.NewInt(utils.GetParams().InflationRate))
-	blockAward.Div(blockAward, big.NewInt(100))
-	blockAward.Div(blockAward, ybn)
-	ad.logger.Debug("getBlockAward", "yearly_block_number", ybn, "total_block_award", blockAward)
-	return
-}
-
-func (ad awardDistributor) Distribute() {
-	// distribute to the validators
-	normalizedValidators, totalValidatorsShares := ad.buildValidators(ad.validators)
-	normalizedBackupValidators, totalBackupsShares := ad.buildValidators(ad.backupValidators)
-	totalAward := new(big.Int)
-	if len(normalizedBackupValidators) > 0 {
-		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(utils.GetParams().ValidatorsBlockAwardRatio))
-		totalAward.Div(totalAward, big.NewInt(100))
-	} else {
-		totalAward = ad.getBlockAwardAndTxFees()
-	}
-	ad.distributeToValidators(normalizedValidators, totalValidatorsShares, totalAward)
-
-	// distribute to the backup validators
-	if len(normalizedBackupValidators) > 0 {
-		totalAward = new(big.Int)
-		totalAward.Mul(ad.getBlockAwardAndTxFees(), big.NewInt(100-utils.GetParams().ValidatorsBlockAwardRatio))
-		totalAward.Div(totalAward, big.NewInt(100))
-		ad.distributeToValidators(normalizedBackupValidators, totalBackupsShares, totalAward)
-	}
-
-	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
-}
-
-func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*validator, totalShares *big.Int) {
-	totalShares = new(big.Int)
-
-	for _, val := range rawValidators {
-		var validator validator
-		var delegators []*delegator
-		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
-		if candidate.Shares == "0" {
-			continue
-		}
-
-		shares := candidate.ParseShares()
-		validator.shares = shares
-		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
-		validator.pubKey = candidate.PubKey
-		validator.compRate = candidate.ParseCompRate()
-		totalShares.Add(totalShares, shares)
-		skippedShares := big.NewInt(0)
-
-		// Get all delegators
-		delegations := GetDelegationsByPubKey(candidate.PubKey)
-		for _, delegation := range delegations {
-			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
-			minStakingAmount := new(big.Int).Mul(big.NewInt(utils.GetParams().MinStakingAmount), big.NewInt(1e18))
-			if delegation.Shares().Cmp(minStakingAmount) < 0 {
-				skippedShares.Add(skippedShares, delegation.Shares())
-				continue
-			}
-
-			delegator := delegator{}
-			delegator.address = delegation.DelegatorAddress
-			delegator.shares = delegation.Shares()
-
-			if delegator.address == validator.ownerAddress {
-				validator.selfDelegator = &delegator
-			} else {
-				delegators = append(delegators, &delegator)
-			}
-		}
-
-		totalShares.Sub(totalShares, skippedShares)
-		validator.shares.Sub(validator.shares, skippedShares)
-
-		if validator.selfDelegator != nil {
-			validator.delegators = delegators
-			normalizedValidators = append(normalizedValidators, &validator)
-		}
-	}
-
-	return
-}
-
-func (ad *awardDistributor) distributeToValidators(normalizedValidators []*validator, totalShares *big.Int, totalAward *big.Int) {
-	actualDistributed := big.NewInt(0)
-	for _, val := range normalizedValidators {
-		val.totalShares = totalShares
-		val.computeTotalSharesPercentage(false)
-		actualAward := ad.doDistribute(val, totalAward)
-		actualDistributed.Add(actualDistributed, actualAward)
-	}
-
-	// If there is remaining doDistribute, doDistribute a second round based on stake amount.
-	remaining := new(big.Int).Sub(totalAward, actualDistributed)
-	if remaining.Cmp(big.NewInt(0)) > 0 {
-		ad.logger.Debug("there is remaining award, doDistribute a second round based on stake amount.", "remaining", remaining)
-		for _, val := range normalizedValidators {
-			val.computeTotalSharesPercentage(true)
-			ad.doDistribute(val, remaining)
-		}
-	}
-}
-
-func (ad *awardDistributor) doDistribute(val *validator, totalAward *big.Int) (actualTotalAward *big.Int) {
-	ad.logger.Debug("########## doDistribute begin ########")
-	actualTotalAward = val.getTotalAwardForValidator(totalAward, ad)
-
-	// doDistribute to the validator
-	valAward := val.getAwardForValidatorSelf(actualTotalAward, ad)
-	ad.awardToValidator(val, valAward)
-
-	remainingAward := new(big.Int)
-	remainingAward.Sub(actualTotalAward, valAward)
-
-	ad.logger.Debug("doDistribute", "totalAward", totalAward, "actualTotalAward", actualTotalAward, "valAward", valAward, "remainingAward", remainingAward, "valSharesPercentage", val.sharesPercentage)
-
-	// doDistribute to the delegators
-	for _, delegator := range val.delegators {
-		delegator.computeSharesPercentage(val)
-		delegatorAward := delegator.getAwardForDelegator(val.totalShares, remainingAward, ad, val)
-		ad.awardToDelegator(delegator, val, delegatorAward)
-	}
-
-	ad.logger.Debug("########## doDistribute end ########")
-
-	return
-}
-
-func (ad awardDistributor) getBlockAwardAndTxFees() *big.Int {
-	blockAward := new(big.Int)
-	blockAward.Add(ad.getBlockAward(), ad.transactionFees)
-	return blockAward
-}
-
-func (ad awardDistributor) awardToValidator(v *validator, award *big.Int) {
-	// A validator is also a delegator
-	d := delegator{address: v.ownerAddress}
-	ad.awardToDelegator(&d, v, award)
-}
-
-func (ad awardDistributor) awardToDelegator(d *delegator, v *validator, award *big.Int) {
-	ad.logger.Debug("awardToDelegator", "delegator_address", d.address.String(), "award", award)
+func (d simpleDelegator) distributeAward(v *simpleValidator, award sdk.Int) {
 	now := utils.GetNow()
 
-	// add doDistribute to stake of the delegator
-	delegation := GetDelegation(d.address, v.pubKey)
+	// add doDistribute to stake of the simpleDelegator
+	delegation := GetDelegation(d.address, v.pk)
 	if delegation == nil {
 		return
 	}
@@ -293,9 +73,156 @@ func (ad awardDistributor) awardToDelegator(d *delegator, v *validator, award *b
 	delegation.UpdatedAt = now
 	UpdateDelegation(delegation)
 
-	// accumulate shares of the validator
+	// accumulate shares of the simpleValidator
 	val := GetCandidateByAddress(v.ownerAddress)
 	val.AddShares(award)
 	val.UpdatedAt = now
 	updateCandidate(val)
+}
+
+func (d simpleDelegator) String() string {
+	return fmt.Sprintf("[simpleDeligator] address: %s, s: %d, c: %vp, vp: %d", d.address.String(), d.s, d.c, d.vp)
+}
+
+type AwardInfo struct {
+	Address common.Address `json:"address"`
+	State   string         `json:"state"`
+	Amount  string         `json:"amount"`
+}
+
+type AwardInfos []AwardInfo
+
+//_______________________________________________________________________
+
+type awardDistributor struct {
+	store            state.SimpleDB
+	height           int64
+	validators       Validators
+	backupValidators Validators
+	transactionFees  sdk.Int
+	logger           log.Logger
+}
+
+func NewAwardDistributor(store state.SimpleDB, height int64, validators, backupValidators Validators, logger log.Logger) *awardDistributor {
+	return &awardDistributor{store, height, validators, backupValidators, sdk.NewIntFromBigInt(utils.BlockGasFee), logger}
+}
+
+func (ad awardDistributor) getMintableAmount() (amount sdk.Int) {
+	base, ok := sdk.NewIntFromString(utils.BasicMintableAmount)
+	if !ok {
+		return
+	}
+
+	year := ad.height / utils.YearlyBlockNumber
+	b, _ := utils.GetParams().InflationRate.Add(sdk.OneRat).Float64()
+	pow := math.Pow(b, float64(year))
+	pow = utils.RoundFloat(pow, 2)
+	r := sdk.NewRat(int64(pow*100), 100)
+	amount = base.MulRat(r)
+	ad.logger.Debug("getMintableAmount", "height", ad.height, "year", year, "amount", amount)
+	return
+}
+
+func (ad awardDistributor) getBlockAward() (blockAward sdk.Int) {
+	ybn := sdk.NewInt(utils.YearlyBlockNumber)
+	blockAward = ad.getMintableAmount().MulRat(utils.GetParams().InflationRate).Div(ybn)
+	ad.logger.Debug("getBlockAward", "yearly_block_number", ybn, "total_block_award", blockAward)
+	return
+}
+
+func (ad awardDistributor) Distribute() {
+	vals, _, totalValVotingPower := ad.buildValidators(ad.validators)
+	backups, totalBackupShares, totalBackupVotingPower := ad.buildValidators(ad.backupValidators)
+	totalVotingPower := totalValVotingPower + totalBackupVotingPower
+	var rr sdk.Rat
+	if len(backups) > 0 && totalBackupShares > 0 {
+		rr = utils.GetParams().ValidatorsBlockAwardRatio
+	} else {
+		rr = sdk.OneRat
+	}
+
+	ad.distribute(vals, ad.getBlockAwardAndTxFees(), totalVotingPower, rr)
+
+	// distribute to the backup validators
+	if len(backups) > 0 && totalBackupShares > 0 {
+		rr = sdk.OneRat.Sub(utils.GetParams().ValidatorsBlockAwardRatio)
+		ad.distribute(backups, ad.getBlockAwardAndTxFees(), totalVotingPower, rr)
+	}
+
+	commons.Transfer(utils.MintAccount, utils.HoldAccount, ad.getBlockAward())
+
+	// reset block gas fee
+	utils.BlockGasFee.SetInt64(0)
+}
+
+func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalizedValidators []*simpleValidator, totalShares int64, totalVotingPower int64) {
+	totalShares = 0
+	totalVotingPower = 0
+
+	for _, val := range rawValidators {
+		var validator simpleValidator
+		var delegators []*simpleDelegator
+		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
+		if candidate == nil || candidate.ParseShares() == sdk.ZeroInt {
+			continue
+		}
+
+		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
+		validator.pk = candidate.PubKey
+
+		// Get all delegators
+		delegations := GetDelegationsByPubKey(candidate.PubKey, "Y")
+		for _, delegation := range delegations {
+			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
+			if delegation.VotingPower == 0 {
+				continue
+			}
+
+			d := simpleDelegator{}
+			d.address = delegation.DelegatorAddress
+			d.s = delegation.Shares().Div(sdk.E18Int).Int64()
+			d.c = delegation.CompRate
+			d.vp = delegation.VotingPower
+			delegators = append(delegators, &d)
+			validator.s += d.s
+			totalShares += d.s
+			totalVotingPower += d.vp
+		}
+
+		// update pending voting power
+		candidate.PendingVotingPower = validator.vp
+		updateCandidate(candidate)
+
+		validator.delegators = delegators
+		normalizedValidators = append(normalizedValidators, &validator)
+	}
+
+	return
+}
+
+func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.Int, totalVotingPower int64, rr sdk.Rat) {
+	var awardInfos AwardInfos
+	for _, val := range vals {
+		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward)
+		award := val.distributeToAll(totalAward, totalVotingPower, rr)
+
+		// fixme state
+		ai := AwardInfo{Address: val.ownerAddress, State: "", Amount: award.String()}
+		awardInfos = append(awardInfos, ai)
+	}
+
+	saveAwardInfo(ad.store, awardInfos)
+}
+
+func (ad awardDistributor) getBlockAwardAndTxFees() sdk.Int {
+	return ad.getBlockAward().Add(ad.transactionFees)
+}
+
+func saveAwardInfo(store state.SimpleDB, awardInfos AwardInfos) {
+	b, err := cdc.MarshalBinary(&awardInfos)
+	if err != nil {
+		panic(err)
+	}
+
+	store.Set(utils.AwardInfosKey, b)
 }

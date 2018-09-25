@@ -1,5 +1,4 @@
 const expect = require("chai").expect
-const { Settings } = require("./constants")
 const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 

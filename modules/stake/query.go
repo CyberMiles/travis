@@ -1,8 +1,9 @@
 package stake
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"database/sql"
+	"github.com/CyberMiles/travis/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 func QueryCandidates() (candidates Candidates) {
@@ -23,18 +24,28 @@ func QueryCandidateByAddress(address common.Address) *Candidate {
 	}
 }
 
-func QueryDelegationsByDelegator(delegatorAddress common.Address) (delegations []*Delegation) {
+func QueryCandidateByPubKey(pubKey types.PubKey) *Candidate {
+	db := getDb()
+	cond := make(map[string]interface{})
+	cond["pub_key"] = types.PubKeyString(pubKey)
+	candidates := queryCandidates(db, cond)
+	if len(candidates) == 0 {
+		return nil
+	} else {
+		return candidates[0]
+	}
+}
+
+func QueryDelegationsByAddress(delegatorAddress common.Address) (delegations []*Delegation) {
 	db := getDb()
 	cond := make(map[string]interface{})
 	cond["delegator_address"] = delegatorAddress.String()
 	return queryDelegations(db, cond)
 }
 
-
-
 func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candidates) {
-	clause := composeQueryClause(cond)
-	rows, err := db.Query("select pub_key, address, shares, voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, created_at, updated_at from candidates" + clause)
+	clause, params := buildQueryClause(cond)
+	rows, err := db.Query("select pub_key, address, shares, voting_power, pending_voting_power,  max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, num_of_delegators, created_at, updated_at from candidates"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -43,10 +54,9 @@ func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candid
 	return
 }
 
-
 func queryDelegations(db *sql.DB, cond map[string]interface{}) (delegations []*Delegation) {
-	clause := composeQueryClause(cond)
-	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, created_at, updated_at from delegations" + clause)
+	clause, params := buildQueryClause(cond)
+	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at, updated_at from delegations"+clause, params...)
 	if err != nil {
 		panic(err)
 	}

@@ -1,6 +1,6 @@
 package state
 
-// ChainState maintains general information for the chain
+// chainState maintains general information for the chain
 type ChainState struct {
 	chainID string
 }

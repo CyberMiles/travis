@@ -2,16 +2,16 @@ package commons
 
 import (
 	"fmt"
+	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/state"
 	"math"
-	"math/big"
 	"os"
 	"path/filepath"
 	"time"
-	"github.com/ethereum/go-ethereum/core/state"
 )
 
 const (
@@ -59,13 +59,13 @@ func UnlockAccount(am *accounts.Manager, addr common.Address, password string, d
 	return err == nil, err
 }
 
-func Transfer(from, to common.Address, amount *big.Int) error {
+func Transfer(from, to common.Address, amount sdk.Int) error {
 	utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
 		From: from, To: to, Amount: amount})
 	return nil
 }
 
-func TransferWithReactor(from, to common.Address, amount *big.Int, reactor utils.StateChangeReactor) error {
+func TransferWithReactor(from, to common.Address, amount sdk.Int, reactor utils.StateChangeReactor) error {
 	utils.StateChangeQueue = append(utils.StateChangeQueue, utils.StateChangeObject{
 		from,
 		to,
@@ -75,6 +75,6 @@ func TransferWithReactor(from, to common.Address, amount *big.Int, reactor utils
 	return nil
 }
 
-func GetBalance(state *state.StateDB, addr common.Address) (*big.Int, error) {
-	return state.GetBalance(addr), nil
+func GetBalance(state *state.StateDB, addr common.Address) (sdk.Int, error) {
+	return sdk.NewIntFromBigInt(state.GetBalance(addr)), nil
 }

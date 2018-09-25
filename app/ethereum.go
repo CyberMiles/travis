@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -184,19 +183,23 @@ func (app *EthermintApplication) EndBlock(endBlock abciTypes.RequestEndBlock) ab
 
 // Commit commits the block and returns a hash of the current state
 // #stable - 0.4.0
-func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
+func (app *EthermintApplication) Commit() (abciTypes.ResponseCommit, error) {
 	app.logger.Debug("Commit") // nolint: errcheck
 	blockHash, err := app.backend.Commit(app.Receiver())
 	if err != nil {
 		// nolint: errcheck
 		app.logger.Error("Error getting latest ethereum state", "err", err)
-		return abciTypes.ResponseCommit{}
+		return abciTypes.ResponseCommit{
+			Data: blockHash[:],
+		}, err
 	}
 
 	state, err := app.backend.ResetState()
 	if err != nil {
 		app.logger.Error("Error getting latest state", "err", err) // nolint: errcheck
-		return abciTypes.ResponseCommit{}
+		return abciTypes.ResponseCommit{
+			Data: blockHash[:],
+		}, err
 	}
 	app.checkTxState = state.StateDB
 
@@ -204,7 +207,7 @@ func (app *EthermintApplication) Commit() abciTypes.ResponseCommit {
 
 	return abciTypes.ResponseCommit{
 		Data: blockHash[:],
-	}
+	}, nil
 }
 
 // Query queries the state of the EthermintApplication
@@ -238,16 +241,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	currentState, from, nonce, resp := app.basicCheck(tx)
 	if resp.Code != abciTypes.CodeTypeOK {
 		return resp
-	}
-
-	// Iterate TravisTxAddrs to prevent transfer transaction
-	for _, tAddr := range utils.TravisTxAddrs {
-		if bytes.Equal(from[:], tAddr.Bytes()) {
-			return abciTypes.ResponseCheckTx{
-				Code: errors.CodeTypeInternalErr,
-				Log: fmt.Sprintf(
-					"Failed as there has been a stake/governance operation in current block")}
-		}
 	}
 
 	// Transactor should have enough funds to cover the costs
