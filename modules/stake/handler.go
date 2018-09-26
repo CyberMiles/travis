@@ -2,7 +2,6 @@ package stake
 
 import (
 	"fmt"
-
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/errors"
@@ -223,7 +222,7 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	}
 
 	// Check to see if the compensation rate is between 0 and 1
-	if tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
+	if tx.CompRate.IsNil() || tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
 		return ErrBadCompRate()
 	}
 
@@ -354,7 +353,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 
 func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	// Check to see if the compensation rate is between 0 and 1
-	if tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
+	if tx.CompRate.IsNil() || tx.CompRate.LTE(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
 		return ErrBadCompRate()
 	}
 
