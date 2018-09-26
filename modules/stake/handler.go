@@ -609,6 +609,10 @@ func (d deliver) delegate(tx TxDelegate) error {
 		candidate.NumOfDelegator += 1
 		SaveDelegation(delegation)
 	} else {
+		if delegation.Shares().Equal(sdk.ZeroInt) {
+			candidate.NumOfDelegator += 1
+		}
+
 		delegation.AddDelegateAmount(delegateAmount)
 		delegation.UpdatedAt = now
 		delegation.State = "Y"
@@ -677,10 +681,8 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 		updateCandidate(candidate)
 	}
 
-	// record unstake requests, waiting 7 days
+	// record the unstaking requests which will be processed in 7 days
 	performedBlockHeight := d.height + int64(utils.GetParams().UnstakeWaitingPeriod)
-	// just for test
-	//performedBlockHeight := d.height + 4
 	unstakeRequest := &UnstakeRequest{
 		DelegatorAddress:     delegation.DelegatorAddress,
 		PubKey:               candidate.PubKey,
@@ -724,11 +726,6 @@ func HandlePendingUnstakeRequests(height int64) error {
 		if candidate == nil {
 			continue
 		}
-
-		//if candidate.Shares == "0" {
-		//	//candidate.State = "N"
-		//	removeCandidate(candidate)
-		//}
 
 		delegation := GetDelegation(req.DelegatorAddress, candidate.PubKey)
 		if delegation == nil {
