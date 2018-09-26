@@ -64,19 +64,19 @@ describe("Governance Test", function() {
         balance_old = Utils.getBalance()
       })
 
-      it("Validators V propose to double max_slashing_blocks. ", function() {
+      it("Validators V propose to double max_slash_blocks. ", function() {
         tx_result = web3.cmt.governance.proposeChangeParam({
           from: V,
-          name: "max_slashing_blocks",
-          value: (old_params.data.max_slashing_blocks * 2).toString()
+          name: "max_slash_blocks",
+          value: (old_params.data.max_slash_blocks * 2).toString()
         })
         Utils.expectTxSuccess(tx_result)
         proposalId = tx_result.deliver_tx.data
       })
-      it("max_slashing_blocks won't change before vote. ", function() {
+      it("max_slash_blocks won't change before vote. ", function() {
         new_params = web3.cmt.governance.getParams()
-        expect(new_params.data.max_slashing_blocks).to.equal(
-          old_params.data.max_slashing_blocks
+        expect(new_params.data.max_slash_blocks).to.equal(
+          old_params.data.max_slash_blocks
         )
       })
 
@@ -102,14 +102,13 @@ describe("Governance Test", function() {
         })
         Utils.waitBlocks(done, 1)
       })
-      it("Verify the max_slashing_blocks is doubled. ", function() {
+      it("Verify the max_slash_blocks is doubled. ", function() {
         new_params = web3.cmt.governance.getParams()
         logger.debug(new_params)
-        expect(new_params.data.max_slashing_blocks).to.equal(
-          old_params.data.max_slashing_blocks * 2
+        expect(new_params.data.max_slash_blocks).to.equal(
+          old_params.data.max_slash_blocks * 2
         )
-        Globals.Params.max_slashing_blocks =
-          old_params.data.max_slashing_blocks * 2
+        Globals.Params.max_slash_blocks = old_params.data.max_slash_blocks * 2
       })
     })
 

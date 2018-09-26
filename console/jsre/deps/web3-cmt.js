@@ -7378,7 +7378,7 @@ var protocolPattern = /^([a-z0-9.+-]+:)/i,
     // Special case for a simple path URL
     simplePathPattern = /^(\/\/?[^\?\s]*)(\?[^\s]*)?$/,
 
-    // RFC 2396: characters reserved for delimiting URLs.
+	// RFC 2396: characters reserved for delimiting URLs.
     // We actually just auto-escape these.
     delims = ['<', '>', '"', '`', ' ', '\r', '\n', '\t'],
 
@@ -11999,9 +11999,9 @@ module.exports = Filter;
  * @date 2015
  */
 
-var utils = require("../utils/utils")
-var config = require("../utils/config")
-var Iban = require("./iban")
+var utils = require('../utils/utils');
+var config = require('../utils/config');
+var Iban = require('./iban');
 
 /**
  * Should the format output to a big number
@@ -12010,33 +12010,29 @@ var Iban = require("./iban")
  * @param {String|Number|BigNumber}
  * @returns {BigNumber} object
  */
-var outputBigNumberFormatter = function(number) {
-  return utils.toBigNumber(number)
-}
+var outputBigNumberFormatter = function (number) {
+    return utils.toBigNumber(number);
+};
 
-var isPredefinedBlockNumber = function(blockNumber) {
-  return (
-    blockNumber === "latest" ||
-    blockNumber === "pending" ||
-    blockNumber === "earliest"
-  )
-}
+var isPredefinedBlockNumber = function (blockNumber) {
+    return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest';
+};
 
-var inputDefaultBlockNumberFormatter = function(blockNumber) {
-  if (blockNumber === undefined) {
-    return config.defaultBlock
-  }
-  return inputBlockNumberFormatter(blockNumber)
-}
+var inputDefaultBlockNumberFormatter = function (blockNumber) {
+    if (blockNumber === undefined) {
+        return config.defaultBlock;
+    }
+    return inputBlockNumberFormatter(blockNumber);
+};
 
-var inputBlockNumberFormatter = function(blockNumber) {
-  if (blockNumber === undefined) {
-    return undefined
-  } else if (isPredefinedBlockNumber(blockNumber)) {
-    return blockNumber
-  }
-  return utils.toHex(blockNumber)
-}
+var inputBlockNumberFormatter = function (blockNumber) {
+    if (blockNumber === undefined) {
+        return undefined;
+    } else if (isPredefinedBlockNumber(blockNumber)) {
+        return blockNumber;
+    }
+    return utils.toHex(blockNumber);
+};
 
 /**
  * Formats the input of a transaction and converts all values to HEX
@@ -12044,29 +12040,27 @@ var inputBlockNumberFormatter = function(blockNumber) {
  * @method inputCallFormatter
  * @param {Object} transaction options
  * @returns object
- */
-var inputCallFormatter = function(options) {
-  options.from = options.from || config.defaultAccount
+*/
+var inputCallFormatter = function (options){
 
-  if (options.from) {
-    options.from = inputAddressFormatter(options.from)
-  }
+    options.from = options.from || config.defaultAccount;
 
-  if (options.to) {
-    // it might be contract creation
-    options.to = inputAddressFormatter(options.to)
-  }
+    if (options.from) {
+        options.from = inputAddressFormatter(options.from);
+    }
 
-  ;["gasPrice", "gas", "value", "nonce"]
-    .filter(function(key) {
-      return options[key] !== undefined
-    })
-    .forEach(function(key) {
-      options[key] = utils.fromDecimal(options[key])
-    })
+    if (options.to) { // it might be contract creation
+        options.to = inputAddressFormatter(options.to);
+    }
 
-  return options
-}
+    ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
+        return options[key] !== undefined;
+    }).forEach(function(key){
+        options[key] = utils.fromDecimal(options[key]);
+    });
+
+    return options;
+};
 
 /**
  * Formats the input of a transaction and converts all values to HEX
@@ -12074,26 +12068,24 @@ var inputCallFormatter = function(options) {
  * @method inputTransactionFormatter
  * @param {Object} transaction options
  * @returns object
- */
-var inputTransactionFormatter = function(options) {
-  options.from = options.from || config.defaultAccount
-  options.from = inputAddressFormatter(options.from)
+*/
+var inputTransactionFormatter = function (options){
 
-  if (options.to) {
-    // it might be contract creation
-    options.to = inputAddressFormatter(options.to)
-  }
+    options.from = options.from || config.defaultAccount;
+    options.from = inputAddressFormatter(options.from);
 
-  ;["gasPrice", "gas", "value", "nonce"]
-    .filter(function(key) {
-      return options[key] !== undefined
-    })
-    .forEach(function(key) {
-      options[key] = utils.fromDecimal(options[key])
-    })
+    if (options.to) { // it might be contract creation
+        options.to = inputAddressFormatter(options.to);
+    }
 
-  return options
-}
+    ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
+        return options[key] !== undefined;
+    }).forEach(function(key){
+        options[key] = utils.fromDecimal(options[key]);
+    });
+
+    return options;
+};
 
 /**
  * Formats the output of a transaction to its proper values
@@ -12101,17 +12093,18 @@ var inputTransactionFormatter = function(options) {
  * @method outputTransactionFormatter
  * @param {Object} tx
  * @returns {Object}
- */
-var outputTransactionFormatter = function(tx) {
-  if (tx.blockNumber !== null) tx.blockNumber = utils.toDecimal(tx.blockNumber)
-  if (tx.transactionIndex !== null)
-    tx.transactionIndex = utils.toDecimal(tx.transactionIndex)
-  tx.nonce = utils.toDecimal(tx.nonce)
-  tx.gas = utils.toDecimal(tx.gas)
-  tx.gasPrice = utils.toBigNumber(tx.gasPrice)
-  tx.value = utils.toBigNumber(tx.value)
-  return tx
-}
+*/
+var outputTransactionFormatter = function (tx){
+    if(tx.blockNumber !== null)
+        tx.blockNumber = utils.toDecimal(tx.blockNumber);
+    if(tx.transactionIndex !== null)
+        tx.transactionIndex = utils.toDecimal(tx.transactionIndex);
+    tx.nonce = utils.toDecimal(tx.nonce);
+    tx.gas = utils.toDecimal(tx.gas);
+    tx.gasPrice = utils.toBigNumber(tx.gasPrice);
+    tx.value = utils.toBigNumber(tx.value);
+    return tx;
+};
 
 /**
  * Formats the output of a transaction receipt to its proper values
@@ -12119,23 +12112,23 @@ var outputTransactionFormatter = function(tx) {
  * @method outputTransactionReceiptFormatter
  * @param {Object} receipt
  * @returns {Object}
- */
-var outputTransactionReceiptFormatter = function(receipt) {
-  if (receipt.blockNumber !== null)
-    receipt.blockNumber = utils.toDecimal(receipt.blockNumber)
-  if (receipt.transactionIndex !== null)
-    receipt.transactionIndex = utils.toDecimal(receipt.transactionIndex)
-  receipt.cumulativeGasUsed = utils.toDecimal(receipt.cumulativeGasUsed)
-  receipt.gasUsed = utils.toDecimal(receipt.gasUsed)
+*/
+var outputTransactionReceiptFormatter = function (receipt){
+    if(receipt.blockNumber !== null)
+        receipt.blockNumber = utils.toDecimal(receipt.blockNumber);
+    if(receipt.transactionIndex !== null)
+        receipt.transactionIndex = utils.toDecimal(receipt.transactionIndex);
+    receipt.cumulativeGasUsed = utils.toDecimal(receipt.cumulativeGasUsed);
+    receipt.gasUsed = utils.toDecimal(receipt.gasUsed);
 
-  if (utils.isArray(receipt.logs)) {
-    receipt.logs = receipt.logs.map(function(log) {
-      return outputLogFormatter(log)
-    })
-  }
+    if(utils.isArray(receipt.logs)) {
+        receipt.logs = receipt.logs.map(function(log){
+            return outputLogFormatter(log);
+        });
+    }
 
-  return receipt
-}
+    return receipt;
+};
 
 /**
  * Formats the output of a block to its proper values
@@ -12143,26 +12136,29 @@ var outputTransactionReceiptFormatter = function(receipt) {
  * @method outputBlockFormatter
  * @param {Object} block
  * @returns {Object}
- */
+*/
 var outputBlockFormatter = function(block) {
-  // transform to number
-  block.gasLimit = utils.toDecimal(block.gasLimit)
-  block.gasUsed = utils.toDecimal(block.gasUsed)
-  block.size = utils.toDecimal(block.size)
-  block.timestamp = utils.toDecimal(block.timestamp)
-  if (block.number !== null) block.number = utils.toDecimal(block.number)
 
-  block.difficulty = utils.toBigNumber(block.difficulty)
-  block.totalDifficulty = utils.toBigNumber(block.totalDifficulty)
+    // transform to number
+    block.gasLimit = utils.toDecimal(block.gasLimit);
+    block.gasUsed = utils.toDecimal(block.gasUsed);
+    block.size = utils.toDecimal(block.size);
+    block.timestamp = utils.toDecimal(block.timestamp);
+    if(block.number !== null)
+        block.number = utils.toDecimal(block.number);
 
-  if (utils.isArray(block.transactions)) {
-    block.transactions.forEach(function(item) {
-      if (!utils.isString(item)) return outputTransactionFormatter(item)
-    })
-  }
+    block.difficulty = utils.toBigNumber(block.difficulty);
+    block.totalDifficulty = utils.toBigNumber(block.totalDifficulty);
 
-  return block
-}
+    if (utils.isArray(block.transactions)) {
+        block.transactions.forEach(function(item){
+            if(!utils.isString(item))
+                return outputTransactionFormatter(item);
+        });
+    }
+
+    return block;
+};
 
 /**
  * Formats the output of a log
@@ -12170,16 +12166,17 @@ var outputBlockFormatter = function(block) {
  * @method outputLogFormatter
  * @param {Object} log object
  * @returns {Object} log
- */
+*/
 var outputLogFormatter = function(log) {
-  if (log.blockNumber !== null)
-    log.blockNumber = utils.toDecimal(log.blockNumber)
-  if (log.transactionIndex !== null)
-    log.transactionIndex = utils.toDecimal(log.transactionIndex)
-  if (log.logIndex !== null) log.logIndex = utils.toDecimal(log.logIndex)
+    if(log.blockNumber !== null)
+        log.blockNumber = utils.toDecimal(log.blockNumber);
+    if(log.transactionIndex !== null)
+        log.transactionIndex = utils.toDecimal(log.transactionIndex);
+    if(log.logIndex !== null)
+        log.logIndex = utils.toDecimal(log.logIndex);
 
-  return log
-}
+    return log;
+};
 
 /**
  * Formats the input of a whisper post and converts all values to HEX
@@ -12187,26 +12184,27 @@ var outputLogFormatter = function(log) {
  * @method inputPostFormatter
  * @param {Object} transaction object
  * @returns {Object}
- */
+*/
 var inputPostFormatter = function(post) {
-  // post.payload = utils.toHex(post.payload);
-  post.ttl = utils.fromDecimal(post.ttl)
-  post.workToProve = utils.fromDecimal(post.workToProve)
-  post.priority = utils.fromDecimal(post.priority)
 
-  // fallback
-  if (!utils.isArray(post.topics)) {
-    post.topics = post.topics ? [post.topics] : []
-  }
+    // post.payload = utils.toHex(post.payload);
+    post.ttl = utils.fromDecimal(post.ttl);
+    post.workToProve = utils.fromDecimal(post.workToProve);
+    post.priority = utils.fromDecimal(post.priority);
 
-  // format the following options
-  post.topics = post.topics.map(function(topic) {
-    // convert only if not hex
-    return topic.indexOf("0x") === 0 ? topic : utils.fromUtf8(topic)
-  })
+    // fallback
+    if (!utils.isArray(post.topics)) {
+        post.topics = post.topics ? [post.topics] : [];
+    }
 
-  return post
-}
+    // format the following options
+    post.topics = post.topics.map(function(topic){
+        // convert only if not hex
+        return (topic.indexOf('0x') === 0) ? topic : utils.fromUtf8(topic);
+    });
+
+    return post;
+};
 
 /**
  * Formats the output of a received post message
@@ -12215,68 +12213,72 @@ var inputPostFormatter = function(post) {
  * @param {Object}
  * @returns {Object}
  */
-var outputPostFormatter = function(post) {
-  post.expiry = utils.toDecimal(post.expiry)
-  post.sent = utils.toDecimal(post.sent)
-  post.ttl = utils.toDecimal(post.ttl)
-  post.workProved = utils.toDecimal(post.workProved)
-  // post.payloadRaw = post.payload;
-  // post.payload = utils.toAscii(post.payload);
+var outputPostFormatter = function(post){
 
-  // if (utils.isJson(post.payload)) {
-  //     post.payload = JSON.parse(post.payload);
-  // }
+    post.expiry = utils.toDecimal(post.expiry);
+    post.sent = utils.toDecimal(post.sent);
+    post.ttl = utils.toDecimal(post.ttl);
+    post.workProved = utils.toDecimal(post.workProved);
+    // post.payloadRaw = post.payload;
+    // post.payload = utils.toAscii(post.payload);
 
-  // format the following options
-  if (!post.topics) {
-    post.topics = []
-  }
-  post.topics = post.topics.map(function(topic) {
-    return utils.toAscii(topic)
-  })
+    // if (utils.isJson(post.payload)) {
+    //     post.payload = JSON.parse(post.payload);
+    // }
 
-  return post
-}
+    // format the following options
+    if (!post.topics) {
+        post.topics = [];
+    }
+    post.topics = post.topics.map(function(topic){
+        return utils.toAscii(topic);
+    });
 
-var inputAddressFormatter = function(address) {
-  var iban = new Iban(address)
-  if (iban.isValid() && iban.isDirect()) {
-    return "0x" + iban.address()
-  } else if (utils.isStrictAddress(address)) {
-    return address
-  } else if (utils.isAddress(address)) {
-    return "0x" + address
-  }
-  throw new Error("invalid address")
-}
+    return post;
+};
+
+var inputAddressFormatter = function (address) {
+    var iban = new Iban(address);
+    if (iban.isValid() && iban.isDirect()) {
+        return '0x' + iban.address();
+    } else if (utils.isStrictAddress(address)) {
+        return address;
+    } else if (utils.isAddress(address)) {
+        return '0x' + address;
+    }
+    throw new Error('invalid address');
+};
+
 
 var outputSyncingFormatter = function(result) {
-  result.startingBlock = utils.toDecimal(result.startingBlock)
-  result.currentBlock = utils.toDecimal(result.currentBlock)
-  result.highestBlock = utils.toDecimal(result.highestBlock)
-  if (result.knownStates) {
-    result.knownStates = utils.toDecimal(result.knownStates)
-    result.pulledStates = utils.toDecimal(result.pulledStates)
-  }
 
-  return result
-}
+    result.startingBlock = utils.toDecimal(result.startingBlock);
+    result.currentBlock = utils.toDecimal(result.currentBlock);
+    result.highestBlock = utils.toDecimal(result.highestBlock);
+    if (result.knownStates) {
+        result.knownStates = utils.toDecimal(result.knownStates);
+        result.pulledStates = utils.toDecimal(result.pulledStates);
+    }
+
+    return result;
+};
 
 module.exports = {
-  inputDefaultBlockNumberFormatter: inputDefaultBlockNumberFormatter,
-  inputBlockNumberFormatter: inputBlockNumberFormatter,
-  inputCallFormatter: inputCallFormatter,
-  inputTransactionFormatter: inputTransactionFormatter,
-  inputAddressFormatter: inputAddressFormatter,
-  inputPostFormatter: inputPostFormatter,
-  outputBigNumberFormatter: outputBigNumberFormatter,
-  outputTransactionFormatter: outputTransactionFormatter,
-  outputTransactionReceiptFormatter: outputTransactionReceiptFormatter,
-  outputBlockFormatter: outputBlockFormatter,
-  outputLogFormatter: outputLogFormatter,
-  outputPostFormatter: outputPostFormatter,
-  outputSyncingFormatter: outputSyncingFormatter
-}
+    inputDefaultBlockNumberFormatter: inputDefaultBlockNumberFormatter,
+    inputBlockNumberFormatter: inputBlockNumberFormatter,
+    inputCallFormatter: inputCallFormatter,
+    inputTransactionFormatter: inputTransactionFormatter,
+    inputAddressFormatter: inputAddressFormatter,
+    inputPostFormatter: inputPostFormatter,
+    outputBigNumberFormatter: outputBigNumberFormatter,
+    outputTransactionFormatter: outputTransactionFormatter,
+    outputTransactionReceiptFormatter: outputTransactionReceiptFormatter,
+    outputBlockFormatter: outputBlockFormatter,
+    outputLogFormatter: outputLogFormatter,
+    outputPostFormatter: outputPostFormatter,
+    outputSyncingFormatter: outputSyncingFormatter
+};
+
 
 },{"../utils/config":60,"../utils/utils":62,"./iban":75}],73:[function(require,module,exports){
 /*
@@ -15335,7 +15337,8 @@ var methods = function() {
   var getParams = new Method({
     name: "getParams",
     call: "cmt_queryParams",
-    params: 0
+    params: 1,
+    inputFormatter: [formatters.inputDefaultHeightFormatter]
   })
 
   return [
@@ -15497,8 +15500,24 @@ var methods = function() {
       formatters.inputDefaultHeightFormatter
     ]
   })
+  var queryAwardInfos = new Method({
+    name: "queryAwardInfos",
+    call: "cmt_queryAwardInfos",
+    params: 1,
+    inputFormatter: [formatters.inputDefaultHeightFormatter]
+  })
 
-  return [declare, withdraw, update, verify, activate, setCompRate, list, query]
+  return [
+    declare,
+    withdraw,
+    update,
+    verify,
+    activate,
+    setCompRate,
+    list,
+    query,
+    queryAwardInfos
+  ]
 }
 
 var properties = function() {

@@ -78,7 +78,7 @@ describe("API Input Parameter Test", function() {
     it("fail if max_amount<=0", function(done) {
       sendTx(D, "declare", [Globals.PubKeys[3], "-1"], Utils.expectTxFail, done)
     })
-    it.skip("fail if no comp_rate specified", function(done) {
+    it("fail if no comp_rate specified", function(done) {
       sendTx(D, "declare", [Globals.PubKeys[3], "1"], Utils.expectTxFail, done)
     })
     it("fail if bad comp_rate format", function(done) {
@@ -112,16 +112,16 @@ describe("API Input Parameter Test", function() {
     })
   })
   describe("stake/set-comprate", function() {
-    it.skip("fail if empty input", function(done) {
+    it("fail if empty input", function(done) {
       sendTx(A, "compRate", [], Utils.expectTxFail, done)
     })
-    it.skip("fail if bad validator", function(done) {
+    it("fail if bad validator", function(done) {
       sendTx(D, "compRate", [A.addr, "0.1"], Utils.expectTxFail, done)
     })
     it("fail if bad delegator", function(done) {
       sendTx(A, "compRate", [C.addr, "0.1"], Utils.expectTxFail, done)
     })
-    it.skip("fail if no comp_rate specified", function(done) {
+    it("fail if no comp_rate specified", function(done) {
       sendTx(A, "compRate", [A.addr], Utils.expectTxFail, done)
     })
     it("fail if bad comp_rate format", function(done) {

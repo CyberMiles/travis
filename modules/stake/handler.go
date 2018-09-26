@@ -359,6 +359,10 @@ func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	}
 
 	candidate := GetCandidateByAddress(c.sender)
+	if candidate == nil {
+		return ErrBadValidatorAddr()
+	}
+
 	d := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
 	if d == nil {
 		return ErrDelegationNotExists()
