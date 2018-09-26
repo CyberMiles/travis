@@ -187,7 +187,7 @@ describe("API Input Parameter Test", function() {
       sendTx(D, "withdraw", [A.addr, "1"], Utils.expectTxSuccess, done)
     })
   })
-  describe.skip("gov/transFund", function() {
+  describe("gov/transFund", function() {
     it("fail if empty input", function(done) {
       sendTx(A, "transFund", [], Utils.expectTxFail, done)
     })

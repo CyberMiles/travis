@@ -51,7 +51,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
-		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		validators := stake.GetCandidates().Validators()
