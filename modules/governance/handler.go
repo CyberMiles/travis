@@ -103,7 +103,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		app_state.SubBalance(sender, gasFee.Int)
 
 	case TxChangeParamPropose:
-		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		validators := stake.GetCandidates().Validators()
@@ -142,7 +142,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 		app_state.SubBalance(sender, gasFee.Int)
 	case TxDeployLibEniPropose:
-		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		validators := stake.GetCandidates().Validators()

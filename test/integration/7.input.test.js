@@ -217,7 +217,7 @@ describe("API Input Parameter Test", function() {
     })
   })
   describe("gov/changeParam", function() {
-    it.skip("fail if empty input", function(done) {
+    it("fail if empty input", function(done) {
       sendTx(A, "changeParam", [], Utils.expectTxFail, done)
     })
     it("fail if no name&value", function(done) {
@@ -267,7 +267,7 @@ describe("API Input Parameter Test", function() {
         this.skip()
       }
     })
-    it.skip("fail if empty input", function(done) {
+    it("fail if empty input", function(done) {
       sendTx(A, "deployLibEni", [], Utils.expectTxFail, done)
     })
     it("fail if no other parameters", function(done) {
