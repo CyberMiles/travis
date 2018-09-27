@@ -691,9 +691,7 @@ func GetCandidateDailyStakeMaxValue(pubKey types.PubKey, startDate string) (res 
 	err = stmt.QueryRow(types.PubKeyString(pubKey), startDate).Scan(&maxAmount)
 
 	if err != nil {
-		// If no records found
-		res = sdk.E18Int
-		return
+		panic(err)
 	}
 
 	res, _ = sdk.NewIntFromString(maxAmount)
