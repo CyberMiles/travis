@@ -22,6 +22,7 @@ import (
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/p2p"
 	pv "github.com/tendermint/tendermint/privval"
+	"os/exec"
 )
 
 const (
@@ -56,6 +57,7 @@ func GetInitCmd() *cobra.Command {
 func initFiles(cmd *cobra.Command, args []string) error {
 	initTendermint()
 	initTravisDb()
+	initTravisCmd()
 	return initEthermint()
 }
 
@@ -210,6 +212,18 @@ func initTravisDb() {
 		log.Info("Successfully init travis database and create tables!")
 	} else {
 		log.Warn("The travis database already exists!")
+	}
+}
+
+func initTravisCmd() {
+	rootDir := viper.GetString(cli.HomeFlag)
+	binPath := filepath.Join(rootDir, "bin")
+	if err := cmn.EnsureDir(binPath, 0700); err != nil {
+		cmn.PanicSanity(err.Error())
+	}
+	execPath, _ := exec.LookPath(os.Args[0])
+	if err := exec.Command("cp", execPath, binPath).Run(); err != nil {
+		log.Error("copy bin file error %s", execPath, err)
 	}
 }
 

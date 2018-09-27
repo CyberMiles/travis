@@ -20,6 +20,16 @@ import (
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/version"
+	"net"
+	"net/rpc"
+	"net/http"
+	"log"
+	"time"
+)
+
+const (
+	MonitorFlag = "monitor"
+	rpcPort = "26650"
 )
 
 // GetStartCmd - initialize a command as the start command with tick
@@ -29,6 +39,7 @@ func GetStartCmd() *cobra.Command {
 		Short: "Start this full node",
 		RunE:  startCmd(),
 	}
+	startCmd.PersistentFlags().Bool(MonitorFlag, false, "start travis as monitor mode")
 	return startCmd
 }
 
@@ -39,6 +50,10 @@ const EyesCacheSize = 10000
 func startCmd() func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		rootDir := viper.GetString(cli.HomeFlag)
+		// start with monitor mode
+		if monitorFlag := viper.GetBool(MonitorFlag); monitorFlag {
+			return startSubProcess(rootDir)
+		}
 
 		if err := dbm.InitSqliter(path.Join(rootDir, "data", "travis.db")); err != nil {
 			return err
@@ -120,4 +135,72 @@ func loadGenesis(filePath string) (*types.GenesisDoc, error) {
 	}
 
 	return genDoc, nil
+}
+
+func startSubProcess(rootDir string) error {
+	arg := "--" + MonitorFlag
+
+	args := make([]string,0)
+	var index int
+	for index = 1; index < len(os.Args); index++ {
+		if os.Args[index] == arg {
+			break
+		}
+		args = append(args, os.Args[index])
+	}
+	args = append(args, os.Args[index+1:]...)
+	fmt.Println(args)
+	fmt.Println(os.Args)
+	cmd := types.NewTravisCmd(rootDir, path.Base(os.Args[0]), args...)
+	m := types.NewMonitor(cmd)
+	startRPC(m)
+	cmd.Start()
+
+	go startRoutine(cmd)
+
+
+	cmn.TrapSignal(func() {
+		fmt.Println("Stopping the command ...", cmd.Cmd().Process.Pid)
+		cmd.Stop()
+		time.Sleep(time.Second * 1)
+	})
+
+	return nil
+}
+
+
+func startRPC(m *types.Monitor) error {
+	rpc.Register(m)
+	rpc.HandleHTTP()
+
+	l, e := net.Listen("tcp", "127.0.0.1:"+rpcPort)
+	if e != nil {
+		log.Fatal("listen error:", e)
+	}
+	go http.Serve(l, nil)
+	return nil
+}
+
+func startRoutine(c *types.TravisCmd) {
+	for {
+		select {
+		case cmdName := <-c.DownloadChan:
+			fmt.Printf("Start to download %s\n", cmdName)
+			if err := c.Download(cmdName); err != nil {
+				log.Fatalf("Download failed: %s\n", err)
+			}
+		case cmdInfo := <-c.UpgradeChan:
+			fmt.Printf("Start to upgrade %s\n", cmdInfo.Name)
+			if c.NextName != cmdInfo.Name {
+				log.Fatalf("Upgrade want version (%s) but get version: (%s)\n", cmdInfo.Name, c.NextName)
+			}
+			if err := c.Upgrade(cmdInfo); err != nil {
+				log.Fatalf("Upgrade failed: %s\n", err)
+			}
+		case <-c.KillChan:
+			if err := c.Kill(); err != nil {
+				log.Fatalf("Kill process failed: %s\n", err)
+			}
+		}
+	}
 }
