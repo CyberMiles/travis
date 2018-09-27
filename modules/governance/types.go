@@ -10,6 +10,7 @@ import (
 const TRANSFER_FUND_PROPOSAL = "transfer_fund"
 const CHANGE_PARAM_PROPOSAL = "change_param"
 const DEPLOY_LIBENI_PROPOSAL = "deploy_libeni"
+const RETIRE_PROGRAM_PROPOSAL = "retire_program"
 
 type Proposal struct {
 	Id           string
@@ -133,6 +134,27 @@ func NewDeployLibEniProposal(id string, proposer *common.Address, blockHeight in
 			"md5": md5,
 			"reason": reason,
 			"status": status,
+		},
+	}
+}
+
+func NewRetireProgramProposal(id string, proposer *common.Address, blockHeight int64, retiredVersion, reason string, expireBlockHeight int64) *Proposal {
+	now := utils.GetNow()
+	return &Proposal {
+		id,
+		RETIRE_PROGRAM_PROPOSAL,
+		proposer,
+		blockHeight,
+		0,
+		expireBlockHeight,
+		now,
+		"",
+		"",
+		0,
+		"",
+		map[string]interface{}{
+			"retired_version": retiredVersion,
+			"reason": reason,
 		},
 	}
 }

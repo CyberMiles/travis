@@ -124,6 +124,18 @@ func SaveProposal(pp *Proposal) {
 			fmt.Println(err)
 			panic(err)
 		}
+	case RETIRE_PROGRAM_PROPOSAL:
+		stmt1, err := txWrapper.tx.Prepare("insert into governance_retire_program_detail(proposal_id, retired_version, reason) values(?, ?, ?)")
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
+
+		_, err = stmt1.Exec(pp.Id, pp.Detail["retired_version"], pp.Detail["reason"])
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
 	}
 }
 
@@ -256,6 +268,38 @@ func GetProposalById(pid string) *Proposal {
 				"status": status,
 			},
 		}
+	case RETIRE_PROGRAM_PROPOSAL:
+		var retiredVersion, reason string
+		stmt1, err := txWrapper.tx.Prepare("select retired_version, reason from governance_retire_program_detail where proposal_id = ?")
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
+		err = stmt1.QueryRow(pid).Scan(&retiredVersion, &reason)
+		switch {
+		case err == sql.ErrNoRows:
+			return nil
+		case err != nil:
+			panic(err)
+		}
+
+		return &Proposal {
+			pid,
+			ptype,
+			&prp,
+			blockHeight,
+			expireTimestamp,
+			expireBlockHeight,
+			createdAt,
+			result,
+			resultMsg,
+			resultBlockHeight,
+			resultAt,
+			map[string]interface{}{
+				"retired_version": retiredVersion,
+				"reason": reason,
+			},
+		}
 	}
 
 	return nil
@@ -339,6 +383,8 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 		then (select printf('%s-+-%s-+-%s', param_name, param_value, reason) from governance_change_param_detail where proposal_id = p.id)
 		when p.type = 'deploy_libeni'
 		then (select printf('%s-+-%s-+-%s-+-%s-+-%s-+-%s', name, version, fileurl, md5, reason, status) from governance_deploy_libeni_detail where proposal_id = p.id)
+		when p.type = 'retire_program'
+		then (select printf('%s-+-%s', retired_version, reason) from governance_retire_program_detail where proposal_id = p.id)
 		end as detail
 		from governance_proposal p`)
 	if err != nil {
@@ -377,6 +423,9 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 
 		switch ptype {
 		case TRANSFER_FUND_PROPOSAL:
+			if len(d) != 4 {
+				continue
+			}
 			fromAddr := d[0]
 			toAddr := d[1]
 
@@ -390,12 +439,18 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 				"reason": d[3],
 			}
 		case CHANGE_PARAM_PROPOSAL:
+			if len(d) != 3 {
+				continue
+			}
 			pp.Detail = map[string]interface{} {
 				"name": d[0],
 				"value": d[1],
 				"reason": d[2],
 			}
 		case DEPLOY_LIBENI_PROPOSAL:
+			if len(d) != 6 {
+				continue
+			}
 			pp.Detail = map[string]interface{} {
 				"name": d[0],
 				"version": d[1],
@@ -403,6 +458,14 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 				"md5": d[3],
 				"reason": d[4],
 				"status": d[5],
+			}
+		case RETIRE_PROGRAM_PROPOSAL:
+			if len(d) != 2 {
+				continue
+			}
+			pp.Detail = map[string]interface{} {
+				"retired_version": d[0],
+				"reason": d[1],
 			}
 		}
 
@@ -480,6 +543,48 @@ func GetPendingProposals() (proposals []*Proposal) {
 	}
 
 	return
+}
+
+func GetRetiringProposal(version string) *Proposal {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("select id, type, expire_timestamp, expire_block_height from governance_proposal p where result = 'Approved' and type = 'retire_program' and exists (select * from governance_retire_program_detail d where d.proposal_id=p.id and d.retired_version = ?)")
+	if err != nil {
+		panic(err)
+	}
+
+	rows, err := stmt.Query(version)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+		var id, ptype string
+		var expireTimestamp int64
+		var expireBlockHeight int64
+
+		err = rows.Scan(&id, &ptype, &expireTimestamp, &expireBlockHeight)
+		if err != nil {
+			panic(err)
+		}
+
+		pp := &Proposal{
+			Id: id,
+			Type: ptype,
+			ExpireTimestamp: expireTimestamp,
+			ExpireBlockHeight: expireBlockHeight,
+		}
+
+		return pp
+	}
+
+	if err = rows.Err(); err != nil {
+		panic(err)
+	}
+
+	return nil
 }
 
 

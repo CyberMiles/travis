@@ -8,6 +8,7 @@ import (
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/version"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -96,6 +97,15 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 
 	if big.NewInt(ethInfoRes.LastBlockHeight).Cmp(bigZero) == 0 {
 		return ethInfoRes
+	}
+
+	rp := governance.GetRetiringProposal(version.Version)
+	if rp != nil {
+		if rp.ExpireBlockHeight <= ethInfoRes.LastBlockHeight {
+			// TODO exit program right now
+		}
+
+		utils.PendingProposal.Add(rp.Id, 0, rp.ExpireBlockHeight)
 	}
 
 	travisInfoRes := app.StoreApp.Info(req)

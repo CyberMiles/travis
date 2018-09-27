@@ -292,6 +292,20 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 					gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
 				}
 			}
+		case gov.RETIRE_PROGRAM_PROPOSAL:
+			if proposal.Result == "Approved" {
+				// TODO defer exit program
+			} else {
+				switch gov.CheckProposal(pid, nil) {
+					case "approved":
+						// TODO defer exit program
+						gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
+					case "rejected":
+						gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
+					default:
+						gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
+				}
+			}
 		}
 
 		utils.PendingProposal.Del(pid)
