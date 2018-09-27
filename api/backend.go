@@ -1,12 +1,15 @@
 package api
 
 import (
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -129,8 +132,9 @@ func (b *Backend) PeerCount() int {
 }
 
 func (b *Backend) GetLocalClient() *rpcClient.Local {
-	if b.localClient == nil {
-		panic("Error getting local client")
+	for b.localClient == nil {
+		log.Info("Waiting for local client to set up...")
+		time.Sleep(time.Second * 1)
 	}
 	return b.localClient
 }

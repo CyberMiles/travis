@@ -433,6 +433,8 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	d.delegate(txDelegate)
 
 	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
+	cds := &CandidateDailyStake{PubKey: candidate.PubKey, Amount: candidate.Shares, CreatedAt: now}
+	SaveCandidateDailyStake(cds)
 	candidate.PendingVotingPower = candidate.CalcVotingPower()
 	updateCandidate(candidate)
 	return nil
@@ -470,6 +472,8 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.Genesi
 	d.delegate(txDelegate)
 
 	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
+	cds := &CandidateDailyStake{PubKey: candidate.PubKey, Amount: candidate.Shares, CreatedAt: now}
+	SaveCandidateDailyStake(cds)
 	candidate.PendingVotingPower = candidate.CalcVotingPower()
 	updateCandidate(candidate)
 	return nil
@@ -609,6 +613,10 @@ func (d deliver) delegate(tx TxDelegate) error {
 		candidate.NumOfDelegator += 1
 		SaveDelegation(delegation)
 	} else {
+		if delegation.Shares().Equal(sdk.ZeroInt) {
+			candidate.NumOfDelegator += 1
+		}
+
 		delegation.AddDelegateAmount(delegateAmount)
 		delegation.UpdatedAt = now
 		delegation.State = "Y"
@@ -677,10 +685,8 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 		updateCandidate(candidate)
 	}
 
-	// record unstake requests, waiting 7 days
+	// record the unstaking requests which will be processed in 7 days
 	performedBlockHeight := d.height + int64(utils.GetParams().UnstakeWaitingPeriod)
-	// just for test
-	//performedBlockHeight := d.height + 4
 	unstakeRequest := &UnstakeRequest{
 		DelegatorAddress:     delegation.DelegatorAddress,
 		PubKey:               candidate.PubKey,
@@ -724,11 +730,6 @@ func HandlePendingUnstakeRequests(height int64) error {
 		if candidate == nil {
 			continue
 		}
-
-		//if candidate.Shares == "0" {
-		//	//candidate.State = "N"
-		//	removeCandidate(candidate)
-		//}
 
 		delegation := GetDelegation(req.DelegatorAddress, candidate.PubKey)
 		if delegation == nil {
@@ -780,6 +781,7 @@ func RecordCandidateDailyStakes() error {
 		SaveCandidateDailyStake(cds)
 
 		// remove expired records
+		// fixme use block height instead of time
 		startDate, err := utils.GetTimeBefore(24 * 90) // 90 days
 		if err != nil {
 			return err
