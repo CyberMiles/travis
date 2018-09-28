@@ -13,10 +13,12 @@ import (
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
+	"github.com/CyberMiles/travis/version"
 	"github.com/ethereum/go-ethereum/common"
 	ethState "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm/eni"
 	"net/rpc"
+
 )
 
 // nolint
@@ -474,8 +476,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			commons.Transfer(sender, utils.HoldAccount, gasFee)
 		}
 		// Check gasFee  -- end
-
-		utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
+		if txInner.RetiredVersion == version.Version {
+			utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
+		}
 
 		res.Data = hash
 

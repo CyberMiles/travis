@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/tendermint/tendermint/libs/cli"
 	cmn "github.com/tendermint/tendermint/libs/common"
+	cstypes "github.com/tendermint/tendermint/consensus/types"
 
 	"encoding/json"
 	"github.com/CyberMiles/travis/app"
@@ -82,6 +83,10 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 
 	// wait forever
 	cmn.TrapSignal(func() {
+		// make sure tendermint is not in commit step
+		for srvs.tmNode.ConsensusState().Step == cstypes.RoundStepCommit {
+			time.Sleep(time.Millisecond * 10)
+		}
 		srvs.tmNode.Stop()
 		srvs.emNode.Stop()
 		dbm.Sqliter.CloseDB()
@@ -143,7 +148,6 @@ func startSubProcess(rootDir string) error {
 	args := os.Args[1:]
 	args = append(args, arg)
 
-	fmt.Println(os.Args)
 	cmd := types.NewTravisCmd(rootDir, path.Base(os.Args[0]), args...)
 	m := types.NewMonitor(cmd)
 	startRPC(m)

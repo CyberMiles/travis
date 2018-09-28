@@ -23,8 +23,6 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
-	"net/rpc"
-	"log"
 )
 
 // BaseApp - The ABCI application
@@ -334,8 +332,6 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	dbHash := app.StoreApp.GetDbHash()
 	res.Data = finalAppHash(ethAppCommit.Data, res.Data, dbHash, workingHeight, nil)
 
-	// TODO: auto update travis test
-	updateTravisCheck(workingHeight)
 	return
 }
 
@@ -365,57 +361,4 @@ func calVPCheck(height int64) bool {
 
 func calAvgStakingDateCheck(height int64) bool {
 	return height%int64(utils.GetParams().CalAverageStakingDateInterval) == 0
-}
-
-func updateTravisCheck(height int64) error {
-	// notify the monitor process to download
-	if height == 30 {
-		client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
-		if err != nil {
-			return err
-		}
-		// upgrade at 80
-		info := &ttypes.CmdInfo{Name: "travis-50"}
-		reply := &ttypes.MonitorResponse{}
-		err = client.Call("Monitor.Download", info, &reply)
-		if err != nil {
-			log.Fatal("call monitor rpc error:", err)
-			return err
-		}
-		return nil
-	}
-
-	// notify the monitor process to upgrade
-	if height == 50 {
-		client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
-		if err != nil {
-			return err
-		}
-		info := &ttypes.CmdInfo{Name: "travis-50"}
-		reply := &ttypes.MonitorResponse{}
-		err = client.Call("Monitor.Upgrade", info, &reply)
-		if err != nil {
-			log.Fatal("call monitor rpc error:", err)
-			return err
-		}
-		return nil
-	}
-
-	// notify the monitor process to kill
-	if height == 80 {
-		client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
-		if err != nil {
-			return err
-		}
-		info := &ttypes.CmdInfo{}
-		reply := &ttypes.MonitorResponse{}
-		err = client.Call("Monitor.Kill", info, &reply)
-		if err != nil {
-			log.Fatal("call monitor rpc error:", err)
-			return err
-		}
-		return nil
-	}
-
-	return nil
 }
