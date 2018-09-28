@@ -48,7 +48,7 @@ func NewTravisCmd(root string, name string, arg ...string) *TravisCmd {
 	}
 }
 
-// Start ...
+// Start stop the sub travis process
 func (c *TravisCmd) Start() error {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	fullName := filepath.Join(c.Path, c.Name)
@@ -93,7 +93,7 @@ func (c *TravisCmd) Start() error {
 	return nil
 }
 
-// Stop ...
+// Stop the sub travis process
 func (c *TravisCmd) Stop() error {
 	pro, err := os.FindProcess(c.cmd.Process.Pid)
 	if err != nil {
@@ -113,7 +113,7 @@ func (c *TravisCmd) Stop() error {
 	return nil
 }
 
-// Restart ...
+// Restart restart the travis
 func (c *TravisCmd) Restart() error {
 	c.Lock()
 	defer c.Unlock()
@@ -125,7 +125,7 @@ func (c *TravisCmd) Restart() error {
 	return nil
 }
 
-// Upgrade ...
+// Upgrade upgrade to new version travis
 func (c *TravisCmd) Upgrade(cmdInfo *CmdInfo) error {
 	c.Lock()
 	defer c.Unlock()
@@ -154,7 +154,7 @@ func (c *TravisCmd) Upgrade(cmdInfo *CmdInfo) error {
 	return nil
 }
 
-// Download ...
+// Download download the new version travis as specified
 func (c *TravisCmd) Download(name string) error {
 	c.Lock()
 	defer c.Unlock()
@@ -181,16 +181,15 @@ func (c *TravisCmd) Cmd() *exec.Cmd {
 	return c.cmd
 }
 
-// Kill ...
+// Kill kill the travis command
 func (c *TravisCmd) Kill() error {
 	c.Lock()
 	defer c.Unlock()
-	// TODO: need sleep a while to wait something finish ?
+	// need sleep a while to wait something finish
 	time.Sleep(time.Second * 1)
 	p, err := os.FindProcess(os.Getpid())
 	if err != nil {
 		return err
 	}
-	fmt.Println("Process: ", p)
 	return p.Signal(syscall.SIGTERM)
 }

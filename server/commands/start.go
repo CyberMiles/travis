@@ -29,7 +29,7 @@ import (
 
 const (
 	MonitorFlag = "monitor"
-	rpcPort = "26650"
+	RpcPort = "26650"
 )
 
 // GetStartCmd - initialize a command as the start command with tick
@@ -173,7 +173,7 @@ func startRPC(m *types.Monitor) error {
 	rpc.Register(m)
 	rpc.HandleHTTP()
 
-	l, e := net.Listen("tcp", "127.0.0.1:"+rpcPort)
+	l, e := net.Listen("tcp", "127.0.0.1:"+RpcPort)
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}
