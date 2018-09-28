@@ -21,6 +21,7 @@ type Params struct {
 	TransferFundProposal          uint64  `json:"transfer_fund_proposal" type:"uint"`
 	ChangeParamsProposal          uint64  `json:"change_params_proposal" type:"uint"`
 	DeployLibEniProposal          uint64  `json:"deploy_libeni_proposal" type:"uint"`
+	RetireProgramProposal         uint64  `json:"retire_program_proposal" type:"uint"`
 	GasPrice                      uint64  `json:"gas_price" type:"uint"`
 	MinStakingAmount              int64   `json:"min_staking_amount" type:"uint"`
 	ValidatorsBlockAwardRatio     sdk.Rat `json:"validators_block_award_ratio" type:"rat"`
@@ -50,6 +51,7 @@ func DefaultParams() *Params {
 		UpdateCandidacy:               1e6, // gas setting for updateCandidacy
 		TransferFundProposal:          2e6,
 		ChangeParamsProposal:          2e6,
+		RetireProgramProposal:         2e6,
 		DeployLibEniProposal:          2e6,
 		GasPrice:                      2e9,
 		MinStakingAmount:              1000,
@@ -57,7 +59,7 @@ func DefaultParams() *Params {
 		MaxSlashBlocks:                12,
 		SlashRatio:                    sdk.NewRat(1, 1000),
 		SlashEnabled:                  false,
-		CubePubKeys:                   `[{"cube_batch":"01","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCiWpvDnwYFTqgSWPlA3VO8u+Yv\n9r8QGlRaYZFszUZEXUQxquGlFexMSVyFeqYjIokfPOEHHx2voqWgi3FKKlp6dkxw\nApP3T22y7Epqvtr+EfNybRta15snccZy47dY4UcmYxbGWFTaL66tz22pCAbjFrxY\n3IxaPPIjDX+FiXdJWwIDAQAB\n-----END PUBLIC KEY-----"},{"cube_batch":"02","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQ8FL6/9zul+X7bFSRiWAzFiAE\n9vHYbClEHwlC7zUZ/JWzU7UT5S2qnYsseYF2WFjJtrGwHRAlTUyPtCpxV8f1uJsI\nl+/N9l6torUHwkhhib1catUSd/T72ltjvVyyg5LQjtRsskFnv3wM/yxYotrgnOs+\ndRpU6WI5XPCIyZqsGwIDAQAB\n-----END PUBLIC KEY-----"},{"cube_batch":"05","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCZ7Fw+1ddvy5OPFftbea0MxewW\nKUTb/E7B4/MHvLz2h7f7snyveFwxxj7QwxaCoVxobEq6AigIlUFUXLM8Y598/jts\nTaN+jh4xdoQN7qKwrbz1MWGf58Aa78Vnoj54B7V0LSajVbLJSZNUEI/24HLcG2iN\nTD3dSvH0ARvRJJ9hZQIDAQAB\n-----END PUBLIC KEY-----"}]`,
+		CubePubKeys:                   `[{"cube_batch":"01","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCiWpvDnwYFTqgSWPlA3VO8u+Yv\n9r8QGlRaYZFszUZEXUQxquGlFexMSVyFeqYjIokfPOEHHx2voqWgi3FKKlp6dkxw\nApP3T22y7Epqvtr+EfNybRta15snccZy47dY4UcmYxbGWFTaL66tz22pCAbjFrxY\n3IxaPPIjDX+FiXdJWwIDAQAB\n-----END PUBLIC KEY-----"},{"cube_batch":"02","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDQ8FL6/9zul+X7bFSRiWAzFiAE\n9vHYbClEHwlC7zUZ/JWzU7UT5S2qnYsseYF2WFjJtrGwHRAlTUyPtCpxV8f1uJsI\nl+/N9l6torUHwkhhib1catUSd/T72ltjvVyyg5LQjtRsskFnv3wM/yxYotrgnOs+\ndRpU6WI5XPCIyZqsGwIDAQAB\n-----END PUBLIC KEY-----"},{"cube_batch":"05","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCZ7Fw+1ddvy5OPFftbea0MxewW\nKUTb/E7B4/MHvLz2h7f7snyveFwxxj7QwxaCoVxobEq6AigIlUFUXLM8Y598/jts\nTaN+jh4xdoQN7qKwrbz1MWGf58Aa78Vnoj54B7V0LSajVbLJSZNUEI/24HLcG2iN\nTD3dSvH0ARvRJJ9hZQIDAQAB\n-----END PUBLIC KEY-----"},{"cube_batch":"06","pub_key":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbNyWzuQ8Vrgrf9no9woaqgifc\njxfpvpuREoGNBOzOMl9BpyTa45t2ZeigE+xLaTZJc7dVTMQus8ik1b2qQcmrdViR\nbFx2P7tPg5z0DlDVXjq2G8Q3mP0WBEhGzyfycUmaT+yXoLu/UzGfFhr5nVztkUVD\noOHnTtsKCKQekuY3YwIDAQAB\n-----END PUBLIC KEY-----"}]`,
 		LowPriceTxGasLimit:            500000,                                       // Maximum gas limit for low-price transaction
 		LowPriceTxSlotsCap:            100,                                          // Maximum number of low-price transaction slots per block
 		SetCompRate:                   21000,                                        // gas setting for setCompRate

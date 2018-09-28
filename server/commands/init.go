@@ -177,8 +177,7 @@ func initTravisDb() {
 	create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, num_of_delegators integer not null default 0, created_at text not null, updated_at text not null default '');
 	create unique index idx_candidates_pub_key on candidates(pub_key);
 	create index idx_candidates_hash on candidates(hash);
- 	create table delegators(address text not null primary key, created_at text not null);
-	create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  voting_power integer not null default 0, state text not null default 'Y', block_height integer not null, average_staking_date integer not null default 0, created_at text not null, updated_at text not null default '');
+	create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', pending_withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  voting_power integer not null default 0, state text not null default 'Y', block_height integer not null, average_staking_date integer not null default 0, created_at text not null, updated_at text not null default '');
 	create unique index idx_delegations_delegator_address_pub_key on delegations(delegator_address, pub_key);
 	create index idx_delegations_hash on delegations(hash);
  	create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, amount text not null default '0', op_code text not null default '', created_at text not null);
@@ -196,6 +195,9 @@ func initTravisDb() {
 	create index idx_governance_change_param_detail_proposal_id on governance_change_param_detail(proposal_id);
 	create table governance_deploy_libeni_detail(proposal_id text not null, name text not null, version text not null, fileurl text not null, md5 text not null, reason text not null, status text not null);
 	create index idx_governance_deploy_libeni_detail_proposal_id on governance_deploy_libeni_detail(proposal_id);
+	create table governance_retire_program_detail(proposal_id text not null, retired_version text not null, reason text not null);
+	create index idx_governance_retire_program_detail_proposal_id on governance_retire_program_detail(proposal_id);
+
  	create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null,  hash text not null default '', created_at text not null, unique(proposal_id, voter) ON conflict replace);
 	create index idx_governance_vote_voter on governance_vote(voter);
 	create index idx_governance_vote_proposal_id on governance_vote(proposal_id);

@@ -113,31 +113,6 @@ func (b *Bonsai) Commit(sub SimpleDB) error {
 	return nil
 }
 
-//----------------------------------------
-// This is the checkpointing I want, but apparently iavl-tree is not
-// as immutable as I hoped... paniced in multiple go-routines :(
-//
-// FIXME: use this code when iavltree is improved
-
-// func (b *Bonsai) Checkpoint() SimpleDB {
-// 	return &Bonsai{
-// 		id:   b.id,
-// 		Tree: b.Tree.Copy(),
-// 	}
-// }
-
-// // Commit will take all changes from the checkpoint and write
-// // them to the parent.
-// // Returns an error if this is not a child of this one
-// func (b *Bonsai) Commit(sub SimpleDB) error {
-// 	bb, ok := sub.(*Bonsai)
-// 	if !ok || (b.id != bb.id) {
-// 		return ErrNotASubTransaction()
-// 	}
-// 	b.Tree = bb.Tree
-// 	return nil
-// }
-
 // Discard will remove reference to this
 func (b *Bonsai) Discard() {
 	b.id = 0

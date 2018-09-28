@@ -85,3 +85,5 @@ func (r Rat) GTE(r2 Rat) bool { return !r.LT(r2) }
 func (r Rat) LT(r2 Rat) bool { return (r.Rat).Cmp(r2.Rat) == -1 }
 
 func (r Rat) LTE(r2 Rat) bool { return !r.GT(r2) }
+
+func (r Rat) IsNil() bool { return r.Rat == nil }

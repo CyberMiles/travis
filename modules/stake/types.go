@@ -349,24 +349,25 @@ type Delegator struct {
 }
 
 type Delegation struct {
-	DelegatorAddress   common.Address `json:"delegator_address"`
-	PubKey             types.PubKey   `json:"pub_key"`
-	ValidatorAddress   string         `json:"validator_address"`
-	DelegateAmount     string         `json:"delegate_amount"`
-	AwardAmount        string         `json:"award_amount"`
-	WithdrawAmount     string         `json:"withdraw_amount"`
-	SlashAmount        string         `json:"slash_amount"`
-	CompRate           sdk.Rat        `json:"comp_rate"`
-	VotingPower        int64          `json:"voting_power"`
-	CreatedAt          string         `json:"created_at"`
-	UpdatedAt          string         `json:"updated_at"`
-	State              string         `json:"state"`
-	BlockHeight        int64          `json:"block_height"`
-	AverageStakingDate int64          `json:"average_staking_date"`
+	DelegatorAddress      common.Address `json:"delegator_address"`
+	PubKey                types.PubKey   `json:"pub_key"`
+	ValidatorAddress      string         `json:"validator_address"`
+	DelegateAmount        string         `json:"delegate_amount"`
+	AwardAmount           string         `json:"award_amount"`
+	WithdrawAmount        string         `json:"withdraw_amount"`
+	PendingWithdrawAmount string         `json:"pending_withdraw_amount"`
+	SlashAmount           string         `json:"slash_amount"`
+	CompRate              sdk.Rat        `json:"comp_rate"`
+	VotingPower           int64          `json:"voting_power"`
+	CreatedAt             string         `json:"created_at"`
+	UpdatedAt             string         `json:"updated_at"`
+	State                 string         `json:"state"`
+	BlockHeight           int64          `json:"block_height"`
+	AverageStakingDate    int64          `json:"average_staking_date"`
 }
 
 func (d *Delegation) Shares() (res sdk.Int) {
-	res = d.ParseDelegateAmount().Add(d.ParseAwardAmount()).Sub(d.ParseWithdrawAmount()).Sub(d.ParseSlashAmount())
+	res = d.ParseDelegateAmount().Add(d.ParseAwardAmount()).Sub(d.ParseWithdrawAmount()).Sub(d.ParseSlashAmount()).Sub(d.ParsePendingWithdrawAmount())
 	return
 }
 
@@ -380,6 +381,10 @@ func (d *Delegation) ParseAwardAmount() sdk.Int {
 
 func (d *Delegation) ParseWithdrawAmount() sdk.Int {
 	return utils.ParseInt(d.WithdrawAmount)
+}
+
+func (d *Delegation) ParsePendingWithdrawAmount() sdk.Int {
+	return utils.ParseInt(d.PendingWithdrawAmount)
 }
 
 func (d *Delegation) ParseSlashAmount() sdk.Int {
@@ -401,6 +406,12 @@ func (d *Delegation) AddAwardAmount(value sdk.Int) (res sdk.Int) {
 func (d *Delegation) AddWithdrawAmount(value sdk.Int) (res sdk.Int) {
 	res = d.ParseWithdrawAmount().Add(value)
 	d.WithdrawAmount = res.String()
+	return
+}
+
+func (d *Delegation) AddPendingWithdrawAmount(value sdk.Int) (res sdk.Int) {
+	res = d.ParsePendingWithdrawAmount().Add(value)
+	d.PendingWithdrawAmount = res.String()
 	return
 }
 

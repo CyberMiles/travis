@@ -8,6 +8,7 @@ import (
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/version"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -98,6 +99,15 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 		return ethInfoRes
 	}
 
+	rp := governance.GetRetiringProposal(version.Version)
+	if rp != nil {
+		if rp.ExpireBlockHeight <= ethInfoRes.LastBlockHeight {
+			// TODO exit program right now
+		}
+
+		utils.PendingProposal.Add(rp.Id, 0, rp.ExpireBlockHeight)
+	}
+
 	travisInfoRes := app.StoreApp.Info(req)
 
 	travisInfoRes.LastBlockAppHash = finalAppHash(ethInfoRes.LastBlockAppHash, travisInfoRes.LastBlockAppHash, app.StoreApp.GetDbHash(), travisInfoRes.LastBlockHeight, nil)
@@ -170,12 +180,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// init deliver sql tx for statke
 	db, err := dbm.Sqliter.GetDB()
 	if err != nil {
-		// TODO: wrapper error
 		panic(err)
 	}
 	deliverSqlTx, err := db.Begin()
 	if err != nil {
-		// TODO: wrapper error
 		panic(err)
 	}
 	app.deliverSqlTx = deliverSqlTx

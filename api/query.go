@@ -41,7 +41,7 @@ func (s *CmtRPCService) getParsedFromCdc(path string, key []byte, ptr interface{
 }
 
 func (s *CmtRPCService) get(path string, key []byte, height int64) ([]byte, int64, error) {
-	node := s.backend.localClient
+	node := s.backend.GetLocalClient()
 	resp, err := node.ABCIQueryWithOptions(path, key,
 		rpcclient.ABCIQueryOptions{Trusted: true, Height: int64(height)})
 	if resp == nil {

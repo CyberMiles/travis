@@ -51,7 +51,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
-		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		validators := stake.GetCandidates().Validators()
@@ -103,7 +103,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		app_state.SubBalance(sender, gasFee.Int)
 
 	case TxChangeParamPropose:
-		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		validators := stake.GetCandidates().Validators()
@@ -142,7 +142,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 		app_state.SubBalance(sender, gasFee.Int)
 	case TxDeployLibEniPropose:
-		if !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
 			return sdk.NewCheck(0, ""), ErrMissingSignature()
 		}
 		validators := stake.GetCandidates().Validators()
@@ -208,6 +208,37 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 
 		// Transfer gasFee
 		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposal)
+		if err != nil {
+			return sdk.NewCheck(0, ""), err
+		}
+		app_state.SubBalance(sender, gasFee.Int)
+	case TxRetireProgramPropose:
+		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+			return sdk.NewCheck(0, ""), ErrMissingSignature()
+		}
+		validators := stake.GetCandidates().Validators()
+		if validators == nil || validators.Len() == 0 {
+			return sdk.NewCheck(0, ""), ErrInvalidValidator()
+		}
+		for i, v := range validators {
+			if v.OwnerAddress == txInner.Proposer.String() {
+				break
+			}
+			if i+1 == len(validators) {
+				return sdk.NewCheck(0, ""), ErrInvalidValidator()
+			}
+		}
+
+		if txInner.ExpireBlockHeight != nil && ctx.BlockHeight() >= *txInner.ExpireBlockHeight {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
+		}
+
+		if txInner.RetiredVersion == "" {
+			return sdk.NewCheck(0, ""), ErrInvalidParameter()
+		}
+
+		// Transfer gasFee
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().RetireProgramProposal)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
@@ -408,6 +439,45 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		DownloadLibEni(dp)
 
+	case TxRetireProgramPropose:
+		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
+		if txInner.ExpireBlockHeight != nil {
+			expireBlockHeight = *txInner.ExpireBlockHeight
+		}
+		hashJson, _ := json.Marshal(hash)
+		cp := NewRetireProgramProposal(
+			string(hashJson[1:len(hashJson)-1]),
+			txInner.Proposer,
+			ctx.BlockHeight(),
+			txInner.RetiredVersion,
+			txInner.Reason,
+			expireBlockHeight,
+		)
+		SaveProposal(cp)
+
+		// Check gasFee  -- start
+		// get the sender
+		sender, err := getTxSender(ctx)
+		if err != nil {
+			return res, err
+		}
+		params := utils.GetParams()
+		gasUsed := params.RetireProgramProposal
+
+		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
+			return res, err
+		} else {
+			res.GasFee = gasFee.Int
+			res.GasUsed = int64(gasUsed)
+			// transfer gasFee
+			commons.Transfer(sender, utils.HoldAccount, gasFee)
+		}
+		// Check gasFee  -- end
+
+		utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
+
+		res.Data = hash
+
 	case TxVote:
 		var vote *Vote
 		if vote = GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
@@ -465,6 +535,14 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 				if proposal.Detail["status"] != "ready" {
 					CancelDownload(proposal, false)
 				}
+				utils.PendingProposal.Del(proposal.Id)
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
+			}
+		case RETIRE_PROGRAM_PROPOSAL:
+			switch checkResult {
+			case "approved":
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
+			case "rejected":
 				utils.PendingProposal.Del(proposal.Id)
 				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
 			}

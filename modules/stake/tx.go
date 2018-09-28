@@ -75,18 +75,20 @@ func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount string, compRate sdk.R
 func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxUpdateCandidacy struct {
-	MaxAmount   string      `json:"max_amount"`
-	Description Description `json:"description"`
+	MaxAmount           string         `json:"max_amount"`
+	Description         Description    `json:"description"`
+	NewCandidateAddress common.Address `json:"new_candidate_address"`
 }
 
 func (tx TxUpdateCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func NewTxUpdateCandidacy(maxAmount string, description Description) sdk.Tx {
+func NewTxUpdateCandidacy(maxAmount string, description Description, newCandidateAddress common.Address) sdk.Tx {
 	return TxUpdateCandidacy{
-		MaxAmount:   maxAmount,
-		Description: description,
+		MaxAmount:           maxAmount,
+		Description:         description,
+		NewCandidateAddress: newCandidateAddress,
 	}.Wrap()
 }
 

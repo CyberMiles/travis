@@ -85,7 +85,7 @@ describe("Lity Test", function() {
           from: web3.cmt.defaultAccount,
           name: "reverse",
           version: "0.9.0",
-          expireBlockHeight: expireBlocks,
+          deployBlockHeight: expireBlocks,
           fileUrl: Globals.LibEni.FileUrl,
           md5: Globals.LibEni.MD5
         })
@@ -96,7 +96,7 @@ describe("Lity Test", function() {
           from: web3.cmt.defaultAccount,
           name: "reverse",
           version: "v0.9.0",
-          expireBlockHeight: expireBlocks,
+          deployBlockHeight: expireBlocks,
           fileUrl: Globals.LibEni.FileUrl,
           md5: Globals.LibEni.MD5
         })
@@ -128,7 +128,7 @@ describe("Lity Test", function() {
           from: web3.cmt.defaultAccount,
           name: "reverse",
           version: "v1.0.0",
-          expireBlockHeight: expireBlocks,
+          deployBlockHeight: expireBlocks,
           fileUrl: Globals.LibEni.FileUrl,
           md5: Globals.LibEni.MD5
         })
@@ -150,7 +150,7 @@ describe("Lity Test", function() {
           from: web3.cmt.defaultAccount,
           name: "reverse",
           version: "0.8.0",
-          expireBlockHeight: expireBlocks,
+          deployBlockHeight: expireBlocks,
           fileUrl: Globals.LibEni.FileUrl,
           md5: Globals.LibEni.MD5
         })
@@ -161,7 +161,7 @@ describe("Lity Test", function() {
           from: web3.cmt.defaultAccount,
           name: "reverse",
           version: "v1.1.0",
-          expireBlockHeight: expireBlocks,
+          deployBlockHeight: expireBlocks,
           fileUrl: Globals.LibEni.FileUrl,
           md5: Globals.LibEni.MD5
         })
