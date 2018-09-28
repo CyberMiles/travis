@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/CyberMiles/travis/sdk"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strconv"
 	"strings"
@@ -41,4 +43,9 @@ func RoundFloat(f float64, n int) float64 {
 func LeftPad(str string, count int) string {
 	padding := strings.Repeat("0", count)
 	return fmt.Sprintf("%s%s", padding, str)
+}
+
+func IsEmptyAddress(address common.Address) bool {
+	emptyAddress := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	return bytes.Equal(emptyAddress, address.Bytes())
 }

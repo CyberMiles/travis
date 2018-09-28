@@ -525,6 +525,12 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 
 	commons.Transfer(d.sender, utils.HoldAccount, totalCost)
 
+	// check if the address has been changed
+	ownerAddress := common.HexToAddress(candidate.OwnerAddress)
+	if !utils.IsEmptyAddress(tx.NewCandidateAddress) && tx.NewCandidateAddress != ownerAddress {
+		candidate.OwnerAddress = tx.NewCandidateAddress.String()
+	}
+
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)
 	return nil
@@ -598,17 +604,18 @@ func (d deliver) delegate(tx TxDelegate) error {
 	delegation := GetDelegation(d.sender, candidate.PubKey)
 	if delegation == nil {
 		delegation = &Delegation{
-			DelegatorAddress: d.sender,
-			PubKey:           candidate.PubKey,
-			DelegateAmount:   tx.Amount,
-			AwardAmount:      "0",
-			WithdrawAmount:   "0",
-			SlashAmount:      "0",
-			State:            "Y",
-			CompRate:         candidate.CompRate,
-			BlockHeight:      d.height,
-			CreatedAt:        now,
-			UpdatedAt:        now,
+			DelegatorAddress:      d.sender,
+			PubKey:                candidate.PubKey,
+			DelegateAmount:        tx.Amount,
+			AwardAmount:           "0",
+			WithdrawAmount:        "0",
+			PendingWithdrawAmount: "0",
+			SlashAmount:           "0",
+			State:                 "Y",
+			CompRate:              candidate.CompRate,
+			BlockHeight:           d.height,
+			CreatedAt:             now,
+			UpdatedAt:             now,
 		}
 		candidate.NumOfDelegator += 1
 		SaveDelegation(delegation)

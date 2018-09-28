@@ -41,21 +41,22 @@ The stake/slot/cancel tx is to cancel all remianing amounts from an unaccepted s
 
 // nolint
 const (
-	FlagPubKey           = "pubkey"
-	FlagAmount           = "amount"
-	FlagMaxAmount        = "max-amount"
-	FlagCompRate         = "comp-rate"
-	FlagAddress          = "address"
-	FlagValidatorAddress = "validator-address"
-	FlagName             = "name"
-	FlagEmail            = "email"
-	FlagWebsite          = "website"
-	FlagLocation         = "location"
-	FlagProfile          = "profile"
-	FlagVerified         = "verified"
-	FlagCubeBatch        = "cube-batch"
-	FlagSig              = "sig"
-	FlagDelegatorAddress = "delegator-address"
+	FlagPubKey              = "pubkey"
+	FlagAmount              = "amount"
+	FlagMaxAmount           = "max-amount"
+	FlagCompRate            = "comp-rate"
+	FlagAddress             = "address"
+	FlagCandidateAddress    = "candidate-address"
+	FlagName                = "name"
+	FlagEmail               = "email"
+	FlagWebsite             = "website"
+	FlagLocation            = "location"
+	FlagProfile             = "profile"
+	FlagVerified            = "verified"
+	FlagCubeBatch           = "cube-batch"
+	FlagSig                 = "sig"
+	FlagDelegatorAddress    = "delegator-address"
+	FlagNewCandidateAddress = "new-candidate-address"
 )
 
 // nolint
@@ -129,7 +130,10 @@ func init() {
 	fsVerified.String(FlagVerified, "false", "true or false")
 
 	fsValidatorAddress := flag.NewFlagSet("", flag.ContinueOnError)
-	fsValidatorAddress.String(FlagValidatorAddress, "", "validator address")
+	fsValidatorAddress.String(FlagCandidateAddress, "", "validator address")
+
+	fsNewValidatorAddress := flag.NewFlagSet("", flag.ContinueOnError)
+	fsNewValidatorAddress.String(FlagNewCandidateAddress, "", "new validator address")
 
 	fsCubeBatch := flag.NewFlagSet("", flag.ContinueOnError)
 	fsCubeBatch.String(FlagCubeBatch, "", "cube batch number")
@@ -146,6 +150,7 @@ func init() {
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCompRate)
 
 	CmdUpdateCandidacy.Flags().AddFlagSet(fsCandidate)
+	CmdUpdateCandidacy.Flags().AddFlagSet(fsNewValidatorAddress)
 
 	CmdVerifyCandidacy.Flags().AddFlagSet(fsValidatorAddress)
 	CmdVerifyCandidacy.Flags().AddFlagSet(fsVerified)
@@ -202,6 +207,11 @@ func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	newCandidateAddress := common.HexToAddress(viper.GetString(FlagNewCandidateAddress))
+	if newCandidateAddress.String() == "" {
+		return fmt.Errorf("please enter new candidate address using --new-candidate-address")
+	}
+
 	description := stake.Description{
 		Name:     viper.GetString(FlagName),
 		Email:    viper.GetString(FlagEmail),
@@ -210,7 +220,7 @@ func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
 		Profile:  viper.GetString(FlagProfile),
 	}
 
-	tx := stake.NewTxUpdateCandidacy(maxAmount, description)
+	tx := stake.NewTxUpdateCandidacy(maxAmount, description, newCandidateAddress)
 	return txcmd.DoTx(tx)
 }
 
@@ -220,7 +230,7 @@ func cmdWithdrawCandidacy(cmd *cobra.Command, args []string) error {
 }
 
 func cmdVerifyCandidacy(cmd *cobra.Command, args []string) error {
-	candidateAddress := common.HexToAddress(viper.GetString(FlagValidatorAddress))
+	candidateAddress := common.HexToAddress(viper.GetString(FlagCandidateAddress))
 	if candidateAddress.String() == "" {
 		return fmt.Errorf("please enter candidate address using --validator-address")
 	}
@@ -243,7 +253,7 @@ func cmdDelegate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("amount must be positive interger")
 	}
 
-	validatorAddress := common.HexToAddress(viper.GetString(FlagValidatorAddress))
+	validatorAddress := common.HexToAddress(viper.GetString(FlagCandidateAddress))
 	if validatorAddress.String() == "" {
 		return fmt.Errorf("please enter validator address using --validator-address")
 	}
@@ -263,7 +273,7 @@ func cmdDelegate(cmd *cobra.Command, args []string) error {
 }
 
 func cmdWithdraw(cmd *cobra.Command, args []string) error {
-	validatorAddress := common.HexToAddress(viper.GetString(FlagValidatorAddress))
+	validatorAddress := common.HexToAddress(viper.GetString(FlagCandidateAddress))
 	if validatorAddress.String() == "" {
 		return fmt.Errorf("please enter validator address using --validator-address")
 	}

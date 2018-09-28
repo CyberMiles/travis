@@ -261,23 +261,6 @@ func updateCandidate(candidate *Candidate) {
 	}
 }
 
-func removeCandidate(candidate *Candidate) {
-	txWrapper := getSqlTxWrapper()
-	defer txWrapper.Commit()
-
-	stmt, err := txWrapper.tx.Prepare("delete from candidates where address = ?")
-	if err != nil {
-		panic(err)
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(candidate.OwnerAddress)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func cleanCandidates() {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
@@ -322,62 +305,6 @@ func GetCandidatesTotalShares() (res sdk.Int) {
 
 	return
 }
-
-/*func SaveDelegator(delegator *Delegator) {
-	txWrapper := getSqlTxWrapper()
-	defer txWrapper.Commit()
-
-	stmt, err := txWrapper.tx.Prepare("insert into delegators(address, created_at) values(?, ?)")
-	if err != nil {
-		panic(err)
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(delegator.Address.String(), delegator.CreatedAt)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func RemoveDelegator(delegator *Delegator) {
-	txWrapper := getSqlTxWrapper()
-	defer txWrapper.Commit()
-
-	stmt, err := txWrapper.tx.Prepare("delete from delegators where address = ?")
-	if err != nil {
-		panic(err)
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(delegator.Address.String())
-	if err != nil {
-		panic(err)
-	}
-}
-
-func GetDelegator(address string) *Delegator {
-	txWrapper := getSqlTxWrapper()
-	defer txWrapper.Commit()
-	stmt, err := txWrapper.tx.Prepare("select address, created_at from delegators where address = ?")
-	if err != nil {
-		panic(err)
-	}
-	defer stmt.Close()
-
-	var updatedAt string
-	err = stmt.QueryRow(address).Scan(&updatedAt)
-
-	switch {
-	case err == sql.ErrNoRows:
-		return nil
-	case err != nil:
-		panic(err)
-	}
-
-	return &Delegator{common.HexToAddress(address), updatedAt}
-}*/
 
 func SaveDelegation(d *Delegation) {
 	txWrapper := getSqlTxWrapper()
