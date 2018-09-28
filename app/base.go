@@ -180,12 +180,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// init deliver sql tx for statke
 	db, err := dbm.Sqliter.GetDB()
 	if err != nil {
-		// TODO: wrapper error
 		panic(err)
 	}
 	deliverSqlTx, err := db.Begin()
 	if err != nil {
-		// TODO: wrapper error
 		panic(err)
 	}
 	app.deliverSqlTx = deliverSqlTx

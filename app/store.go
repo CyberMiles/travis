@@ -159,11 +159,6 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 
 	height := reqQuery.Height
 	if height == 0 {
-		// TODO: once the rpc actually passes in non-zero
-		// heights we can use to query right after a tx
-		// we must return most recent, even if apphash
-		// is not yet in the blockchain
-
 		withProof := app.CommittedHeight() - 1
 		if tree.Tree.VersionExists(withProof) {
 			height = withProof
