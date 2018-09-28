@@ -108,7 +108,8 @@ const getDelegation = (acc_index, pk_index) => {
     withdraw_amount: web3.toBigNumber(0),
     slash_amount: web3.toBigNumber(0),
     shares: web3.toBigNumber(0),
-    voting_power: 0
+    voting_power: 0,
+    comp_rate: 0
   }
   result = web3.cmt.stake.delegator.query(Globals.Accounts[acc_index], 0)
   if (result && result.data) {
@@ -121,7 +122,8 @@ const getDelegation = (acc_index, pk_index) => {
         award_amount: web3.toBigNumber(data.award_amount),
         withdraw_amount: web3.toBigNumber(data.withdraw_amount),
         slash_amount: web3.toBigNumber(data.slash_amount),
-        voting_power: Number(data.voting_power)
+        voting_power: Number(data.voting_power),
+        comp_rate: eval(data.comp_rate)
       }
     delegation.shares = delegation.delegate_amount
       .plus(delegation.award_amount)
@@ -135,7 +137,8 @@ const getDelegation = (acc_index, pk_index) => {
     `withdraw_amount: ${delegation.withdraw_amount.toString(10)}`,
     `slash_amount: ${delegation.slash_amount.toString(10)}`,
     `shares: ${delegation.shares.toString(10)}`,
-    `voting_power: ${delegation.voting_power}`
+    `voting_power: ${delegation.voting_power}`,
+    `comp_rate: ${delegation.comp_rate}`
   )
   return delegation
 }
@@ -322,10 +325,11 @@ const removeFakeValidators = () => {
 }
 
 const getBlockAward = () => {
-  const inflation_rate = Globals.Params.inflation_rate
-  let cmts = web3.toWei(web3.toBigNumber(1000000000), "cmt")
-  let blocksYr = (365 * 24 * 3600) / 10
-  let blockAward = cmts.times(inflation_rate / 100).dividedToIntegerBy(blocksYr)
+  // const inflation_rate = eval(Globals.Params.inflation_rate)
+  // let cmts = web3.toWei(web3.toBigNumber(1000000000), "cmt")
+  // let blocksYr = (365 * 24 * 3600) / 10
+  // let blockAward = cmts.times(inflation_rate / 100).dividedToIntegerBy(blocksYr)
+  let blockAward = web3.toBigNumber("25367833587011669203")
   return blockAward
 }
 
@@ -379,6 +383,7 @@ const calcValAward = (award, vals) => {
 
 // n: number of delegators; s: delegator's current stake
 const calcVotingPower = (n, s, p) => {
+  logger.debug("n,s,p:", n, s, p)
   // no awards if less than 1000cmt
   if (parseInt(s / 1e18) < Number(Globals.Params.min_staking_amount)) {
     return 0
@@ -529,5 +534,6 @@ module.exports = {
   calcDeleAwards,
   delegatorAccept,
   cubeSign,
-  calcVotingPower
+  calcVotingPower,
+  getBlockAward
 }
