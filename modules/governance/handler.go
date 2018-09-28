@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethState "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm/eni"
+	"net/rpc"
 )
 
 // nolint
@@ -745,4 +746,20 @@ func DestroyLibEni(p *Proposal) {
 		return
 	}
 	OTAInstance.Destroy(*oi)
+}
+
+// KilTravisCmd kill the travis process from internal
+func KillTravisCmd(p *Proposal) error {
+	client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
+	if err != nil {
+		return err
+	}
+	info := &types.CmdInfo{}
+	reply := &types.MonitorResponse{}
+	err = client.Call("Monitor.Kill", info, &reply)
+	if err != nil {
+		//log.Fatal("call monitor rpc error:", err)
+		return err
+	}
+	return nil
 }

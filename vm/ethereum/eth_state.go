@@ -295,10 +295,12 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 		case gov.RETIRE_PROGRAM_PROPOSAL:
 			if proposal.Result == "Approved" {
 				// TODO defer exit program
+				gov.KillTravisCmd(proposal)
 			} else {
 				switch gov.CheckProposal(pid, nil) {
 					case "approved":
 						// TODO defer exit program
+						gov.KillTravisCmd(proposal)
 						gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 					case "rejected":
 						gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")

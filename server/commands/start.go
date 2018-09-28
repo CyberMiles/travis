@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	MonitorFlag = "monitor"
+	SubFlag = "sub"
 	RpcPort = "26650"
 )
 
@@ -39,7 +39,7 @@ func GetStartCmd() *cobra.Command {
 		Short: "Start this full node",
 		RunE:  startCmd(),
 	}
-	startCmd.PersistentFlags().Bool(MonitorFlag, false, "start travis as monitor mode")
+	startCmd.PersistentFlags().Bool(SubFlag, false, "start travis as sub process")
 	return startCmd
 }
 
@@ -50,8 +50,8 @@ const EyesCacheSize = 10000
 func startCmd() func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		rootDir := viper.GetString(cli.HomeFlag)
-		// start with monitor mode
-		if monitorFlag := viper.GetBool(MonitorFlag); monitorFlag {
+		// start travis as sub process
+		if !viper.GetBool(SubFlag) {
 			return startSubProcess(rootDir)
 		}
 
@@ -138,18 +138,11 @@ func loadGenesis(filePath string) (*types.GenesisDoc, error) {
 }
 
 func startSubProcess(rootDir string) error {
-	arg := "--" + MonitorFlag
+	arg := "--" + SubFlag
 
-	args := make([]string,0)
-	var index int
-	for index = 1; index < len(os.Args); index++ {
-		if os.Args[index] == arg {
-			break
-		}
-		args = append(args, os.Args[index])
-	}
-	args = append(args, os.Args[index+1:]...)
-	fmt.Println(args)
+	args := os.Args[1:]
+	args = append(args, arg)
+
 	fmt.Println(os.Args)
 	cmd := types.NewTravisCmd(rootDir, path.Base(os.Args[0]), args...)
 	m := types.NewMonitor(cmd)
@@ -160,7 +153,6 @@ func startSubProcess(rootDir string) error {
 
 
 	cmn.TrapSignal(func() {
-		fmt.Println("Stopping the command ...", cmd.Cmd().Process.Pid)
 		cmd.Stop()
 		time.Sleep(time.Second * 1)
 	})
