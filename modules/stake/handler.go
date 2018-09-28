@@ -670,9 +670,8 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 }
 
 func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *Candidate, tx TxWithdraw) {
-	// update delegation withdraw amount
-	delegation.AddWithdrawAmount(amount)
 	delegation.ReduceAverageStakingDate(amount)
+	delegation.AddPendingWithdrawAmount(amount)
 	UpdateDelegation(delegation)
 	now := utils.GetNow()
 
@@ -725,7 +724,7 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 func HandlePendingUnstakeRequests(height int64) error {
 	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
-		// get pubKey candidate
+		amount, _ := sdk.NewIntFromString(req.Amount)
 		candidate := GetCandidateByPubKey(req.PubKey)
 		if candidate == nil {
 			continue
@@ -735,6 +734,9 @@ func HandlePendingUnstakeRequests(height int64) error {
 		if delegation == nil {
 			continue
 		}
+		delegation.AddWithdrawAmount(amount)
+		delegation.AddPendingWithdrawAmount(amount.Neg())
+		UpdateDelegation(delegation)
 
 		if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
 			RemoveDelegation(delegation.DelegatorAddress, delegation.PubKey)
@@ -745,7 +747,6 @@ func HandlePendingUnstakeRequests(height int64) error {
 		updateUnstakeRequest(req)
 
 		// transfer coins back to account
-		amount, _ := sdk.NewIntFromString(req.Amount)
 		commons.Transfer(utils.HoldAccount, req.DelegatorAddress, amount)
 	}
 
