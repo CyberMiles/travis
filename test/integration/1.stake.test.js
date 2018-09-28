@@ -307,86 +307,70 @@ describe("Stake Test", function() {
     })
   })
 
-  describe.skip("Block awards", function() {
+  describe("Block awards", function() {
     let blocks = 1,
       vals_expected = [],
       dele_expected = []
+    let val_D, dele_B, dele_C, dele_D
 
-    before(function(done) {
+    before(function() {
       if (Globals.TestMode == "single") {
         // skips current and all nested describes
         this.test.parent.pending = true
         this.skip()
       }
-      Utils.waitBlocks(done, 1)
     })
 
-    before(function(done) {
-      // validators
-      const getShares = (vals, acc) => {
-        let v = vals.find(v => v.owner_address == acc)
-        if (v) {
-          return web3.toBigNumber(v.shares)
-        }
-        return web3.toBigNumber(0)
+    it("check awards", function() {
+      // get validators
+      let vals = web3.cmt.stake.validator.list().data
+      totalVotingPower = vals.reduce((s, v) => {
+        return s + v.voting_power
+      }, 0)
+      console.log("totalVotingPower: ", totalVotingPower)
+      // get delegator B, C, D of D
+      dele_B = Utils.getDelegation(1, 3)
+      dele_C = Utils.getDelegation(2, 3)
+      dele_D = Utils.getDelegation(3, 3)
+
+      awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+      console.log(awardInfos)
+
+      let v_ratio = eval(Globals.Params.validators_block_award_ratio)
+      let blockAward = Utils.getBlockAward()
+      let getAwards = dele => {
+        let awards = [
+          blockAward
+            .times(
+              (
+                (Number(dele.voting_power) * (1 - dele.comp_rate) * v_ratio) /
+                totalVotingPower
+              ).toFixed(12)
+            )
+            .dividedToIntegerBy(1),
+          blockAward
+            .times(
+              (
+                (Number(dele.voting_power) * dele.comp_rate * v_ratio) /
+                totalVotingPower
+              ).toFixed(12)
+            )
+            .dividedToIntegerBy(1)
+        ]
+        awards.forEach(a => console.log(a.toString()))
+        return awards
       }
-      tx_result = web3.cmt.stake.validator.list()
-      console.log(tx_result)
-      let d0 = getShares(tx_result.data, Globals.Accounts[3])
-      vals_expected = Utils.calcAwards(tx_result.data, blocks)
-      let d1 = getShares(vals_expected, Globals.Accounts[3])
-      // delegators of validator D
-      let award = web3.toBigNumber(d1).minus(d0)
-      dele_expected = Utils.calcDeleAwards(
-        award,
-        compRate,
-        [
-          Utils.getDelegation(1, 3).shares,
-          Utils.getDelegation(2, 3).shares,
-          Utils.getDelegation(3, 3).shares
-        ],
-        blocks
-      )
-      // wait a few blocks
-      Utils.waitBlocks(done, blocks)
-    })
 
-    it("check Validators' shares", function() {
-      // validators
-      let vals = {}
-      tx_result = web3.cmt.stake.validator.list()
-      console.log(tx_result)
-      tx_result.data.forEach(r => (vals[r.owner_address] = r.shares))
-      logger.debug(vals)
-
-      vals_expected.forEach(v => {
-        let diff = web3
-          .fromWei(
-            web3
-              .toBigNumber(v.shares)
-              .minus(vals[v.owner_address])
-              .abs(),
-            "gwei"
-          )
-          .toNumber()
-        expect(diff).lt(0.01)
-      })
-    })
-    it("check Delegators' shares of Validator D", function() {
-      // delegators of validator D
-      dele_expected.forEach((d, idx) => {
-        let dele = Utils.getDelegation(idx + 1, 3).shares
-        let diff = web3
-          .fromWei(
-            web3
-              .toBigNumber(d)
-              .minus(dele)
-              .abs(),
-            "gwei"
-          )
-          .toNumber()
-        expect(diff).lt(0.01)
-      })
+      award_B = getAwards(dele_B)
+      award_C = getAwards(dele_C)
+      award_D = getAwards(dele_D)
+      award_V = award_B[0]
+        .plus(award_C[0])
+        .plus(award_D[0])
+        .plus(award_B[1])
+        .plus(award_C[1])
+        .plus(award_D[1])
+      console.log(award_V.toString())
     })
   })
 
