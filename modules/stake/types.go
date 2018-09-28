@@ -419,7 +419,7 @@ func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat) int64 {
 	tenDaysAgo, _ := utils.GetTimeBefore(10 * 24)
 	ninetyDaysAgo, _ := utils.GetTimeBefore(90 * 24)
 	s1 := GetCandidateDailyStakeMaxValue(d.PubKey, tenDaysAgo).MulRat(sharesPercentage)
-	s2 := GetCandidateDailyStakeMaxValue(d.PubKey, ninetyDaysAgo)
+	s2 := GetCandidateDailyStakeMaxValue(d.PubKey, ninetyDaysAgo).MulRat(sharesPercentage)
 	snum := s1.Div(sdk.E18Int).Int64()
 	sdenom := s2.Div(sdk.E18Int).Int64()
 	s := d.Shares().Div(sdk.E18Int).MulRat(sharesPercentage).Int64()
