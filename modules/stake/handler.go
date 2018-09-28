@@ -433,6 +433,8 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	d.delegate(txDelegate)
 
 	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
+	cds := &CandidateDailyStake{PubKey: candidate.PubKey, Amount: candidate.Shares, CreatedAt: now}
+	SaveCandidateDailyStake(cds)
 	candidate.PendingVotingPower = candidate.CalcVotingPower()
 	updateCandidate(candidate)
 	return nil
@@ -470,6 +472,8 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.Genesi
 	d.delegate(txDelegate)
 
 	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
+	cds := &CandidateDailyStake{PubKey: candidate.PubKey, Amount: candidate.Shares, CreatedAt: now}
+	SaveCandidateDailyStake(cds)
 	candidate.PendingVotingPower = candidate.CalcVotingPower()
 	updateCandidate(candidate)
 	return nil
@@ -777,6 +781,7 @@ func RecordCandidateDailyStakes() error {
 		SaveCandidateDailyStake(cds)
 
 		// remove expired records
+		// fixme use block height instead of time
 		startDate, err := utils.GetTimeBefore(24 * 90) // 90 days
 		if err != nil {
 			return err

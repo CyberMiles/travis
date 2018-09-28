@@ -481,13 +481,32 @@ type GovernanceDeployLibEniProposalArgs struct {
 	FileUrl           string          `json:"fileUrl"`
 	Md5               string          `json:"md5"`
 	Reason            string          `json:"reason"`
-	ExpireTimestamp   *int64          `json:"expireTimestamp"`
-	ExpireBlockHeight *int64          `json:"expireBlockHeight"`
+	DeployTimestamp   *int64          `json:"deployTimestamp"`
+	DeployBlockHeight *int64          `json:"deployBlockHeight"`
 }
 
 func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	tx := governance.NewTxDeployLibEniPropose(&args.From, args.Name, args.Version, args.FileUrl, args.Md5, args.Reason,
-		args.ExpireTimestamp, args.ExpireBlockHeight)
+		args.DeployTimestamp, args.DeployBlockHeight)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.signAndBroadcastTxCommit(txArgs)
+}
+
+type GovernanceRetireProgramProposalArgs struct {
+	Nonce             *hexutil.Uint64 `json:"nonce"`
+	From              common.Address  `json:"from"`
+	RetiredVersion    string          `json:"retiredVersion"`
+	Reason            string          `json:"reason"`
+	RetiredBlockHeight *int64         `json:"retiredBlockHeight"`
+}
+
+func (s *CmtRPCService) ProposeRetireProgram(args GovernanceRetireProgramProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := governance.NewTxRetireProgramPropose(&args.From, args.RetiredVersion, args.Reason, args.RetiredBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {

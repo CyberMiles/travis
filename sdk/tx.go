@@ -3,8 +3,8 @@ package sdk
 import (
 	"strings"
 
-	"github.com/CyberMiles/travis/sdk/errors"
 	"encoding/json"
+	"github.com/CyberMiles/travis/sdk/errors"
 )
 
 const maxTxSize = 10240
@@ -24,7 +24,6 @@ type TxInner interface {
 	ValidateBasic() error
 }
 
-// TODO: do we need this abstraction? TxLayer???
 // please review again after implementing "middleware"
 
 // TxLayer provides a standard way to deal with "middleware" tx,
@@ -49,7 +48,6 @@ type env struct {
 	Kind string `json:"type"`
 }
 
-// TODO: put this functionality into go-data in a cleaner and more efficient way
 func (t Tx) GetKind() (string, error) {
 	// render as json
 	d, err := json.Marshal(t)
@@ -73,7 +71,6 @@ func (t Tx) GetMod() (string, error) {
 	}
 	parts := strings.SplitN(kind, "/", 2)
 	if len(parts) != 2 {
-		// TODO: return "base"?
 		return "", errors.ErrUnknownTxType(t)
 	}
 	return parts[0], nil
