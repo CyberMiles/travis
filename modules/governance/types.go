@@ -2,6 +2,7 @@ package governance
 
 import (
 	"encoding/json"
+	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -152,22 +153,10 @@ type Vote struct {
 }
 
 func (v *Vote) Hash() []byte {
-	vote, err := json.Marshal(struct {
-		ProposalId  string
-		Voter       common.Address
-		BlockHeight int64
-		Answer      string
-	}{
-		v.ProposalId,
-		v.Voter,
-		v.BlockHeight,
-		v.Answer,
-	})
-	if err != nil {
-		panic(err)
-	}
+	var excludedFields []string
+	bs := types.Hash(v, excludedFields)
 	hasher := ripemd160.New()
-	hasher.Write(vote)
+	hasher.Write(bs)
 	return hasher.Sum(nil)
 }
 

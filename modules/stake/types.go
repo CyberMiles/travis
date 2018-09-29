@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"encoding/json"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
@@ -79,38 +78,10 @@ func (c *Candidate) SelfStakingAmount(ssr sdk.Rat) (res sdk.Int) {
 }
 
 func (c *Candidate) Hash() []byte {
-	candidate, err := json.Marshal(struct {
-		PubKey       types.PubKey
-		OwnerAddress string
-		Shares       string
-		VotingPower  int64
-		MaxShares    string
-		CompRate     sdk.Rat
-		Description  Description
-		Verified     string
-		Active       string
-	}{
-		c.PubKey,
-		c.OwnerAddress,
-		c.Shares,
-		c.VotingPower,
-		c.MaxShares,
-		c.CompRate,
-		Description{
-			Name:     c.Description.Name,
-			Website:  c.Description.Website,
-			Location: c.Description.Location,
-			Profile:  c.Description.Profile,
-			Email:    c.Description.Email,
-		},
-		c.Verified,
-		c.Active,
-	})
-	if err != nil {
-		panic(err)
-	}
+	var excludedFields []string
+	bs := types.Hash(c, excludedFields)
 	hasher := ripemd160.New()
-	hasher.Write(candidate)
+	hasher.Write(bs)
 	return hasher.Sum(nil)
 }
 
@@ -457,28 +428,10 @@ func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64
 }
 
 func (d *Delegation) Hash() []byte {
-	delegation, err := json.Marshal(struct {
-		DelegatorAddress common.Address
-		PubKey           types.PubKey
-		DelegateAmount   string
-		AwardAmount      string
-		WithdrawAmount   string
-		SlashAmount      string
-		CompRate         sdk.Rat
-	}{
-		d.DelegatorAddress,
-		d.PubKey,
-		d.DelegateAmount,
-		d.AwardAmount,
-		d.WithdrawAmount,
-		d.SlashAmount,
-		d.CompRate,
-	})
-	if err != nil {
-		panic(err)
-	}
+	var excludedFields []string
+	bs := types.Hash(d, excludedFields)
 	hasher := ripemd160.New()
-	hasher.Write(delegation)
+	hasher.Write(bs)
 	return hasher.Sum(nil)
 }
 
@@ -531,27 +484,10 @@ type UnstakeRequest struct {
 }
 
 func (r *UnstakeRequest) Hash() []byte {
-	req, err := json.Marshal(struct {
-		DelegatorAddress     common.Address
-		PubKey               types.PubKey
-		InitiatedBlockHeight int64
-		PerformedBlockHeight int64
-		Amount               string
-		State                string
-	}{
-		r.DelegatorAddress,
-		r.PubKey,
-		r.InitiatedBlockHeight,
-		r.PerformedBlockHeight,
-		r.Amount,
-		r.State,
-	})
-
-	if err != nil {
-		panic(err)
-	}
+	var excludedFields []string
+	bs := types.Hash(r, excludedFields)
 	hasher := ripemd160.New()
-	hasher.Write(req)
+	hasher.Write(bs)
 	return hasher.Sum(nil)
 }
 

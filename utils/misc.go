@@ -53,3 +53,13 @@ func IsEmptyAddress(address common.Address) bool {
 func ConvertDaysToHeight(days int64) int64 {
 	return days * 24 * 60 * 60 / CommitSeconds
 }
+
+func Contains(slice []string, item string) bool {
+	set := make(map[string]struct{}, len(slice))
+	for _, s := range slice {
+		set[s] = struct{}{}
+	}
+
+	_, ok := set[item]
+	return ok
+}

@@ -397,7 +397,6 @@ type deliver struct {
 	store  state.SimpleDB
 	sender common.Address
 	params *utils.Params
-	state  *ethstat.StateDB
 	ctx    types.Context
 }
 
@@ -432,7 +431,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	totalCost := amount.Add(gasFee)
 
 	// check if the delegator has sufficient funds
-	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
+	if err := checkBalance(d.ctx.EthappState(), d.sender, totalCost); err != nil {
 		return err
 	}
 
@@ -528,7 +527,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	}
 
 	// check if the delegator has sufficient funds
-	if err := checkBalance(d.state, d.sender, totalCost); err != nil {
+	if err := checkBalance(d.ctx.EthappState(), d.sender, totalCost); err != nil {
 		return err
 	}
 
@@ -723,7 +722,7 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	}
 
 	// check if the delegator has sufficient funds
-	if err := checkBalance(d.state, d.sender, gasFee); err != nil {
+	if err := checkBalance(d.ctx.EthappState(), d.sender, gasFee); err != nil {
 		return err
 	}
 	// only charge gas fee here
