@@ -11,6 +11,7 @@ const TRANSFER_FUND_PROPOSAL = "transfer_fund"
 const CHANGE_PARAM_PROPOSAL = "change_param"
 const DEPLOY_LIBENI_PROPOSAL = "deploy_libeni"
 const RETIRE_PROGRAM_PROPOSAL = "retire_program"
+const UPGRADE_TRAVIS_PROPOSAL = "upgrade_travis"
 
 type Proposal struct {
 	Id           string
@@ -154,6 +155,27 @@ func NewRetireProgramProposal(id string, proposer *common.Address, blockHeight i
 		"",
 		map[string]interface{}{
 			"retired_version": retiredVersion,
+			"reason": reason,
+		},
+	}
+}
+
+func NewUpgradeTravisProposal(id string, proposer *common.Address, blockHeight int64, travisVersion, reason string, expireBlockHeight int64) *Proposal {
+	now := utils.GetNow()
+	return &Proposal {
+		id,
+		UPGRADE_TRAVIS_PROPOSAL,
+		proposer,
+		blockHeight,
+		0,
+		expireBlockHeight,
+		now,
+		"",
+		"",
+		0,
+		"",
+		map[string]interface{}{
+			"travis_version": travisVersion,
 			"reason": reason,
 		},
 	}

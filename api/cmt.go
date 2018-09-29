@@ -516,6 +516,25 @@ func (s *CmtRPCService) ProposeRetireProgram(args GovernanceRetireProgramProposa
 	return s.signAndBroadcastTxCommit(txArgs)
 }
 
+type GovernanceUpgradeTravisProposalArgs struct {
+	Nonce             *hexutil.Uint64 `json:"nonce"`
+	From              common.Address  `json:"from"`
+	TravisVersion    string          `json:"travisVersion"`
+	Reason            string          `json:"reason"`
+	UpgradeBlockHeight *int64         `json:"upgradeBlockHeight"`
+}
+
+func (s *CmtRPCService) ProposeUpgradeTravis(args GovernanceUpgradeTravisProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := governance.NewTxUpgradeTravisPropose(&args.From, args.TravisVersion, args.Reason, args.UpgradeBlockHeight)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.signAndBroadcastTxCommit(txArgs)
+}
+
 type GovernanceVoteArgs struct {
 	Nonce      *hexutil.Uint64 `json:"nonce"`
 	Voter      common.Address  `json:"from"`

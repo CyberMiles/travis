@@ -164,10 +164,11 @@ func (c *TravisCmd) Download(name string) error {
 		return nil
 	}
 
-	// TODO: using copy to manipulate download
-	if err := exec.Command("cp", "-f", filepath.Join(c.Path, "travis"), filepath.Join(c.Path, name)).Run(); err != nil {
-		return err
-	}
+	// TODO: automatically download comming soon ...
+	//if err := exec.Command("cp", "-f", filepath.Join(c.Path, "travis"), filepath.Join(c.Path, name)).Run(); err != nil {
+	//	return err
+	//}
+	log.Println("download does not happen automatically, please copy it manually")
 
 	// using the new version
 	c.NextName = name

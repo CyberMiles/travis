@@ -481,6 +481,45 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		res.Data = hash
+	case TxUpgradeTravisPropose:
+		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
+		if txInner.ExpireBlockHeight != nil {
+			expireBlockHeight = *txInner.ExpireBlockHeight
+		}
+		hashJson, _ := json.Marshal(hash)
+		cp := NewUpgradeTravisProposal(
+			string(hashJson[1:len(hashJson)-1]),
+			txInner.Proposer,
+			ctx.BlockHeight(),
+			txInner.TravisVersion,
+			txInner.Reason,
+			expireBlockHeight,
+		)
+		SaveProposal(cp)
+
+		// Check gasFee  -- start
+		// get the sender
+		sender, err := getTxSender(ctx)
+		if err != nil {
+			return res, err
+		}
+		params := utils.GetParams()
+		gasUsed := params.RetireProgramProposal
+
+		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
+			return res, err
+		} else {
+			res.GasFee = gasFee.Int
+			res.GasUsed = int64(gasUsed)
+			// transfer gasFee
+			commons.Transfer(sender, utils.HoldAccount, gasFee)
+		}
+		// Check gasFee  -- end
+
+		utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
+		res.Data = hash
+
+		DownloadTravisCmd(cp)
 
 	case TxVote:
 		var vote *Vote
@@ -760,6 +799,38 @@ func KillTravisCmd(p *Proposal) error {
 	info := &types.CmdInfo{}
 	reply := &types.MonitorResponse{}
 	err = client.Call("Monitor.Kill", info, &reply)
+	if err != nil {
+		//log.Fatal("call monitor rpc error:", err)
+		return err
+	}
+	return nil
+}
+
+// DownloadTravisCmd download new travis version
+func DownloadTravisCmd(p *Proposal) error {
+	client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
+	if err != nil {
+		return err
+	}
+	info := &types.CmdInfo{Name: p.Detail["travis_version"].(string)}
+	reply := &types.MonitorResponse{}
+	err = client.Call("Monitor.Download", info, &reply)
+	if err != nil {
+		//log.Fatal("call monitor rpc error:", err)
+		return err
+	}
+	return nil
+}
+
+// DownloadTravisCmd download new travis version
+func UpgradeTravisCmd(p *Proposal) error {
+	client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
+	if err != nil {
+		return err
+	}
+	info := &types.CmdInfo{Name: p.Detail["travis_version"].(string)}
+	reply := &types.MonitorResponse{}
+	err = client.Call("Monitor.Upgrade", info, &reply)
 	if err != nil {
 		//log.Fatal("call monitor rpc error:", err)
 		return err

@@ -294,18 +294,34 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 			}
 		case gov.RETIRE_PROGRAM_PROPOSAL:
 			if proposal.Result == "Approved" {
-				// TODO defer exit program
+				// kill travis process
 				gov.KillTravisCmd(proposal)
 			} else {
 				switch gov.CheckProposal(pid, nil) {
 					case "approved":
-						// TODO defer exit program
+						// kill travis process
 						gov.KillTravisCmd(proposal)
 						gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 					case "rejected":
 						gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
 					default:
 						gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
+				}
+			}
+		case gov.UPGRADE_TRAVIS_PROPOSAL:
+			if proposal.Result == "Approved" {
+				// Upgrade travis command to new version
+				gov.UpgradeTravisCmd(proposal)
+			} else {
+				switch gov.CheckProposal(pid, nil) {
+				case "approved":
+					// Upgrade travis command to new version
+					gov.UpgradeTravisCmd(proposal)
+					gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
+				case "rejected":
+					gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
+				default:
+					gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
 				}
 			}
 		}
