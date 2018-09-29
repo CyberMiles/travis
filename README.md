@@ -3,11 +3,9 @@
 
 Please see the documentation for building and deploying Travis nodes here: https://travis.readthedocs.io/en/latest/getting-started.html
 
-Below is a bash script which will get Lity, libENI and a Travis node running on Ubuntu 16.04. 
+Below is a bash script which will get Lity, libENI and a Travis node running on Ubuntu 16.04. Disclaimer: These instructions are for a brand-new disposable 16.04 Ubuntu test instance which has the sole purpose of running and testing the CyberMiles Lity compiler, CyberMiles libENI framework and the CyberMiles testnet called Travis.
 
-## Disclaimer: These instructions are for a brand-new disposable 16.04 Ubuntu test instance which has the sole purpose of running and testing the CyberMiles Lity compiler, CyberMiles libENI framework and the CyberMiles testnet called Travis.
-
-----
+```
 #/bin/bash
 
 #Disclaimer: These instructions are for a brand-new disposable 16.04 Ubuntu test instance which has the sole purpose of running and testing the CyberMiles Lity compiler, CyberMiles libENI framework and the CyberMiles testnet called Travis.
@@ -103,11 +101,11 @@ source ~/.bashrc
 
 travis node start --home=./.travis
 
-----
+```
 
 You can now attach to the Travis node using the following command
 
-----
+```
 travis attach http://localhost:8545
-----
+```
 
