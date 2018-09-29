@@ -124,18 +124,20 @@ func NewTxDeployLibEniPropose(proposer *common.Address, name, version, fileurl, 
 func (tx TxDeployLibEniPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxRetireProgramPropose struct {
-	Proposer           *common.Address `json:"proposer"`
-	Reason             string          `json:"reason"`
-	ExpireBlockHeight  *int64          `json:"expire_block_height"`
+	Proposer            *common.Address `json:"proposer"`
+	PreservedValidators string          `json:"preserved_validators"`
+	Reason              string          `json:"reason"`
+	ExpireBlockHeight   *int64          `json:"expire_block_height"`
 }
 
 func (tx TxRetireProgramPropose) ValidateBasic() error {
 	return nil
 }
 
-func NewTxRetireProgramPropose(proposer *common.Address, reason string, expireBlockHeight *int64) sdk.Tx {
+func NewTxRetireProgramPropose(proposer *common.Address, preservedValidators, reason string, expireBlockHeight *int64) sdk.Tx {
 	return TxRetireProgramPropose {
 		proposer,
+		preservedValidators,
 		reason,
 		expireBlockHeight,
 	}.Wrap()

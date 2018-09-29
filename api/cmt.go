@@ -499,14 +499,15 @@ func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalA
 }
 
 type GovernanceRetireProgramProposalArgs struct {
-	Nonce             *hexutil.Uint64 `json:"nonce"`
-	From              common.Address  `json:"from"`
-	Reason            string          `json:"reason"`
-	RetiredBlockHeight *int64         `json:"retiredBlockHeight"`
+	Nonce               *hexutil.Uint64 `json:"nonce"`
+	From                common.Address  `json:"from"`
+	PreservedValidators string          `json:"preservedValidators"`
+	Reason              string          `json:"reason"`
+	RetiredBlockHeight  *int64          `json:"retiredBlockHeight"`
 }
 
 func (s *CmtRPCService) ProposeRetireProgram(args GovernanceRetireProgramProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxRetireProgramPropose(&args.From, args.Reason, args.RetiredBlockHeight)
+	tx := governance.NewTxRetireProgramPropose(&args.From, args.PreservedValidators, args.Reason, args.RetiredBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {

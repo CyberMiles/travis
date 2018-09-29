@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"fmt"
 	"bytes"
 	"math/big"
 	"sync"
@@ -294,13 +295,13 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 			}
 		case gov.RETIRE_PROGRAM_PROPOSAL:
 			if proposal.Result == "Approved" {
-				// kill process
-				gov.KillProgramCmd(proposal)
+				// process will be killed at next block
+				utils.RetiringProposalId = pid
 			} else {
 				switch gov.CheckProposal(pid, nil) {
 					case "approved":
-						// kill process
-						gov.KillProgramCmd(proposal)
+						// process will be killed at next block
+						utils.RetiringProposalId = pid
 						gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
 					case "rejected":
 						gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")

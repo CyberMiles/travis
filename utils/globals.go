@@ -190,6 +190,8 @@ var (
 		math.MaxInt64,
 		nil,
 	}
+	RetiringProposalId string // Indicate where to shutdown the node
+
 	MintAccount    = common.HexToAddress("0000000000000000000000000000000000000000")
 	HoldAccount    = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 	GovHoldAccount = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")

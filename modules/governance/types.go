@@ -139,7 +139,7 @@ func NewDeployLibEniProposal(id string, proposer *common.Address, blockHeight in
 	}
 }
 
-func NewRetireProgramProposal(id string, proposer *common.Address, blockHeight int64, retiredVersion, reason string, expireBlockHeight int64) *Proposal {
+func NewRetireProgramProposal(id string, proposer *common.Address, blockHeight int64, retiredVersion, preservedValidators, reason string, expireBlockHeight int64) *Proposal {
 	now := utils.GetNow()
 	return &Proposal {
 		id,
@@ -155,6 +155,7 @@ func NewRetireProgramProposal(id string, proposer *common.Address, blockHeight i
 		"",
 		map[string]interface{}{
 			"retired_version": retiredVersion,
+			"preserved_validators": preservedValidators,
 			"reason": reason,
 		},
 	}
