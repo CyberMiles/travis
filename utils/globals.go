@@ -12,7 +12,7 @@ import (
 const (
 	CommitSeconds       = 10
 	HalfYear            = 180
-	YearlyBlockNumber   = 365 * 24 * 3600 / 10
+	YearlyBlockNumber   = 365 * 24 * 3600 / CommitSeconds
 	BasicMintableAmount = "1000000000000000000000000000"
 )
 
@@ -182,7 +182,7 @@ func CalGasFee(gasUsed uint64, gasPrice uint64) sdk.Int {
 var (
 	BlockGasFee      = big.NewInt(0)
 	StateChangeQueue []StateChangeObject
-	PendingProposal = &pendingProposal{
+	PendingProposal  = &pendingProposal{
 		make(map[string]int64),
 		math.MaxInt64,
 		nil,

@@ -609,7 +609,6 @@ type ProposalReactor struct {
 }
 
 func (pr ProposalReactor) React(result, msg string) {
-	now := utils.GetNow()
 	if result == "success" {
 		// If the default result is not set, then do nothing
 		if pr.Result == "" {
@@ -617,7 +616,7 @@ func (pr ProposalReactor) React(result, msg string) {
 		}
 		result = pr.Result
 	}
-	UpdateProposalResult(pr.ProposalId, result, msg, pr.BlockHeight, now)
+	UpdateProposalResult(pr.ProposalId, result, msg, pr.BlockHeight)
 }
 
 // get the sender from the ctx and ensure it matches the tx pubkey
