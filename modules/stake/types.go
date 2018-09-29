@@ -349,6 +349,7 @@ type Delegator struct {
 }
 
 type Delegation struct {
+	Id                    int64          `json:"id"`
 	DelegatorAddress      common.Address `json:"delegator_address"`
 	PubKey                types.PubKey   `json:"pub_key"`
 	ValidatorAddress      string         `json:"validator_address"`
