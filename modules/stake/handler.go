@@ -629,11 +629,11 @@ func (d deliver) delegate(tx TxDelegate) error {
 			BlockHeight:           d.ctx.BlockHeight(),
 			CreatedAt:             now,
 		}
-		candidate.NumOfDelegator += 1
+		candidate.NumOfDelegators += 1
 		SaveDelegation(delegation)
 	} else {
 		if delegation.Shares().Equal(sdk.ZeroInt) {
-			candidate.NumOfDelegator += 1
+			candidate.NumOfDelegators += 1
 		}
 
 		delegation.AddDelegateAmount(delegateAmount)
@@ -692,9 +692,9 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 
 	// update the number of candidate
 	if delegation.Shares().LT(sdk.NewInt(10)) {
-		candidate.NumOfDelegator -= 1
-		if candidate.NumOfDelegator < 0 {
-			candidate.NumOfDelegator = 0
+		candidate.NumOfDelegators -= 1
+		if candidate.NumOfDelegators < 0 {
+			candidate.NumOfDelegators = 0
 		}
 		updateCandidate(candidate)
 	}

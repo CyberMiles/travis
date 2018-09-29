@@ -172,7 +172,7 @@ func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 			BlockHeight:        blockHeight,
 			Rank:               rank,
 			State:              state,
-			NumOfDelegator:     numOfDelegators,
+			NumOfDelegators:    numOfDelegators,
 		}
 		candidates = append(candidates, candidate)
 	}
@@ -213,7 +213,7 @@ func SaveCandidate(candidate *Candidate) {
 		candidate.BlockHeight,
 		candidate.Rank,
 		candidate.State,
-		candidate.NumOfDelegator,
+		candidate.NumOfDelegators,
 		candidate.CreatedAt,
 	)
 	if err != nil {
@@ -249,7 +249,7 @@ func updateCandidate(candidate *Candidate) {
 		common.Bytes2Hex(candidate.Hash()),
 		candidate.Rank,
 		candidate.State,
-		candidate.NumOfDelegator,
+		candidate.NumOfDelegators,
 		types.PubKeyString(candidate.PubKey),
 	)
 	if err != nil {

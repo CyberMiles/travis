@@ -42,7 +42,7 @@ type Candidate struct {
 	BlockHeight        int64        `json:"block_height"`
 	Rank               int64        `json:"rank"`
 	State              string       `json:"state"`
-	NumOfDelegator     int64        `json:"num_of_delegators"`
+	NumOfDelegators    int64        `json:"num_of_delegators"`
 }
 
 type Description struct {
@@ -440,7 +440,7 @@ func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64
 	one := sdk.OneRat
 	r1 := sdk.NewRat(snum, sdenom)
 	r2 := sdk.NewRat(t, 180)
-	r3 := sdk.NewRat(candidate.NumOfDelegator*4, 1)
+	r3 := sdk.NewRat(candidate.NumOfDelegators*4, 1)
 	r4 := sdk.NewRat(s, 1)
 
 	r1 = r1.Mul(r1)
@@ -515,7 +515,7 @@ type Slash struct {
 	SlashRatio  sdk.Rat      `json:"slash_ratio"`
 	SlashAmount sdk.Int      `json:"slash_amount"`
 	Reason      string       `json:"reason"`
-	CreatedAt   string       `json:"created_at"` // todo use block height?
+	CreatedAt   string       `json:"created_at"`
 	BlockHeight int64        `json:"block_height"`
 }
 
