@@ -106,6 +106,7 @@ const getDelegation = (acc_index, pk_index) => {
     delegate_amount: web3.toBigNumber(0),
     award_amount: web3.toBigNumber(0),
     withdraw_amount: web3.toBigNumber(0),
+    pending_withdraw_amount: web3.toBigNumber(0),
     slash_amount: web3.toBigNumber(0),
     shares: web3.toBigNumber(0),
     voting_power: 0,
@@ -121,6 +122,7 @@ const getDelegation = (acc_index, pk_index) => {
         delegate_amount: web3.toBigNumber(data.delegate_amount),
         award_amount: web3.toBigNumber(data.award_amount),
         withdraw_amount: web3.toBigNumber(data.withdraw_amount),
+        pending_withdraw_amount: web3.toBigNumber(data.pending_withdraw_amount),
         slash_amount: web3.toBigNumber(data.slash_amount),
         voting_power: Number(data.voting_power),
         comp_rate: eval(data.comp_rate)
@@ -128,6 +130,7 @@ const getDelegation = (acc_index, pk_index) => {
     delegation.shares = delegation.delegate_amount
       .plus(delegation.award_amount)
       .minus(delegation.withdraw_amount)
+      .minus(delegation.pending_withdraw_amount)
       .minus(delegation.slash_amount)
   }
   logger.debug(
@@ -135,6 +138,7 @@ const getDelegation = (acc_index, pk_index) => {
     `delegate_amount: ${delegation.delegate_amount.toString(10)}`,
     `award_amount: ${delegation.award_amount.toString(10)}`,
     `withdraw_amount: ${delegation.withdraw_amount.toString(10)}`,
+    `pending_withdraw_amount: ${delegation.pending_withdraw_amount.toString(10)}`,
     `slash_amount: ${delegation.slash_amount.toString(10)}`,
     `shares: ${delegation.shares.toString(10)}`,
     `voting_power: ${delegation.voting_power}`,

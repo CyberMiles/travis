@@ -255,6 +255,21 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		return err
 	}
 
+	// check if the address has been changed
+	ownerAddress := common.HexToAddress(candidate.OwnerAddress)
+	if !utils.IsEmptyAddress(tx.NewCandidateAddress) && tx.NewCandidateAddress != ownerAddress {
+		// check if the new account has sufficient funds
+		if err := checkBalance(c.state, tx.NewCandidateAddress, candidate.ParseShares()); err != nil {
+			return err
+		}
+
+		// check if the candidate has some pending withdrawal requests
+		reqs := GetUnstakeRequestsByDelegator(ownerAddress)
+		if len(reqs) > 0 {
+			return ErrCandidateHasPendingUnstakeRequests()
+		}
+	}
+
 	return nil
 }
 
@@ -525,6 +540,20 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 
 	commons.Transfer(d.sender, utils.HoldAccount, totalCost)
 
+	// check if the address has been changed
+	ownerAddress := common.HexToAddress(candidate.OwnerAddress)
+	if !utils.IsEmptyAddress(tx.NewCandidateAddress) && tx.NewCandidateAddress != ownerAddress {
+		candidate.OwnerAddress = tx.NewCandidateAddress.String()
+
+		// update the candidate's self-delegation
+		delegation := GetDelegation(ownerAddress, candidate.PubKey)
+		delegation.DelegatorAddress = tx.NewCandidateAddress
+		UpdateDelegation(delegation)
+
+		// return funds
+		commons.Transfer(utils.HoldAccount, d.sender, candidate.ParseShares())
+	}
+
 	candidate.UpdatedAt = utils.GetNow()
 	updateCandidate(candidate)
 	return nil
@@ -598,17 +627,18 @@ func (d deliver) delegate(tx TxDelegate) error {
 	delegation := GetDelegation(d.sender, candidate.PubKey)
 	if delegation == nil {
 		delegation = &Delegation{
-			DelegatorAddress: d.sender,
-			PubKey:           candidate.PubKey,
-			DelegateAmount:   tx.Amount,
-			AwardAmount:      "0",
-			WithdrawAmount:   "0",
-			SlashAmount:      "0",
-			State:            "Y",
-			CompRate:         candidate.CompRate,
-			BlockHeight:      d.height,
-			CreatedAt:        now,
-			UpdatedAt:        now,
+			DelegatorAddress:      d.sender,
+			PubKey:                candidate.PubKey,
+			DelegateAmount:        tx.Amount,
+			AwardAmount:           "0",
+			WithdrawAmount:        "0",
+			PendingWithdrawAmount: "0",
+			SlashAmount:           "0",
+			State:                 "Y",
+			CompRate:              candidate.CompRate,
+			BlockHeight:           d.height,
+			CreatedAt:             now,
+			UpdatedAt:             now,
 		}
 		candidate.NumOfDelegator += 1
 		SaveDelegation(delegation)
@@ -670,9 +700,8 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 }
 
 func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *Candidate, tx TxWithdraw) {
-	// update delegation withdraw amount
-	delegation.AddWithdrawAmount(amount)
 	delegation.ReduceAverageStakingDate(amount)
+	delegation.AddPendingWithdrawAmount(amount)
 	UpdateDelegation(delegation)
 	now := utils.GetNow()
 
@@ -725,7 +754,7 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 func HandlePendingUnstakeRequests(height int64) error {
 	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
-		// get pubKey candidate
+		amount, _ := sdk.NewIntFromString(req.Amount)
 		candidate := GetCandidateByPubKey(req.PubKey)
 		if candidate == nil {
 			continue
@@ -735,9 +764,12 @@ func HandlePendingUnstakeRequests(height int64) error {
 		if delegation == nil {
 			continue
 		}
+		delegation.AddWithdrawAmount(amount)
+		delegation.AddPendingWithdrawAmount(amount.Neg())
+		UpdateDelegation(delegation)
 
 		if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
-			RemoveDelegation(delegation.DelegatorAddress, delegation.PubKey)
+			RemoveDelegation(delegation.Id)
 		}
 
 		req.State = "COMPLETED"
@@ -745,7 +777,6 @@ func HandlePendingUnstakeRequests(height int64) error {
 		updateUnstakeRequest(req)
 
 		// transfer coins back to account
-		amount, _ := sdk.NewIntFromString(req.Amount)
 		commons.Transfer(utils.HoldAccount, req.DelegatorAddress, amount)
 	}
 

@@ -271,10 +271,11 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 }
 
 type UpdateCandidacyArgs struct {
-	Nonce       *hexutil.Uint64   `json:"nonce"`
-	From        common.Address    `json:"from"`
-	MaxAmount   *hexutil.Big      `json:"maxAmount"`
-	Description stake.Description `json:"description"`
+	Nonce               *hexutil.Uint64   `json:"nonce"`
+	From                common.Address    `json:"from"`
+	MaxAmount           *hexutil.Big      `json:"maxAmount"`
+	Description         stake.Description `json:"description"`
+	NewCandidateAddress common.Address    `json:"newCandidateAddress"`
 }
 
 func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -282,7 +283,7 @@ func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.Resul
 	if args.MaxAmount != nil {
 		maxAmount = args.MaxAmount.ToInt().String()
 	}
-	tx := stake.NewTxUpdateCandidacy(maxAmount, args.Description)
+	tx := stake.NewTxUpdateCandidacy(maxAmount, args.Description, args.NewCandidateAddress)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {

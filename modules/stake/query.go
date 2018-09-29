@@ -56,7 +56,7 @@ func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candid
 
 func queryDelegations(db *sql.DB, cond map[string]interface{}) (delegations []*Delegation) {
 	clause, params := buildQueryClause(cond)
-	rows, err := db.Query("select delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at, updated_at from delegations"+clause, params...)
+	rows, err := db.Query("select id, delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, pending_withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at, updated_at from delegations"+clause, params...)
 	if err != nil {
 		panic(err)
 	}

@@ -398,8 +398,8 @@ describe("Stake Test", function() {
         // delegation after
         let delegation_after = Utils.getDelegation(1, 3)
         expect(
-          delegation_after.withdraw_amount
-            .minus(delegation_before.withdraw_amount)
+          delegation_after.pending_withdraw_amount
+            .minus(delegation_before.pending_withdraw_amount)
             .toNumber()
         ).to.eq(Number(withdraw))
       })
@@ -493,7 +493,7 @@ describe("Stake Test", function() {
         expect(balance_new[i].minus(balance_old[i]).toNumber()).to.eq(0)
       }
     })
-    it("All its staked CMTs will move to withdraw_amount, and be refunded later", function() {
+    it("All its staked CMTs will move to pending_withdraw_amount, and be refunded later", function() {
       for (i = 1; i < 4; ++i) {
         d = Utils.getDelegation(i, 3)
         expect(d).to.be.not.null
@@ -502,6 +502,7 @@ describe("Stake Test", function() {
             .plus(d.award_amount)
             .minus(d.slash_amount)
             .minus(d.withdraw_amount)
+            .minus(d.pending_withdraw_amount)
             .toNumber()
         ).to.eq(0)
       }
