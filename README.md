@@ -10,6 +10,8 @@ Below is a bash script which will get Lity, libENI and a Travis node running on 
 
 #Disclaimer: These instructions are for a brand-new disposable 16.04 Ubuntu test instance which has the sole purpose of running and testing the CyberMiles Lity compiler, CyberMiles libENI framework and the CyberMiles testnet called Travis.
 
+#To use this file copy this text into a file called install_cybermiles.sh in your fresh disposable Ubuntu 16.04 machines home directory. Make the file executable by running "sudo chmod a+x ~/install_cybermiles.sh" and then finally execute the file by running "cd ~" and then "./install_cybermiles.sh"
+
 #System preparation Ubuntu 16.04 LTS
 cd ~
 sudo apt-get -y update
