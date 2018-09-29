@@ -22,6 +22,7 @@ type Params struct {
 	ChangeParamsProposal          uint64  `json:"change_params_proposal" type:"uint"`
 	DeployLibEniProposal          uint64  `json:"deploy_libeni_proposal" type:"uint"`
 	RetireProgramProposal         uint64  `json:"retire_program_proposal" type:"uint"`
+	UpgradeProgramProposal        uint64  `json:"upgrade_program_proposal" type:"uint"`
 	GasPrice                      uint64  `json:"gas_price" type:"uint"`
 	MinStakingAmount              int64   `json:"min_staking_amount" type:"uint"`
 	ValidatorsBlockAwardRatio     sdk.Rat `json:"validators_block_award_ratio" type:"rat"`
@@ -52,6 +53,7 @@ func DefaultParams() *Params {
 		TransferFundProposal:          2e6,
 		ChangeParamsProposal:          2e6,
 		RetireProgramProposal:         2e6,
+		UpgradeProgramProposal:        2e6,
 		DeployLibEniProposal:          2e6,
 		GasPrice:                      2e9,
 		MinStakingAmount:              1000,

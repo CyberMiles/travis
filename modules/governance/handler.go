@@ -236,12 +236,55 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
 
-		if txInner.RetiredVersion == "" {
-			return sdk.NewCheck(0, ""), ErrInvalidParameter()
+		// Transfer gasFee
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().RetireProgramProposal)
+		if err != nil {
+			return sdk.NewCheck(0, ""), err
+		}
+		app_state.SubBalance(sender, gasFee.Int)
+	case TxUpgradeProgramPropose:
+		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
+			return sdk.NewCheck(0, ""), ErrMissingSignature()
+		}
+		validators := stake.GetCandidates().Validators()
+		if validators == nil || validators.Len() == 0 {
+			return sdk.NewCheck(0, ""), ErrInvalidValidator()
+		}
+		for i, v := range validators {
+			if v.OwnerAddress == txInner.Proposer.String() {
+				break
+			}
+			if i+1 == len(validators) {
+				return sdk.NewCheck(0, ""), ErrInvalidValidator()
+			}
+		}
+
+		if txInner.ExpireBlockHeight != nil && ctx.BlockHeight() >= *txInner.ExpireBlockHeight {
+			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
+		}
+
+		var fileurlJson map[string][]string
+
+		if err = json.Unmarshal([]byte(txInner.Fileurl), &fileurlJson); err != nil {
+			return sdk.NewCheck(0, ""), ErrInvalidFileurlJson()
+		}
+
+		if _, ok := fileurlJson[utils.GOOSDIST]; !ok {
+			return sdk.NewCheck(0, ""), ErrNoFileurl()
+		}
+
+		var md5Json map[string]string
+
+		if err = json.Unmarshal([]byte(txInner.Md5), &md5Json); err != nil {
+			return sdk.NewCheck(0, ""), ErrInvalidMd5Json()
+		}
+
+		if _, ok := md5Json[utils.GOOSDIST]; !ok {
+			return sdk.NewCheck(0, ""), ErrNoMd5()
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().RetireProgramProposal)
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().UpgradeProgramProposal)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
@@ -452,7 +495,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
 			ctx.BlockHeight(),
-			txInner.RetiredVersion,
+			version.Version,
 			txInner.Reason,
 			expireBlockHeight,
 		)
@@ -476,22 +519,24 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			commons.Transfer(sender, utils.HoldAccount, gasFee)
 		}
 		// Check gasFee  -- end
-		if txInner.RetiredVersion == version.Version {
-			utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
-		}
+		utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
 
 		res.Data = hash
-	case TxUpgradeTravisPropose:
+	case TxUpgradeProgramPropose:
 		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
 		if txInner.ExpireBlockHeight != nil {
 			expireBlockHeight = *txInner.ExpireBlockHeight
 		}
 		hashJson, _ := json.Marshal(hash)
-		cp := NewUpgradeTravisProposal(
+		cp := NewUpgradeProgramProposal(
 			string(hashJson[1:len(hashJson)-1]),
 			txInner.Proposer,
 			ctx.BlockHeight(),
-			txInner.TravisVersion,
+			version.Version,
+			txInner.Name,
+			txInner.Version,
+			txInner.Fileurl,
+			txInner.Md5,
 			txInner.Reason,
 			expireBlockHeight,
 		)
@@ -504,7 +549,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			return res, err
 		}
 		params := utils.GetParams()
-		gasUsed := params.RetireProgramProposal
+		gasUsed := params.UpgradeProgramProposal
 
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
@@ -519,7 +564,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
 		res.Data = hash
 
-		DownloadTravisCmd(cp)
+		DownloadProgramCmd(cp)
 
 	case TxVote:
 		var vote *Vote
@@ -582,6 +627,14 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
 			}
 		case RETIRE_PROGRAM_PROPOSAL:
+			switch checkResult {
+			case "approved":
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
+			case "rejected":
+				utils.PendingProposal.Del(proposal.Id)
+				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
+			}
+		case UPGRADE_PROGRAM_PROPOSAL:
 			switch checkResult {
 			case "approved":
 				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
@@ -790,8 +843,8 @@ func DestroyLibEni(p *Proposal) {
 	OTAInstance.Destroy(*oi)
 }
 
-// KilTravisCmd kill the travis process from internal
-func KillTravisCmd(p *Proposal) error {
+// KilProgramCmd kill the process from internal
+func KillProgramCmd(p *Proposal) error {
 	client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
 	if err != nil {
 		return err
@@ -806,13 +859,13 @@ func KillTravisCmd(p *Proposal) error {
 	return nil
 }
 
-// DownloadTravisCmd download new travis version
-func DownloadTravisCmd(p *Proposal) error {
+// DownloadProgramCmd download new program version
+func DownloadProgramCmd(p *Proposal) error {
 	client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
 	if err != nil {
 		return err
 	}
-	info := &types.CmdInfo{Name: p.Detail["travis_version"].(string)}
+	info := &types.CmdInfo{Name: p.Detail["version"].(string)}
 	reply := &types.MonitorResponse{}
 	err = client.Call("Monitor.Download", info, &reply)
 	if err != nil {
@@ -822,13 +875,13 @@ func DownloadTravisCmd(p *Proposal) error {
 	return nil
 }
 
-// DownloadTravisCmd download new travis version
-func UpgradeTravisCmd(p *Proposal) error {
+// UpgradeProgramCmd upgrade new program version
+func UpgradeProgramCmd(p *Proposal) error {
 	client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
 	if err != nil {
 		return err
 	}
-	info := &types.CmdInfo{Name: p.Detail["travis_version"].(string)}
+	info := &types.CmdInfo{Name: p.Detail["version"].(string)}
 	reply := &types.MonitorResponse{}
 	err = client.Call("Monitor.Upgrade", info, &reply)
 	if err != nil {

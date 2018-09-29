@@ -16,13 +16,13 @@ const (
 	ByteTxChangeParamPropose       = 0xA2
 	ByteTxDeployLibEniPropose      = 0xA3
 	ByteTxRetireProgramPropose     = 0xA4
-	ByteTxUpgradeTravisPropose     = 0xA5
+	ByteTxUpgradeProgramPropose    = 0xA5
 	ByteTxVote                     = 0xA6
 	TypeTxTransferFundPropose      = governanceModuleName + "/propose/transfer_fund"
 	TypeTxChangeParamPropose       = governanceModuleName + "/propose/change_param"
 	TypeTxDeployLibEniPropose      = governanceModuleName + "/propose/deploy_libeni"
 	TypeTxRetireProgramPropose     = governanceModuleName + "/propose/retire_program"
-	TypeTxUpgradeTravisPropose     = governanceModuleName + "/propose/upgrade_travis"
+	TypeTxUpgradeProgramPropose    = governanceModuleName + "/propose/upgrade_program"
 	TypeTxVote                     = governanceModuleName + "/vote"
 )
 
@@ -31,12 +31,12 @@ func init() {
 	sdk.TxMapper.RegisterImplementation(TxChangeParamPropose{}, TypeTxChangeParamPropose, ByteTxChangeParamPropose)
 	sdk.TxMapper.RegisterImplementation(TxDeployLibEniPropose{}, TypeTxDeployLibEniPropose, ByteTxDeployLibEniPropose)
 	sdk.TxMapper.RegisterImplementation(TxRetireProgramPropose{}, TypeTxRetireProgramPropose, ByteTxRetireProgramPropose)
-	sdk.TxMapper.RegisterImplementation(TxUpgradeTravisPropose{}, TypeTxUpgradeTravisPropose, ByteTxUpgradeTravisPropose)
+	sdk.TxMapper.RegisterImplementation(TxUpgradeProgramPropose{}, TypeTxUpgradeProgramPropose, ByteTxUpgradeProgramPropose)
 	sdk.TxMapper.RegisterImplementation(TxVote{}, TypeTxVote, ByteTxVote)
 }
 
 //Verify interface at compile time
-var _, _, _, _, _ sdk.TxInner = &TxTransferFundPropose{}, &TxChangeParamPropose{}, &TxDeployLibEniPropose{}, &TxRetireProgramPropose{}, &TxUpgradeTravisPropose{}
+var _, _, _, _, _ sdk.TxInner = &TxTransferFundPropose{}, &TxChangeParamPropose{}, &TxDeployLibEniPropose{}, &TxRetireProgramPropose{}, &TxUpgradeProgramPropose{}
 var _ sdk.TxInner = &TxVote{}
 
 type TxTransferFundPropose struct {
@@ -125,14 +125,6 @@ func (tx TxDeployLibEniPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxRetireProgramPropose struct {
 	Proposer           *common.Address `json:"proposer"`
-	RetiredVersion     string          `json:"retired_version"`
-	Reason             string          `json:"reason"`
-	ExpireBlockHeight  *int64          `json:"expire_block_height"`
-}
-
-type TxUpgradeTravisPropose struct {
-	Proposer           *common.Address `json:"proposer"`
-	TravisVersion     string          `json:"travis_version"`
 	Reason             string          `json:"reason"`
 	ExpireBlockHeight  *int64          `json:"expire_block_height"`
 }
@@ -141,30 +133,44 @@ func (tx TxRetireProgramPropose) ValidateBasic() error {
 	return nil
 }
 
-func (tx TxUpgradeTravisPropose) ValidateBasic() error {
-	return nil
-}
-
-func NewTxRetireProgramPropose(proposer *common.Address, retiredVersion, reason string, expireBlockHeight *int64) sdk.Tx {
+func NewTxRetireProgramPropose(proposer *common.Address, reason string, expireBlockHeight *int64) sdk.Tx {
 	return TxRetireProgramPropose {
 		proposer,
-		retiredVersion,
-		reason,
-		expireBlockHeight,
-	}.Wrap()
-}
-
-func NewTxUpgradeTravisPropose(proposer *common.Address, travisVersion, reason string, expireBlockHeight *int64) sdk.Tx {
-	return TxUpgradeTravisPropose {
-		proposer,
-		travisVersion,
 		reason,
 		expireBlockHeight,
 	}.Wrap()
 }
 
 func (tx TxRetireProgramPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
-func (tx TxUpgradeTravisPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
+type TxUpgradeProgramPropose struct {
+	Proposer           *common.Address `json:"proposer"`
+	Name               string          `json:"name"`
+	Version            string          `json:"version"`
+	Fileurl            string          `json:"fileurl"`
+	Md5                string          `json:"md5"`
+	Reason             string          `json:"reason"`
+	ExpireBlockHeight  *int64          `json:"expire_block_height"`
+}
+
+func (tx TxUpgradeProgramPropose) ValidateBasic() error {
+	return nil
+}
+
+func NewTxUpgradeProgramPropose(proposer *common.Address, name, version, fileurl, md5, reason string, expireBlockHeight *int64) sdk.Tx {
+	return TxUpgradeProgramPropose {
+		proposer,
+		name,
+		version,
+		fileurl,
+		md5,
+		reason,
+		expireBlockHeight,
+	}.Wrap()
+}
+
+func (tx TxUpgradeProgramPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
 type TxVote struct {
 	ProposalId       string            `json:"proposal_id"`
 	Voter            common.Address    `json:"voter"`

@@ -200,6 +200,8 @@ func initTravisDb() {
 	create index idx_governance_deploy_libeni_detail_proposal_id on governance_deploy_libeni_detail(proposal_id);
 	create table governance_retire_program_detail(proposal_id text not null, retired_version text not null, reason text not null);
 	create index idx_governance_retire_program_detail_proposal_id on governance_retire_program_detail(proposal_id);
+	create table governance_upgrade_program_detail(proposal_id text not null, retired_version text not null, name text not null, version text not null, fileurl text not null, md5 text not null, reason text not null);
+	create index idx_governance_upgrade_program_detail_proposal_id on governance_retire_program_detail(proposal_id);
 
  	create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null,  hash text not null default '', created_at text not null, unique(proposal_id, voter) ON conflict replace);
 	create index idx_governance_vote_voter on governance_vote(voter);

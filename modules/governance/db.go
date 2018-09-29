@@ -136,6 +136,18 @@ func SaveProposal(pp *Proposal) {
 			fmt.Println(err)
 			panic(err)
 		}
+	case UPGRADE_PROGRAM_PROPOSAL:
+		stmt1, err := txWrapper.tx.Prepare("insert into governance_upgrade_program_detail(proposal_id, retired_version, name, version, fileurl, md5, reason) values(?, ?, ?, ?, ?, ?, ?)")
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
+
+		_, err = stmt1.Exec(pp.Id, pp.Detail["retired_version"], pp.Detail["name"], pp.Detail["version"], pp.Detail["fileurl"], pp.Detail["md5"], pp.Detail["reason"])
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
 	}
 }
 
@@ -300,6 +312,42 @@ func GetProposalById(pid string) *Proposal {
 				"reason": reason,
 			},
 		}
+	case UPGRADE_PROGRAM_PROPOSAL:
+		var retiredVersion, name, version, fileurl, md5, reason string
+		stmt1, err := txWrapper.tx.Prepare("select retired_version, name, version, fileurl, md5, reason from governance_upgrade_program_detail where proposal_id = ?")
+		if err != nil {
+			panic(err)
+		}
+		defer stmt1.Close()
+		err = stmt1.QueryRow(pid).Scan(&retiredVersion, &name, &version, &fileurl, &md5, &reason)
+		switch {
+		case err == sql.ErrNoRows:
+			return nil
+		case err != nil:
+			panic(err)
+		}
+
+		return &Proposal {
+			pid,
+			ptype,
+			&prp,
+			blockHeight,
+			expireTimestamp,
+			expireBlockHeight,
+			createdAt,
+			result,
+			resultMsg,
+			resultBlockHeight,
+			resultAt,
+			map[string]interface{}{
+				"retired_version": retiredVersion,
+				"name": name,
+				"version": version,
+				"fileurl": fileurl,
+				"md5": md5,
+				"reason": reason,
+			},
+		}
 	}
 
 	return nil
@@ -385,6 +433,8 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 		then (select printf('%s-+-%s-+-%s-+-%s-+-%s-+-%s', name, version, fileurl, md5, reason, status) from governance_deploy_libeni_detail where proposal_id = p.id)
 		when p.type = 'retire_program'
 		then (select printf('%s-+-%s', retired_version, reason) from governance_retire_program_detail where proposal_id = p.id)
+		when p.type = 'upgrade_program'
+		then (select printf('%s-+-%s-+-%s-+-%s-+-%s-+-%s', retired_version, name, version, fileurl, md5, reason) from governance_upgrade_program_detail where proposal_id = p.id)
 		end as detail
 		from governance_proposal p`)
 	if err != nil {
@@ -466,6 +516,18 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 			pp.Detail = map[string]interface{} {
 				"retired_version": d[0],
 				"reason": d[1],
+			}
+		case UPGRADE_PROGRAM_PROPOSAL:
+			if len(d) != 6 {
+				continue
+			}
+			pp.Detail = map[string]interface{} {
+				"retired_version": d[0],
+				"name": d[1],
+				"version": d[2],
+				"fileurl": d[3],
+				"md5": d[4],
+				"reason": d[5],
 			}
 		}
 
@@ -550,6 +612,48 @@ func GetRetiringProposal(version string) *Proposal {
 	defer txWrapper.Commit()
 
 	stmt, err := txWrapper.tx.Prepare("select id, type, expire_timestamp, expire_block_height from governance_proposal p where result = 'Approved' and type = 'retire_program' and exists (select * from governance_retire_program_detail d where d.proposal_id=p.id and d.retired_version = ?)")
+	if err != nil {
+		panic(err)
+	}
+
+	rows, err := stmt.Query(version)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+		var id, ptype string
+		var expireTimestamp int64
+		var expireBlockHeight int64
+
+		err = rows.Scan(&id, &ptype, &expireTimestamp, &expireBlockHeight)
+		if err != nil {
+			panic(err)
+		}
+
+		pp := &Proposal{
+			Id: id,
+			Type: ptype,
+			ExpireTimestamp: expireTimestamp,
+			ExpireBlockHeight: expireBlockHeight,
+		}
+
+		return pp
+	}
+
+	if err = rows.Err(); err != nil {
+		panic(err)
+	}
+
+	return nil
+}
+
+func GetUpgradingProposal(version string) *Proposal {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("select id, type, expire_timestamp, expire_block_height from governance_proposal p where result = 'Approved' and type = 'upgrade_program' and exists (select * from governance_upgrade_program_detail d where d.proposal_id=p.id and d.retired_version = ?)")
 	if err != nil {
 		panic(err)
 	}

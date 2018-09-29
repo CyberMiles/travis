@@ -500,13 +500,12 @@ func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalA
 type GovernanceRetireProgramProposalArgs struct {
 	Nonce             *hexutil.Uint64 `json:"nonce"`
 	From              common.Address  `json:"from"`
-	RetiredVersion    string          `json:"retiredVersion"`
 	Reason            string          `json:"reason"`
 	RetiredBlockHeight *int64         `json:"retiredBlockHeight"`
 }
 
 func (s *CmtRPCService) ProposeRetireProgram(args GovernanceRetireProgramProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxRetireProgramPropose(&args.From, args.RetiredVersion, args.Reason, args.RetiredBlockHeight)
+	tx := governance.NewTxRetireProgramPropose(&args.From, args.Reason, args.RetiredBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -516,16 +515,20 @@ func (s *CmtRPCService) ProposeRetireProgram(args GovernanceRetireProgramProposa
 	return s.signAndBroadcastTxCommit(txArgs)
 }
 
-type GovernanceUpgradeTravisProposalArgs struct {
+type GovernanceUpgradeProgramProposalArgs struct {
 	Nonce             *hexutil.Uint64 `json:"nonce"`
 	From              common.Address  `json:"from"`
-	TravisVersion    string          `json:"travisVersion"`
+	Name              string          `json:"name"`
+	Version           string          `json:"version"`
+	FileUrl           string          `json:"fileUrl"`
+	Md5               string          `json:"md5"`
 	Reason            string          `json:"reason"`
 	UpgradeBlockHeight *int64         `json:"upgradeBlockHeight"`
 }
 
-func (s *CmtRPCService) ProposeUpgradeTravis(args GovernanceUpgradeTravisProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxUpgradeTravisPropose(&args.From, args.TravisVersion, args.Reason, args.UpgradeBlockHeight)
+func (s *CmtRPCService) ProposeUpgradeProgram(args GovernanceUpgradeProgramProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := governance.NewTxUpgradeProgramPropose(&args.From, args.Name,
+		args.Version, args.FileUrl, args.Md5, args.Reason, args.UpgradeBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
