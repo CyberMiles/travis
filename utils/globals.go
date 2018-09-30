@@ -16,6 +16,17 @@ const (
 	BasicMintableAmount = "1000000000000000000000000000"
 )
 
+const (
+	Staging      = 20
+	TestNet      = 19
+	MainNet      = 18
+	PrivateChain = 1234
+)
+
+const (
+	MonitorRpcPort = "26650"
+)
+
 type StateChangeObject struct {
 	From   common.Address
 	To     common.Address

@@ -7,7 +7,9 @@ import (
 // CmdInfo ...
 type CmdInfo struct {
 	Name string
-	Arg  []string
+	Version  string
+	DownloadURLs []string
+	MD5 string
 }
 
 // Monitor ...
@@ -33,7 +35,7 @@ func (r *Monitor) Download(info *CmdInfo, reply *MonitorResponse) error {
 	}
 	reply.Code = 0
 	reply.Msg = []byte("Received download info successfully")
-	r.cmd.DownloadChan <- info.Name
+	r.cmd.DownloadChan <- info
 	return nil
 }
 
@@ -54,4 +56,9 @@ func (r *Monitor) Kill(info *CmdInfo, reply *MonitorResponse) error {
 	reply.Msg = []byte("Received kill info successfully")
 	r.cmd.KillChan <- ""
 	return nil
+}
+
+// ReleaseName get the travis release name
+func (c *CmdInfo)ReleaseName() string {
+	return c.Name + "_" + c.Version
 }

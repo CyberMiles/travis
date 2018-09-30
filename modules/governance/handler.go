@@ -3,6 +3,7 @@ package governance
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"strings"
 	"time"
@@ -861,13 +862,9 @@ func DestroyLibEni(p *Proposal) {
 
 // KilProgramCmd kill the process from internal
 func KillProgramCmd(p *Proposal) error {
-	client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
-	if err != nil {
-		return err
-	}
 	info := &types.CmdInfo{}
 	reply := &types.MonitorResponse{}
-	err = client.Call("Monitor.Kill", info, &reply)
+	err := callRpc("Monitor.Kill", info, reply)
 	if err != nil {
 		//log.Fatal("call monitor rpc error:", err)
 		return err
@@ -877,13 +874,13 @@ func KillProgramCmd(p *Proposal) error {
 
 // DownloadProgramCmd download new program version
 func DownloadProgramCmd(p *Proposal) error {
-	client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
-	if err != nil {
-		return err
+	oi := getOTAInfo(p)
+	if oi == nil {
+		return errors.New("unknown error")
 	}
-	info := &types.CmdInfo{Name: p.Detail["version"].(string)}
+	info := &types.CmdInfo{Name: oi.LibName, Version: oi.Version, DownloadURLs:oi.Url, MD5: oi.Checksum}
 	reply := &types.MonitorResponse{}
-	err = client.Call("Monitor.Download", info, &reply)
+	err := callRpc("Monitor.Download", info, reply)
 	if err != nil {
 		//log.Fatal("call monitor rpc error:", err)
 		return err
@@ -893,15 +890,26 @@ func DownloadProgramCmd(p *Proposal) error {
 
 // UpgradeProgramCmd upgrade new program version
 func UpgradeProgramCmd(p *Proposal) error {
+	oi := getOTAInfo(p)
+	if oi == nil {
+		return errors.New("unknown error")
+	}
+	info := &types.CmdInfo{Name: oi.LibName, Version: oi.Version, DownloadURLs:oi.Url, MD5: oi.Checksum}
+	reply := &types.MonitorResponse{}
+	err := callRpc("Monitor.Upgrade", info, reply)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func callRpc(serviceMethod string, info *types.CmdInfo, reply *types.MonitorResponse) error {
 	client, err := rpc.DialHTTP("tcp", "127.0.0.1:26650")
 	if err != nil {
 		return err
 	}
-	info := &types.CmdInfo{Name: p.Detail["version"].(string)}
-	reply := &types.MonitorResponse{}
-	err = client.Call("Monitor.Upgrade", info, &reply)
+	err = client.Call(serviceMethod, info, reply)
 	if err != nil {
-		//log.Fatal("call monitor rpc error:", err)
 		return err
 	}
 	return nil

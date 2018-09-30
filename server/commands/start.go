@@ -31,7 +31,6 @@ import (
 
 const (
 	SubFlag = "sub"
-	RpcPort = "26650"
 )
 
 // GetStartCmd - initialize a command as the start command with tick
@@ -58,7 +57,6 @@ func startCmd() func(cmd *cobra.Command, args []string) error {
 			return startSubProcess(rootDir)
 		}
 		*/
-
 		if err := dbm.InitSqliter(path.Join(rootDir, "data", "travis.db")); err != nil {
 			return err
 		}
@@ -192,7 +190,7 @@ func startRPC(m *types.Monitor) error {
 	rpc.Register(m)
 	rpc.HandleHTTP()
 
-	l, e := net.Listen("tcp", "127.0.0.1:"+RpcPort)
+	l, e := net.Listen("tcp", "127.0.0.1:"+utils.MonitorRpcPort)
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}
@@ -203,14 +201,14 @@ func startRPC(m *types.Monitor) error {
 func startRoutine(c *types.TravisCmd) {
 	for {
 		select {
-		case cmdName := <-c.DownloadChan:
-			fmt.Printf("Start to download %s\n", cmdName)
-			if err := c.Download(cmdName); err != nil {
+		case cmdInfo := <-c.DownloadChan:
+			fmt.Printf("Start to download %s\n", cmdInfo.Name)
+			if err := c.Download(cmdInfo); err != nil {
 				log.Fatalf("Download failed: %s\n", err)
 			}
 		case cmdInfo := <-c.UpgradeChan:
 			fmt.Printf("Start to upgrade %s\n", cmdInfo.Name)
-			if c.NextName != cmdInfo.Name {
+			if c.NextName != cmdInfo.ReleaseName() {
 				log.Fatalf("Upgrade want version (%s) but get version: (%s)\n", cmdInfo.Name, c.NextName)
 			}
 			if err := c.Upgrade(cmdInfo); err != nil {

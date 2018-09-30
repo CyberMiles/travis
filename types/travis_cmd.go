@@ -24,7 +24,7 @@ type TravisCmd struct {
 	NextArgs []string
 	// Env  []string
 	*sync.Mutex
-	DownloadChan chan string   //
+	DownloadChan chan *CmdInfo   //
 	UpgradeChan  chan *CmdInfo //
 	KillChan     chan string   //
 	started      bool          // cmd.Start called, no error
@@ -42,7 +42,7 @@ func NewTravisCmd(root string, name string, arg ...string) *TravisCmd {
 		Name:         name,
 		Args:         arg,
 		Mutex:        &sync.Mutex{},
-		DownloadChan: make(chan string, 1),
+		DownloadChan: make(chan *CmdInfo, 1),
 		UpgradeChan:  make(chan *CmdInfo, 1),
 		KillChan:     make(chan string, 1),
 	}
@@ -143,23 +143,17 @@ func (c *TravisCmd) Upgrade(cmdInfo *CmdInfo) error {
 
 	// using the new version
 	c.Name = c.NextName
-	if cmdInfo.Arg != nil {
-		c.Args = cmdInfo.Arg
-	} else {
-		// using default
-		c.Args = []string{"node", "start", "--home", c.Root}
-	}
 
 	c.Start()
 	return nil
 }
 
 // Download download the new version travis as specified
-func (c *TravisCmd) Download(name string) error {
+func (c *TravisCmd) Download(cmdInfo *CmdInfo) error {
 	c.Lock()
 	defer c.Unlock()
 
-	if c.downloaded && c.NextName == name {
+	if c.downloaded && c.NextName == cmdInfo.ReleaseName() {
 		log.Println("same version already exist")
 		return nil
 	}
@@ -171,7 +165,7 @@ func (c *TravisCmd) Download(name string) error {
 	log.Println("download does not happen automatically, please copy it manually")
 
 	// using the new version
-	c.NextName = name
+	c.NextName = cmdInfo.ReleaseName()
 	c.downloaded = true
 
 	return nil
@@ -194,3 +188,4 @@ func (c *TravisCmd) Kill() error {
 	}
 	return p.Signal(syscall.SIGTERM)
 }
+
