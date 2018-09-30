@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"fmt"
 	"bytes"
 	"math/big"
 	"sync"

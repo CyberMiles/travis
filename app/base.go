@@ -11,6 +11,7 @@ import (
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
 	ttypes "github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/server"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
@@ -104,7 +105,7 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 	rp := governance.GetRetiringProposal(version.Version)
 	if rp != nil && rp.Result == "Approved" {
 		if rp.ExpireBlockHeight <= ethInfoRes.LastBlockHeight {
-			governance.KillProgramCmd(nil)
+			server.StopFlag <- true
 		} else if rp.ExpireBlockHeight == ethInfoRes.LastBlockHeight + 1 {
 			utils.RetiringProposalId = rp.Id
 		} else {
@@ -197,7 +198,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// init end
 
 	// handle the absent validators
-	fmt.Println("<>----------------", len(req.Validators))
 	for _, sv := range req.Validators {
 		var pk crypto.PubKeyEd25519
 		copy(pk[:], sv.Validator.PubKey.Data)
@@ -277,8 +277,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 				}
 			}
 			stake.DeactivateValidators(dpks)
-			app.logger.Error("<>------------------")
-			app.logger.Error(strings.Join(dpks, ","))
 		} else {
 			app.logger.Error("Getting invalid RetiringProposalId")
 		}
@@ -320,7 +318,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	if utils.RetiringProposalId != "" {
-		governance.KillProgramCmd(nil)
+		server.StopFlag <- true
 	}
 
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
