@@ -1,9 +1,15 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"net"
+	"net/rpc"
+	"net/http"
 	"os"
 	"path"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -14,18 +20,13 @@ import (
 	cmn "github.com/tendermint/tendermint/libs/common"
 	cstypes "github.com/tendermint/tendermint/consensus/types"
 
-	"encoding/json"
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/sdk/dbm"
+	"github.com/CyberMiles/travis/server"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/version"
-	"net"
-	"net/rpc"
-	"net/http"
-	"log"
-	"time"
 )
 
 const (
@@ -52,9 +53,11 @@ func startCmd() func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		rootDir := viper.GetString(cli.HomeFlag)
 		// start travis as sub process
+		/*
 		if !viper.GetBool(SubFlag) {
 			return startSubProcess(rootDir)
 		}
+		*/
 
 		if err := dbm.InitSqliter(path.Join(rootDir, "data", "travis.db")); err != nil {
 			return err
@@ -76,6 +79,27 @@ func startCmd() func(cmd *cobra.Command, args []string) error {
 }
 
 func start(rootDir string, storeApp *app.StoreApp) error {
+	var srvs *Services
+	go func() {
+		fmt.Println("<><>1")
+		// Listen for the stop channel
+		<- server.StopFlag
+		if srvs != nil {
+			if srvs.tmNode != nil {
+				// make sure tendermint is not in commit step
+				for srvs.tmNode.ConsensusState().Step == cstypes.RoundStepCommit {
+					time.Sleep(time.Millisecond * 10)
+				}
+				srvs.tmNode.Stop()
+			}
+			if srvs.emNode != nil {
+				srvs.emNode.Stop()
+			}
+		}
+		dbm.Sqliter.CloseDB()
+		os.Exit(0)
+	}()
+
 	srvs, err := startServices(rootDir, storeApp)
 	if err != nil {
 		return errors.Errorf("Error in start services: %v\n", err)

@@ -57,7 +57,7 @@ func GetInitCmd() *cobra.Command {
 func initFiles(cmd *cobra.Command, args []string) error {
 	initTendermint()
 	initTravisDb()
-	initTravisCmd()
+	// initTravisCmd()
 	return initEthermint()
 }
 
@@ -197,7 +197,7 @@ func initTravisDb() {
 	create index idx_governance_change_param_detail_proposal_id on governance_change_param_detail(proposal_id);
 	create table governance_deploy_libeni_detail(proposal_id text not null, name text not null, version text not null, fileurl text not null, md5 text not null, reason text not null, status text not null);
 	create index idx_governance_deploy_libeni_detail_proposal_id on governance_deploy_libeni_detail(proposal_id);
-	create table governance_retire_program_detail(proposal_id text not null, retired_version text not null, reason text not null);
+	create table governance_retire_program_detail(proposal_id text not null, retired_version text not null, preserved_validators text not null, reason text not null);
 	create index idx_governance_retire_program_detail_proposal_id on governance_retire_program_detail(proposal_id);
 	create table governance_upgrade_program_detail(proposal_id text not null, retired_version text not null, name text not null, version text not null, fileurl text not null, md5 text not null, reason text not null);
 	create index idx_governance_upgrade_program_detail_proposal_id on governance_retire_program_detail(proposal_id);

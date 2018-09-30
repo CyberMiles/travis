@@ -1,13 +1,21 @@
 package app
 
 import (
+	"bytes"
+	"database/sql"
 	goerr "errors"
 	"math/big"
+	"strings"
 
+	"github.com/CyberMiles/travis/modules/governance"
+	"github.com/CyberMiles/travis/modules/stake"
+	ttypes "github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/server"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/version"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -15,12 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"bytes"
-	"database/sql"
-	"github.com/CyberMiles/travis/modules/governance"
-	"github.com/CyberMiles/travis/modules/stake"
-	ttypes "github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -100,12 +102,15 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 	}
 
 	rp := governance.GetRetiringProposal(version.Version)
-	if rp != nil {
+	if rp != nil && rp.Result == "Approved" {
 		if rp.ExpireBlockHeight <= ethInfoRes.LastBlockHeight {
-			// TODO exit program right now
+			server.StopFlag <- true
+		} else if rp.ExpireBlockHeight == ethInfoRes.LastBlockHeight + 1 {
+			utils.RetiringProposalId = rp.Id
+		} else {
+			// check ahead one block
+			utils.PendingProposal.Add(rp.Id, 0, rp.ExpireBlockHeight - 1)
 		}
-
-		utils.PendingProposal.Add(rp.Id, 0, rp.ExpireBlockHeight)
 	}
 
 	travisInfoRes := app.StoreApp.Info(req)
@@ -253,13 +258,41 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		}
 	}
 
-	// calculate the validator set difference
-	if calVPCheck(app.WorkingHeight()) {
-		diff, err := stake.UpdateValidatorSet(app.WorkingHeight())
-		if err != nil {
-			panic(err)
+	// Deactivate validators that not in the list of preserved validators
+	if utils.RetiringProposalId != "" {
+		if proposal := governance.GetProposalById(utils.RetiringProposalId); proposal != nil {
+			pks := strings.Split(proposal.Detail["preserved_validators"].(string), ",")
+			vs := stake.GetCandidates().Validators()
+			dpks := make([]string, 0)
+			abciVs := make([]abci.Validator, 0)
+			for _, v := range vs {
+				i := 0
+				for ;i < len(pks); i++ {
+					if pks[i] == ttypes.PubKeyString(v.PubKey) {
+						abciVs = append(abciVs, v.ABCIValidator())
+						break
+					}
+				}
+				if i == len(pks) {
+					dpks = append(dpks, ttypes.PubKeyString(v.PubKey))
+					pk := v.PubKey.PubKey.(crypto.PubKeyEd25519)
+					abciVs = append(abciVs, abci.Ed25519Validator(pk[:], 0))
+				}
+			}
+			stake.DeactivateValidators(dpks)
+			app.AddValChange(abciVs)
+		} else {
+			app.logger.Error("Getting invalid RetiringProposalId")
 		}
-		app.AddValChange(diff)
+	} else { // should not update validator set twice if the node is to be shutdown
+		// calculate the validator set difference
+		if calVPCheck(app.WorkingHeight()) {
+			diff, err := stake.UpdateValidatorSet(app.WorkingHeight())
+			if err != nil {
+				panic(err)
+			}
+			app.AddValChange(diff)
+		}
 	}
 
 	// block award
@@ -288,6 +321,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 }
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
+	if utils.RetiringProposalId != "" {
+		server.StopFlag <- true
+	}
+
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	ethAppCommit, err := app.EthApp.Commit()
 	if err != nil {

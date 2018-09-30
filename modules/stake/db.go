@@ -3,6 +3,8 @@ package stake
 import (
 	"database/sql"
 	"fmt"
+	"strings"
+
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/types"
@@ -138,6 +140,40 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 	defer rows.Close()
 	candidates = composeCandidateResults(rows)
 	return
+}
+
+func DeactivateValidators(pubKeys []string) {
+	updateValidatorsActive(pubKeys, "N")
+}
+
+func ActivateValidators(pubKeys []string) {
+	updateValidatorsActive(pubKeys, "Y")
+}
+
+func updateValidatorsActive(pubKeys []string, active string) {
+	if pubKeys == nil || len(pubKeys) == 0 {
+		return
+	}
+
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("update candidates set active = ? where pub_key in (?" + strings.Repeat(",?", len(pubKeys)-1) + ")")
+	if err != nil {
+		panic(err)
+	}
+
+	defer stmt.Close()
+
+	args := []interface{}{active}
+	for _, pk := range pubKeys {
+		args = append(args, pk)
+	}
+
+	_, err = stmt.Exec(args...)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {

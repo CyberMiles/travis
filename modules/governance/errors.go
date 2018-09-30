@@ -25,6 +25,7 @@ var (
 	errNoMd5                    = fmt.Errorf("Can not find md5 for current os")
 	errInvalidNewLib            = fmt.Errorf("Invalid ENI lib name or version")
 	errOngoingLibFound          = fmt.Errorf("One or more onging proposal with the same lib name")
+	errOngoingRetiringFound     = fmt.Errorf("Found unresolved or approved retiring proposal")
 )
 
 func ErrMissingSignature() error {
@@ -93,4 +94,8 @@ func ErrInvalidNewLib() error {
 
 func ErrOngoingLibFound() error {
 	return errors.WithCode(errOngoingLibFound, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrOngoingRetiringFound() error {
+	return errors.WithCode(errOngoingRetiringFound, errors.CodeTypeBaseInvalidInput)
 }

@@ -232,6 +232,15 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 			}
 		}
 
+		rp := GetRetiringProposal(version.Version)
+		if rp != nil {
+			return sdk.NewCheck(0, ""), ErrOngoingRetiringFound()
+		}
+
+		if txInner.PreservedValidators == "" {
+			return sdk.NewCheck(0, ""), ErrInvalidParameter()
+		}
+
 		if txInner.ExpireBlockHeight != nil && ctx.BlockHeight() >= *txInner.ExpireBlockHeight {
 			return sdk.NewCheck(0, ""), ErrInvalidExpireBlockHeight()
 		}
@@ -496,6 +505,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			txInner.Proposer,
 			ctx.BlockHeight(),
 			version.Version,
+			txInner.PreservedValidators,
 			txInner.Reason,
 			expireBlockHeight,
 		)
@@ -519,7 +529,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			commons.Transfer(sender, utils.HoldAccount, gasFee)
 		}
 		// Check gasFee  -- end
-		utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight)
+
+		// check ahead one block
+		utils.PendingProposal.Add(cp.Id, cp.ExpireTimestamp, cp.ExpireBlockHeight - 1)
 
 		res.Data = hash
 	case TxUpgradeProgramPropose:
