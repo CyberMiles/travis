@@ -1,7 +1,6 @@
 //package main
 package genesis
 
-
 import (
 	"time"
 	"strings"
@@ -36,9 +35,9 @@ func main() {
 		GasLimit: uint64(0x1e8480000),
 		Difficulty: big.NewInt(0x40),
 		Mixhash: common.HexToHash("0x0"),
-		Alloc: *(devAllocs()),
+		//Alloc: *(devAllocs()),
 		//Alloc: *(simulateAllocs()),
-		//Alloc: *(mainnetAllocs()),
+		Alloc: *(mainnetAllocs()),
 		ParentHash: common.HexToHash("0x0"),
 	}
 	//getAllocs()
@@ -78,7 +77,7 @@ func mainnetAllocs() *core.GenesisAlloc {
 	0x7eff122b94897ea5b0e2a9abf47b86337fafebdc,1000000000000000000
 	0x77beb894fc9b0ed41231e51f128a347043960a9d,1000000000000000000
 	*/
-	file := "/tmp/example.csv"
+	file := "/tmp/erc20_cmt.csv"
 	f, err := os.Open(file)
 	if err != nil {
 		panic(err)
@@ -97,11 +96,12 @@ func mainnetAllocs() *core.GenesisAlloc {
 			return &allocs
 		}
 
-		balance, success := big.NewInt(0).SetString(row[1], 10)
+		balance, success := big.NewInt(0).SetString(strings.Trim(row[1]," "), 10)
 		if !success {
 			panic("convert alloc balance error!")
 		}
-			allocs[common.HexToAddress(row[0])] = core.GenesisAccount{Balance:balance}
+		fmt.Printf("%s: %v\n", row[0], common.HexToAddress(row[0]))
+		allocs[common.HexToAddress(row[0])] = core.GenesisAccount{Balance:balance}
 	}
 	return &allocs
 }

@@ -33,13 +33,6 @@ const (
 	defaultEnv = "private"
 )
 
-const (
-	Staging      = 20
-	TestNet      = 19
-	MainNet      = 18
-	PrivateChain = 1234
-)
-
 var InitCmd = GetInitCmd()
 
 func GetInitCmd() *cobra.Command {
@@ -115,7 +108,7 @@ func initTendermint() {
 
 func initEthermint() error {
 	genesisPath := viper.GetString(FlagVMGenesis)
-	genesis, err := emtUtils.ParseGenesisOrDefault(genesisPath)
+	genesis, err := emtUtils.ParseGenesisOrDefault(genesisPath, config.EMConfig.ChainId)
 	if err != nil {
 		ethUtils.Fatalf("genesisJSON err: %v", err)
 	}
