@@ -24,6 +24,8 @@ type delegatedProofOfStake interface {
 	delegate(TxDelegate) error
 	withdraw(TxWithdraw) error
 	setCompRate(TxSetCompRate, sdk.Int) error
+	updateCandidateAccount(TxUpdateCandidacyAccount) (int64, error)
+	acceptCandidateAccountUpdateRequest(TxAcceptCandidacyAccountUpdate) error
 }
 
 func SetGenesisValidator(val types.GenesisValidator, store state.SimpleDB) error {
@@ -100,6 +102,11 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 	case TxSetCompRate:
 		gasFee := utils.CalGasFee(params.SetCompRate, params.GasPrice)
 		return res, checker.setCompRate(txInner, gasFee)
+	case TxUpdateCandidacyAccount:
+		_, err := checker.updateCandidateAccount(txInner)
+		return res, err
+	case TxAcceptCandidacyAccountUpdate:
+		return res, checker.acceptCandidateAccountUpdateRequest(txInner)
 	}
 
 	return res, errors.ErrUnknownTxType(tx)
@@ -162,6 +169,12 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 			res.GasFee = gasFee.Int
 		}
 		return res, err
+	case TxUpdateCandidacyAccount:
+		id, err := deliverer.updateCandidateAccount(txInner)
+		res.Data = []byte(strconv.Itoa(int(id)))
+		return res, err
+	case TxAcceptCandidacyAccountUpdate:
+		return res, deliverer.acceptCandidateAccountUpdateRequest(txInner)
 	}
 
 	return
@@ -250,21 +263,6 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	// check if the delegator has sufficient funds
 	if err := checkBalance(c.ctx.EthappState(), c.sender, totalCost); err != nil {
 		return err
-	}
-
-	// check if the address has been changed
-	ownerAddress := common.HexToAddress(candidate.OwnerAddress)
-	if !utils.IsEmptyAddress(tx.NewCandidateAddress) && tx.NewCandidateAddress != ownerAddress {
-		// check if the new account has sufficient funds
-		if err := checkBalance(c.ctx.EthappState(), tx.NewCandidateAddress, candidate.ParseShares()); err != nil {
-			return err
-		}
-
-		// check if the candidate has some pending withdrawal requests
-		reqs := GetUnstakeRequestsByDelegator(ownerAddress)
-		if len(reqs) > 0 {
-			return ErrCandidateHasPendingUnstakeRequests()
-		}
 	}
 
 	return nil
@@ -386,6 +384,44 @@ func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	// check if the delegator has sufficient funds
 	if err := checkBalance(c.ctx.EthappState(), c.sender, gasFee); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount) (int64, error) {
+	candidate := GetCandidateByAddress(c.sender)
+
+	// check if the address has been changed
+	ownerAddress := common.HexToAddress(candidate.OwnerAddress)
+	if utils.IsEmptyAddress(tx.NewCandidateAddress) || tx.NewCandidateAddress == ownerAddress {
+		return 0, ErrBadRequest()
+	}
+
+	return 0, nil
+}
+
+func (c check) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUpdate) error {
+	req := getCandidateAccountUpdateRequest(tx.AccountUpdateRequestId)
+	if req == nil {
+		return ErrBadRequest()
+	}
+
+	if req.ToAddress != c.sender || req.State != "PENDING" {
+		return ErrBadRequest()
+	}
+
+	candidate := GetCandidateById(req.CandidateId)
+
+	// check if the new account has sufficient funds
+	if err := checkBalance(c.ctx.EthappState(), req.ToAddress, candidate.ParseShares()); err != nil {
+		return err
+	}
+
+	// check if the candidate has some pending withdrawal requests
+	reqs := GetUnstakeRequestsByDelegator(req.FromAddress)
+	if len(reqs) > 0 {
+		return ErrCandidateHasPendingUnstakeRequests()
 	}
 
 	return nil
@@ -532,21 +568,6 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	}
 
 	commons.Transfer(d.sender, utils.HoldAccount, totalCost)
-
-	// check if the address has been changed
-	ownerAddress := common.HexToAddress(candidate.OwnerAddress)
-	if !utils.IsEmptyAddress(tx.NewCandidateAddress) && tx.NewCandidateAddress != ownerAddress {
-		candidate.OwnerAddress = tx.NewCandidateAddress.String()
-
-		// update the candidate's self-delegation
-		delegation := GetDelegation(ownerAddress, candidate.Id)
-		delegation.DelegatorAddress = tx.NewCandidateAddress
-		UpdateDelegation(delegation)
-
-		// return funds
-		commons.Transfer(utils.HoldAccount, d.sender, candidate.ParseShares())
-	}
-
 	updateCandidate(candidate)
 	return nil
 }
@@ -731,6 +752,55 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 
 	delegation.CompRate = tx.CompRate
 	UpdateDelegation(delegation)
+	return nil
+}
+
+func (d deliver) updateCandidateAccount(tx TxUpdateCandidacyAccount) (int64, error) {
+	candidate := GetCandidateByAddress(d.sender)
+	req := &CandidateAccountUpdateRequest{
+		CandidateId: candidate.Id,
+		FromAddress: d.sender, ToAddress: tx.NewCandidateAddress,
+		CreatedBlockHeight: d.ctx.BlockHeight(),
+		State:              "PENDING",
+	}
+	id := saveCandidateAccountUpdateRequest(req)
+	return id, nil
+}
+
+func (d deliver) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUpdate) error {
+	req := getCandidateAccountUpdateRequest(tx.AccountUpdateRequestId)
+	if req == nil {
+		return ErrBadRequest()
+	}
+
+	if req.ToAddress != d.sender || req.State != "PENDING" {
+		return ErrBadRequest()
+	}
+
+	candidate := GetCandidateById(req.CandidateId)
+	if candidate == nil {
+		return ErrBadRequest()
+	}
+
+	candidate.OwnerAddress = req.ToAddress.String()
+	updateCandidate(candidate)
+
+	// update the candidate's self-delegation
+	delegation := GetDelegation(req.FromAddress, candidate.Id)
+	delegation.DelegatorAddress = req.ToAddress
+	UpdateDelegation(delegation)
+
+	// return coins to the original account
+	commons.Transfer(utils.HoldAccount, req.FromAddress, candidate.ParseShares())
+
+	// lock coins from the new account
+	commons.Transfer(req.ToAddress, utils.HoldAccount, candidate.ParseShares())
+
+	// mark the request as completed
+	req.State = "COMPLETED"
+	req.AcceptedBlockHeight = d.ctx.BlockHeight()
+	updateCandidateAccountUpdateRequest(req)
+
 	return nil
 }
 

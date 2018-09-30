@@ -2,7 +2,6 @@ package stake
 
 import (
 	"database/sql"
-	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -24,10 +23,11 @@ func QueryCandidateByAddress(address common.Address) *Candidate {
 	}
 }
 
-func QueryCandidateByPubKey(pubKey types.PubKey) *Candidate {
+// todo why do we need this function?
+func QueryCandidateById(id int64) *Candidate {
 	db := getDb()
 	cond := make(map[string]interface{})
-	cond["pub_key"] = types.PubKeyString(pubKey)
+	cond["id"] = id
 	candidates := queryCandidates(db, cond)
 	if len(candidates) == 0 {
 		return nil

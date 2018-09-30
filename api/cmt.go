@@ -271,11 +271,10 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 }
 
 type UpdateCandidacyArgs struct {
-	Nonce               *hexutil.Uint64   `json:"nonce"`
-	From                common.Address    `json:"from"`
-	MaxAmount           *hexutil.Big      `json:"maxAmount"`
-	Description         stake.Description `json:"description"`
-	NewCandidateAddress common.Address    `json:"newCandidateAddress"`
+	Nonce       *hexutil.Uint64   `json:"nonce"`
+	From        common.Address    `json:"from"`
+	MaxAmount   *hexutil.Big      `json:"maxAmount"`
+	Description stake.Description `json:"description"`
 }
 
 func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -283,7 +282,7 @@ func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.Resul
 	if args.MaxAmount != nil {
 		maxAmount = args.MaxAmount.ToInt().String()
 	}
-	tx := stake.NewTxUpdateCandidacy(maxAmount, args.Description, args.NewCandidateAddress)
+	tx := stake.NewTxUpdateCandidacy(maxAmount, args.Description)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -499,10 +498,10 @@ func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalA
 }
 
 type GovernanceRetireProgramProposalArgs struct {
-	Nonce             *hexutil.Uint64 `json:"nonce"`
-	From              common.Address  `json:"from"`
-	Reason            string          `json:"reason"`
-	RetiredBlockHeight *int64         `json:"retiredBlockHeight"`
+	Nonce              *hexutil.Uint64 `json:"nonce"`
+	From               common.Address  `json:"from"`
+	Reason             string          `json:"reason"`
+	RetiredBlockHeight *int64          `json:"retiredBlockHeight"`
 }
 
 func (s *CmtRPCService) ProposeRetireProgram(args GovernanceRetireProgramProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
@@ -517,14 +516,14 @@ func (s *CmtRPCService) ProposeRetireProgram(args GovernanceRetireProgramProposa
 }
 
 type GovernanceUpgradeProgramProposalArgs struct {
-	Nonce             *hexutil.Uint64 `json:"nonce"`
-	From              common.Address  `json:"from"`
-	Name              string          `json:"name"`
-	Version           string          `json:"version"`
-	FileUrl           string          `json:"fileUrl"`
-	Md5               string          `json:"md5"`
-	Reason            string          `json:"reason"`
-	UpgradeBlockHeight *int64         `json:"upgradeBlockHeight"`
+	Nonce              *hexutil.Uint64 `json:"nonce"`
+	From               common.Address  `json:"from"`
+	Name               string          `json:"name"`
+	Version            string          `json:"version"`
+	FileUrl            string          `json:"fileUrl"`
+	Md5                string          `json:"md5"`
+	Reason             string          `json:"reason"`
+	UpgradeBlockHeight *int64          `json:"upgradeBlockHeight"`
 }
 
 func (s *CmtRPCService) ProposeUpgradeProgram(args GovernanceUpgradeProgramProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {

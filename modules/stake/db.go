@@ -650,3 +650,80 @@ func GetCandidateDailyStakeMaxValue(candidateId int64, startBlockHeight int64) (
 	res, _ = sdk.NewIntFromString(maxAmount)
 	return
 }
+
+func saveCandidateAccountUpdateRequest(req *CandidateAccountUpdateRequest) int64 {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("insert into candidate_account_update_requests(candidate_id, from_address, to_address, created_block_height, accepted_block_height, state) values(?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	result, err := stmt.Exec(
+		req.CandidateId,
+		req.FromAddress.String(),
+		req.ToAddress.String(),
+		req.CreatedBlockHeight,
+		req.AcceptedBlockHeight,
+		req.State,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	lastInsertId, _ := result.LastInsertId()
+	return lastInsertId
+}
+
+func getCandidateAccountUpdateRequest(id int64) *CandidateAccountUpdateRequest {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("select candidate_id, from_address, to_address, created_block_height, accepted_block_height, state from candidate_account_update_requests where id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var candidateId, createdBlockHeight, acceptedBlockHeight int64
+	var fromAddress, toAddress, state string
+	err = stmt.QueryRow(id).Scan(&candidateId, &fromAddress, &toAddress, &createdBlockHeight, &acceptedBlockHeight, &state)
+	if err != nil {
+		//panic(err)
+		return nil
+	}
+
+	res := &CandidateAccountUpdateRequest{
+		Id:                  id,
+		CandidateId:         candidateId,
+		FromAddress:         common.HexToAddress(fromAddress),
+		ToAddress:           common.HexToAddress(toAddress),
+		CreatedBlockHeight:  createdBlockHeight,
+		AcceptedBlockHeight: acceptedBlockHeight,
+		State:               state,
+	}
+
+	return res
+}
+
+func updateCandidateAccountUpdateRequest(req *CandidateAccountUpdateRequest) {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("update candidate_account_update_requests set accepted_block_height = ?, state = ? where id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(
+		req.AcceptedBlockHeight,
+		req.State,
+		req.Id,
+	)
+	if err != nil {
+		panic(err)
+	}
+}

@@ -505,3 +505,18 @@ type CubePubKey struct {
 	CubeBatch string `json:"cube_batch"`
 	PubKey    string `json:"pub_key"`
 }
+
+type CandidateAccountUpdateRequest struct {
+	Id                  int64          `json:"id"`
+	CandidateId         int64          `json:"candidate_id"`
+	FromAddress         common.Address `json:"from_address"`
+	ToAddress           common.Address `json:"to_address"`
+	CreatedBlockHeight  int64          `json:"created_block_height"`
+	AcceptedBlockHeight int64          `json:"accepted_block_height"`
+	State               string         `json:"state"`
+}
+
+func (c *CandidateAccountUpdateRequest) Hash() []byte {
+	// todo participate the hash calculation
+	return nil
+}

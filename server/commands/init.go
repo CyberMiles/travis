@@ -178,6 +178,7 @@ func initTravisDb() {
 		sqlStmt := `
 	create table candidates(id integer not null primary key autoincrement, address text not null, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, num_of_delegators integer not null default 0, created_at text not null default '');
 	create unique index idx_candidates_pub_key on candidates(pub_key);
+	create unique index idx_candidates_address on candidates(address);
 	create index idx_candidates_hash on candidates(hash);
 	create table delegations(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', pending_withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  voting_power integer not null default 0, state text not null default 'Y', block_height integer not null, average_staking_date integer not null default 0, created_at text not null);
 	create unique index idx_delegations_delegator_address_candidate_id on delegations(delegator_address, candidate_id);
@@ -191,6 +192,8 @@ func initTravisDb() {
  	create index idx_unstake_requests_delegator_address on unstake_requests(delegator_address);
  	create table candidate_daily_stakes(id integer not null primary key autoincrement, candidate_id integer not null, amount text not null default '0', block_height integer not null);
 	create index idx_candidate_daily_stakes_candidate_id on candidate_daily_stakes(candidate_id);
+	create table candidate_account_update_requests(id integer primary key autoincrement, candidate_id integer not null, from_address text not null, to_address text not null, created_block_height integer not null, accepted_block_height integer not null, state text not null);
+	create index idx_candidate_account_update_requests_to_address on candidate_account_update_requests(to_address);
 
  	create table governance_proposal(id text not null primary key, type text not null, proposer text not null, block_height integer not null, expire_timestamp integer not null, expire_block_height integer not null, hash text not null default '', result text not null default '', result_msg text not null default '', result_block_height integer not null default 0);
 	create index idx_governance_proposal_hash on governance_proposal(hash);
