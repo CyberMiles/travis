@@ -230,7 +230,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 				continue
 			}
 
-			stake.SlashByzantineValidator(pk)
+			stake.SlashByzantineValidator(pk, app.blockTime, app.WorkingHeight())
 		}
 		app.ByzantineValidators = app.ByzantineValidators[:0]
 	}
@@ -242,7 +242,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 			continue
 		}
 
-		stake.SlashAbsentValidator(pk, v)
+		stake.SlashAbsentValidator(pk, v, app.blockTime, app.WorkingHeight())
 	}
 
 	var backups stake.Validators
@@ -255,7 +255,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	// calculate the validator set difference
 	if calVPCheck(app.WorkingHeight()) {
-		diff, err := stake.UpdateValidatorSet()
+		diff, err := stake.UpdateValidatorSet(app.WorkingHeight())
 		if err != nil {
 			panic(err)
 		}
@@ -275,7 +275,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	// record candidates stakes daily
 	if calStakeCheck(app.WorkingHeight()) {
 		// run once a day
-		stake.RecordCandidateDailyStakes()
+		stake.RecordCandidateDailyStakes(app.WorkingHeight())
 	}
 
 	// Accumulates the average staking date of all delegations
@@ -305,7 +305,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		var pk crypto.PubKeyEd25519
 		copy(pk[:], app.proposer.PubKey.Data)
 		pubKey := ttypes.PubKey{pk}
-		stake.SlashBadProposer(pubKey)
+		stake.SlashBadProposer(pubKey, app.blockTime, app.WorkingHeight())
 	} else {
 		if app.deliverSqlTx != nil {
 			// Commit transaction

@@ -65,21 +65,17 @@ type simpleDelegator struct {
 }
 
 func (d simpleDelegator) distributeAward(v *simpleValidator, award sdk.Int) {
-	now := utils.GetNow()
-
 	delegation := GetDelegation(d.address, v.pk)
 	if delegation == nil {
 		return
 	}
 
 	delegation.AddAwardAmount(award)
-	delegation.UpdatedAt = now
 	UpdateDelegation(delegation)
 
 	// accumulate shares of the validator
 	val := GetCandidateByAddress(v.ownerAddress)
 	val.AddShares(award)
-	val.UpdatedAt = now
 	updateCandidate(val)
 }
 

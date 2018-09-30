@@ -5,19 +5,17 @@ import (
 	"strings"
 
 	"database/sql"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/CyberMiles/travis/sdk/dbm"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var (
 	deliverSqlTx *sql.Tx
 )
 
-
 func SetDeliverSqlTx(tx *sql.Tx) {
 	deliverSqlTx = tx
 }
-
 
 func ResetDeliverSqlTx() {
 	deliverSqlTx = nil
@@ -31,15 +29,14 @@ func getDb() *sql.DB {
 	return db
 }
 
-
 type SqlTxWrapper struct {
-	tx *sql.Tx
+	tx        *sql.Tx
 	withBlock bool
 }
 
-func getSqlTxWrapper() *SqlTxWrapper{
+func getSqlTxWrapper() *SqlTxWrapper {
 	var wrapper = &SqlTxWrapper{
-		tx: deliverSqlTx,
+		tx:        deliverSqlTx,
 		withBlock: true,
 	}
 	if wrapper.tx == nil {
@@ -74,14 +71,13 @@ func SaveProposal(pp *Proposal) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-
-	stmt, err := txWrapper.tx.Prepare("insert into governance_proposal(id, type, proposer, block_height, expire_timestamp, expire_block_height, hash, created_at) values(?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into governance_proposal(id, type, proposer, block_height, expire_timestamp, expire_block_height, hash) values(?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(pp.Id, pp.Type, pp.Proposer.String(), pp.BlockHeight, pp.ExpireTimestamp, pp.ExpireBlockHeight, common.Bytes2Hex(pp.Hash()), pp.CreatedAt)
+	_, err = stmt.Exec(pp.Id, pp.Type, pp.Proposer.String(), pp.BlockHeight, pp.ExpireTimestamp, pp.ExpireBlockHeight, common.Bytes2Hex(pp.Hash()))
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -155,15 +151,15 @@ func GetProposalById(pid string) *Proposal {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("select type, proposer, block_height, expire_timestamp, expire_block_height, hash, created_at, result, result_msg, result_block_height, result_at from governance_proposal where id = ?")
+	stmt, err := txWrapper.tx.Prepare("select type, proposer, block_height, expire_timestamp, expire_block_height, hash, result, result_msg, result_block_height from governance_proposal where id = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var ptype, proposer, createdAt, result, resultMsg, resultAt, hash string
+	var ptype, proposer, result, resultMsg, hash string
 	var blockHeight, expireTimestamp, expireBlockHeight, resultBlockHeight int64
-	err = stmt.QueryRow(pid).Scan(&ptype, &proposer, &blockHeight, &expireTimestamp, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt)
+	err = stmt.QueryRow(pid).Scan(&ptype, &proposer, &blockHeight, &expireTimestamp, &expireBlockHeight, &hash, &result, &resultMsg, &resultBlockHeight)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -175,7 +171,7 @@ func GetProposalById(pid string) *Proposal {
 
 	switch ptype {
 	case TRANSFER_FUND_PROPOSAL:
-		var fromAddr, toAddr, amount, reason string 
+		var fromAddr, toAddr, amount, reason string
 		stmt1, err := txWrapper.tx.Prepare("select from_address, to_address, amount, reason from governance_transfer_fund_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
@@ -199,14 +195,12 @@ func GetProposalById(pid string) *Proposal {
 			blockHeight,
 			expireTimestamp,
 			expireBlockHeight,
-			createdAt,
 			result,
 			resultMsg,
 			resultBlockHeight,
-			resultAt,
 			map[string]interface{}{
-				"from": &fr,
-				"to": &to,
+				"from":   &fr,
+				"to":     &to,
 				"amount": amount,
 				"reason": reason,
 			},
@@ -233,14 +227,12 @@ func GetProposalById(pid string) *Proposal {
 			blockHeight,
 			expireTimestamp,
 			expireBlockHeight,
-			createdAt,
 			result,
 			resultMsg,
 			resultBlockHeight,
-			resultAt,
 			map[string]interface{}{
-				"name": name,
-				"value": value,
+				"name":   name,
+				"value":  value,
 				"reason": reason,
 			},
 		}
@@ -259,25 +251,23 @@ func GetProposalById(pid string) *Proposal {
 			panic(err)
 		}
 
-		return &Proposal {
+		return &Proposal{
 			pid,
 			ptype,
 			&prp,
 			blockHeight,
 			expireTimestamp,
 			expireBlockHeight,
-			createdAt,
 			result,
 			resultMsg,
 			resultBlockHeight,
-			resultAt,
 			map[string]interface{}{
-				"name": name,
+				"name":    name,
 				"version": version,
 				"fileurl": fileurl,
-				"md5": md5,
-				"reason": reason,
-				"status": status,
+				"md5":     md5,
+				"reason":  reason,
+				"status":  status,
 			},
 		}
 	case RETIRE_PROGRAM_PROPOSAL:
@@ -295,21 +285,19 @@ func GetProposalById(pid string) *Proposal {
 			panic(err)
 		}
 
-		return &Proposal {
+		return &Proposal{
 			pid,
 			ptype,
 			&prp,
 			blockHeight,
 			expireTimestamp,
 			expireBlockHeight,
-			createdAt,
 			result,
 			resultMsg,
 			resultBlockHeight,
-			resultAt,
 			map[string]interface{}{
 				"retired_version": retiredVersion,
-				"reason": reason,
+				"reason":          reason,
 			},
 		}
 	case UPGRADE_PROGRAM_PROPOSAL:
@@ -334,11 +322,9 @@ func GetProposalById(pid string) *Proposal {
 			blockHeight,
 			expireTimestamp,
 			expireBlockHeight,
-			createdAt,
 			result,
 			resultMsg,
 			resultBlockHeight,
-			resultAt,
 			map[string]interface{}{
 				"retired_version": retiredVersion,
 				"name": name,
@@ -353,7 +339,7 @@ func GetProposalById(pid string) *Proposal {
 	return nil
 }
 
-func UpdateProposalResult(pid, result, msg string, blockHeight int64, resultAt string) {
+func UpdateProposalResult(pid, result, msg string, blockHeight int64) {
 	p := GetProposalById(pid)
 	if p == nil {
 		return
@@ -362,7 +348,7 @@ func UpdateProposalResult(pid, result, msg string, blockHeight int64, resultAt s
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("update governance_proposal set result = ?, result_msg = ?, result_block_height = ?, result_at = ?, hash = ? where id = ?")
+	stmt, err := txWrapper.tx.Prepare("update governance_proposal set result = ?, result_msg = ?, result_block_height = ?, hash = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -371,9 +357,8 @@ func UpdateProposalResult(pid, result, msg string, blockHeight int64, resultAt s
 	p.Result = result
 	p.ResultMsg = msg
 	p.ResultBlockHeight = blockHeight
-	p.ResultAt = resultAt
 
-	_, err = stmt.Exec(result, msg, blockHeight, resultAt, common.Bytes2Hex(p.Hash()), pid)
+	_, err = stmt.Exec(result, msg, blockHeight, common.Bytes2Hex(p.Hash()), pid)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -422,8 +407,8 @@ func QueryProposals() (proposals []*Proposal) {
 	return
 }
 
-func getProposals(tx *sql.Tx) (proposals []*Proposal){
-	rows, err := tx.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire_timestamp, p.expire_block_height, p.hash, p.created_at, p.result, p.result_msg, p.result_block_height, p.result_at,
+func getProposals(tx *sql.Tx) (proposals []*Proposal) {
+	rows, err := tx.Query(`select p.id, p.type, p.proposer, p.block_height, p.expire_timestamp, p.expire_block_height, p.hash, p.result, p.result_msg, p.result_block_height,
 		case
 		when p.type = 'transfer_fund'
 		then (select printf('%s-+-%s-+-%s-+-%s', from_address, to_address, amount, reason) from governance_transfer_fund_detail where proposal_id = p.id) 
@@ -444,10 +429,10 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 	defer rows.Close()
 
 	for rows.Next() {
-		var id, ptype, proposer, createdAt, result, resultMsg, resultAt, hash, detail string
+		var id, ptype, proposer, result, resultMsg, hash, detail string
 		var blockHeight, expireTimestamp, expireBlockHeight, resultBlockHeight int64
 
-		err = rows.Scan(&id, &ptype, &proposer, &blockHeight, &expireTimestamp, &expireBlockHeight, &hash, &createdAt, &result, &resultMsg, &resultBlockHeight, &resultAt, &detail)
+		err = rows.Scan(&id, &ptype, &proposer, &blockHeight, &expireTimestamp, &expireBlockHeight, &hash, &result, &resultMsg, &resultBlockHeight, &detail)
 		if err != nil {
 			panic(err)
 		}
@@ -461,11 +446,9 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 			blockHeight,
 			expireTimestamp,
 			expireBlockHeight,
-			createdAt,
 			result,
 			resultMsg,
 			resultBlockHeight,
-			resultAt,
 			nil,
 		}
 
@@ -482,9 +465,9 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 			fr := common.HexToAddress(fromAddr)
 			to := common.HexToAddress(toAddr)
 
-			pp.Detail = map[string]interface{} {
-				"from": &fr,
-				"to": &to,
+			pp.Detail = map[string]interface{}{
+				"from":   &fr,
+				"to":     &to,
 				"amount": d[2],
 				"reason": d[3],
 			}
@@ -492,30 +475,30 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal){
 			if len(d) != 3 {
 				continue
 			}
-			pp.Detail = map[string]interface{} {
-				"name": d[0],
-				"value": d[1],
+			pp.Detail = map[string]interface{}{
+				"name":   d[0],
+				"value":  d[1],
 				"reason": d[2],
 			}
 		case DEPLOY_LIBENI_PROPOSAL:
 			if len(d) != 6 {
 				continue
 			}
-			pp.Detail = map[string]interface{} {
-				"name": d[0],
+			pp.Detail = map[string]interface{}{
+				"name":    d[0],
 				"version": d[1],
 				"fileurl": d[2],
-				"md5": d[3],
-				"reason": d[4],
-				"status": d[5],
+				"md5":     d[3],
+				"reason":  d[4],
+				"status":  d[5],
 			}
 		case RETIRE_PROGRAM_PROPOSAL:
 			if len(d) != 2 {
 				continue
 			}
-			pp.Detail = map[string]interface{} {
+			pp.Detail = map[string]interface{}{
 				"retired_version": d[0],
-				"reason": d[1],
+				"reason":          d[1],
 			}
 		case UPGRADE_PROGRAM_PROPOSAL:
 			if len(d) != 6 {
@@ -590,9 +573,9 @@ func GetPendingProposals() (proposals []*Proposal) {
 		}
 
 		pp := &Proposal{
-			Id: id,
-			Type: ptype,
-			ExpireTimestamp: expireTimestamp,
+			Id:                id,
+			Type:              ptype,
+			ExpireTimestamp:   expireTimestamp,
 			ExpireBlockHeight: expireBlockHeight,
 		}
 
@@ -675,9 +658,9 @@ func GetUpgradingProposal(version string) *Proposal {
 		}
 
 		pp := &Proposal{
-			Id: id,
-			Type: ptype,
-			ExpireTimestamp: expireTimestamp,
+			Id:                id,
+			Type:              ptype,
+			ExpireTimestamp:   expireTimestamp,
 			ExpireBlockHeight: expireBlockHeight,
 		}
 
@@ -691,18 +674,17 @@ func GetUpgradingProposal(version string) *Proposal {
 	return nil
 }
 
-
 func SaveVote(vote *Vote) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into governance_vote(proposal_id, voter, block_height, answer, hash, created_at) values(?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into governance_vote(proposal_id, voter, block_height, answer, hash) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(vote.ProposalId, vote.Voter.String(), vote.BlockHeight, vote.Answer, common.Bytes2Hex(vote.Hash()), vote.CreatedAt)
+	_, err = stmt.Exec(vote.ProposalId, vote.Voter.String(), vote.BlockHeight, vote.Answer, common.Bytes2Hex(vote.Hash()))
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -730,15 +712,15 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("select answer, block_height, hash, created_at from governance_vote where proposal_id = ? and voter = ?")
+	stmt, err := txWrapper.tx.Prepare("select answer, block_height, hash from governance_vote where proposal_id = ? and voter = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var answer, createdAt, hash string
+	var answer, hash string
 	var blockHeight int64
-	err = stmt.QueryRow(pid, voter).Scan(&answer, &blockHeight, &hash, &createdAt)
+	err = stmt.QueryRow(pid, voter).Scan(&answer, &blockHeight, &hash)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -746,12 +728,11 @@ func GetVoteByPidAndVoter(pid string, voter string) *Vote {
 		panic(err)
 	}
 
-	return &Vote {
+	return &Vote{
 		pid,
 		common.HexToAddress(voter),
 		blockHeight,
 		answer,
-		createdAt,
 	}
 }
 
@@ -759,7 +740,7 @@ func GetVotesByPid(pid string) (votes []*Vote) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("select voter, answer, block_height, hash, created_at from governance_vote where proposal_id = ?")
+	stmt, err := txWrapper.tx.Prepare("select voter, answer, block_height, hash from governance_vote where proposal_id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -772,19 +753,18 @@ func GetVotesByPid(pid string) (votes []*Vote) {
 	}
 
 	for rows.Next() {
-		var voter, answer, createdAt, hash string
+		var voter, answer, hash string
 		var blockHeight int64
-		err = rows.Scan(&voter, &answer, &blockHeight, &hash, &createdAt)
+		err = rows.Scan(&voter, &answer, &blockHeight, &hash)
 		if err != nil {
 			panic(err)
 		}
 
-		vote := &Vote {
+		vote := &Vote{
 			pid,
 			common.HexToAddress(voter),
 			blockHeight,
 			answer,
-			createdAt,
 		}
 
 		votes = append(votes, vote)

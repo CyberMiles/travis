@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"github.com/CyberMiles/travis/utils"
 	"math/rand"
 	"sort"
 
@@ -41,6 +42,10 @@ func (c Context) BlockHeight() int64 {
 
 func (c Context) BlockTime() int64 {
 	return c.time
+}
+
+func (c Context) FormatBlockTime() string {
+	return utils.FormatUnixTime(c.time)
 }
 
 /*func (c Context) WithSigners(signers ...common.Address) Context {
