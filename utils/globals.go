@@ -23,6 +23,9 @@ const (
 	PrivateChain = 1234
 )
 
+const (
+	MonitorRpcPort = "26650"
+)
 
 type StateChangeObject struct {
 	From   common.Address
