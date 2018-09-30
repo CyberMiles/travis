@@ -147,26 +147,23 @@ func NewRetireProgramProposal(id string, proposer *common.Address, blockHeight i
 }
 
 func NewUpgradeProgramProposal(id string, proposer *common.Address, blockHeight int64, retiredVersion, name, version, fileurl, md5, reason string, expireBlockHeight int64) *Proposal {
-	now := utils.GetNow()
-	return &Proposal {
+	return &Proposal{
 		id,
 		UPGRADE_PROGRAM_PROPOSAL,
 		proposer,
 		blockHeight,
 		0,
 		expireBlockHeight,
-		now,
 		"",
 		"",
 		0,
-		"",
 		map[string]interface{}{
 			"retired_version": retiredVersion,
-			"name": name,
-			"version": version,
-			"fileurl": fileurl,
-			"md5": md5,
-			"reason": reason,
+			"name":            name,
+			"version":         version,
+			"fileurl":         fileurl,
+			"md5":             md5,
+			"reason":          reason,
 		},
 	}
 }
