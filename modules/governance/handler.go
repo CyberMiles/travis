@@ -320,6 +320,11 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		if proposal == nil {
 			return sdk.NewCheck(0, ""), ErrInvalidParameter()
 		}
+
+		if proposal.ExpireBlockHeight > 0 && ctx.BlockHeight() >= proposal.ExpireBlockHeight - 2 {
+			return sdk.NewCheck(0, ""), ErrExpirationTooClose()
+		}
+
 		if proposal.ResultBlockHeight != 0 {
 			if proposal.Result == "Approved" {
 				return sdk.NewCheck(0, ""), ErrApprovedProposal()
@@ -805,7 +810,7 @@ func DownloadLibEni(p *Proposal) {
 			if r, ok := cancelDownload[p.Id]; ok {
 				delete(cancelDownload, p.Id)
 				if r {
-					UpdateDeployLibEniStatus(p.Id, "failed, but proposal has been approved")
+					UpdateDeployLibEniStatus(p.Id, "collapsed") // failed, but proposal has been approved
 				} else {
 					UpdateDeployLibEniStatus(p.Id, "failed")
 				}

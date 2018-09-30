@@ -26,6 +26,7 @@ var (
 	errInvalidNewLib            = fmt.Errorf("Invalid ENI lib name or version")
 	errOngoingLibFound          = fmt.Errorf("One or more onging proposal with the same lib name")
 	errOngoingRetiringFound     = fmt.Errorf("Found unresolved or approved retiring proposal")
+	errExpirationTooClose       = fmt.Errorf("The proposal's expiration block height is too close")
 )
 
 func ErrMissingSignature() error {
@@ -98,4 +99,8 @@ func ErrOngoingLibFound() error {
 
 func ErrOngoingRetiringFound() error {
 	return errors.WithCode(errOngoingRetiringFound, errors.CodeTypeBaseInvalidInput)
+}
+
+func ErrExpirationTooClose() error {
+	return errors.WithCode(errExpirationTooClose, errors.CodeTypeBaseInvalidInput)
 }

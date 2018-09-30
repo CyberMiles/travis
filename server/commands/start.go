@@ -81,14 +81,13 @@ func startCmd() func(cmd *cobra.Command, args []string) error {
 func start(rootDir string, storeApp *app.StoreApp) error {
 	var srvs *Services
 	go func() {
-		fmt.Println("<><>1")
 		// Listen for the stop channel
 		<- server.StopFlag
 		if srvs != nil {
 			if srvs.tmNode != nil {
 				// make sure tendermint is not in commit step
 				for srvs.tmNode.ConsensusState().Step == cstypes.RoundStepCommit {
-					time.Sleep(time.Millisecond * 10)
+					time.Sleep(time.Second * 1)
 				}
 				srvs.tmNode.Stop()
 			}
@@ -109,7 +108,7 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 	cmn.TrapSignal(func() {
 		// make sure tendermint is not in commit step
 		for srvs.tmNode.ConsensusState().Step == cstypes.RoundStepCommit {
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Second * 1)
 		}
 		srvs.tmNode.Stop()
 		srvs.emNode.Stop()
