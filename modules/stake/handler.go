@@ -351,7 +351,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 		return ErrBadAmount()
 	}
 
-	d := GetDelegation(c.sender, candidate.PubKey)
+	d := GetDelegation(c.sender, candidate.Id)
 	if d == nil {
 		return ErrDelegationNotExists()
 	}
@@ -374,7 +374,7 @@ func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 		return ErrBadValidatorAddr()
 	}
 
-	d := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
+	d := GetDelegation(tx.DelegatorAddress, candidate.Id)
 	if d == nil {
 		return ErrDelegationNotExists()
 	}
@@ -443,7 +443,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	d.delegate(txDelegate)
 
 	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
-	cds := &CandidateDailyStake{PubKey: candidate.PubKey, Amount: candidate.Shares, BlockHeight: d.ctx.BlockHeight()}
+	cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: d.ctx.BlockHeight()}
 	SaveCandidateDailyStake(cds)
 	candidate.PendingVotingPower = candidate.CalcVotingPower(d.ctx.BlockHeight())
 	updateCandidate(candidate)
@@ -481,7 +481,7 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.Genesi
 	d.delegate(txDelegate)
 
 	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
-	cds := &CandidateDailyStake{PubKey: candidate.PubKey, Amount: candidate.Shares, BlockHeight: d.ctx.BlockHeight()}
+	cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: d.ctx.BlockHeight()}
 	SaveCandidateDailyStake(cds)
 	candidate.PendingVotingPower = candidate.CalcVotingPower(d.ctx.BlockHeight())
 	updateCandidate(candidate)
@@ -511,7 +511,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 				candidate.AddShares(rechargeAmount)
 
 				// update delegation
-				delegation := GetDelegation(d.sender, candidate.PubKey)
+				delegation := GetDelegation(d.sender, candidate.Id)
 				delegation.AddDelegateAmount(rechargeAmount)
 				UpdateDelegation(delegation)
 			}
@@ -539,7 +539,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		candidate.OwnerAddress = tx.NewCandidateAddress.String()
 
 		// update the candidate's self-delegation
-		delegation := GetDelegation(ownerAddress, candidate.PubKey)
+		delegation := GetDelegation(ownerAddress, candidate.Id)
 		delegation.DelegatorAddress = tx.NewCandidateAddress
 		UpdateDelegation(delegation)
 
@@ -561,7 +561,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 
 	// All staked tokens will be distributed back to delegator addresses.
 	// Self-staked CMTs will be refunded back to the validator address.
-	delegations := GetDelegationsByPubKey(candidate.PubKey, "Y")
+	delegations := GetDelegationsByCandidate(candidate.Id, "Y")
 	for _, delegation := range delegations {
 		txWithdraw := TxWithdraw{ValidatorAddress: validatorAddress, Amount: delegation.Shares().String()}
 		d.doWithdraw(delegation, delegation.Shares(), candidate, txWithdraw)
@@ -613,11 +613,12 @@ func (d deliver) delegate(tx TxDelegate) error {
 
 	// create or update delegation
 	now := d.ctx.FormatBlockTime()
-	delegation := GetDelegation(d.sender, candidate.PubKey)
+	delegation := GetDelegation(d.sender, candidate.Id)
 	if delegation == nil {
 		delegation = &Delegation{
 			DelegatorAddress:      d.sender,
 			PubKey:                candidate.PubKey,
+			CandidateId:           candidate.Id,
 			DelegateAmount:        tx.Amount,
 			AwardAmount:           "0",
 			WithdrawAmount:        "0",
@@ -644,7 +645,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 	candidate.AddShares(delegateAmount)
 	updateCandidate(candidate)
 
-	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, delegateAmount, "delegate", d.ctx.BlockHeight()}
+	delegateHistory := &DelegateHistory{DelegatorAddress: d.sender, CandidateId: candidate.Id, Amount: delegateAmount, OpCode: "delegate", BlockHeight: d.ctx.BlockHeight()}
 	saveDelegateHistory(delegateHistory)
 	return nil
 }
@@ -661,7 +662,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 		return ErrInvalidWithdrawalAmount()
 	}
 
-	delegation := GetDelegation(d.sender, candidate.PubKey)
+	delegation := GetDelegation(d.sender, candidate.Id)
 
 	// candidates can't withdraw the reserved reservation fund
 	if d.sender.String() == candidate.OwnerAddress {
@@ -677,7 +678,7 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	candidate.AddShares(amount.Neg())
 	updateCandidate(candidate)
 
-	delegateHistory := &DelegateHistory{0, d.sender, candidate.PubKey, amount, "withdraw", d.ctx.BlockHeight()}
+	delegateHistory := &DelegateHistory{DelegatorAddress: d.sender, CandidateId: candidate.Id, Amount: amount, OpCode: "withdraw", BlockHeight: d.ctx.BlockHeight()}
 	saveDelegateHistory(delegateHistory)
 
 	return nil
@@ -702,8 +703,8 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 	performedBlockHeight := d.ctx.BlockHeight() + int64(utils.GetParams().UnstakeWaitingPeriod)
 	unstakeRequest := &UnstakeRequest{
 		DelegatorAddress:     delegation.DelegatorAddress,
-		PubKey:               candidate.PubKey,
 		InitiatedBlockHeight: d.ctx.BlockHeight(),
+		CandidateId:          candidate.Id,
 		PerformedBlockHeight: performedBlockHeight,
 		Amount:               amount.String(),
 		State:                "PENDING",
@@ -716,7 +717,7 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 
 func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	candidate := GetCandidateByAddress(d.sender)
-	delegation := GetDelegation(tx.DelegatorAddress, candidate.PubKey)
+	delegation := GetDelegation(tx.DelegatorAddress, candidate.Id)
 	if delegation == nil {
 		return ErrDelegationNotExists()
 	}
@@ -737,12 +738,12 @@ func HandlePendingUnstakeRequests(height int64) error {
 	reqs := GetUnstakeRequests(height)
 	for _, req := range reqs {
 		amount, _ := sdk.NewIntFromString(req.Amount)
-		candidate := GetCandidateByPubKey(req.PubKey)
+		candidate := GetCandidateById(req.CandidateId)
 		if candidate == nil {
 			continue
 		}
 
-		delegation := GetDelegation(req.DelegatorAddress, candidate.PubKey)
+		delegation := GetDelegation(req.DelegatorAddress, candidate.Id)
 		if delegation == nil {
 			continue
 		}
@@ -780,7 +781,7 @@ func checkBalance(state *ethstat.StateDB, addr common.Address, amount sdk.Int) e
 func getRechargeAmount(maxAmount sdk.Int, candidate *Candidate, ssr sdk.Rat) (res sdk.Int) {
 	diff := maxAmount.Sub(candidate.ParseMaxShares())
 	tmp := diff.MulRat(ssr)
-	d := GetDelegation(common.HexToAddress(candidate.OwnerAddress), candidate.PubKey)
+	d := GetDelegation(common.HexToAddress(candidate.OwnerAddress), candidate.Id)
 	res = tmp.Sub(d.Shares())
 	return
 }
@@ -788,13 +789,13 @@ func getRechargeAmount(maxAmount sdk.Int, candidate *Candidate, ssr sdk.Rat) (re
 func RecordCandidateDailyStakes(blockHeight int64) error {
 	candidates := GetCandidates()
 	for _, candidate := range candidates {
-		cds := &CandidateDailyStake{PubKey: candidate.PubKey, Amount: candidate.Shares, BlockHeight: blockHeight}
+		cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: blockHeight}
 		SaveCandidateDailyStake(cds)
-
-		// remove expired records
-		startBlockHeight := blockHeight - utils.ConvertDaysToHeight(90)
-		RemoveCandidateDailyStakes(candidate.PubKey, startBlockHeight)
 	}
+
+	// remove expired records
+	startBlockHeight := blockHeight - utils.ConvertDaysToHeight(90)
+	RemoveExpiredCandidateDailyStakes(startBlockHeight)
 	return nil
 }
 

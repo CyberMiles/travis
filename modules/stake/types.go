@@ -88,7 +88,7 @@ func (c *Candidate) Hash() []byte {
 func (c *Candidate) CalcVotingPower(blockHeight int64) (res int64) {
 	res = 0
 	minStakingAmount := sdk.NewInt(utils.GetParams().MinStakingAmount).Mul(sdk.E18Int)
-	delegations := GetDelegationsByPubKey(c.PubKey, "Y")
+	delegations := GetDelegationsByCandidate(c.Id, "Y")
 	sharesPercentage := c.computeTotalSharesPercentage()
 
 	for _, d := range delegations {
@@ -177,10 +177,9 @@ func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
 	for i, c := range cs {
 		// truncate the power
 		if i >= int(utils.GetParams().MaxVals) {
-			c.VotingPower = 0
-
 			if i >= (int(utils.GetParams().MaxVals + utils.GetParams().BackupVals)) {
 				c.State = "Candidate"
+				c.VotingPower = 0
 			} else {
 				c.State = "Backup Validator"
 			}
@@ -211,6 +210,9 @@ func (cs Candidates) Validators() Validators {
 	validators := make(Validators, len(cs))
 	for i, c := range cs {
 		if c.VotingPower == 0 { //exit as soon as the first Voting power set to zero is found
+			return validators[:i]
+		}
+		if i >= int(utils.GetParams().MaxVals) {
 			return validators[:i]
 		}
 		validators[i] = c.Validator()
@@ -330,6 +332,7 @@ type Delegation struct {
 	State                 string         `json:"state"`
 	BlockHeight           int64          `json:"block_height"`
 	AverageStakingDate    int64          `json:"average_staking_date"`
+	CandidateId           int64          `json:"candidate_id"`
 }
 
 func (d *Delegation) Shares() (res sdk.Int) {
@@ -392,11 +395,11 @@ func (d *Delegation) ResetVotingPower() {
 }
 
 func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64) int64 {
-	candidate := GetCandidateByPubKey(d.PubKey)
+	candidate := GetCandidateById(d.CandidateId)
 	tenDaysAgoHeight := blockHeight - utils.ConvertDaysToHeight(10)
 	ninetyDaysAgoHeight := blockHeight - utils.ConvertDaysToHeight(90)
-	s1 := GetCandidateDailyStakeMaxValue(d.PubKey, tenDaysAgoHeight)
-	s2 := GetCandidateDailyStakeMaxValue(d.PubKey, ninetyDaysAgoHeight)
+	s1 := GetCandidateDailyStakeMaxValue(candidate.Id, tenDaysAgoHeight)
+	s2 := GetCandidateDailyStakeMaxValue(candidate.Id, ninetyDaysAgoHeight)
 	snum := s1.Div(sdk.E18Int).Int64()
 	sdenom := s2.Div(sdk.E18Int).Int64()
 	s := d.Shares().Div(sdk.E18Int).MulRat(sharesPercentage).Int64()
@@ -456,31 +459,31 @@ func (d *Delegation) ReduceAverageStakingDate(withdrawAmount sdk.Int) {
 type DelegateHistory struct {
 	Id               int64          `json:"id"`
 	DelegatorAddress common.Address `json:"delegator_address"`
-	PubKey           types.PubKey   `json:"pub_key"`
 	Amount           sdk.Int        `json:"amount"`
 	OpCode           string         `json:"op_code"`
 	BlockHeight      int64          `json:"block_height"`
+	CandidateId      int64          `json:"candidate_id"`
 }
 
 type Slash struct {
-	Id          int64        `json:"id"`
-	PubKey      types.PubKey `json:"pub_key"`
-	SlashRatio  sdk.Rat      `json:"slash_ratio"`
-	SlashAmount sdk.Int      `json:"slash_amount"`
-	Reason      string       `json:"reason"`
-	CreatedAt   string       `json:"created_at"`
-	BlockHeight int64        `json:"block_height"`
+	Id          int64   `json:"id"`
+	SlashRatio  sdk.Rat `json:"slash_ratio"`
+	SlashAmount sdk.Int `json:"slash_amount"`
+	Reason      string  `json:"reason"`
+	CreatedAt   string  `json:"created_at"`
+	BlockHeight int64   `json:"block_height"`
+	CandidateId int64   `json:"candidate_id"`
 }
 
 type UnstakeRequest struct {
 	Id                   int64          `json:"id"`
 	DelegatorAddress     common.Address `json:"delegator_address"`
-	PubKey               types.PubKey   `json:"pub_key"`
 	InitiatedBlockHeight int64          `json:"initiated_block_height"`
 	PerformedBlockHeight int64          `json:"performed_block_height"`
 	Amount               string         `json:"amount"`
 	State                string         `json:"state"`
 	CreatedAt            string         `json:"created_at"`
+	CandidateId          int64          `json:"candidate_id"`
 }
 
 func (r *UnstakeRequest) Hash() []byte {
@@ -492,10 +495,10 @@ func (r *UnstakeRequest) Hash() []byte {
 }
 
 type CandidateDailyStake struct {
-	Id          int64        `json:"id"`
-	PubKey      types.PubKey `json:"pub_key"`
-	Amount      string       `json:"amount"`
-	BlockHeight int64        `json:"block_height"`
+	Id          int64  `json:"id"`
+	Amount      string `json:"amount"`
+	BlockHeight int64  `json:"block_height"`
+	CandidateId int64  `json:"candidate_id"`
 }
 
 type CubePubKey struct {
