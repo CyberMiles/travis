@@ -26,9 +26,8 @@ describe("Stake Test", function() {
     amounts = new Amounts(2000000)
   })
 
-  after(function(done) {
+  after(function() {
     Utils.removeFakeValidators()
-    Utils.waitBlocks(done, 1)
   })
 
   before(function() {
@@ -92,11 +91,7 @@ describe("Stake Test", function() {
         before(function(done) {
           let balance = Utils.getBalance(3)
           if (balance.minus(amounts.self) < 0) {
-            let hash = Utils.transfer(
-              web3.cmt.defaultAccount,
-              Globals.Accounts[3],
-              amounts.self
-            )
+            let hash = Utils.transfer(web3.cmt.defaultAccount, Globals.Accounts[3], amounts.self)
             Utils.waitInterval(hash, (err, res) => {
               expect(err).to.be.null
               expect(res).to.be.not.null
@@ -139,7 +134,8 @@ describe("Stake Test", function() {
         })
         it("D is not a validator yet", function() {
           tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-          // expect(tx_result.data.voting_power).to.eq(0)
+          // backup validator has voting power now
+          expect(tx_result.data.voting_power).to.be.above(0)
           expect(tx_result.data.state).to.not.eq("Validator")
         })
       })
@@ -157,9 +153,7 @@ describe("Stake Test", function() {
       Utils.expectTxSuccess(tx_result)
       // check validator's status
       tx_result = web3.cmt.stake.validator.list()
-      tx_result.data.forEach(
-        d => (d.owner_address = d.owner_address.toLowerCase())
-      )
+      tx_result.data.forEach(d => (d.owner_address = d.owner_address.toLowerCase()))
       expect(tx_result.data).to.containSubset([
         { owner_address: Globals.Accounts[3], verified: "Y" }
       ])
@@ -171,9 +165,7 @@ describe("Stake Test", function() {
       tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
       // check validator's information
       logger.debug(tx_result.data)
-      expect(tx_result.data.owner_address.toLowerCase()).to.eq(
-        Globals.Accounts[3]
-      )
+      expect(tx_result.data.owner_address.toLowerCase()).to.eq(Globals.Accounts[3])
       expect(tx_result.data.verified).to.eq("Y")
       expect(tx_result.data.comp_rate).to.eq(compRate)
       expect(tx_result.data.pub_key.value).to.eq(Globals.PubKeys[3])
@@ -199,23 +191,15 @@ describe("Stake Test", function() {
       })
 
       it("CMTs are moved from account B", function() {
-        Utils.delegatorAccept(
-          Globals.Accounts[1],
-          Globals.Accounts[3],
-          amounts.dele1
-        )
+        Utils.delegatorAccept(Globals.Accounts[1], Globals.Accounts[3], amounts.dele1)
         // balance after
         balance_new = Utils.getBalance(1)
-        expect(balance_new.minus(balance_old).toNumber()).to.equal(
-          Number(-amounts.dele1)
-        )
+        expect(balance_new.minus(balance_old).toNumber()).to.equal(Number(-amounts.dele1))
       })
       it("CMTs show up as staked balance for B", function() {
         let delegation_after = Utils.getDelegation(1, 3)
         expect(
-          delegation_after.delegate_amount
-            .minus(delegation_before.delegate_amount)
-            .toNumber()
+          delegation_after.delegate_amount.minus(delegation_before.delegate_amount).toNumber()
         ).to.eq(Number(amounts.dele1))
       })
     })
@@ -227,24 +211,16 @@ describe("Stake Test", function() {
         delegation_before = Utils.getDelegation(2, 3)
       })
       it("CMTs are moved from account C", function(done) {
-        Utils.delegatorAccept(
-          Globals.Accounts[2],
-          Globals.Accounts[3],
-          amounts.dele2
-        )
+        Utils.delegatorAccept(Globals.Accounts[2], Globals.Accounts[3], amounts.dele2)
         // balance after
         balance_new = Utils.getBalance(2)
-        expect(balance_new.minus(balance_old).toNumber()).to.equal(
-          Number(-amounts.dele2)
-        )
+        expect(balance_new.minus(balance_old).toNumber()).to.equal(Number(-amounts.dele2))
         Utils.waitBlocks(done, 1)
       })
       it("CMTs show up as staked balance for C", function() {
         let delegation_after = Utils.getDelegation(2, 3)
         expect(
-          delegation_after.delegate_amount
-            .minus(delegation_before.delegate_amount)
-            .toNumber()
+          delegation_after.delegate_amount.minus(delegation_before.delegate_amount).toNumber()
         ).to.eq(Number(amounts.dele2))
       })
       it("D is now a validator", function() {
@@ -350,10 +326,9 @@ describe("Stake Test", function() {
             .dividedToIntegerBy(1),
           blockAward
             .times(
-              (
-                (Number(dele.voting_power) * dele.comp_rate * v_ratio) /
-                totalVotingPower
-              ).toFixed(12)
+              ((Number(dele.voting_power) * dele.comp_rate * v_ratio) / totalVotingPower).toFixed(
+                12
+              )
             )
             .dividedToIntegerBy(1)
         ]
@@ -428,9 +403,7 @@ describe("Stake Test", function() {
         // balance after
         balance_new = Utils.getBalance(3)
         let gasFee = Utils.gasFee("updateCandidacy")
-        expect(balance_new.minus(balance_old).toNumber()).to.eq(
-          -gasFee.toNumber()
-        )
+        expect(balance_new.minus(balance_old).toNumber()).to.eq(-gasFee.toNumber())
         // check deliver tx tx_result
         // let tag = tx_result.deliver_tx.tags.find(
         //   t => t.key == Globals.GasFeeKey
@@ -476,12 +449,8 @@ describe("Stake Test", function() {
     it("Account D no longer a validator, and genesis validator restored", function() {
       // check validators, no Globals.Accounts[3]
       tx_result = web3.cmt.stake.validator.list()
-      tx_result.data.forEach(
-        d => (d.owner_address = d.owner_address.toLowerCase())
-      )
-      expect(tx_result.data).to.not.containSubset([
-        { owner_address: Globals.Accounts[3] }
-      ])
+      tx_result.data.forEach(d => (d.owner_address = d.owner_address.toLowerCase()))
+      expect(tx_result.data).to.not.containSubset([{ owner_address: Globals.Accounts[3] }])
       // check validators restored
       let vals = tx_result.data.filter(d => d.state == "Validator")
       expect(vals.length).to.eq(Globals.Params.max_vals)
@@ -497,14 +466,7 @@ describe("Stake Test", function() {
       for (i = 1; i < 4; ++i) {
         d = Utils.getDelegation(i, 3)
         expect(d).to.be.not.null
-        expect(
-          d.delegate_amount
-            .plus(d.award_amount)
-            .minus(d.slash_amount)
-            .minus(d.withdraw_amount)
-            .minus(d.pending_withdraw_amount)
-            .toNumber()
-        ).to.eq(0)
+        expect(d.shares.toNumber()).to.eq(0)
       }
     })
   })

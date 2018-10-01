@@ -6,6 +6,8 @@ const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 
 describe("Lity Test", function() {
+  const EXPIRE_BLOCKS = 5
+
   before(function() {
     if (process.platform == "darwin") {
       // skips current and all nested describes
@@ -80,7 +82,7 @@ describe("Lity Test", function() {
         balance_old = web3.cmt.getBalance(web3.cmt.defaultAccount, "latest")
       })
       it("The proposal TX returns an error if bad version format. ", function() {
-        expireBlocks = web3.cmt.blockNumber + 5
+        expireBlocks = web3.cmt.blockNumber + EXPIRE_BLOCKS
         tx_result = web3.cmt.governance.proposeDeployLibEni({
           from: web3.cmt.defaultAccount,
           name: "reverse",
@@ -92,6 +94,7 @@ describe("Lity Test", function() {
         Utils.expectTxFail(tx_result)
       })
       it("The proposal TX returns proposal id. ", function() {
+        expireBlocks = web3.cmt.blockNumber + EXPIRE_BLOCKS
         tx_result = web3.cmt.governance.proposeDeployLibEni({
           from: web3.cmt.defaultAccount,
           name: "reverse",
@@ -107,11 +110,9 @@ describe("Lity Test", function() {
         // balance after
         balance_new = web3.cmt.getBalance(web3.cmt.defaultAccount, "latest")
         let gasFee = Utils.gasFee("proposeDeployLibEni")
-        expect(balance_new.minus(balance_old).toNumber()).to.eq(
-          -gasFee.toNumber()
-        )
+        expect(balance_new.minus(balance_old).toNumber()).to.eq(-gasFee.toNumber())
       })
-      it("Proposal vote passed. ", function() {
+      it("Vote the proposal. ", function(done) {
         if (Globals.TestMode == "cluster") {
           Utils.vote(proposalId, Globals.Accounts[0], "Y")
           Utils.vote(proposalId, Globals.Accounts[1], "Y")
@@ -119,11 +120,15 @@ describe("Lity Test", function() {
         } else {
           Utils.vote(proposalId, web3.cmt.defaultAccount, "Y")
         }
+        Utils.waitBlocks(done, 1)
+      })
+      it("Proposal vote passed. ", function() {
         // check proposal
         let p = Utils.getProposal(proposalId)
         expect(p.Result).to.equal("Approved")
       })
       it("Returns an error if proposes another version of the same lib. ", function() {
+        expireBlocks = web3.cmt.blockNumber + EXPIRE_BLOCKS
         tx_result = web3.cmt.governance.proposeDeployLibEni({
           from: web3.cmt.defaultAccount,
           name: "reverse",
@@ -145,7 +150,7 @@ describe("Lity Test", function() {
     })
     describe("Propose to upgrade reverse. ", function() {
       it("The proposal TX returns an error if version <= 0.9.0. ", function() {
-        expireBlocks = web3.cmt.blockNumber + 5
+        expireBlocks = web3.cmt.blockNumber + EXPIRE_BLOCKS
         tx_result = web3.cmt.governance.proposeDeployLibEni({
           from: web3.cmt.defaultAccount,
           name: "reverse",
@@ -157,6 +162,7 @@ describe("Lity Test", function() {
         Utils.expectTxFail(tx_result)
       })
       it("The proposal TX returns proposal id if version > 0.9.0. ", function() {
+        expireBlocks = web3.cmt.blockNumber + EXPIRE_BLOCKS
         tx_result = web3.cmt.governance.proposeDeployLibEni({
           from: web3.cmt.defaultAccount,
           name: "reverse",
@@ -168,7 +174,7 @@ describe("Lity Test", function() {
         Utils.expectTxSuccess(tx_result)
         proposalId = tx_result.deliver_tx.data
       })
-      it("Proposal vote passed. ", function() {
+      it("Vote the proposal. ", function(done) {
         if (Globals.TestMode == "cluster") {
           Utils.vote(proposalId, Globals.Accounts[0], "Y")
           Utils.vote(proposalId, Globals.Accounts[1], "Y")
@@ -176,6 +182,9 @@ describe("Lity Test", function() {
         } else {
           Utils.vote(proposalId, web3.cmt.defaultAccount, "Y")
         }
+        Utils.waitBlocks(done, 1)
+      })
+      it("Proposal vote passed. ", function() {
         // check proposal
         let p = Utils.getProposal(proposalId)
         expect(p.Result).to.equal("Approved")
