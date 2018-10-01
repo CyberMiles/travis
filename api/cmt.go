@@ -292,6 +292,22 @@ func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.Resul
 	return s.signAndBroadcastTxCommit(txArgs)
 }
 
+type ActivateCandidacyArgs struct {
+	Nonce *hexutil.Uint64 `json:"nonce"`
+	From  common.Address  `json:"from"`
+}
+
+func (s *CmtRPCService) ActivateCandidacy(args ActivateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := stake.NewTxActivateCandidacy()
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.signAndBroadcastTxCommit(txArgs)
+}
+
 type SetCompRateArgs struct {
 	Nonce            *hexutil.Uint64 `json:"nonce"`
 	From             common.Address  `json:"from"`
@@ -310,15 +326,14 @@ func (s *CmtRPCService) SetCompRate(args SetCompRateArgs) (*ctypes.ResultBroadca
 	return s.signAndBroadcastTxCommit(txArgs)
 }
 
-type VerifyCandidacyArgs struct {
-	Nonce            *hexutil.Uint64 `json:"nonce"`
-	From             common.Address  `json:"from"`
-	CandidateAddress common.Address  `json:"candidateAddress"`
-	Verified         bool            `json:"verified"`
+type UpdateCandidacyAccountArgs struct {
+	Nonce               *hexutil.Uint64 `json:"nonce"`
+	From                common.Address  `json:"from"`
+	NewCandidateAddress common.Address  `json:"newCandidateAccount"`
 }
 
-func (s *CmtRPCService) VerifyCandidacy(args VerifyCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := stake.NewTxVerifyCandidacy(args.CandidateAddress, args.Verified)
+func (s *CmtRPCService) UpdateCandidacyAccount(args UpdateCandidacyAccountArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := stake.NewTxUpdateCandidacyAccount(args.NewCandidateAddress)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -328,13 +343,32 @@ func (s *CmtRPCService) VerifyCandidacy(args VerifyCandidacyArgs) (*ctypes.Resul
 	return s.signAndBroadcastTxCommit(txArgs)
 }
 
-type ActivateCandidacyArgs struct {
-	Nonce *hexutil.Uint64 `json:"nonce"`
-	From  common.Address  `json:"from"`
+type AcceptCandidacyAccountUpdateArgs struct {
+	Nonce                  *hexutil.Uint64 `json:"nonce"`
+	From                   common.Address  `json:"from"`
+	AccountUpdateRequestId int64           `json:"accountUpdateRequestId"`
 }
 
-func (s *CmtRPCService) ActivateCandidacy(args ActivateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := stake.NewTxActivateCandidacy()
+func (s *CmtRPCService) AcceptCandidacyAccountUpdate(args AcceptCandidacyAccountUpdateArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := stake.NewTxAcceptCandidacyAccountUpdate(args.AccountUpdateRequestId)
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.signAndBroadcastTxCommit(txArgs)
+}
+
+type VerifyCandidacyArgs struct {
+	Nonce            *hexutil.Uint64 `json:"nonce"`
+	From             common.Address  `json:"from"`
+	CandidateAddress common.Address  `json:"candidateAddress"`
+	Verified         bool            `json:"verified"`
+}
+
+func (s *CmtRPCService) VerifyCandidacy(args VerifyCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := stake.NewTxVerifyCandidacy(args.CandidateAddress, args.Verified)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
