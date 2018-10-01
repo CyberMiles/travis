@@ -30,6 +30,7 @@ var (
 	errCandidateWithdrawalDisallowed      = fmt.Errorf("Candidate can't withdraw the self-staking funds")
 	errInvalidCubeSignature               = fmt.Errorf("Invalid cube signature")
 	errCandidateHasPendingUnstakeRequests = fmt.Errorf("The candidate has some pending withdrawal requests")
+	errBadRequest                         = fmt.Errorf("Bad request")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
@@ -60,10 +61,6 @@ func ErrReachMaxAmount() error {
 	return errors.WithCode(errReachMaxAmount, errors.CodeTypeBaseInvalidOutput)
 }
 
-func ErrVerifiedAlready() error {
-	return errors.WithCode(errCandidateVerifiedAlready, errors.CodeTypeBaseInvalidOutput)
-}
-
 func ErrDelegationNotExists() error {
 	return errors.WithCode(errDelegationNotExists, errors.CodeTypeBaseInvalidOutput)
 }
@@ -86,4 +83,8 @@ func ErrBadCompRate() error {
 
 func ErrCandidateHasPendingUnstakeRequests() error {
 	return errors.WithCode(errCandidateHasPendingUnstakeRequests, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrBadRequest() error {
+	return errors.WithCode(errBadRequest, errors.CodeTypeBaseInvalidOutput)
 }

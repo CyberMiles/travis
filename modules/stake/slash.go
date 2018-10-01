@@ -108,7 +108,7 @@ func slash(pubKey types.PubKey, reason string, slashRatio sdk.Rat, blockTime, bl
 	}
 
 	// Get all of the delegators(includes the validator itself)
-	delegations := GetDelegationsByPubKey(v.PubKey, "Y")
+	delegations := GetDelegationsByCandidate(v.Id, "Y")
 	slashAmount := sdk.ZeroInt
 	for _, d := range delegations {
 		if utils.GetParams().SlashEnabled {
@@ -120,7 +120,7 @@ func slash(pubKey types.PubKey, reason string, slashRatio sdk.Rat, blockTime, bl
 
 	// Save slash history
 	now := utils.FormatUnixTime(blockTime)
-	slash := &Slash{PubKey: pubKey, SlashRatio: slashRatio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: now, BlockHeight: blockHeight}
+	slash := &Slash{CandidateId: v.Id, SlashRatio: slashRatio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: now, BlockHeight: blockHeight}
 	saveSlash(slash)
 
 	return
@@ -148,7 +148,7 @@ func RemoveValidator(pubKey types.PubKey, blockTime, blockHeight int64) (err err
 
 	// Save slash history
 	now := utils.FormatUnixTime(blockTime)
-	slash := &Slash{PubKey: pubKey, SlashRatio: sdk.ZeroRat, SlashAmount: sdk.ZeroInt, Reason: "Absent for up to 12 consecutive blocks", CreatedAt: now, BlockHeight: blockHeight}
+	slash := &Slash{CandidateId: v.Id, SlashRatio: sdk.ZeroRat, SlashAmount: sdk.ZeroInt, Reason: "Absent for up to 12 consecutive blocks", CreatedAt: now, BlockHeight: blockHeight}
 	saveSlash(slash)
 	return
 }

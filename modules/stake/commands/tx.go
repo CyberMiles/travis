@@ -41,22 +41,23 @@ The stake/slot/cancel tx is to cancel all remianing amounts from an unaccepted s
 
 // nolint
 const (
-	FlagPubKey              = "pubkey"
-	FlagAmount              = "amount"
-	FlagMaxAmount           = "max-amount"
-	FlagCompRate            = "comp-rate"
-	FlagAddress             = "address"
-	FlagCandidateAddress    = "candidate-address"
-	FlagName                = "name"
-	FlagEmail               = "email"
-	FlagWebsite             = "website"
-	FlagLocation            = "location"
-	FlagProfile             = "profile"
-	FlagVerified            = "verified"
-	FlagCubeBatch           = "cube-batch"
-	FlagSig                 = "sig"
-	FlagDelegatorAddress    = "delegator-address"
-	FlagNewCandidateAddress = "new-candidate-address"
+	FlagPubKey                 = "pubkey"
+	FlagAmount                 = "amount"
+	FlagMaxAmount              = "max-amount"
+	FlagCompRate               = "comp-rate"
+	FlagAddress                = "address"
+	FlagCandidateAddress       = "candidate-address"
+	FlagName                   = "name"
+	FlagEmail                  = "email"
+	FlagWebsite                = "website"
+	FlagLocation               = "location"
+	FlagProfile                = "profile"
+	FlagVerified               = "verified"
+	FlagCubeBatch              = "cube-batch"
+	FlagSig                    = "sig"
+	FlagDelegatorAddress       = "delegator-address"
+	FlagNewCandidateAddress    = "new-candidate-address"
+	FlagAccountUpdateRequestId = "account-update-request-id"
 )
 
 // nolint
@@ -83,8 +84,18 @@ var (
 	}
 	CmdActivateCandidacy = &cobra.Command{
 		Use:   "activate-candidacy",
-		Short: "Allows a validator activate itself",
+		Short: "Allows a validator to activate itself",
 		RunE:  cmdActivateCandidacy,
+	}
+	CmdUpdateCandidacyAccount = &cobra.Command{
+		Use:   "update-candidacy-account",
+		Short: "Allows a validator to update its account",
+		RunE:  cmdUpdateCandidacyAccount,
+	}
+	CmdAcceptCandidacyAccountUpdate = &cobra.Command{
+		Use:   "accept-candidacy-account-update",
+		Short: "Accept the candidate's account update request and become a candidate",
+		RunE:  cmdAcceptCandidacyAccountUpdate,
 	}
 	CmdDelegate = &cobra.Command{
 		Use:   "delegate",
@@ -144,13 +155,15 @@ func init() {
 	fsDelegatorAddress := flag.NewFlagSet("", flag.ContinueOnError)
 	fsDelegatorAddress.String(FlagDelegatorAddress, "", "delegator address")
 
+	fsAccountUpdateRequestId := flag.NewFlagSet("", flag.ContinueOnError)
+	fsAccountUpdateRequestId.Int64(FlagAccountUpdateRequestId, 0, "account update request ID")
+
 	// add the flags
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCandidate)
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCompRate)
 
 	CmdUpdateCandidacy.Flags().AddFlagSet(fsCandidate)
-	CmdUpdateCandidacy.Flags().AddFlagSet(fsNewValidatorAddress)
 
 	CmdVerifyCandidacy.Flags().AddFlagSet(fsValidatorAddress)
 	CmdVerifyCandidacy.Flags().AddFlagSet(fsVerified)
@@ -165,6 +178,9 @@ func init() {
 
 	CmdSetCompRate.Flags().AddFlagSet(fsCompRate)
 	CmdSetCompRate.Flags().AddFlagSet(fsDelegatorAddress)
+
+	CmdUpdateCandidacyAccount.Flags().AddFlagSet(fsNewValidatorAddress)
+	CmdAcceptCandidacyAccountUpdate.Flags().AddFlagSet(fsAccountUpdateRequestId)
 }
 
 func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
@@ -220,7 +236,7 @@ func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
 		Profile:  viper.GetString(FlagProfile),
 	}
 
-	tx := stake.NewTxUpdateCandidacy(maxAmount, description, newCandidateAddress)
+	tx := stake.NewTxUpdateCandidacy(maxAmount, description)
 	return txcmd.DoTx(tx)
 }
 
@@ -301,5 +317,25 @@ func cmdSetCompRate(cmd *cobra.Command, args []string) error {
 	}
 
 	tx := stake.NewTxSetCompRate(delegatorAddress, c)
+	return txcmd.DoTx(tx)
+}
+
+func cmdUpdateCandidacyAccount(cmd *cobra.Command, args []string) error {
+	newCandidateAddress := common.HexToAddress(viper.GetString(FlagNewCandidateAddress))
+	if newCandidateAddress.String() == "" {
+		return fmt.Errorf("please enter new candidate address using --new-candidate-address")
+	}
+
+	tx := stake.NewTxUpdateCandidacyAccount(newCandidateAddress)
+	return txcmd.DoTx(tx)
+}
+
+func cmdAcceptCandidacyAccountUpdate(cmd *cobra.Command, args []string) error {
+	updateAccountRequestId := viper.GetInt64(FlagAccountUpdateRequestId)
+	if updateAccountRequestId == 0 {
+		return fmt.Errorf("account-update-request-id must be present")
+	}
+
+	tx := stake.NewTxAcceptCandidacyAccountUpdate(updateAccountRequestId)
 	return txcmd.DoTx(tx)
 }

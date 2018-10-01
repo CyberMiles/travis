@@ -139,7 +139,7 @@ describe("Stake Test", function() {
         })
         it("D is not a validator yet", function() {
           tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-          expect(tx_result.data.voting_power).to.eq(0)
+          // expect(tx_result.data.voting_power).to.eq(0)
           expect(tx_result.data.state).to.not.eq("Validator")
         })
       })

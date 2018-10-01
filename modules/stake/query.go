@@ -2,7 +2,6 @@ package stake
 
 import (
 	"database/sql"
-	"github.com/CyberMiles/travis/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -24,10 +23,11 @@ func QueryCandidateByAddress(address common.Address) *Candidate {
 	}
 }
 
-func QueryCandidateByPubKey(pubKey types.PubKey) *Candidate {
+// todo why do we need this function?
+func QueryCandidateById(id int64) *Candidate {
 	db := getDb()
 	cond := make(map[string]interface{})
-	cond["pub_key"] = types.PubKeyString(pubKey)
+	cond["id"] = id
 	candidates := queryCandidates(db, cond)
 	if len(candidates) == 0 {
 		return nil
@@ -45,7 +45,7 @@ func QueryDelegationsByAddress(delegatorAddress common.Address) (delegations []*
 
 func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candidates) {
 	clause, params := buildQueryClause(cond)
-	rows, err := db.Query("select pub_key, address, shares, voting_power, pending_voting_power,  max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, num_of_delegators, created_at from candidates"+clause, params...)
+	rows, err := db.Query("select id, pub_key, address, shares, voting_power, pending_voting_power,  max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, num_of_delegators, created_at from candidates"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -56,7 +56,7 @@ func queryCandidates(db *sql.DB, cond map[string]interface{}) (candidates Candid
 
 func queryDelegations(db *sql.DB, cond map[string]interface{}) (delegations []*Delegation) {
 	clause, params := buildQueryClause(cond)
-	rows, err := db.Query("select id, delegator_address, pub_key, delegate_amount, award_amount, withdraw_amount, pending_withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at from delegations"+clause, params...)
+	rows, err := db.Query("select id, delegator_address, candidate_id, delegate_amount, award_amount, withdraw_amount, pending_withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at from delegations"+clause, params...)
 	if err != nil {
 		panic(err)
 	}

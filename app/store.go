@@ -204,9 +204,10 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		address := common.HexToAddress(string(reqQuery.Data))
 		delegations := stake.QueryDelegationsByAddress(address)
 		for _, d := range delegations {
-			validator := stake.QueryCandidateByPubKey(d.PubKey)
+			validator := stake.QueryCandidateById(d.CandidateId)
 			if validator != nil {
 				d.ValidatorAddress = validator.OwnerAddress
+				d.PubKey = validator.PubKey
 			}
 		}
 
