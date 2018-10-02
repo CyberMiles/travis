@@ -132,6 +132,13 @@ func GetCandidates() (candidates Candidates) {
 	return candidates
 }
 
+func GetActiveCandidates() (candidates Candidates) {
+	cond := make(map[string]interface{})
+	cond["active"] = "Y"
+	candidates = getCandidatesInternal(cond)
+	return candidates
+}
+
 func GetBackupValidators() (candidates Candidates) {
 	cond := make(map[string]interface{})
 	cond["state"] = "Backup Validator"

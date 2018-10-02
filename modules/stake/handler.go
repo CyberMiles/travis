@@ -857,7 +857,7 @@ func getRechargeAmount(maxAmount sdk.Int, candidate *Candidate, ssr sdk.Rat) (re
 }
 
 func RecordCandidateDailyStakes(blockHeight int64) error {
-	candidates := GetCandidates()
+	candidates := GetActiveCandidates()
 	for _, candidate := range candidates {
 		cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: blockHeight}
 		SaveCandidateDailyStake(cds)
