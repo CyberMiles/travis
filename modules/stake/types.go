@@ -120,6 +120,10 @@ func (c *Candidate) computeTotalSharesPercentage() (res sdk.Rat) {
 	return
 }
 
+func (c Candidate) IsActive() bool {
+	return c.Active == "Y"
+}
+
 // Validator is one of the top Candidates
 type Validator Candidate
 

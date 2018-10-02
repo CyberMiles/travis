@@ -309,14 +309,14 @@ func cleanCandidates() {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("delete from candidates where shares = ?")
+	stmt, err := txWrapper.tx.Prepare("update candidates set active = ? where shares = ?")
 	if err != nil {
 		panic(err)
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec("0")
+	_, err = stmt.Exec("N", "0")
 	if err != nil {
 		panic(err)
 	}

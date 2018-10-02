@@ -8,6 +8,7 @@ import (
 func QueryCandidates() (candidates Candidates) {
 	db := getDb()
 	cond := make(map[string]interface{})
+	cond["active"] = "Y"
 	return queryCandidates(db, cond)
 }
 
