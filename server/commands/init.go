@@ -176,17 +176,21 @@ func initTravisDb() {
 	create table delegations(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', pending_withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  voting_power integer not null default 0, state text not null default 'Y', block_height integer not null, average_staking_date integer not null default 0, created_at text not null);
 	create unique index idx_delegations_delegator_address_candidate_id on delegations(delegator_address, candidate_id);
 	create index idx_delegations_hash on delegations(hash);
- 	create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, amount text not null default '0', op_code text not null default '', block_height integer not null);
+ 	create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, amount text not null default '0', op_code text not null default '', block_height integer not null, hash text not null default '');
 	create index idx_delegate_history_delegator_address on delegate_history(delegator_address);
 	create index idx_delegate_history_candidate_id on delegate_history(candidate_id);
-	create table slashes(id integer not null primary key autoincrement, candidate_id integer not null, slash_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null, block_height integer not null);
+	create index idx_delegate_history_hash on delegate_history(hash);
+	create table slashes(id integer not null primary key autoincrement, candidate_id integer not null, slash_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null, block_height integer not null, hash text not null default '');
 	create index idx_slashes_candidate_id on slashes(candidate_id);
+	create index idx_slashes_hash on slashes(hash);
  	create table unstake_requests(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', hash text not null default '');
  	create index idx_unstake_requests_delegator_address on unstake_requests(delegator_address);
- 	create table candidate_daily_stakes(id integer not null primary key autoincrement, candidate_id integer not null, amount text not null default '0', block_height integer not null);
+ 	create table candidate_daily_stakes(id integer not null primary key autoincrement, candidate_id integer not null, amount text not null default '0', block_height integer not null, hash text not null default '');
 	create index idx_candidate_daily_stakes_candidate_id on candidate_daily_stakes(candidate_id);
-	create table candidate_account_update_requests(id integer primary key autoincrement, candidate_id integer not null, from_address text not null, to_address text not null, created_block_height integer not null, accepted_block_height integer not null, state text not null);
+	create index idx_candidate_daily_stakes_hash on candidate_daily_stakes(hash);
+	create table candidate_account_update_requests(id integer primary key autoincrement, candidate_id integer not null, from_address text not null, to_address text not null, created_block_height integer not null, accepted_block_height integer not null, state text not null, hash text not null default '');
 	create index idx_candidate_account_update_requests_to_address on candidate_account_update_requests(to_address);
+	create index idx_candidate_account_update_requests_hash on candidate_account_update_requests(hash);
 
  	create table governance_proposal(id text not null primary key, type text not null, proposer text not null, block_height integer not null, expire_timestamp integer not null, expire_block_height integer not null, hash text not null default '', result text not null default '', result_msg text not null default '', result_block_height integer not null default 0);
 	create index idx_governance_proposal_hash on governance_proposal(hash);

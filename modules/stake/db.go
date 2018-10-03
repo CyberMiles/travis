@@ -489,7 +489,7 @@ func saveDelegateHistory(h *DelegateHistory) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into delegate_history(delegator_address, candidate_id, amount, op_code, block_height) values(?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into delegate_history(delegator_address, candidate_id, amount, op_code, block_height, hash) values(?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -500,6 +500,7 @@ func saveDelegateHistory(h *DelegateHistory) {
 		h.Amount.String(),
 		h.OpCode,
 		h.BlockHeight,
+		common.Bytes2Hex(h.Hash()),
 	)
 	if err != nil {
 		panic(err)
@@ -510,7 +511,7 @@ func saveSlash(slash *Slash) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into slashes(candidate_id, slash_ratio, slash_amount, reason, created_at, block_height) values(?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into slashes(candidate_id, slash_ratio, slash_amount, reason, created_at, block_height, hash) values(?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -523,6 +524,7 @@ func saveSlash(slash *Slash) {
 		slash.Reason,
 		slash.CreatedAt,
 		slash.BlockHeight,
+		common.Bytes2Hex(slash.Hash()),
 	)
 	if err != nil {
 		panic(err)
@@ -645,13 +647,13 @@ func SaveCandidateDailyStake(cds *CandidateDailyStake) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into candidate_daily_stakes(candidate_id, amount, block_height) values(?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into candidate_daily_stakes(candidate_id, amount, block_height, hash) values(?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(cds.CandidateId, cds.Amount, cds.BlockHeight)
+	_, err = stmt.Exec(cds.CandidateId, cds.Amount, cds.BlockHeight, common.Bytes2Hex(cds.Hash()))
 	if err != nil {
 		panic(err)
 	}
@@ -698,7 +700,7 @@ func saveCandidateAccountUpdateRequest(req *CandidateAccountUpdateRequest) int64
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into candidate_account_update_requests(candidate_id, from_address, to_address, created_block_height, accepted_block_height, state) values(?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into candidate_account_update_requests(candidate_id, from_address, to_address, created_block_height, accepted_block_height, state, hash) values(?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
@@ -711,6 +713,7 @@ func saveCandidateAccountUpdateRequest(req *CandidateAccountUpdateRequest) int64
 		req.CreatedBlockHeight,
 		req.AcceptedBlockHeight,
 		req.State,
+		common.Bytes2Hex(req.Hash()),
 	)
 	if err != nil {
 		panic(err)
@@ -755,7 +758,7 @@ func updateCandidateAccountUpdateRequest(req *CandidateAccountUpdateRequest) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("update candidate_account_update_requests set accepted_block_height = ?, state = ? where id = ?")
+	stmt, err := txWrapper.tx.Prepare("update candidate_account_update_requests set accepted_block_height = ?, state = ?, hash = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -764,6 +767,7 @@ func updateCandidateAccountUpdateRequest(req *CandidateAccountUpdateRequest) {
 	_, err = stmt.Exec(
 		req.AcceptedBlockHeight,
 		req.State,
+		common.Bytes2Hex(req.Hash()),
 		req.Id,
 	)
 	if err != nil {

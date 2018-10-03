@@ -469,6 +469,14 @@ type DelegateHistory struct {
 	CandidateId      int64          `json:"candidate_id"`
 }
 
+func (d *DelegateHistory) Hash() []byte {
+	var excludedFields []string
+	bs := types.Hash(d, excludedFields)
+	hasher := ripemd160.New()
+	hasher.Write(bs)
+	return hasher.Sum(nil)
+}
+
 type Slash struct {
 	Id          int64   `json:"id"`
 	SlashRatio  sdk.Rat `json:"slash_ratio"`
@@ -477,6 +485,14 @@ type Slash struct {
 	CreatedAt   string  `json:"created_at"`
 	BlockHeight int64   `json:"block_height"`
 	CandidateId int64   `json:"candidate_id"`
+}
+
+func (s *Slash) Hash() []byte {
+	var excludedFields []string
+	bs := types.Hash(s, excludedFields)
+	hasher := ripemd160.New()
+	hasher.Write(bs)
+	return hasher.Sum(nil)
 }
 
 type UnstakeRequest struct {
@@ -505,6 +521,14 @@ type CandidateDailyStake struct {
 	CandidateId int64  `json:"candidate_id"`
 }
 
+func (c *CandidateDailyStake) Hash() []byte {
+	var excludedFields []string
+	bs := types.Hash(c, excludedFields)
+	hasher := ripemd160.New()
+	hasher.Write(bs)
+	return hasher.Sum(nil)
+}
+
 type CubePubKey struct {
 	CubeBatch string `json:"cube_batch"`
 	PubKey    string `json:"pub_key"`
@@ -521,6 +545,9 @@ type CandidateAccountUpdateRequest struct {
 }
 
 func (c *CandidateAccountUpdateRequest) Hash() []byte {
-	// todo participate the hash calculation
-	return nil
+	var excludedFields []string
+	bs := types.Hash(c, excludedFields)
+	hasher := ripemd160.New()
+	hasher.Write(bs)
+	return hasher.Sum(nil)
 }
