@@ -391,6 +391,9 @@ func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 
 func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount) (int64, error) {
 	candidate := GetCandidateByAddress(c.sender)
+	if candidate == nil {
+		return 0, ErrBadRequest()
+	}
 
 	// check if the address has been changed
 	ownerAddress := common.HexToAddress(candidate.OwnerAddress)
