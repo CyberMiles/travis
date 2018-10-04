@@ -318,6 +318,17 @@ func UpdateValidatorSet(blockHeight int64) (change []abci.Validator, err error) 
 	return
 }
 
+// Deactivate the validators
+func (vs Validators) Deactivate() {
+	// update voting power
+	for _, v := range vs {
+		v.Active = "N"
+		v.VotingPower = 0
+		c := Candidate(v)
+		updateCandidate(&c)
+	}
+}
+
 //_________________________________________________________________________
 
 type Delegation struct {

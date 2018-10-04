@@ -263,7 +263,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		if proposal := governance.GetProposalById(utils.RetiringProposalId); proposal != nil {
 			pks := strings.Split(proposal.Detail["preserved_validators"].(string), ",")
 			vs := stake.GetCandidates().Validators()
-			dpks := make([]string, 0)
+			inaVs := make(stake.Validators, 0)
 			abciVs := make([]abci.Validator, 0)
 			for _, v := range vs {
 				i := 0
@@ -274,12 +274,12 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 					}
 				}
 				if i == len(pks) {
-					dpks = append(dpks, ttypes.PubKeyString(v.PubKey))
+					inaVs = append(inaVs, v)
 					pk := v.PubKey.PubKey.(crypto.PubKeyEd25519)
 					abciVs = append(abciVs, abci.Ed25519Validator(pk[:], 0))
 				}
 			}
-			stake.DeactivateValidators(dpks)
+			inaVs.Deactivate()
 			app.AddValChange(abciVs)
 		} else {
 			app.logger.Error("Getting invalid RetiringProposalId")
