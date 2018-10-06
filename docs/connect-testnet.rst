@@ -88,16 +88,13 @@ Note: Configuration and data will be stored at /travis directory in the containe
 
 Getting Travis TestNet Config
 -----------------------------
-Checkout the Travis TestNet config from our `Github repo <https://github.com/CyberMiles/testnet>`_. Place the config files in the ``$HOME/.travis`` directory:
 
 ::
 
-  $ cd
-  $ sudo rm -rf $HOME/.travis
-  $ git clone https://github.com/CyberMiles/testnet.git
-  $ cd testnet/travis
-  $ git pull
-  $ cp -r init $HOME/.travis
+  rm -rf $HOME/.travis
+  docker run --rm -v $HOME/.travis:/travis -t ywonline/travis node init --env testnet --home /travis
+  curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/config.toml > $HOME/.travis/config/config.toml
+  curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/genesis.json > $HOME/.travis/config/genesis.json
 
 Start the Node and Join Travis TestNet
 --------------------------------------
@@ -143,16 +140,13 @@ Please `install Travis via source builds <http://travis.readthedocs.io/en/latest
 
 Getting Travis TestNet Config
 -----------------------------
-Checkout the Travis TestNet config from our `Github repo <https://github.com/CyberMiles/testnet>`_. Place the config files in the ``$HOME/.travis`` directory:
 
 ::
 
-  $ cd
-  $ sudo rm -rf $HOME/.travis
-  $ git clone https://github.com/CyberMiles/testnet.git
-  $ cd testnet/travis
-  $ git pull
-  $ cp -r init $HOME/.travis
+  rm -rf $HOME/.travis
+  travis node init --env testnet
+  curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/config.toml > $HOME/.travis/config/config.toml
+  curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/genesis.json > $HOME/.travis/config/genesis.json
 
 Start the Node and Join Travis TestNet
 --------------------------------------
