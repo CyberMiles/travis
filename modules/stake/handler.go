@@ -304,6 +304,10 @@ func (c check) activateCandidacy(tx TxActivateCandidacy) error {
 		return fmt.Errorf("already activated")
 	}
 
+	if candidate.ParseShares().Equal(sdk.ZeroInt) {
+		return fmt.Errorf("cannot activate withdrawed candidacy")
+	}
+
 	return nil
 }
 
