@@ -24,8 +24,8 @@ type delegatedProofOfStake interface {
 	delegate(TxDelegate) error
 	withdraw(TxWithdraw) error
 	setCompRate(TxSetCompRate, sdk.Int) error
-	updateCandidateAccount(TxUpdateCandidacyAccount) (int64, error)
-	acceptCandidateAccountUpdateRequest(TxAcceptCandidacyAccountUpdate) error
+	updateCandidateAccount(TxUpdateCandidacyAccount, sdk.Int) (int64, error)
+	acceptCandidateAccountUpdateRequest(TxAcceptCandidacyAccountUpdate, sdk.Int) error
 }
 
 func SetGenesisValidator(val types.GenesisValidator, store state.SimpleDB) error {
@@ -84,10 +84,10 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
-		gasFee := utils.CalGasFee(params.DeclareCandidacy, params.GasPrice)
+		gasFee := utils.CalGasFee(params.DeclareCandidacyGas, params.GasPrice)
 		return res, checker.declareCandidacy(txInner, gasFee)
 	case TxUpdateCandidacy:
-		gasFee := utils.CalGasFee(params.UpdateCandidacy, params.GasPrice)
+		gasFee := utils.CalGasFee(params.UpdateCandidacyGas, params.GasPrice)
 		return res, checker.updateCandidacy(txInner, gasFee)
 	case TxWithdrawCandidacy:
 		return res, checker.withdrawCandidacy(txInner)
@@ -100,13 +100,15 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 	case TxWithdraw:
 		return res, checker.withdraw(txInner)
 	case TxSetCompRate:
-		gasFee := utils.CalGasFee(params.SetCompRate, params.GasPrice)
+		gasFee := utils.CalGasFee(params.SetCompRateGas, params.GasPrice)
 		return res, checker.setCompRate(txInner, gasFee)
 	case TxUpdateCandidacyAccount:
-		_, err := checker.updateCandidateAccount(txInner)
+		gasFee := utils.CalGasFee(params.UpdateCandidateAccountGas, params.GasPrice)
+		_, err := checker.updateCandidateAccount(txInner, gasFee)
 		return res, err
 	case TxAcceptCandidacyAccountUpdate:
-		return res, checker.acceptCandidateAccountUpdateRequest(txInner)
+		gasFee := utils.CalGasFee(params.AcceptCandidateAccountUpdateRequestGas, params.GasPrice)
+		return res, checker.acceptCandidateAccountUpdateRequest(txInner, gasFee)
 	}
 
 	return res, errors.ErrUnknownTxType(tx)
@@ -136,18 +138,18 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 	// Run the transaction
 	switch txInner := tx.Unwrap().(type) {
 	case TxDeclareCandidacy:
-		gasFee := utils.CalGasFee(params.DeclareCandidacy, params.GasPrice)
+		gasFee := utils.CalGasFee(params.DeclareCandidacyGas, params.GasPrice)
 		err := deliverer.declareCandidacy(txInner, gasFee)
 		if err == nil {
-			res.GasUsed = int64(params.DeclareCandidacy)
+			res.GasUsed = int64(params.DeclareCandidacyGas)
 			res.GasFee = gasFee.Int
 		}
 		return res, err
 	case TxUpdateCandidacy:
-		gasFee := utils.CalGasFee(params.UpdateCandidacy, params.GasPrice)
+		gasFee := utils.CalGasFee(params.UpdateCandidacyGas, params.GasPrice)
 		err := deliverer.updateCandidacy(txInner, gasFee)
 		if err == nil {
-			res.GasUsed = int64(params.UpdateCandidacy)
+			res.GasUsed = int64(params.UpdateCandidacyGas)
 			res.GasFee = gasFee.Int
 		}
 		return res, err
@@ -162,19 +164,30 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 	case TxWithdraw:
 		return res, deliverer.withdraw(txInner)
 	case TxSetCompRate:
-		gasFee := utils.CalGasFee(params.SetCompRate, params.GasPrice)
+		gasFee := utils.CalGasFee(params.SetCompRateGas, params.GasPrice)
 		err := deliverer.setCompRate(txInner, gasFee)
 		if err == nil {
-			res.GasUsed = int64(params.SetCompRate)
+			res.GasUsed = int64(params.SetCompRateGas)
 			res.GasFee = gasFee.Int
 		}
 		return res, err
 	case TxUpdateCandidacyAccount:
-		id, err := deliverer.updateCandidateAccount(txInner)
+		gasFee := utils.CalGasFee(params.UpdateCandidateAccountGas, params.GasPrice)
+		id, err := deliverer.updateCandidateAccount(txInner, gasFee)
+		if err == nil {
+			res.GasUsed = int64(params.UpdateCandidateAccountGas)
+			res.GasFee = gasFee.Int
+		}
 		res.Data = []byte(strconv.Itoa(int(id)))
 		return res, err
 	case TxAcceptCandidacyAccountUpdate:
-		return res, deliverer.acceptCandidateAccountUpdateRequest(txInner)
+		gasFee := utils.CalGasFee(params.AcceptCandidateAccountUpdateRequestGas, params.GasPrice)
+		err := deliverer.acceptCandidateAccountUpdateRequest(txInner, gasFee)
+		if err == nil {
+			res.GasUsed = int64(params.AcceptCandidateAccountUpdateRequestGas)
+			res.GasFee = gasFee.Int
+		}
+		return res, err
 	}
 
 	return
@@ -393,7 +406,7 @@ func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	return nil
 }
 
-func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount) (int64, error) {
+func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount, gasFee sdk.Int) (int64, error) {
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
 		return 0, ErrBadRequest()
@@ -405,10 +418,15 @@ func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount) (int64, error
 		return 0, ErrBadRequest()
 	}
 
+	// check if the candidate has sufficient funds
+	if err := checkBalance(c.ctx.EthappState(), c.sender, gasFee); err != nil {
+		return 0, err
+	}
+
 	return 0, nil
 }
 
-func (c check) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUpdate) error {
+func (c check) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUpdate, gasFee sdk.Int) error {
 	req := getCandidateAccountUpdateRequest(tx.AccountUpdateRequestId)
 	if req == nil {
 		return ErrBadRequest()
@@ -419,9 +437,10 @@ func (c check) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUp
 	}
 
 	candidate := GetCandidateById(req.CandidateId)
+	totalCost := candidate.ParseShares().Add(gasFee)
 
 	// check if the new account has sufficient funds
-	if err := checkBalance(c.ctx.EthappState(), req.ToAddress, candidate.ParseShares()); err != nil {
+	if err := checkBalance(c.ctx.EthappState(), req.ToAddress, totalCost); err != nil {
 		return err
 	}
 
@@ -750,7 +769,7 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 		return ErrDelegationNotExists()
 	}
 
-	// check if the delegator has sufficient funds
+	// check if the candidate has sufficient funds
 	if err := checkBalance(d.ctx.EthappState(), d.sender, gasFee); err != nil {
 		return err
 	}
@@ -762,7 +781,15 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 	return nil
 }
 
-func (d deliver) updateCandidateAccount(tx TxUpdateCandidacyAccount) (int64, error) {
+func (d deliver) updateCandidateAccount(tx TxUpdateCandidacyAccount, gasFee sdk.Int) (int64, error) {
+	// check if the delegator has sufficient funds
+	if err := checkBalance(d.ctx.EthappState(), d.sender, gasFee); err != nil {
+		return 0, err
+	}
+
+	// only charge gas fee here
+	commons.Transfer(d.sender, utils.HoldAccount, gasFee)
+
 	candidate := GetCandidateByAddress(d.sender)
 	req := &CandidateAccountUpdateRequest{
 		CandidateId: candidate.Id,
@@ -774,7 +801,7 @@ func (d deliver) updateCandidateAccount(tx TxUpdateCandidacyAccount) (int64, err
 	return id, nil
 }
 
-func (d deliver) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUpdate) error {
+func (d deliver) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUpdate, gasFee sdk.Int) error {
 	req := getCandidateAccountUpdateRequest(tx.AccountUpdateRequestId)
 	if req == nil {
 		return ErrBadRequest()
@@ -789,6 +816,11 @@ func (d deliver) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccount
 		return ErrBadRequest()
 	}
 
+	// check if the candidate has sufficient funds
+	if err := checkBalance(d.ctx.EthappState(), d.sender, gasFee); err != nil {
+		return err
+	}
+
 	candidate.OwnerAddress = req.ToAddress.String()
 	updateCandidate(candidate)
 
@@ -801,7 +833,7 @@ func (d deliver) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccount
 	commons.Transfer(utils.HoldAccount, req.FromAddress, candidate.ParseShares())
 
 	// lock coins from the new account
-	commons.Transfer(req.ToAddress, utils.HoldAccount, candidate.ParseShares())
+	commons.Transfer(req.ToAddress, utils.HoldAccount, candidate.ParseShares().Add(gasFee))
 
 	// mark the request as completed
 	req.State = "COMPLETED"
