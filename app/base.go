@@ -389,7 +389,7 @@ func calStakeCheck(height int64) bool {
 }
 
 func calVPCheck(height int64) bool {
-	return height%int64(utils.GetParams().CalVPInterval) == 0
+	return height == 1 || height%int64(utils.GetParams().CalVPInterval) == 0
 }
 
 func calAvgStakingDateCheck(height int64) bool {
