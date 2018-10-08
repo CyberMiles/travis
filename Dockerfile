@@ -1,12 +1,12 @@
 # build docker image
-# > docker build -t ywonline/travis .
+# > docker build -t cybermiles/travis .
 # initialize:
-# > docker run --rm -v $HOME/.travis:/travis ywonline/travis node init --home /travis
+# > docker run --rm -v $HOME/.travis:/travis cybermiles/travis node init --home /travis
 # node start:
-# > docker run --rm -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 ywonline/travis node start --home /travis
+# > docker run --rm -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 cybermiles/travis node start --home /travis
 
 # build stage
-FROM ywonline/travis-build AS build-env
+FROM cybermiles/travis-build AS build-env
 
 # libeni
 ENV LIBENI_PATH=/app/lib
@@ -22,7 +22,7 @@ ADD . .
 
 # get travis source code from github, develop branch by default.
 # you may use a build argument to target a specific branch/tag, for example:
-# > docker build -t ywonline/travis --build-arg branch=develop .
+# > docker build -t cybermiles/travis --build-arg branch=develop .
 # comment ADD statement above and uncomment two statements below:
 # ARG branch=develop
 # RUN git clone -b $branch https://github.com/CyberMiles/travis.git --recursive --depth 1 .

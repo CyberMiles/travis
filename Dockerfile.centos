@@ -1,10 +1,10 @@
 # build docker image
-# > docker build -t ywonline/travis:centos -f Dockerfile.centos .
+# > docker build -t cybermiles/travis:centos -f Dockerfile.centos .
 # initialize:
-# > docker run --rm -v $HOME/.travis:/travis ywonline/travis:centos node init --home /travis
+# > docker run --rm -v $HOME/.travis:/travis cybermiles/travis:centos node init --home /travis
 # node start:
-# > docker run --rm -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 ywonline/travis:centos node start --home /travis
-FROM ywonline/travis-build:centos
+# > docker run --rm -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 cybermiles/travis:centos node start --home /travis
+FROM cybermiles/travis-build:centos
 
 # libeni
 WORKDIR /app/lib
