@@ -104,6 +104,15 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 
 	// wait forever
 	cmn.TrapSignal(func() {
+		// make sure tendermint is not in commit step
+		var times uint
+		for srvs.tmNode.ConsensusState().Step == cstypes.RoundStepCommit {
+			time.Sleep(time.Second * 1)
+			times++
+			if times >= 5 {
+				break
+			}
+		}
 		srvs.tmNode.Stop()
 		srvs.emNode.Stop()
 		dbm.Sqliter.CloseDB()
