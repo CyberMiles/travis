@@ -1,5 +1,5 @@
 # build docker image
-# > docker build -t ywonline/travis-build -f Dockerfile.build.ubuntu .
+# > docker build -t cybermiles/travis-build -f Dockerfile.build.ubuntu .
 FROM ubuntu:16.04
 
 RUN apt-get update \

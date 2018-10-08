@@ -1,5 +1,5 @@
 # build docker image
-# > docker build -t ywonline/travis-build:centos -f Dockerfile.build.centos .
+# > docker build -t cybermiles/travis-build:centos -f Dockerfile.build.centos .
 FROM centos:7
 
 RUN yum update -y \
