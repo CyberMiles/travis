@@ -158,7 +158,7 @@ func initEthermint() error {
 
 func initTravisDb() {
 	rootDir := viper.GetString(cli.HomeFlag)
-	stakeDbPath := filepath.Join(rootDir, "data", "cybermiles.db")
+	stakeDbPath := filepath.Join(rootDir, "data", utils.DB_FILE_NAME)
 
 	if _, err := os.OpenFile(stakeDbPath, os.O_RDONLY, 0444); err != nil {
 		db, err := sql.Open("sqlite3", stakeDbPath)

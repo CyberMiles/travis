@@ -57,7 +57,7 @@ func startCmd() func(cmd *cobra.Command, args []string) error {
 				return startSubProcess(rootDir)
 			}
 		*/
-		if err := dbm.InitSqliter(path.Join(rootDir, "data", "travis.db")); err != nil {
+		if err := dbm.InitSqliter(path.Join(rootDir, "data", utils.DB_FILE_NAME)); err != nil {
 			return err
 		}
 
