@@ -89,7 +89,6 @@ func initTendermint() {
 			Params:  utils.DefaultParams(),
 		}
 
-		// fixme Use specific values instead in production
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
 			Power:     "1",
@@ -159,12 +158,12 @@ func initEthermint() error {
 
 func initTravisDb() {
 	rootDir := viper.GetString(cli.HomeFlag)
-	stakeDbPath := filepath.Join(rootDir, "data", "travis.db") // todo rename db filename
+	stakeDbPath := filepath.Join(rootDir, "data", "cybermiles.db")
 
 	if _, err := os.OpenFile(stakeDbPath, os.O_RDONLY, 0444); err != nil {
 		db, err := sql.Open("sqlite3", stakeDbPath)
 		if err != nil {
-			ethUtils.Fatalf("Initializing travis database: %s", err.Error())
+			ethUtils.Fatalf("Initializing cybermiles database: %s", err.Error())
 		}
 		defer db.Close()
 

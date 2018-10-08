@@ -24,7 +24,6 @@ func QueryCandidateByAddress(address common.Address) *Candidate {
 	}
 }
 
-// todo why do we need this function?
 func QueryCandidateById(id int64) *Candidate {
 	db := getDb()
 	cond := make(map[string]interface{})

@@ -9,12 +9,12 @@ import (
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
-	ttypes "github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/server"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/server"
+	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/version"
 
@@ -105,11 +105,11 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 	if rp != nil && rp.Result == "Approved" {
 		if rp.ExpireBlockHeight <= ethInfoRes.LastBlockHeight {
 			server.StopFlag <- true
-		} else if rp.ExpireBlockHeight == ethInfoRes.LastBlockHeight + 1 {
+		} else if rp.ExpireBlockHeight == ethInfoRes.LastBlockHeight+1 {
 			utils.RetiringProposalId = rp.Id
 		} else {
 			// check ahead one block
-			utils.PendingProposal.Add(rp.Id, 0, rp.ExpireBlockHeight - 1)
+			utils.PendingProposal.Add(rp.Id, 0, rp.ExpireBlockHeight-1)
 		}
 	}
 
@@ -267,7 +267,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 			abciVs := make([]abci.Validator, 0)
 			for _, v := range vs {
 				i := 0
-				for ;i < len(pks); i++ {
+				for ; i < len(pks); i++ {
 					if pks[i] == ttypes.PubKeyString(v.PubKey) {
 						abciVs = append(abciVs, v.ABCIValidator())
 						break
@@ -381,10 +381,6 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 	buf.Write(dbHash)
 	hasher.Write(buf.Bytes())
 	hash := hasher.Sum(nil)
-
-	//if store != nil {
-	//	// TODO: save to DB
-	//}
 	return hash
 }
 

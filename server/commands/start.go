@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/rpc"
 	"net/http"
+	"net/rpc"
 	"os"
 	"path"
 	"time"
@@ -16,9 +16,9 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/ethereum/go-ethereum/eth"
+	cstypes "github.com/tendermint/tendermint/consensus/types"
 	"github.com/tendermint/tendermint/libs/cli"
 	cmn "github.com/tendermint/tendermint/libs/common"
-	cstypes "github.com/tendermint/tendermint/consensus/types"
 
 	"github.com/CyberMiles/travis/app"
 	"github.com/CyberMiles/travis/modules/stake"
@@ -44,7 +44,7 @@ func GetStartCmd() *cobra.Command {
 	return startCmd
 }
 
-// nolint TODO: move to config file
+// nolint
 const EyesCacheSize = 10000
 
 //returns the start command which uses the tick
@@ -53,9 +53,9 @@ func startCmd() func(cmd *cobra.Command, args []string) error {
 		rootDir := viper.GetString(cli.HomeFlag)
 		// start travis as sub process
 		/*
-		if !viper.GetBool(SubFlag) {
-			return startSubProcess(rootDir)
-		}
+			if !viper.GetBool(SubFlag) {
+				return startSubProcess(rootDir)
+			}
 		*/
 		if err := dbm.InitSqliter(path.Join(rootDir, "data", "travis.db")); err != nil {
 			return err
@@ -80,7 +80,7 @@ func start(rootDir string, storeApp *app.StoreApp) error {
 	var srvs *Services
 	go func() {
 		// Listen for the stop channel
-		<- server.StopFlag
+		<-server.StopFlag
 		if srvs != nil {
 			if srvs.tmNode != nil {
 				// make sure tendermint is not in commit step
@@ -172,7 +172,6 @@ func startSubProcess(rootDir string) error {
 
 	go startRoutine(cmd)
 
-
 	cmn.TrapSignal(func() {
 		cmd.Stop()
 		time.Sleep(time.Second * 1)
@@ -180,7 +179,6 @@ func startSubProcess(rootDir string) error {
 
 	return nil
 }
-
 
 func startRPC(m *types.Monitor) error {
 	rpc.Register(m)
