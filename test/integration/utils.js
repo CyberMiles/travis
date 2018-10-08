@@ -272,22 +272,22 @@ const gasFee = txType => {
   let gasLimit = 0
   switch (txType) {
     case "declareCandidacy":
-      gasLimit = web3.toBigNumber(Globals.Params.declare_candidacy)
+      gasLimit = web3.toBigNumber(Globals.Params.declare_candidacy_gas)
       break
     case "updateCandidacy":
-      gasLimit = web3.toBigNumber(Globals.Params.update_candidacy)
+      gasLimit = web3.toBigNumber(Globals.Params.update_candidacy_gas)
       break
     case "proposeTransferFund":
-      gasLimit = web3.toBigNumber(Globals.Params.transfer_fund_proposal)
+      gasLimit = web3.toBigNumber(Globals.Params.transfer_fund_proposal_gas)
       break
     case "proposeChangeParam":
-      gasLimit = web3.toBigNumber(Globals.Params.change_params_proposal)
+      gasLimit = web3.toBigNumber(Globals.Params.change_params_proposal_gas)
       break
     case "proposeDeployLibEni":
-      gasLimit = web3.toBigNumber(Globals.Params.deploy_libeni_proposal)
+      gasLimit = web3.toBigNumber(Globals.Params.deploy_libeni_proposal_gas)
       break
     case "setCompRate":
-      gasLimit = web3.toBigNumber(Globals.Params.set_comp_rate)
+      gasLimit = web3.toBigNumber(Globals.Params.set_comp_rate_gas)
       break
   }
   return gasPrice.times(gasLimit)
