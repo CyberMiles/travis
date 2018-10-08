@@ -20,7 +20,7 @@ Let’s initialize a docker image for the Travis build first.
 
 .. code:: bash
 
-  docker run --rm -v ~/volumes/local:/travis ywonline/travis node init --home /travis
+  docker run --rm -v ~/volumes/local:/travis cybermiles/travis node init --home /travis
 
 The node’s data directory is ``~/volumes/local`` on the local computer. 
 
@@ -31,7 +31,7 @@ Now you can start the CyberMiles Travis node in docker.
 
 .. code:: bash
 
-  docker run --name travis -v ~/volumes/local:/travis -t -p 26657:26657 -p 8545:8545 ywonline/travis node start --home /travis
+  docker run --name travis -v ~/volumes/local:/travis -t -p 26657:26657 -p 8545:8545 cybermiles/travis node start --home /travis
 
 At this point, you can Ctrl-C to exit to the terminal and travis will remain running in the background. 
 You can check the CyberMiles Travis node’s logs at anytime via the following docker command.
@@ -59,7 +59,7 @@ You can connect to the local CyberMiles node by attaching an instance of the Tra
   172.17.0.2
 
   # Use the IP address from above to connect
-  docker run --rm -it ywonline/travis attach http://172.17.0.2:8545
+  docker run --rm -it cybermiles/travis attach http://172.17.0.2:8545
 
 It opens the web3-cmt JavaScript console to interact with the virtual machine. The example below shows how to unlock the
 coinbase account so that you have coins to spend.
