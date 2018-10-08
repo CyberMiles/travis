@@ -99,7 +99,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposal)
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
@@ -140,7 +140,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().ChangeParamsProposal)
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().ChangeParamsProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
@@ -211,7 +211,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposal)
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
@@ -247,7 +247,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().RetireProgramProposal)
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().RetireProgramProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
@@ -294,7 +294,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().UpgradeProgramProposal)
+		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().UpgradeProgramProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
@@ -389,7 +389,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			return res, err
 		}
 		params := utils.GetParams()
-		gasUsed := params.TransferFundProposal
+		gasUsed := params.TransferFundProposalGas
 
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
@@ -434,7 +434,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			return res, err
 		}
 		params := utils.GetParams()
-		gasUsed := params.ChangeParamsProposal
+		gasUsed := params.ChangeParamsProposalGas
 
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
@@ -482,7 +482,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			return res, err
 		}
 		params := utils.GetParams()
-		gasUsed := params.DeployLibEniProposal
+		gasUsed := params.DeployLibEniProposalGas
 
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
@@ -524,7 +524,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			return res, err
 		}
 		params := utils.GetParams()
-		gasUsed := params.RetireProgramProposal
+		gasUsed := params.RetireProgramProposalGas
 
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
@@ -567,7 +567,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			return res, err
 		}
 		params := utils.GetParams()
-		gasUsed := params.UpgradeProgramProposal
+		gasUsed := params.UpgradeProgramProposalGas
 
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err

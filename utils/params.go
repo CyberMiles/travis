@@ -21,11 +21,11 @@ type Params struct {
 	SetCompRateGas                         uint64  `json:"set_comp_rate_gas" type:"uint"`
 	UpdateCandidateAccountGas              uint64  `json:"update_candidate_account_gas" type:"uint"`
 	AcceptCandidateAccountUpdateRequestGas uint64  `json:"accept_candidate_account_update_request_gas" type:"uint"`
-	TransferFundProposal                   uint64  `json:"transfer_fund_proposal" type:"uint"`
-	ChangeParamsProposal                   uint64  `json:"change_params_proposal" type:"uint"`
-	DeployLibEniProposal                   uint64  `json:"deploy_libeni_proposal" type:"uint"`
-	RetireProgramProposal                  uint64  `json:"retire_program_proposal" type:"uint"`
-	UpgradeProgramProposal                 uint64  `json:"upgrade_program_proposal" type:"uint"`
+	TransferFundProposalGas                uint64  `json:"transfer_fund_proposal_gas" type:"uint"`
+	ChangeParamsProposalGas                uint64  `json:"change_params_proposal_gas" type:"uint"`
+	DeployLibEniProposalGas                uint64  `json:"deploy_libeni_proposal_gas" type:"uint"`
+	RetireProgramProposalGas               uint64  `json:"retire_program_proposal_gas" type:"uint"`
+	UpgradeProgramProposalGas              uint64  `json:"upgrade_program_proposal_gas" type:"uint"`
 	GasPrice                               uint64  `json:"gas_price" type:"uint"`
 	MinStakingAmount                       int64   `json:"min_staking_amount" type:"uint"`
 	ValidatorsBlockAwardRatio              sdk.Rat `json:"validators_block_award_ratio" type:"rat"`
@@ -55,11 +55,11 @@ func DefaultParams() *Params {
 		SetCompRateGas:                         21000, // gas setting for setCompRate
 		UpdateCandidateAccountGas:              1e6,   // gas setting for UpdateCandidateAccountGas
 		AcceptCandidateAccountUpdateRequestGas: 1e6,   // gas setting for AcceptCandidateAccountUpdateRequestGas
-		TransferFundProposal:                   2e6,
-		ChangeParamsProposal:                   2e6,
-		RetireProgramProposal:                  2e6,
-		UpgradeProgramProposal:                 2e6,
-		DeployLibEniProposal:                   2e6,
+		TransferFundProposalGas:                2e6,
+		ChangeParamsProposalGas:                2e6,
+		RetireProgramProposalGas:               2e6,
+		UpgradeProgramProposalGas:              2e6,
+		DeployLibEniProposalGas:                2e6,
 		GasPrice:                               2e9,
 		MinStakingAmount:                       1000,
 		ValidatorsBlockAwardRatio:              sdk.NewRat(90, 100),

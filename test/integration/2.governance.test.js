@@ -149,7 +149,7 @@ describe("Governance Test", function() {
         //   gasFee.toString()
         // )
         // expect(tx_result.deliver_tx.gasUsed).to.eq(
-        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal_gas).toString()
         // )
       })
       describe("Validators V, B, and C votes for the proposal. The total vote (V+B+C) now exceeds 2/3. ", function() {
@@ -217,7 +217,7 @@ describe("Governance Test", function() {
         //   gasFee.toString()
         // )
         // expect(tx_result.deliver_tx.gasUsed).to.eq(
-        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal_gas).toString()
         // )
       })
       describe("Validator V votes for the proposal, but A, B and C vote against the proposal. The total vote (A+B+C) now exceeds 2/3.", function() {
@@ -284,7 +284,7 @@ describe("Governance Test", function() {
         //   gasFee.toString()
         // )
         // expect(tx_result.deliver_tx.gasUsed).to.eq(
-        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal_gas).toString()
         // )
       })
 
@@ -346,7 +346,7 @@ describe("Governance Test", function() {
         //   gasFee.toString()
         // )
         // expect(tx_result.deliver_tx.gasUsed).to.eq(
-        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal).toString()
+        //   web3.toBigNumber(Globals.Params.transfer_fund_proposal_gas).toString()
         // )
       })
 
