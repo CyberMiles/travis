@@ -1,7 +1,6 @@
 package governance
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -55,15 +54,12 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
-		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0, ""), ErrMissingSignature()
-		}
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if v.OwnerAddress == txInner.Proposer.String() {
+			if v.OwnerAddress == sender.String() {
 				break
 			}
 			if i+1 == len(validators) {
@@ -107,15 +103,12 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		app_state.SubBalance(sender, gasFee.Int)
 
 	case TxChangeParamPropose:
-		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0, ""), ErrMissingSignature()
-		}
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if v.OwnerAddress == txInner.Proposer.String() {
+			if v.OwnerAddress == sender.String() {
 				break
 			}
 			if i+1 == len(validators) {
@@ -146,15 +139,12 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 		app_state.SubBalance(sender, gasFee.Int)
 	case TxDeployLibEniPropose:
-		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0, ""), ErrMissingSignature()
-		}
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if v.OwnerAddress == txInner.Proposer.String() {
+			if v.OwnerAddress == sender.String() {
 				break
 			}
 			if i+1 == len(validators) {
@@ -217,15 +207,12 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 		app_state.SubBalance(sender, gasFee.Int)
 	case TxRetireProgramPropose:
-		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0, ""), ErrMissingSignature()
-		}
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if v.OwnerAddress == txInner.Proposer.String() {
+			if v.OwnerAddress == sender.String() {
 				break
 			}
 			if i+1 == len(validators) {
@@ -253,15 +240,12 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 		app_state.SubBalance(sender, gasFee.Int)
 	case TxUpgradeProgramPropose:
-		if txInner.Proposer == nil || !bytes.Equal(txInner.Proposer.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0, ""), ErrMissingSignature()
-		}
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if v.OwnerAddress == txInner.Proposer.String() {
+			if v.OwnerAddress == sender.String() {
 				break
 			}
 			if i+1 == len(validators) {
@@ -300,16 +284,12 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 		app_state.SubBalance(sender, gasFee.Int)
 	case TxVote:
-		if !bytes.Equal(txInner.Voter.Bytes(), sender.Bytes()) {
-			return sdk.NewCheck(0, ""), ErrMissingSignature()
-		}
-
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
 			return sdk.NewCheck(0, ""), ErrInvalidValidator()
 		}
 		for i, v := range validators {
-			if v.OwnerAddress == txInner.Voter.String() {
+			if v.OwnerAddress == sender.String() {
 				break
 			}
 			if i+1 == len(validators) {
@@ -346,6 +326,11 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	app_state := ctx.EthappState()
 
+	sender, err := getTxSender(ctx)
+	if err != nil {
+		return
+	}
+
 	switch txInner := tx.Unwrap().(type) {
 	case TxTransferFundPropose:
 		expireBlockHeight := ctx.BlockHeight() + int64(utils.GetParams().ProposalExpirePeriod)
@@ -359,7 +344,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		hashJson, _ := json.Marshal(hash)
 		pp := NewTransferFundProposal(
 			string(hashJson[1:len(hashJson)-1]),
-			txInner.Proposer,
+			&sender,
 			ctx.BlockHeight(),
 			txInner.From,
 			txInner.To,
@@ -417,7 +402,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		hashJson, _ := json.Marshal(hash)
 		cp := NewChangeParamProposal(
 			string(hashJson[1:len(hashJson)-1]),
-			txInner.Proposer,
+			&sender,
 			ctx.BlockHeight(),
 			txInner.Name,
 			txInner.Value,
@@ -462,7 +447,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		hashJson, _ := json.Marshal(hash)
 		dp := NewDeployLibEniProposal(
 			string(hashJson[1:len(hashJson)-1]),
-			txInner.Proposer,
+			&sender,
 			ctx.BlockHeight(),
 			txInner.Name,
 			txInner.Version,
@@ -508,7 +493,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		hashJson, _ := json.Marshal(hash)
 		cp := NewRetireProgramProposal(
 			string(hashJson[1:len(hashJson)-1]),
-			txInner.Proposer,
+			&sender,
 			ctx.BlockHeight(),
 			version.Version,
 			txInner.PreservedValidators,
@@ -548,7 +533,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		hashJson, _ := json.Marshal(hash)
 		cp := NewUpgradeProgramProposal(
 			string(hashJson[1:len(hashJson)-1]),
-			txInner.Proposer,
+			&sender,
 			ctx.BlockHeight(),
 			version.Version,
 			txInner.Name,
@@ -586,14 +571,14 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 	case TxVote:
 		var vote *Vote
-		if vote = GetVoteByPidAndVoter(txInner.ProposalId, txInner.Voter.String()); vote != nil {
+		if vote = GetVoteByPidAndVoter(txInner.ProposalId, sender.String()); vote != nil {
 			vote.Answer = txInner.Answer
 			vote.BlockHeight = ctx.BlockHeight()
 			UpdateVote(vote)
 		} else {
 			vote = NewVote(
 				txInner.ProposalId,
-				txInner.Voter,
+				sender,
 				ctx.BlockHeight(),
 				txInner.Answer,
 			)
@@ -602,7 +587,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		proposal := GetProposalById(txInner.ProposalId)
 
-		checkResult := CheckProposal(txInner.ProposalId, &txInner.Voter)
+		checkResult := CheckProposal(txInner.ProposalId, &sender)
 
 		switch proposal.Type {
 		case TRANSFER_FUND_PROPOSAL:

@@ -473,7 +473,7 @@ type GovernanceTransferFundProposalArgs struct {
 }
 
 func (s *CmtRPCService) ProposeTransferFund(args GovernanceTransferFundProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxTransferFundPropose(&args.From, &args.TransferFrom, &args.TransferTo,
+	tx := governance.NewTxTransferFundPropose(&args.TransferFrom, &args.TransferTo,
 		args.Amount.ToInt().String(), args.Reason,
 		args.ExpireTimestamp, args.ExpireBlockHeight)
 
@@ -496,7 +496,7 @@ type GovernanceChangeParamProposalArgs struct {
 }
 
 func (s *CmtRPCService) ProposeChangeParam(args GovernanceChangeParamProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxChangeParamPropose(&args.From, args.Name, args.Value, args.Reason,
+	tx := governance.NewTxChangeParamPropose(args.Name, args.Value, args.Reason,
 		args.ExpireTimestamp, args.ExpireBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -520,7 +520,7 @@ type GovernanceDeployLibEniProposalArgs struct {
 }
 
 func (s *CmtRPCService) ProposeDeployLibEni(args GovernanceDeployLibEniProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxDeployLibEniPropose(&args.From, args.Name, args.Version, args.FileUrl, args.Md5, args.Reason,
+	tx := governance.NewTxDeployLibEniPropose(args.Name, args.Version, args.FileUrl, args.Md5, args.Reason,
 		args.DeployTimestamp, args.DeployBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -540,7 +540,7 @@ type GovernanceRetireProgramProposalArgs struct {
 }
 
 func (s *CmtRPCService) ProposeRetireProgram(args GovernanceRetireProgramProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxRetireProgramPropose(&args.From, args.PreservedValidators, args.Reason, args.RetiredBlockHeight)
+	tx := governance.NewTxRetireProgramPropose(args.PreservedValidators, args.Reason, args.RetiredBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
@@ -562,7 +562,7 @@ type GovernanceUpgradeProgramProposalArgs struct {
 }
 
 func (s *CmtRPCService) ProposeUpgradeProgram(args GovernanceUpgradeProgramProposalArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxUpgradeProgramPropose(&args.From, args.Name,
+	tx := governance.NewTxUpgradeProgramPropose(args.Name,
 		args.Version, args.FileUrl, args.Md5, args.Reason, args.UpgradeBlockHeight)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
@@ -581,7 +581,7 @@ type GovernanceVoteArgs struct {
 }
 
 func (s *CmtRPCService) Vote(args GovernanceVoteArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := governance.NewTxVote(args.ProposalId, args.Voter, args.Answer)
+	tx := governance.NewTxVote(args.ProposalId, args.Answer)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.Voter, args.Nonce)
 	if err != nil {

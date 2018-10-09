@@ -323,11 +323,6 @@ describe("API Input Parameter Test", function() {
     it("fail if bad proposal id", function(done) {
       sendTx(A, "vote", ["A", A.addr], Utils.expectTxFail, done)
     })
-    it("fail if bad voter", function(done) {
-      if (proposalId) {
-        sendTx(A, "vote", [proposalId, B.addr], Utils.expectTxFail, done)
-      } else done()
-    })
     it("success if no answer set(default to empty string)", function(done) {
       if (proposalId) {
         sendTx(A, "vote", [proposalId, A.addr], Utils.expectTxSuccess, done)
@@ -430,7 +425,7 @@ function sendTx(account, op, data, fnExpect, done) {
     case "vote":
       txInner = {
         type: "governance/vote",
-        data: { proposal_id: data[0], voter: data[1], answer: data[2] }
+        data: { proposal_id: data[0], answer: data[2] }
       }
       break
     default:
