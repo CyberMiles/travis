@@ -7378,7 +7378,7 @@ var protocolPattern = /^([a-z0-9.+-]+:)/i,
     // Special case for a simple path URL
     simplePathPattern = /^(\/\/?[^\?\s]*)(\?[^\s]*)?$/,
 
-	// RFC 2396: characters reserved for delimiting URLs.
+    // RFC 2396: characters reserved for delimiting URLs.
     // We actually just auto-escape these.
     delims = ['<', '>', '"', '`', ' ', '\r', '\n', '\t'],
 
@@ -15323,6 +15323,18 @@ var methods = function() {
     params: 1,
     inputFormatter: [formatters.inputStakeTxFormatter]
   })
+  var proposeRetireProgram = new Method({
+    name: "proposeRetireProgram",
+    call: "cmt_proposeRetireProgram",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+  var proposeUpgradeProgram = new Method({
+    name: "proposeUpgradeProgram",
+    call: "cmt_proposeUpgradeProgram",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
   var vote = new Method({
     name: "vote",
     call: "cmt_vote",
@@ -15345,6 +15357,8 @@ var methods = function() {
     proposeRecoverFund,
     proposeChangeParam,
     proposeDeployLibEni,
+    proposeRetireProgram,
+    proposeUpgradeProgram,
     vote,
     listProposals,
     getParams
@@ -15478,6 +15492,18 @@ var methods = function() {
     params: 1,
     inputFormatter: [formatters.inputStakeTxFormatter]
   })
+  var updateAccount = new Method({
+    name: "updateAccount",
+    call: "cmt_updateCandidacyAccount",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
+  var acceptAccountUpdate = new Method({
+    name: "acceptAccountUpdate",
+    call: "cmt_acceptCandidacyAccountUpdate",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
   var setCompRate = new Method({
     name: "setCompRate",
     call: "cmt_setCompRate",
@@ -15495,10 +15521,7 @@ var methods = function() {
     name: "query",
     call: "cmt_queryValidator",
     params: 2,
-    inputFormatter: [
-      formatters.inputAddressFormatter,
-      formatters.inputDefaultHeightFormatter
-    ]
+    inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultHeightFormatter]
   })
   var queryAwardInfos = new Method({
     name: "queryAwardInfos",
@@ -15514,6 +15537,8 @@ var methods = function() {
     verify,
     activate,
     setCompRate,
+    updateAccount,
+    acceptAccountUpdate,
     list,
     query,
     queryAwardInfos
