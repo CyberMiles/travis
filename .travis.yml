@@ -39,11 +39,12 @@ install:
 
 script:
   - make docker_image
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+  - TAG=$TRAVIS_BRANCH make push_tag_image ;
   - |
     if [ -z "$TRAVIS_TAG" ]; then
       ./test/integration/test.sh
     fi
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
 
 after_success:
   - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
@@ -74,6 +75,3 @@ deploy:
   on:
     repo: CyberMiles/travis
     tags: true
-
-after_script:
-  - cd $TRAVIS_BUILD_DIR && TAG=$TRAVIS_BRANCH make push_tag_image ;
