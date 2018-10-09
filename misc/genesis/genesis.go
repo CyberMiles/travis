@@ -31,17 +31,26 @@ func SimulateGenesisBlock() *core.Genesis {
 
 // DefaultGenesisBlock returns the Ethereum main net genesis block.
 func DefaultGenesisBlock() *core.Genesis {
+	config := params.MainnetChainConfig
+	config.HomesteadBlock = big.NewInt(0)
+	config.EIP150Block = big.NewInt(0)
+	config.EIP155Block = big.NewInt(0)
+	config.EIP158Block = big.NewInt(0)
+	config.DAOForkBlock = big.NewInt(0)
+	config.DAOForkSupport = false
+	config.ByzantiumBlock = big.NewInt(0)
+	config.ConstantinopleBlock = big.NewInt(0)
+	// this will be overridden
+	config.ChainID = big.NewInt(0)
 	genesis := &core.Genesis{
-		Config:     params.MainnetChainConfig,
+		Config:     config,
 		Nonce:      66,
 		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
 		GasLimit:   uint64(0x1e8480000),
 		Difficulty: big.NewInt(17179869184),
 		Alloc:      decodePrealloc(mainnetAllocData),
 	}
-	genesis.Config.ByzantiumBlock = big.NewInt(0)
-	// this will be overridden
-	genesis.Config.ChainID = big.NewInt(0)
+
 	return genesis
 }
 
