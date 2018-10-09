@@ -48,8 +48,8 @@ func DefaultParams() *Params {
 		SelfStakingRatio:                       sdk.NewRat(10, 100),
 		InflationRate:                          sdk.NewRat(8, 100),
 		ValidatorSizeThreshold:                 sdk.NewRat(12, 100),
-		UnstakeWaitingPeriod:                   7 * 24 * 3600 / 10,
-		ProposalExpirePeriod:                   7 * 24 * 3600,
+		UnstakeWaitingPeriod:                   7 * 24 * 3600 / CommitSeconds,
+		ProposalExpirePeriod:                   7 * 24 * 3600 / CommitSeconds,
 		DeclareCandidacyGas:                    1e6,   // gas setting for declareCandidacy
 		UpdateCandidacyGas:                     1e6,   // gas setting for updateCandidacy
 		SetCompRateGas:                         21000, // gas setting for setCompRate

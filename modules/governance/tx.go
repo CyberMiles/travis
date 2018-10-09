@@ -40,13 +40,13 @@ var _, _, _, _, _ sdk.TxInner = &TxTransferFundPropose{}, &TxChangeParamPropose{
 var _ sdk.TxInner = &TxVote{}
 
 type TxTransferFundPropose struct {
-	Proposer     *common.Address   `json:"proposer"`
-	From         *common.Address   `json:"from"`
-	To           *common.Address   `json:"to"`
-	Amount       string            `json:"amount"`
-	Reason       string            `json:"reason"`
-	ExpireTimestamp       *int64  `json:"expire_timestamp"`
-	ExpireBlockHeight     *int64  `json:"expire_block_height"`
+	Proposer           *common.Address   `json:"from"`
+	From               *common.Address   `json:"transfer_from"`
+	To                 *common.Address   `json:"transfer_to"`
+	Amount             string            `json:"amount"`
+	Reason             string            `json:"reason"`
+	ExpireTimestamp    *int64            `json:"expire_timestamp"`
+	ExpireBlockHeight  *int64            `json:"expire_block_height"`
 }
 
 func (tx TxTransferFundPropose) ValidateBasic() error {
@@ -68,12 +68,12 @@ func NewTxTransferFundPropose(proposer *common.Address, fromAddr *common.Address
 func (tx TxTransferFundPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxChangeParamPropose struct {
-	Proposer     *common.Address   `json:"proposer"`
+	Proposer     *common.Address   `json:"from"`
 	Name                  string   `json:"name"`
 	Value                 string   `json:"value"`
 	Reason                string   `json:"reason"`
-	ExpireTimestamp       *int64  `json:"expire_timestamp"`
-	ExpireBlockHeight     *int64  `json:"expire_block_height"`
+	ExpireTimestamp       *int64   `json:"expire_timestamp"`
+	ExpireBlockHeight     *int64   `json:"expire_block_height"`
 }
 
 func (tx TxChangeParamPropose) ValidateBasic() error {
@@ -94,14 +94,14 @@ func NewTxChangeParamPropose(proposer *common.Address, name string, value string
 func (tx TxChangeParamPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxDeployLibEniPropose struct {
-	Proposer      *common.Address  `json:"proposer"`
+	Proposer      *common.Address  `json:"from"`
 	Name                  string   `json:"name"`
 	Version               string   `json:"version"`
-	Fileurl               string   `json:"fileurl"`
+	FileUrl               string   `json:"file_url"`
 	Md5                   string   `json:"md5"`
 	Reason                string   `json:"reason"`
-	ExpireTimestamp       *int64   `json:"expire_timestamp"`
-	ExpireBlockHeight     *int64   `json:"expire_block_height"`
+	ExpireTimestamp       *int64   `json:"deploy_timestamp"`
+	ExpireBlockHeight     *int64   `json:"deploy_block_height"`
 }
 
 func (tx TxDeployLibEniPropose) ValidateBasic() error {
@@ -124,10 +124,10 @@ func NewTxDeployLibEniPropose(proposer *common.Address, name, version, fileurl, 
 func (tx TxDeployLibEniPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxRetireProgramPropose struct {
-	Proposer            *common.Address `json:"proposer"`
+	Proposer            *common.Address `json:"from"`
 	PreservedValidators string          `json:"preserved_validators"`
 	Reason              string          `json:"reason"`
-	ExpireBlockHeight   *int64          `json:"expire_block_height"`
+	ExpireBlockHeight   *int64          `json:"retired_block_height"`
 }
 
 func (tx TxRetireProgramPropose) ValidateBasic() error {
@@ -146,13 +146,13 @@ func NewTxRetireProgramPropose(proposer *common.Address, preservedValidators, re
 func (tx TxRetireProgramPropose) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxUpgradeProgramPropose struct {
-	Proposer           *common.Address `json:"proposer"`
+	Proposer           *common.Address `json:"from"`
 	Name               string          `json:"name"`
 	Version            string          `json:"version"`
-	Fileurl            string          `json:"fileurl"`
+	FileUrl            string          `json:"file_url"`
 	Md5                string          `json:"md5"`
 	Reason             string          `json:"reason"`
-	ExpireBlockHeight  *int64          `json:"expire_block_height"`
+	ExpireBlockHeight  *int64          `json:"upgrade_block_height"`
 }
 
 func (tx TxUpgradeProgramPropose) ValidateBasic() error {

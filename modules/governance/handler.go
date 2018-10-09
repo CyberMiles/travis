@@ -192,7 +192,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 
 		var fileurlJson map[string][]string
 
-		if err = json.Unmarshal([]byte(txInner.Fileurl), &fileurlJson); err != nil {
+		if err = json.Unmarshal([]byte(txInner.FileUrl), &fileurlJson); err != nil {
 			return sdk.NewCheck(0, ""), ErrInvalidFileurlJson()
 		}
 
@@ -275,7 +275,7 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 
 		var fileurlJson map[string][]string
 
-		if err = json.Unmarshal([]byte(txInner.Fileurl), &fileurlJson); err != nil {
+		if err = json.Unmarshal([]byte(txInner.FileUrl), &fileurlJson); err != nil {
 			return sdk.NewCheck(0, ""), ErrInvalidFileurlJson()
 		}
 
@@ -466,7 +466,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			ctx.BlockHeight(),
 			txInner.Name,
 			txInner.Version,
-			txInner.Fileurl,
+			txInner.FileUrl,
 			txInner.Md5,
 			txInner.Reason,
 			"init",
@@ -553,7 +553,7 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			version.Version,
 			txInner.Name,
 			txInner.Version,
-			txInner.Fileurl,
+			txInner.FileUrl,
 			txInner.Md5,
 			txInner.Reason,
 			expireBlockHeight,
