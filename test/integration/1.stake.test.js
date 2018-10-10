@@ -235,6 +235,41 @@ describe("Stake Test", function() {
       })
     })
   })
+
+  describe("Block awards check after D becomes a validator", function() {
+    let awardInfos
+    before(function(done) {
+      if (Globals.TestMode == "single") {
+        // skips current and all nested describes
+        this.test.parent.pending = true
+        this.skip()
+      }
+      Utils.waitBlocks(done, 1)
+    })
+    before(function() {
+      awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+    })
+    it("sum of awards should equal to block award", function() {
+      let sum = web3.toBigNumber(0)
+      awardInfos.data.forEach(o => {
+        sum = sum.plus(web3.toBigNumber(o.amount))
+      })
+      logger.debug(awardInfos)
+      let diff = Math.abs(sum.minus(Utils.getBlockAward()).toNumber())
+      logger.debug("sum, diff: ", sum.toString(), diff)
+      expect(diff).to.be.below(Number(web3.toWei(1, "gwei")))
+    })
+    it.skip("5 in total, 4 validators, 1 backup, D is validator", function() {
+      expect(awardInfos.data.length).to.be.eq(5)
+      let vCount = awardInfos.data.filter(o => o.state == "Validator").length
+      let bCount = awardInfos.data.filter(o => o.state == "Backup Validator").length
+      expect(vCount).to.be.eq(4)
+      expect(bCount).to.be.eq(1)
+      let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
+      expect(data != null && data.state == "Validator").to.be.true
+    })
+  })
+
   describe("Voting Power", function() {
     let val_D, dele_B, dele_C, dele_D
     let p = 1
@@ -283,72 +318,6 @@ describe("Stake Test", function() {
     })
   })
 
-  describe("Block awards", function() {
-    let blocks = 1,
-      vals_expected = [],
-      dele_expected = []
-    let val_D, dele_B, dele_C, dele_D
-
-    before(function() {
-      if (Globals.TestMode == "single") {
-        // skips current and all nested describes
-        this.test.parent.pending = true
-        this.skip()
-      }
-    })
-
-    it("check awards", function() {
-      // get validators
-      let vals = web3.cmt.stake.validator.list().data
-      totalVotingPower = vals.reduce((s, v) => {
-        return s + v.voting_power
-      }, 0)
-      console.log("totalVotingPower: ", totalVotingPower)
-      // get delegator B, C, D of D
-      dele_B = Utils.getDelegation(1, 3)
-      dele_C = Utils.getDelegation(2, 3)
-      dele_D = Utils.getDelegation(3, 3)
-
-      awardInfos = web3.cmt.stake.validator.queryAwardInfos()
-      console.log(awardInfos)
-
-      let v_ratio = eval(Globals.Params.validators_block_award_ratio)
-      let blockAward = Utils.getBlockAward()
-      let getAwards = dele => {
-        let awards = [
-          blockAward
-            .times(
-              (
-                (Number(dele.voting_power) * (1 - dele.comp_rate) * v_ratio) /
-                totalVotingPower
-              ).toFixed(12)
-            )
-            .dividedToIntegerBy(1),
-          blockAward
-            .times(
-              ((Number(dele.voting_power) * dele.comp_rate * v_ratio) / totalVotingPower).toFixed(
-                12
-              )
-            )
-            .dividedToIntegerBy(1)
-        ]
-        awards.forEach(a => console.log(a.toString()))
-        return awards
-      }
-
-      award_B = getAwards(dele_B)
-      award_C = getAwards(dele_C)
-      award_D = getAwards(dele_D)
-      award_V = award_B[0]
-        .plus(award_C[0])
-        .plus(award_D[0])
-        .plus(award_B[1])
-        .plus(award_C[1])
-        .plus(award_D[1])
-      console.log(award_V.toString())
-    })
-  })
-
   describe("Stake Withdraw", function() {
     describe("Account B withdraw some CMTs for D.", function() {
       let delegation_before, delegation_after
@@ -371,7 +340,7 @@ describe("Stake Test", function() {
         balance_new = Utils.getBalance(1)
         expect(balance_new.minus(balance_old).toNumber()).to.eq(Number(0))
         // delegation after
-        let delegation_after = Utils.getDelegation(1, 3)
+        delegation_after = Utils.getDelegation(1, 3)
         expect(
           delegation_after.pending_withdraw_amount
             .minus(delegation_before.pending_withdraw_amount)
@@ -468,6 +437,40 @@ describe("Stake Test", function() {
         expect(d).to.be.not.null
         expect(d.shares.toNumber()).to.eq(0)
       }
+    })
+  })
+
+  describe("Block awards check after D withdraw candidacy", function() {
+    let awardInfos
+    before(function(done) {
+      if (Globals.TestMode == "single") {
+        // skips current and all nested describes
+        this.test.parent.pending = true
+        this.skip()
+      }
+      Utils.waitBlocks(done, 1)
+    })
+    before(function() {
+      awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+    })
+    it("sum of awards should equal to block award", function() {
+      let sum = web3.toBigNumber(0)
+      awardInfos.data.forEach(o => {
+        sum = sum.plus(web3.toBigNumber(o.amount))
+      })
+      logger.debug(awardInfos)
+      let diff = Math.abs(sum.minus(Utils.getBlockAward()).toNumber())
+      logger.debug("sum, diff: ", sum.toString(), diff)
+      expect(diff).to.be.below(Number(web3.toWei(1, "gwei")))
+    })
+    it.skip("4 in total, 4 validators, D is not there", function() {
+      expect(awardInfos.data.length).to.be.eq(4)
+      let vCount = awardInfos.data.filter(o => o.state == "Validator").length
+      let bCount = awardInfos.data.filter(o => o.state == "Backup Validator").length
+      expect(vCount).to.be.eq(4)
+      expect(bCount).to.be.eq(0)
+      let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
+      expect(data == null).to.be.true
     })
   })
 })
