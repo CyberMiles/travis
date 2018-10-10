@@ -823,6 +823,10 @@ func (d deliver) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccount
 
 	// update the candidate's self-delegation
 	delegation := GetDelegation(req.FromAddress, candidate.Id)
+	if delegation == nil {
+		return ErrBadRequest()
+	}
+
 	delegation.DelegatorAddress = req.ToAddress
 	UpdateDelegation(delegation)
 
