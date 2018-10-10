@@ -121,13 +121,13 @@ func SaveProposal(pp *Proposal) {
 			panic(err)
 		}
 	case RETIRE_PROGRAM_PROPOSAL:
-		stmt1, err := txWrapper.tx.Prepare("insert into governance_retire_program_detail(proposal_id, retired_version, preserved_validators, reason) values(?, ?, ?, ?)")
+		stmt1, err := txWrapper.tx.Prepare("insert into governance_retire_program_detail(proposal_id, retired_version, preserved_validators, reason, status) values(?, ?, ?, ?, ?)")
 		if err != nil {
 			panic(err)
 		}
 		defer stmt1.Close()
 
-		_, err = stmt1.Exec(pp.Id, pp.Detail["retired_version"], pp.Detail["preserved_validators"], pp.Detail["reason"])
+		_, err = stmt1.Exec(pp.Id, pp.Detail["retired_version"], pp.Detail["preserved_validators"], pp.Detail["reason"], pp.Detail["status"])
 		if err != nil {
 			fmt.Println(err)
 			panic(err)
@@ -271,13 +271,13 @@ func GetProposalById(pid string) *Proposal {
 			},
 		}
 	case RETIRE_PROGRAM_PROPOSAL:
-		var retiredVersion, preservedValidators, reason string
-		stmt1, err := txWrapper.tx.Prepare("select retired_version, preserved_validators, reason from governance_retire_program_detail where proposal_id = ?")
+		var retiredVersion, preservedValidators, reason, status string
+		stmt1, err := txWrapper.tx.Prepare("select retired_version, preserved_validators, reason, status from governance_retire_program_detail where proposal_id = ?")
 		if err != nil {
 			panic(err)
 		}
 		defer stmt1.Close()
-		err = stmt1.QueryRow(pid).Scan(&retiredVersion, &preservedValidators, &reason)
+		err = stmt1.QueryRow(pid).Scan(&retiredVersion, &preservedValidators, &reason, &status)
 		switch {
 		case err == sql.ErrNoRows:
 			return nil
@@ -299,6 +299,7 @@ func GetProposalById(pid string) *Proposal {
 				"retired_version": retiredVersion,
 				"preserved_validators": preservedValidators,
 				"reason": reason,
+				"status": status,
 			},
 		}
 	case UPGRADE_PROGRAM_PROPOSAL:
@@ -389,6 +390,23 @@ func UpdateDeployLibEniStatus(pid, status string) {
 	}()
 }
 
+func UpdateRetireProgramStatus(pid, status string) {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("update governance_retire_program_detail set status = ? where proposal_id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(status, pid)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+}
+
 func QueryProposals() (proposals []*Proposal) {
 	tx, err := getDb().Begin()
 	if err != nil {
@@ -410,7 +428,7 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal) {
 		when p.type = 'deploy_libeni'
 		then (select printf('%s-+-%s-+-%s-+-%s-+-%s-+-%s', name, version, fileurl, md5, reason, status) from governance_deploy_libeni_detail where proposal_id = p.id)
 		when p.type = 'retire_program'
-		then (select printf('%s-+-%s-+-%s', retired_version, preserved_validators, reason) from governance_retire_program_detail where proposal_id = p.id)
+		then (select printf('%s-+-%s-+-%s-+-%s', retired_version, preserved_validators, reason, status) from governance_retire_program_detail where proposal_id = p.id)
 		when p.type = 'upgrade_program'
 		then (select printf('%s-+-%s-+-%s-+-%s-+-%s-+-%s', retired_version, name, version, fileurl, md5, reason) from governance_upgrade_program_detail where proposal_id = p.id)
 		end as detail
@@ -486,13 +504,14 @@ func getProposals(tx *sql.Tx) (proposals []*Proposal) {
 				"status":  d[5],
 			}
 		case RETIRE_PROGRAM_PROPOSAL:
-			if len(d) != 3 {
+			if len(d) != 4 {
 				continue
 			}
 			pp.Detail = map[string]interface{}{
 				"retired_version":      d[0],
 				"preserved_validators": d[1],
 				"reason":               d[2],
+				"status":               d[3],
 			}
 		case UPGRADE_PROGRAM_PROPOSAL:
 			if len(d) != 6 {
@@ -550,7 +569,7 @@ func GetPendingProposals() (proposals []*Proposal) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	rows, err := txWrapper.tx.Query("select id, type, expire_timestamp, expire_block_height from governance_proposal p where result = '' or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and (d.status != 'deployed' and d.status != 'failed' and d.status != 'collapsed')))")
+	rows, err := txWrapper.tx.Query("select id, type, expire_timestamp, expire_block_height from governance_proposal p where (result = '' and type != 'retire_program' and type != 'upgrade_program') or (result = 'Approved' and type = 'deploy_libeni' and exists (select * from governance_deploy_libeni_detail d where d.proposal_id=p.id and (d.status != 'deployed' and d.status != 'failed' and d.status != 'collapsed')))")
 	if err != nil {
 		panic(err)
 	}

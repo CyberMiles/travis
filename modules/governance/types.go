@@ -143,6 +143,7 @@ func NewRetireProgramProposal(id string, proposer *common.Address, blockHeight i
 			"retired_version": retiredVersion,
 			"preserved_validators": preservedValidators,
 			"reason": reason,
+			"status": "",
 		},
 	}
 }

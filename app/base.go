@@ -43,6 +43,7 @@ type BaseApp struct {
 
 var (
 	_ abci.Application = &BaseApp{}
+	toBeShutdown = false
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
@@ -102,11 +103,16 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 	}
 
 	rp := governance.GetRetiringProposal(version.Version)
-	if rp != nil && rp.Result == "Approved" {
+	if rp != nil {
 		if rp.ExpireBlockHeight <= ethInfoRes.LastBlockHeight {
-			server.StopFlag <- true
+			rp = governance.GetProposalById(rp.Id)
+			if rp.Detail["status"] == "success" {
+				server.StopFlag <- true
+			}
 		} else if rp.ExpireBlockHeight == ethInfoRes.LastBlockHeight+1 {
-			utils.RetiringProposalId = rp.Id
+			if rp.Result == "Approved" {
+				utils.RetiringProposalId = rp.Id
+			}
 		} else {
 			// check ahead one block
 			utils.PendingProposal.Add(rp.Id, 0, rp.ExpireBlockHeight-1)
@@ -265,11 +271,13 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 			vs := stake.GetCandidates().Validators()
 			inaVs := make(stake.Validators, 0)
 			abciVs := make([]abci.Validator, 0)
+			pvSize := 0
 			for _, v := range vs {
 				i := 0
 				for ; i < len(pks); i++ {
 					if pks[i] == ttypes.PubKeyString(v.PubKey) {
 						abciVs = append(abciVs, v.ABCIValidator())
+						pvSize++
 						break
 					}
 				}
@@ -279,12 +287,19 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 					abciVs = append(abciVs, abci.Ed25519Validator(pk[:], 0))
 				}
 			}
-			inaVs.Deactivate()
-			app.AddValChange(abciVs)
+			if pvSize >= 1 {
+				inaVs.Deactivate()
+				app.AddValChange(abciVs)
+				toBeShutdown = true
+				governance.UpdateRetireProgramStatus(utils.RetiringProposalId, "success")
+			} else {
+				governance.UpdateRetireProgramStatus(utils.RetiringProposalId, "rejected")
+			}
 		} else {
 			app.logger.Error("Getting invalid RetiringProposalId")
 		}
-	} else { // should not update validator set twice if the node is to be shutdown
+	}
+	if !toBeShutdown { // should not update validator set twice if the node is to be shutdown
 		// calculate the validator set difference
 		if calVPCheck(app.WorkingHeight()) {
 			diff, err := stake.UpdateValidatorSet(app.WorkingHeight())
@@ -321,7 +336,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 }
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
-	if utils.RetiringProposalId != "" {
+	if toBeShutdown {
 		server.StopFlag <- true
 	}
 
