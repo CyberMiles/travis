@@ -49,7 +49,7 @@ func GetInitCmd() *cobra.Command {
 
 func initFiles(cmd *cobra.Command, args []string) error {
 	initTendermint()
-	initTravisDb()
+	initCyberMilesDb()
 	// initTravisCmd()
 	return initEthermint()
 }
@@ -156,7 +156,7 @@ func initEthermint() error {
 	return nil
 }
 
-func initTravisDb() {
+func initCyberMilesDb() {
 	rootDir := viper.GetString(cli.HomeFlag)
 	stakeDbPath := filepath.Join(rootDir, "data", utils.DB_FILE_NAME)
 
@@ -168,18 +168,18 @@ func initTravisDb() {
 		defer db.Close()
 
 		sqlStmt := `
-	create table candidates(id integer not null primary key autoincrement, address text not null, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, num_of_delegators integer not null default 0, created_at text not null default '');
+	create table candidates(id integer not null primary key autoincrement, address text not null, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, num_of_delegators integer not null default 0, created_at integer not null);
 	create unique index idx_candidates_pub_key on candidates(pub_key);
 	create unique index idx_candidates_address on candidates(address);
 	create index idx_candidates_hash on candidates(hash);
-	create table delegations(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', pending_withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  voting_power integer not null default 0, state text not null default 'Y', block_height integer not null, average_staking_date integer not null default 0, created_at text not null);
+	create table delegations(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', pending_withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  voting_power integer not null default 0, state text not null default 'Y', block_height integer not null, average_staking_date integer not null default 0, created_at integer not null);
 	create unique index idx_delegations_delegator_address_candidate_id on delegations(delegator_address, candidate_id);
 	create index idx_delegations_hash on delegations(hash);
  	create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, amount text not null default '0', op_code text not null default '', block_height integer not null, hash text not null default '');
 	create index idx_delegate_history_delegator_address on delegate_history(delegator_address);
 	create index idx_delegate_history_candidate_id on delegate_history(candidate_id);
 	create index idx_delegate_history_hash on delegate_history(hash);
-	create table slashes(id integer not null primary key autoincrement, candidate_id integer not null, slash_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null, block_height integer not null, hash text not null default '');
+	create table slashes(id integer not null primary key autoincrement, candidate_id integer not null, slash_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at integer not null, block_height integer not null, hash text not null default '');
 	create index idx_slashes_candidate_id on slashes(candidate_id);
 	create index idx_slashes_hash on slashes(hash);
  	create table unstake_requests(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', hash text not null default '');

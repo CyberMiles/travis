@@ -161,8 +161,8 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 
 func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 	for rows.Next() {
-		var pubKey, address, createdAt, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
-		var id, votingPower, pendingVotingPower, blockHeight, rank, numOfDelegators int64
+		var pubKey, address, shares, maxShares, name, website, location, profile, email, state, verified, active, compRate string
+		var id, votingPower, pendingVotingPower, blockHeight, rank, numOfDelegators, createdAt int64
 		err := rows.Scan(&id, &pubKey, &address, &shares, &votingPower, &pendingVotingPower, &maxShares, &compRate, &name, &website, &location, &profile, &email, &verified, &active, &blockHeight, &rank, &state, &numOfDelegators, &createdAt)
 		if err != nil {
 			panic(err)
@@ -417,8 +417,8 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 
 func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 	for rows.Next() {
-		var delegatorAddress, delegateAmount, awardAmount, withdrawAmount, pendingWithdrawAmount, slashAmount, compRate, state, createdAt string
-		var id, votingPower, blockHeight, averageStakingDate, candidateId int64
+		var delegatorAddress, delegateAmount, awardAmount, withdrawAmount, pendingWithdrawAmount, slashAmount, compRate, state string
+		var id, votingPower, blockHeight, averageStakingDate, candidateId, createdAt int64
 		err := rows.Scan(&id, &delegatorAddress, &candidateId, &delegateAmount, &awardAmount, &withdrawAmount, &pendingWithdrawAmount, &slashAmount, &compRate, &votingPower, &state, &blockHeight, &averageStakingDate, &createdAt)
 		if err != nil {
 			panic(err)
