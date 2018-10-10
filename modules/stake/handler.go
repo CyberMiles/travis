@@ -473,7 +473,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 		return err
 	}
 
-	now := d.ctx.FormatBlockTime()
+	now := d.ctx.BlockTime()
 	candidate := &Candidate{
 		PubKey:       pubKey,
 		OwnerAddress: d.sender.String(),
@@ -520,7 +520,6 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.Genesi
 	}
 
 	power, _ := strconv.ParseInt(val.Power, 10, 64)
-	now := utils.FormatUnixTime(0)
 	candidate := &Candidate{
 		PubKey:       pubKey,
 		OwnerAddress: d.sender.String(),
@@ -528,7 +527,7 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.Genesi
 		VotingPower:  power,
 		MaxShares:    tx.MaxAmount,
 		CompRate:     tx.CompRate,
-		CreatedAt:    now,
+		CreatedAt:    0,
 		Description:  tx.Description,
 		Verified:     "N",
 		Active:       "Y",
@@ -659,7 +658,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 	}
 
 	// create or update delegation
-	now := d.ctx.FormatBlockTime()
+	now := d.ctx.BlockTime()
 	delegation := GetDelegation(d.sender, candidate.Id)
 	if delegation == nil {
 		delegation = &Delegation{
@@ -735,7 +734,6 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 	delegation.ReduceAverageStakingDate(amount)
 	delegation.AddPendingWithdrawAmount(amount)
 	UpdateDelegation(delegation)
-	now := d.ctx.FormatBlockTime()
 
 	// update the number of candidate
 	if delegation.Shares().LT(sdk.NewInt(10)) {
@@ -755,7 +753,6 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 		PerformedBlockHeight: performedBlockHeight,
 		Amount:               amount.String(),
 		State:                "PENDING",
-		CreatedAt:            now,
 	}
 	saveUnstakeRequest(unstakeRequest)
 

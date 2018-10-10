@@ -34,7 +34,7 @@ type Candidate struct {
 	PendingVotingPower int64        `json:"pending_voting_power"`
 	MaxShares          string       `json:"max_shares"`
 	CompRate           sdk.Rat      `json:"comp_rate"`
-	CreatedAt          string       `json:"created_at"`
+	CreatedAt          int64        `json:"created_at"`
 	Description        Description  `json:"description"`
 	Verified           string       `json:"verified"`
 	Active             string       `json:"active"`
@@ -343,7 +343,7 @@ type Delegation struct {
 	SlashAmount           string         `json:"slash_amount"`
 	CompRate              sdk.Rat        `json:"comp_rate"`
 	VotingPower           int64          `json:"voting_power"`
-	CreatedAt             string         `json:"created_at"`
+	CreatedAt             int64          `json:"created_at"`
 	State                 string         `json:"state"`
 	BlockHeight           int64          `json:"block_height"`
 	AverageStakingDate    int64          `json:"average_staking_date"`
@@ -496,7 +496,7 @@ type Slash struct {
 	SlashRatio  sdk.Rat `json:"slash_ratio"`
 	SlashAmount sdk.Int `json:"slash_amount"`
 	Reason      string  `json:"reason"`
-	CreatedAt   string  `json:"created_at"`
+	CreatedAt   int64   `json:"created_at"`
 	BlockHeight int64   `json:"block_height"`
 	CandidateId int64   `json:"candidate_id"`
 }
@@ -516,7 +516,6 @@ type UnstakeRequest struct {
 	PerformedBlockHeight int64          `json:"performed_block_height"`
 	Amount               string         `json:"amount"`
 	State                string         `json:"state"`
-	CreatedAt            string         `json:"created_at"`
 	CandidateId          int64          `json:"candidate_id"`
 }
 
