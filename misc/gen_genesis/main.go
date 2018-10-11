@@ -1,5 +1,5 @@
-//package main
-package genesis
+package main
+//package genesis
 
 import (
 	"time"
@@ -20,6 +20,10 @@ var (
 )
 
 func main() {
+	if len(os.Args) <= 1 {
+		fmt.Fprintln(os.Stderr, "Usage: gen_genesis dev|mainnet|simu")
+		os.Exit(1)
+	}
 	config := &params.ChainConfig{
 		ChainID: big.NewInt(15),
 		HomesteadBlock: big.NewInt(0),
@@ -40,11 +44,21 @@ func main() {
 		GasLimit: uint64(0x1e8480000),
 		Difficulty: big.NewInt(0x40),
 		Mixhash: common.HexToHash("0x0"),
-		//Alloc: *(devAllocs()),
-		//Alloc: *(simulateAllocs()),
-		Alloc: *(mainnetAllocs()),
+		Alloc: *(devAllocs()),
 		ParentHash: common.HexToHash("0x0"),
 	}
+	switch env := os.Args[1]; env {
+	case "dev":
+		gen.Alloc = *(devAllocs())
+	case "simu":
+		gen.Alloc = *(simulateAllocs())
+	case "mainnet":
+		gen.Alloc = *(mainnetAllocs())
+	default:
+		fmt.Printf("Not supported environment: %s\n", env)
+		os.Exit(1)
+	}
+
 	//getAllocs()
 	if genJSON, err := gen.MarshalJSON();  err != nil {
 		panic(err)
