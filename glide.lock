@@ -214,7 +214,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/prometheus/client_golang
-  version: c5b7fccd204277076155f10851dad72b76a49317
+  version: ae27198cdd90bf12cd134ad79d1366a6cf49f632
   subpackages:
   - prometheus
   - prometheus/promhttp
@@ -299,8 +299,7 @@ imports:
 - name: github.com/tendermint/iavl
   version: 35f66e53d9b01e83b30de68b931f54b2477a94c9
 - name: github.com/tendermint/tendermint
-  version: 54c1af40c300adfa4ce57260f77cc624d672f748
-  repo: https://github.com/CyberMiles/tendermint.git
+  version: d542d2c3945116697f60451e6a407082c41c3cc9
   subpackages:
   - abci/client
   - abci/example/code

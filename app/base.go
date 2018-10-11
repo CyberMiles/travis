@@ -23,7 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -204,7 +204,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	// handle the absent validators
 	for _, sv := range req.Validators {
-		var pk crypto.PubKeyEd25519
+		var pk ed25519.PubKeyEd25519
 		copy(pk[:], sv.Validator.PubKey.Data)
 
 		pubKey := ttypes.PubKey{pk}
@@ -283,7 +283,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 				}
 				if i == len(pks) {
 					inaVs = append(inaVs, v)
-					pk := v.PubKey.PubKey.(crypto.PubKeyEd25519)
+					pk := v.PubKey.PubKey.(ed25519.PubKeyEd25519)
 					abciVs = append(abciVs, abci.Ed25519Validator(pk[:], 0))
 				}
 			}
@@ -354,7 +354,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		}
 
 		// slash block proposer
-		var pk crypto.PubKeyEd25519
+		var pk ed25519.PubKeyEd25519
 		copy(pk[:], app.proposer.PubKey.Data)
 		pubKey := ttypes.PubKey{pk}
 		stake.SlashBadProposer(pubKey, app.blockTime, app.WorkingHeight())
