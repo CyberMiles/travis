@@ -1,7 +1,8 @@
 package: github.com/CyberMiles/travis
 import:
 - package: github.com/prometheus/client_golang
-  version: v0.8.0
+#  version: v0.8.0
+  version: ae27198cdd90bf12cd134ad79d1366a6cf49f632
 - package: github.com/prometheus/client_model
   version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
 - package: github.com/prometheus/common
@@ -24,8 +25,9 @@ import:
   subpackages:
   - data
 - package: github.com/tendermint/tendermint
-  repo: https://github.com/CyberMiles/tendermint.git
-  version: 54c1af40c300adfa4ce57260f77cc624d672f748
+#  repo: https://github.com/CyberMiles/tendermint.git
+#  version: 54c1af40c300adfa4ce57260f77cc624d672f748
+  version: d542d2c3945116697f60451e6a407082c41c3cc9
   subpackages:
   - config
   - node
