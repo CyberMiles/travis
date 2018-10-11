@@ -568,13 +568,15 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 			if rechargeAmount.Cmp(big.NewInt(0)) > 0 {
 				// charge
 				totalCost = totalCost.Add(rechargeAmount)
-				//commons.Transfer(d.sender, utils.HoldAccount, rechargeAmountAbs)
 				candidate.AddShares(rechargeAmount)
 
 				// update delegation
 				delegation := GetDelegation(d.sender, candidate.Id)
 				delegation.AddDelegateAmount(rechargeAmount)
 				UpdateDelegation(delegation)
+
+				delegateHistory := &DelegateHistory{DelegatorAddress: d.sender, CandidateId: candidate.Id, Amount: rechargeAmount, OpCode: "recharge", BlockHeight: d.ctx.BlockHeight()}
+				saveDelegateHistory(delegateHistory)
 			}
 
 			candidate.MaxShares = maxAmount.String()
