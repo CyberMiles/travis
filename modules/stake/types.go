@@ -329,6 +329,15 @@ func (vs Validators) Deactivate() {
 	}
 }
 
+func (vs Validators) Contains(pk types.PubKey) bool {
+	for _, v := range vs {
+		if v.PubKey == pk {
+			return true
+		}
+	}
+	return false
+}
+
 //_________________________________________________________________________
 
 type Delegation struct {

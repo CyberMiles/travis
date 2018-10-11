@@ -42,8 +42,8 @@ type BaseApp struct {
 }
 
 var (
-	_ abci.Application = &BaseApp{}
-	toBeShutdown = false
+	_            abci.Application = &BaseApp{}
+	toBeShutdown                  = false
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
@@ -259,7 +259,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	var backups stake.Validators
 	for _, bv := range stake.GetBackupValidators() {
 		// exclude the absent validators
-		if !app.AbsentValidators.Contains(bv.PubKey) {
+		if !app.AbsentValidators.Contains(bv.PubKey) && !app.PresentValidators.Contains(bv.PubKey) {
 			backups = append(backups, bv.Validator())
 		}
 	}
