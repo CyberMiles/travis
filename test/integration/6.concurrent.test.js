@@ -20,9 +20,7 @@ describe("Concurrent Test", function() {
   })
   after(function(done) {
     // transfer back
-    let balance = web3
-      .toWei(web3.toBigNumber(50000), "cmt")
-      .minus(web3.cmt.getBalance(B, "latest"))
+    let balance = web3.toWei(web3.toBigNumber(50000), "cmt").minus(web3.cmt.getBalance(B, "latest"))
     if (balance > 0) Utils.transfer(C, B, balance)
     balance = web3.cmt
       .getBalance(C, "latest")
@@ -55,12 +53,7 @@ describe("Concurrent Test", function() {
       })
       it("if B has enough CMTs, but A only has gas fee for one tx", function(done) {
         Utils.transfer(C, B, CMT2)
-        Utils.transfer(
-          C,
-          A,
-          Utils.gasFee("proposeTransferFund"),
-          Globals.Params.gas_price
-        )
+        Utils.transfer(C, A, Utils.gasFee("proposeTransferFund"), Globals.Params.gas_price)
         Utils.waitBlocks(done, 1)
       })
       it("one of the 2 requests will fail", function(done) {
@@ -68,8 +61,8 @@ describe("Concurrent Test", function() {
           logger.debug(res)
           expect(res.length).to.equal(TIMES)
           expect(
-            (res[0].height == 0 && res[1].height > 0) ||
-              (res[0].height > 0 && res[1].height == 0)
+            (res[1].height > 0 && (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
+              (res[0].height > 0 && (res[1].height == 0 || res[1].deliver_tx.code > 0))
           ).to.be.true
           done()
         })
@@ -78,9 +71,7 @@ describe("Concurrent Test", function() {
         Utils.transfer(
           C,
           A,
-          Utils.gasFee("proposeTransferFund").plus(
-            Utils.gasFee("proposeTransferFund")
-          ),
+          Utils.gasFee("proposeTransferFund").plus(Utils.gasFee("proposeTransferFund")),
           Globals.Params.gas_price
         )
         Utils.waitBlocks(done, 1)
@@ -90,8 +81,8 @@ describe("Concurrent Test", function() {
           logger.debug(res)
           expect(res.length).to.equal(TIMES)
           expect(
-            (res[0].height == 0 && res[1].height > 0) ||
-              (res[0].height > 0 && res[1].height == 0)
+            (res[1].height > 0 && (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
+              (res[0].height > 0 && (res[1].height == 0 || res[1].deliver_tx.code > 0))
           ).to.be.true
           done()
         })
@@ -117,12 +108,7 @@ describe("Concurrent Test", function() {
         })
       })
       it("if A has only gas fee for one tx", function(done) {
-        Utils.transfer(
-          C,
-          A,
-          Utils.gasFee("updateCandidacy"),
-          Globals.Params.gas_price
-        )
+        Utils.transfer(C, A, Utils.gasFee("updateCandidacy"), Globals.Params.gas_price)
         Utils.waitBlocks(done, 1)
       })
       it("one of the 2 requests will fail", function(done) {
@@ -130,8 +116,8 @@ describe("Concurrent Test", function() {
           logger.debug(res)
           expect(res.length).to.equal(TIMES)
           expect(
-            (res[0].height == 0 && res[1].height > 0) ||
-              (res[0].height > 0 && res[1].height == 0)
+            (res[1].height > 0 && (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
+              (res[0].height > 0 && (res[1].height == 0 || res[1].deliver_tx.code > 0))
           ).to.be.true
           done()
         })
@@ -157,12 +143,7 @@ describe("Concurrent Test", function() {
         })
       })
       it("if A has only gas fee for one tx", function(done) {
-        Utils.transfer(
-          C,
-          A,
-          Utils.gasFee("setCompRate"),
-          Globals.Params.gas_price
-        )
+        Utils.transfer(C, A, Utils.gasFee("setCompRate"), Globals.Params.gas_price)
         Utils.waitBlocks(done, 1)
       })
       it("one of the 2 requests will fail", function(done) {
@@ -170,8 +151,8 @@ describe("Concurrent Test", function() {
           logger.debug(res)
           expect(res.length).to.equal(TIMES)
           expect(
-            (res[0].height == 0 && res[1].height > 0) ||
-              (res[0].height > 0 && res[1].height == 0)
+            (res[1].height > 0 && (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
+              (res[0].height > 0 && (res[1].height == 0 || res[1].deliver_tx.code > 0))
           ).to.be.true
           done()
         })
@@ -202,10 +183,8 @@ describe("Concurrent Test", function() {
           logger.debug(res)
           expect(res.length).to.equal(TIMES)
           expect(
-            (res[1].height > 0 &&
-              (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
-              (res[0].height > 0 &&
-                (res[1].height == 0 || res[1].deliver_tx.code > 0))
+            (res[1].height > 0 && (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
+              (res[0].height > 0 && (res[1].height == 0 || res[1].deliver_tx.code > 0))
           ).to.be.true
           done()
         })
@@ -239,8 +218,8 @@ describe("Concurrent Test", function() {
           logger.debug(res)
           expect(res.length).to.equal(TIMES)
           expect(
-            (res[0].height == 0 && res[1].height > 0) ||
-              (res[0].height > 0 && res[1].height == 0)
+            (res[1].height > 0 && (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
+              (res[0].height > 0 && (res[1].height == 0 || res[1].deliver_tx.code > 0))
           ).to.be.true
           done()
         })
@@ -263,19 +242,14 @@ describe("Concurrent Test", function() {
       it("one of the 2 requests will fail", function(done) {
         let nonceB = web3.cmt.getTransactionCount(B)
         let nonceC = web3.cmt.getTransactionCount(C)
-        let arr = [
-          { from: B, nonce: nonceB, deleAmount },
-          { from: C, nonce: nonceC, deleAmount }
-        ]
+        let arr = [{ from: B, nonce: nonceB, deleAmount }, { from: C, nonce: nonceC, deleAmount }]
 
         async.map(arr, deleAccept, (err, res) => {
           logger.debug(res)
           expect(res.length).to.equal(2)
           expect(
-            (res[1].height > 0 &&
-              (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
-              (res[0].height > 0 &&
-                (res[1].height == 0 || res[1].deliver_tx.code > 0))
+            (res[1].height > 0 && (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
+              (res[0].height > 0 && (res[1].height == 0 || res[1].deliver_tx.code > 0))
           ).to.be.true
           done()
         })
@@ -304,12 +278,7 @@ describe("Concurrent Test", function() {
         })
       })
       it("if V has only CMTs for one tx", function(done) {
-        Utils.transfer(
-          C,
-          V,
-          Utils.gasFee("declareCandidacy").plus(10),
-          Globals.Params.gas_price
-        )
+        Utils.transfer(C, V, Utils.gasFee("declareCandidacy").plus(10), Globals.Params.gas_price)
         Utils.waitBlocks(done, 1)
       })
       it("one of the 2 requests will fail", function(done) {
@@ -317,10 +286,8 @@ describe("Concurrent Test", function() {
           logger.debug(res)
           expect(res.length).to.equal(TIMES)
           expect(
-            (res[1].height > 0 &&
-              (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
-              (res[0].height > 0 &&
-                (res[1].height == 0 || res[1].deliver_tx.code > 0))
+            (res[1].height > 0 && (res[0].height == 0 || res[0].deliver_tx.code > 0)) ||
+              (res[0].height > 0 && (res[1].height == 0 || res[1].deliver_tx.code > 0))
           ).to.be.true
           done()
         })
