@@ -100,7 +100,7 @@ func mainnetAllocs() *core.GenesisAlloc {
 		if !success {
 			panic("convert alloc balance error!")
 		}
-		fmt.Printf("%s: %v\n", row[0], common.HexToAddress(row[0]))
+		//fmt.Printf("%s: %v\n", row[0], common.HexToAddress(row[0]))
 		allocs[common.HexToAddress(row[0])] = core.GenesisAccount{Balance:balance}
 	}
 	return &allocs
