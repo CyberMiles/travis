@@ -42,7 +42,8 @@ type EthermintApplication struct {
 
 	logger tmLog.Logger
 
-	lowPriceTransactions map[FromTo]struct{}
+	lowPriceCheckTransactions map[FromTo]struct{}
+	lowPriceDeliverTransactions map[FromTo]struct{}
 }
 
 // NewEthermintApplication creates a fully initialised instance of EthermintApplication
@@ -60,7 +61,8 @@ func NewEthermintApplication(backend *api.Backend,
 		rpcClient:            client,
 		checkTxState:         state.StateDB,
 		strategy:             strategy,
-		lowPriceTransactions: make(map[FromTo]struct{}),
+		lowPriceCheckTransactions: make(map[FromTo]struct{}),
+		lowPriceDeliverTransactions: make(map[FromTo]struct{}),
 	}
 
 	if err := app.backend.InitEthState(app.Receiver()); err != nil {
@@ -140,6 +142,19 @@ func (app *EthermintApplication) CheckTx(tx *ethTypes.Transaction) abciTypes.Res
 func (app *EthermintApplication) DeliverTx(tx *ethTypes.Transaction) abciTypes.ResponseDeliverTx {
 	app.logger.Debug("DeliverTx: Received valid transaction", "tx", tx) // nolint: errcheck
 
+	networkId := big.NewInt(int64(app.backend.Ethereum().NetVersion()))
+	signer := ethTypes.NewEIP155Signer(networkId)
+	from, err := ethTypes.Sender(signer, tx)
+	if err != nil {
+		// TODO: Add errors.CodeTypeInvalidSignature ?
+		return abciTypes.ResponseDeliverTx{
+				Code: errors.CodeTypeInternalErr,
+				Log:  err.Error()}
+	}
+	if code, errLog := app.lowPriceTxCheck(from, tx, app.lowPriceDeliverTransactions); code != abciTypes.CodeTypeOK {
+		return abciTypes.ResponseDeliverTx{Code: code, Log: errLog}
+	}
+
 	res := app.backend.DeliverTx(tx)
 	if res.IsErr() {
 		// nolint: errcheck
@@ -203,7 +218,8 @@ func (app *EthermintApplication) Commit() (abciTypes.ResponseCommit, error) {
 	}
 	app.checkTxState = state.StateDB
 
-	app.lowPriceTransactions = make(map[FromTo]struct{})
+	app.lowPriceCheckTransactions = make(map[FromTo]struct{})
+	app.lowPriceDeliverTransactions = make(map[FromTo]struct{})
 
 	return abciTypes.ResponseCommit{
 		Data: blockHash[:],
@@ -268,8 +284,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 			Log:  core.ErrIntrinsicGas.Error()}
 	}
 
-	if resp := app.lowPriceTxCheck(from, tx); resp.Code != abciTypes.CodeTypeOK{
-		return resp
+	if code, errLog := app.lowPriceTxCheck(from, tx, app.lowPriceCheckTransactions); code != abciTypes.CodeTypeOK {
+		return abciTypes.ResponseCheckTx{Code: code, Log: errLog}
 	}
 
 	// Update ether balances
@@ -285,7 +301,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }
 
-func  (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTypes.Transaction)  abciTypes.ResponseCheckTx {
+func  (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTypes.Transaction, lowPriceTxs map[FromTo]struct{}) (uint32, string)  {
 	// Iterate over all transactions to check if the gas price is too low for the
 	// non-first transaction with the same from/to address
 	// Todo performance maybe
@@ -296,17 +312,17 @@ func  (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTy
 	ft := FromTo{from: from, to: to}
 
 	if tx.GasPrice().Cmp(new(big.Int).SetUint64(utils.GetParams().GasPrice)) < 0 {
-		if _, ok := app.lowPriceTransactions[ft]; ok {
-			return abciTypes.ResponseCheckTx{Code: errors.CodeLowGasPriceErr, Log: "The gas price is too low for transaction"}
+		if _, ok := lowPriceTxs[ft]; ok {
+			return errors.CodeLowGasPriceErr, "The gas price is too low for transaction"
 		}
 		if tx.Gas() > utils.GetParams().LowPriceTxGasLimit {
-			return abciTypes.ResponseCheckTx{Code: errors.CodeHighGasLimitErr, Log: "The gas limit is too high for low price transaction"}
+			return errors.CodeHighGasLimitErr, "The gas limit is too high for low price transaction"
 		}
-		if len(app.lowPriceTransactions) > utils.GetParams().LowPriceTxSlotsCap {
-			return abciTypes.ResponseCheckTx{Code: errors.CodeLowPriceTxCapErr, Log: "The capacity of one block is reached for low price transactions"}
+		if len(lowPriceTxs) > utils.GetParams().LowPriceTxSlotsCap {
+			return errors.CodeLowPriceTxCapErr, "The capacity of one block is reached for low price transactions"
 		}
-		app.lowPriceTransactions[ft] = struct{}{}
+		lowPriceTxs[ft] = struct{}{}
 	}
 
-	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
+	return abciTypes.CodeTypeOK, ""
 }

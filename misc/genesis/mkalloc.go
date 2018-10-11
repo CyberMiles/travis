@@ -81,5 +81,5 @@ func main() {
 	if err := json.NewDecoder(file).Decode(g); err != nil {
 		panic(err)
 	}
-	fmt.Printf("const %s = %s\n", os.Args[1], makealloc(g))
+	fmt.Printf("package genesis\n\nconst %s = %s\n", os.Args[1], makealloc(g))
 }

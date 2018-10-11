@@ -39,11 +39,12 @@ install:
 
 script:
   - make docker_image
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+  - TAG=$TRAVIS_BRANCH make push_tag_image ;
   - |
     if [ -z "$TRAVIS_TAG" ]; then
       ./test/integration/test.sh
     fi
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
 
 after_success:
   - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
@@ -60,6 +61,14 @@ after_failure:
 
 before_deploy:
   - BUILD_TAG=$TRAVIS_TAG make dist
+  - |
+    if [[ "$TRAVIS_TAG" == "vStaging" ]]; then
+      export BODY=release for staging
+    elif [[ "$TRAVIS_TAG" == "vTestnet" ]]; then
+      export BODY=release for testnet
+    else
+      export BODY=https://github.com/CyberMiles/travis/blob/develop/CHANGELOG.md#${TRAVIS_TAG//.}
+    fi
 
 deploy:
   provider: releases
@@ -70,10 +79,7 @@ deploy:
   file_glob: true
   file: "build/dist/*.zip"
   name: Travis $TRAVIS_TAG
-  body: https://github.com/CyberMiles/travis/blob/develop/CHANGELOG.md#${TRAVIS_TAG//.}
+  body: $BODY
   on:
     repo: CyberMiles/travis
     tags: true
-
-after_script:
-  - cd $TRAVIS_BUILD_DIR && TAG=$TRAVIS_BRANCH make push_tag_image ;

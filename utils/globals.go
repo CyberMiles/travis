@@ -12,8 +12,20 @@ import (
 const (
 	CommitSeconds       = 10
 	HalfYear            = 180
-	YearlyBlockNumber   = 365 * 24 * 3600 / 10
+	YearlyBlockNumber   = 365 * 24 * 3600 / CommitSeconds
 	BasicMintableAmount = "1000000000000000000000000000"
+	DB_FILE_NAME        = "cybermiles.db"
+)
+
+const (
+	Staging      = 20
+	TestNet      = 19
+	MainNet      = 18
+	PrivateChain = 1234
+)
+
+const (
+	MonitorRpcPort = "26650"
 )
 
 type StateChangeObject struct {
@@ -182,7 +194,7 @@ func CalGasFee(gasUsed uint64, gasPrice uint64) sdk.Int {
 var (
 	BlockGasFee      = big.NewInt(0)
 	StateChangeQueue []StateChangeObject
-	PendingProposal = &pendingProposal{
+	PendingProposal  = &pendingProposal{
 		make(map[string]int64),
 		math.MaxInt64,
 		nil,
@@ -190,6 +202,8 @@ var (
 		math.MaxInt64,
 		nil,
 	}
+	RetiringProposalId string // Indicate where to shutdown the node
+
 	MintAccount    = common.HexToAddress("0000000000000000000000000000000000000000")
 	HoldAccount    = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 	GovHoldAccount = common.HexToAddress("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")

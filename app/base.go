@@ -1,13 +1,21 @@
 package app
 
 import (
+	"bytes"
+	"database/sql"
 	goerr "errors"
 	"math/big"
+	"strings"
 
+	"github.com/CyberMiles/travis/modules/governance"
+	"github.com/CyberMiles/travis/modules/stake"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/dbm"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
+	"github.com/CyberMiles/travis/server"
+	ttypes "github.com/CyberMiles/travis/types"
+	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/version"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -15,13 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"bytes"
-	"database/sql"
-	"github.com/CyberMiles/travis/modules/governance"
-	"github.com/CyberMiles/travis/modules/stake"
-	ttypes "github.com/CyberMiles/travis/types"
-	"github.com/CyberMiles/travis/utils"
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -40,7 +42,8 @@ type BaseApp struct {
 }
 
 var (
-	_ abci.Application = &BaseApp{}
+	_            abci.Application = &BaseApp{}
+	toBeShutdown                  = false
 )
 
 // NewBaseApp extends a StoreApp with a handler and a ticker,
@@ -102,10 +105,18 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 	rp := governance.GetRetiringProposal(version.Version)
 	if rp != nil {
 		if rp.ExpireBlockHeight <= ethInfoRes.LastBlockHeight {
-			// TODO exit program right now
+			rp = governance.GetProposalById(rp.Id)
+			if rp.Detail["status"] == "success" {
+				server.StopFlag <- true
+			}
+		} else if rp.ExpireBlockHeight == ethInfoRes.LastBlockHeight+1 {
+			if rp.Result == "Approved" {
+				utils.RetiringProposalId = rp.Id
+			}
+		} else {
+			// check ahead one block
+			utils.PendingProposal.Add(rp.Id, 0, rp.ExpireBlockHeight-1)
 		}
-
-		utils.PendingProposal.Add(rp.Id, 0, rp.ExpireBlockHeight)
 	}
 
 	travisInfoRes := app.StoreApp.Info(req)
@@ -193,7 +204,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	// handle the absent validators
 	for _, sv := range req.Validators {
-		var pk crypto.PubKeyEd25519
+		var pk ed25519.PubKeyEd25519
 		copy(pk[:], sv.Validator.PubKey.Data)
 
 		pubKey := ttypes.PubKey{pk}
@@ -230,7 +241,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 				continue
 			}
 
-			stake.SlashByzantineValidator(pk)
+			stake.SlashByzantineValidator(pk, app.blockTime, app.WorkingHeight())
 		}
 		app.ByzantineValidators = app.ByzantineValidators[:0]
 	}
@@ -242,24 +253,61 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 			continue
 		}
 
-		stake.SlashAbsentValidator(pk, v)
+		stake.SlashAbsentValidator(pk, v, app.blockTime, app.WorkingHeight())
 	}
 
 	var backups stake.Validators
 	for _, bv := range stake.GetBackupValidators() {
 		// exclude the absent validators
-		if !app.AbsentValidators.Contains(bv.PubKey) {
+		if !app.AbsentValidators.Contains(bv.PubKey) && !app.PresentValidators.Contains(bv.PubKey) {
 			backups = append(backups, bv.Validator())
 		}
 	}
 
-	// calculate the validator set difference
-	if calVPCheck(app.WorkingHeight()) {
-		diff, err := stake.UpdateValidatorSet()
-		if err != nil {
-			panic(err)
+	// Deactivate validators that not in the list of preserved validators
+	if utils.RetiringProposalId != "" {
+		if proposal := governance.GetProposalById(utils.RetiringProposalId); proposal != nil {
+			pks := strings.Split(proposal.Detail["preserved_validators"].(string), ",")
+			vs := stake.GetCandidates().Validators()
+			inaVs := make(stake.Validators, 0)
+			abciVs := make([]abci.Validator, 0)
+			pvSize := 0
+			for _, v := range vs {
+				i := 0
+				for ; i < len(pks); i++ {
+					if pks[i] == ttypes.PubKeyString(v.PubKey) {
+						abciVs = append(abciVs, v.ABCIValidator())
+						pvSize++
+						break
+					}
+				}
+				if i == len(pks) {
+					inaVs = append(inaVs, v)
+					pk := v.PubKey.PubKey.(ed25519.PubKeyEd25519)
+					abciVs = append(abciVs, abci.Ed25519Validator(pk[:], 0))
+				}
+			}
+			if pvSize >= 1 {
+				inaVs.Deactivate()
+				app.AddValChange(abciVs)
+				toBeShutdown = true
+				governance.UpdateRetireProgramStatus(utils.RetiringProposalId, "success")
+			} else {
+				governance.UpdateRetireProgramStatus(utils.RetiringProposalId, "rejected")
+			}
+		} else {
+			app.logger.Error("Getting invalid RetiringProposalId")
 		}
-		app.AddValChange(diff)
+	}
+	if !toBeShutdown { // should not update validator set twice if the node is to be shutdown
+		// calculate the validator set difference
+		if calVPCheck(app.WorkingHeight()) {
+			diff, err := stake.UpdateValidatorSet(app.WorkingHeight())
+			if err != nil {
+				panic(err)
+			}
+			app.AddValChange(diff)
+		}
 	}
 
 	// block award
@@ -275,7 +323,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	// record candidates stakes daily
 	if calStakeCheck(app.WorkingHeight()) {
 		// run once a day
-		stake.RecordCandidateDailyStakes()
+		stake.RecordCandidateDailyStakes(app.WorkingHeight())
 	}
 
 	// Accumulates the average staking date of all delegations
@@ -288,6 +336,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 }
 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
+	if toBeShutdown {
+		server.StopFlag <- true
+	}
+
 	app.checkedTx = make(map[common.Hash]*types.Transaction)
 	ethAppCommit, err := app.EthApp.Commit()
 	if err != nil {
@@ -302,10 +354,10 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		}
 
 		// slash block proposer
-		var pk crypto.PubKeyEd25519
+		var pk ed25519.PubKeyEd25519
 		copy(pk[:], app.proposer.PubKey.Data)
 		pubKey := ttypes.PubKey{pk}
-		stake.SlashBadProposer(pubKey)
+		stake.SlashBadProposer(pubKey, app.blockTime, app.WorkingHeight())
 	} else {
 		if app.deliverSqlTx != nil {
 			// Commit transaction
@@ -344,10 +396,6 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 	buf.Write(dbHash)
 	hasher.Write(buf.Bytes())
 	hash := hasher.Sum(nil)
-
-	//if store != nil {
-	//	// TODO: save to DB
-	//}
 	return hash
 }
 
@@ -356,7 +404,7 @@ func calStakeCheck(height int64) bool {
 }
 
 func calVPCheck(height int64) bool {
-	return height%int64(utils.GetParams().CalVPInterval) == 0
+	return height == 1 || height%int64(utils.GetParams().CalVPInterval) == 0
 }
 
 func calAvgStakingDateCheck(height int64) bool {

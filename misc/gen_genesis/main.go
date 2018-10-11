@@ -1,6 +1,5 @@
-//package main
-package genesis
-
+package main
+//package genesis
 
 import (
 	"time"
@@ -21,11 +20,20 @@ var (
 )
 
 func main() {
+	if len(os.Args) <= 1 {
+		fmt.Fprintln(os.Stderr, "Usage: gen_genesis dev|mainnet|simu")
+		os.Exit(1)
+	}
 	config := &params.ChainConfig{
 		ChainID: big.NewInt(15),
 		HomesteadBlock: big.NewInt(0),
+		EIP150Block : big.NewInt(0),
 		EIP155Block: big.NewInt(0),
 		EIP158Block: big.NewInt(0),
+		DAOForkBlock : big.NewInt(0),
+		DAOForkSupport : false,
+		ByzantiumBlock : big.NewInt(0),
+		ConstantinopleBlock : big.NewInt(0),
 	}
 
 	gen := &core.Genesis{
@@ -37,10 +45,20 @@ func main() {
 		Difficulty: big.NewInt(0x40),
 		Mixhash: common.HexToHash("0x0"),
 		Alloc: *(devAllocs()),
-		//Alloc: *(simulateAllocs()),
-		//Alloc: *(mainnetAllocs()),
 		ParentHash: common.HexToHash("0x0"),
 	}
+	switch env := os.Args[1]; env {
+	case "dev":
+		gen.Alloc = *(devAllocs())
+	case "simu":
+		gen.Alloc = *(simulateAllocs())
+	case "mainnet":
+		gen.Alloc = *(mainnetAllocs())
+	default:
+		fmt.Printf("Not supported environment: %s\n", env)
+		os.Exit(1)
+	}
+
 	//getAllocs()
 	if genJSON, err := gen.MarshalJSON();  err != nil {
 		panic(err)
@@ -78,7 +96,7 @@ func mainnetAllocs() *core.GenesisAlloc {
 	0x7eff122b94897ea5b0e2a9abf47b86337fafebdc,1000000000000000000
 	0x77beb894fc9b0ed41231e51f128a347043960a9d,1000000000000000000
 	*/
-	file := "/tmp/example.csv"
+	file := "/tmp/erc20_cmt.csv"
 	f, err := os.Open(file)
 	if err != nil {
 		panic(err)
@@ -97,11 +115,12 @@ func mainnetAllocs() *core.GenesisAlloc {
 			return &allocs
 		}
 
-		balance, success := big.NewInt(0).SetString(row[1], 10)
+		balance, success := big.NewInt(0).SetString(strings.Trim(row[1]," "), 10)
 		if !success {
 			panic("convert alloc balance error!")
 		}
-			allocs[common.HexToAddress(row[0])] = core.GenesisAccount{Balance:balance}
+		//fmt.Printf("%s: %v\n", row[0], common.HexToAddress(row[0]))
+		allocs[common.HexToAddress(row[0])] = core.GenesisAccount{Balance:balance}
 	}
 	return &allocs
 }

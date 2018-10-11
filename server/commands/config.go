@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	tmcfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tendermint/libs/common"
+	"github.com/CyberMiles/travis/utils"
 )
 
 const (
@@ -66,7 +67,7 @@ type EthermintConfig struct {
 
 func DefaultEthermintConfig() EthermintConfig {
 	return EthermintConfig{
-		ChainId:             TestNet,
+		ChainId:             utils.TestNet,
 		ABCIAddr:            "tcp://0.0.0.0:8848",
 		ABCIProtocol:        "socket",
 		RPCEnabledFlag:      true,
@@ -91,13 +92,13 @@ func ParseConfig() (*TravisConfig, error) {
 	// set chainid as per --env
 	switch viper.GetString(FlagENV) {
 	case "staging":
-		conf.EMConfig.ChainId = Staging
+		conf.EMConfig.ChainId = utils.Staging
 	case "mainnet":
-		conf.EMConfig.ChainId = MainNet
+		conf.EMConfig.ChainId = utils.MainNet
 	case "testnet":
-		conf.EMConfig.ChainId = TestNet
+		conf.EMConfig.ChainId = utils.TestNet
 	default:
-		conf.EMConfig.ChainId = PrivateChain
+		conf.EMConfig.ChainId = utils.PrivateChain
 	}
 
 	err := viper.Unmarshal(&conf)

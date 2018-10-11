@@ -26,9 +26,8 @@ describe("Stake Test", function() {
     amounts = new Amounts(2000000)
   })
 
-  after(function(done) {
+  after(function() {
     Utils.removeFakeValidators()
-    Utils.waitBlocks(done, 1)
   })
 
   before(function() {
@@ -92,11 +91,7 @@ describe("Stake Test", function() {
         before(function(done) {
           let balance = Utils.getBalance(3)
           if (balance.minus(amounts.self) < 0) {
-            let hash = Utils.transfer(
-              web3.cmt.defaultAccount,
-              Globals.Accounts[3],
-              amounts.self
-            )
+            let hash = Utils.transfer(web3.cmt.defaultAccount, Globals.Accounts[3], amounts.self)
             Utils.waitInterval(hash, (err, res) => {
               expect(err).to.be.null
               expect(res).to.be.not.null
@@ -139,7 +134,8 @@ describe("Stake Test", function() {
         })
         it("D is not a validator yet", function() {
           tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-          expect(tx_result.data.voting_power).to.eq(0)
+          // backup validator has voting power now
+          expect(tx_result.data.voting_power).to.be.above(0)
           expect(tx_result.data.state).to.not.eq("Validator")
         })
       })
@@ -157,9 +153,7 @@ describe("Stake Test", function() {
       Utils.expectTxSuccess(tx_result)
       // check validator's status
       tx_result = web3.cmt.stake.validator.list()
-      tx_result.data.forEach(
-        d => (d.owner_address = d.owner_address.toLowerCase())
-      )
+      tx_result.data.forEach(d => (d.owner_address = d.owner_address.toLowerCase()))
       expect(tx_result.data).to.containSubset([
         { owner_address: Globals.Accounts[3], verified: "Y" }
       ])
@@ -171,9 +165,7 @@ describe("Stake Test", function() {
       tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
       // check validator's information
       logger.debug(tx_result.data)
-      expect(tx_result.data.owner_address.toLowerCase()).to.eq(
-        Globals.Accounts[3]
-      )
+      expect(tx_result.data.owner_address.toLowerCase()).to.eq(Globals.Accounts[3])
       expect(tx_result.data.verified).to.eq("Y")
       expect(tx_result.data.comp_rate).to.eq(compRate)
       expect(tx_result.data.pub_key.value).to.eq(Globals.PubKeys[3])
@@ -199,23 +191,15 @@ describe("Stake Test", function() {
       })
 
       it("CMTs are moved from account B", function() {
-        Utils.delegatorAccept(
-          Globals.Accounts[1],
-          Globals.Accounts[3],
-          amounts.dele1
-        )
+        Utils.delegatorAccept(Globals.Accounts[1], Globals.Accounts[3], amounts.dele1)
         // balance after
         balance_new = Utils.getBalance(1)
-        expect(balance_new.minus(balance_old).toNumber()).to.equal(
-          Number(-amounts.dele1)
-        )
+        expect(balance_new.minus(balance_old).toNumber()).to.equal(Number(-amounts.dele1))
       })
       it("CMTs show up as staked balance for B", function() {
         let delegation_after = Utils.getDelegation(1, 3)
         expect(
-          delegation_after.delegate_amount
-            .minus(delegation_before.delegate_amount)
-            .toNumber()
+          delegation_after.delegate_amount.minus(delegation_before.delegate_amount).toNumber()
         ).to.eq(Number(amounts.dele1))
       })
     })
@@ -227,24 +211,16 @@ describe("Stake Test", function() {
         delegation_before = Utils.getDelegation(2, 3)
       })
       it("CMTs are moved from account C", function(done) {
-        Utils.delegatorAccept(
-          Globals.Accounts[2],
-          Globals.Accounts[3],
-          amounts.dele2
-        )
+        Utils.delegatorAccept(Globals.Accounts[2], Globals.Accounts[3], amounts.dele2)
         // balance after
         balance_new = Utils.getBalance(2)
-        expect(balance_new.minus(balance_old).toNumber()).to.equal(
-          Number(-amounts.dele2)
-        )
+        expect(balance_new.minus(balance_old).toNumber()).to.equal(Number(-amounts.dele2))
         Utils.waitBlocks(done, 1)
       })
       it("CMTs show up as staked balance for C", function() {
         let delegation_after = Utils.getDelegation(2, 3)
         expect(
-          delegation_after.delegate_amount
-            .minus(delegation_before.delegate_amount)
-            .toNumber()
+          delegation_after.delegate_amount.minus(delegation_before.delegate_amount).toNumber()
         ).to.eq(Number(amounts.dele2))
       })
       it("D is now a validator", function() {
@@ -259,6 +235,41 @@ describe("Stake Test", function() {
       })
     })
   })
+
+  describe("Block awards check after D becomes a validator", function() {
+    let awardInfos
+    before(function(done) {
+      if (Globals.TestMode == "single") {
+        // skips current and all nested describes
+        this.test.parent.pending = true
+        this.skip()
+      }
+      Utils.waitBlocks(done, 1)
+    })
+    before(function() {
+      awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+    })
+    it("sum of awards should equal to block award", function() {
+      let sum = web3.toBigNumber(0)
+      awardInfos.data.forEach(o => {
+        sum = sum.plus(web3.toBigNumber(o.amount))
+      })
+      logger.debug(awardInfos)
+      let diff = Math.abs(sum.minus(Utils.getBlockAward()).toNumber())
+      logger.debug("sum, diff: ", sum.toString(), diff)
+      expect(diff).to.be.below(Number(web3.toWei(1, "gwei")))
+    })
+    it.skip("5 in total, 4 validators, 1 backup, D is validator", function() {
+      expect(awardInfos.data.length).to.be.eq(5)
+      let vCount = awardInfos.data.filter(o => o.state == "Validator").length
+      let bCount = awardInfos.data.filter(o => o.state == "Backup Validator").length
+      expect(vCount).to.be.eq(4)
+      expect(bCount).to.be.eq(1)
+      let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
+      expect(data != null && data.state == "Validator").to.be.true
+    })
+  })
+
   describe("Voting Power", function() {
     let val_D, dele_B, dele_C, dele_D
     let p = 1
@@ -307,73 +318,6 @@ describe("Stake Test", function() {
     })
   })
 
-  describe("Block awards", function() {
-    let blocks = 1,
-      vals_expected = [],
-      dele_expected = []
-    let val_D, dele_B, dele_C, dele_D
-
-    before(function() {
-      if (Globals.TestMode == "single") {
-        // skips current and all nested describes
-        this.test.parent.pending = true
-        this.skip()
-      }
-    })
-
-    it("check awards", function() {
-      // get validators
-      let vals = web3.cmt.stake.validator.list().data
-      totalVotingPower = vals.reduce((s, v) => {
-        return s + v.voting_power
-      }, 0)
-      console.log("totalVotingPower: ", totalVotingPower)
-      // get delegator B, C, D of D
-      dele_B = Utils.getDelegation(1, 3)
-      dele_C = Utils.getDelegation(2, 3)
-      dele_D = Utils.getDelegation(3, 3)
-
-      awardInfos = web3.cmt.stake.validator.queryAwardInfos()
-      console.log(awardInfos)
-
-      let v_ratio = eval(Globals.Params.validators_block_award_ratio)
-      let blockAward = Utils.getBlockAward()
-      let getAwards = dele => {
-        let awards = [
-          blockAward
-            .times(
-              (
-                (Number(dele.voting_power) * (1 - dele.comp_rate) * v_ratio) /
-                totalVotingPower
-              ).toFixed(12)
-            )
-            .dividedToIntegerBy(1),
-          blockAward
-            .times(
-              (
-                (Number(dele.voting_power) * dele.comp_rate * v_ratio) /
-                totalVotingPower
-              ).toFixed(12)
-            )
-            .dividedToIntegerBy(1)
-        ]
-        awards.forEach(a => console.log(a.toString()))
-        return awards
-      }
-
-      award_B = getAwards(dele_B)
-      award_C = getAwards(dele_C)
-      award_D = getAwards(dele_D)
-      award_V = award_B[0]
-        .plus(award_C[0])
-        .plus(award_D[0])
-        .plus(award_B[1])
-        .plus(award_C[1])
-        .plus(award_D[1])
-      console.log(award_V.toString())
-    })
-  })
-
   describe("Stake Withdraw", function() {
     describe("Account B withdraw some CMTs for D.", function() {
       let delegation_before, delegation_after
@@ -396,7 +340,7 @@ describe("Stake Test", function() {
         balance_new = Utils.getBalance(1)
         expect(balance_new.minus(balance_old).toNumber()).to.eq(Number(0))
         // delegation after
-        let delegation_after = Utils.getDelegation(1, 3)
+        delegation_after = Utils.getDelegation(1, 3)
         expect(
           delegation_after.pending_withdraw_amount
             .minus(delegation_before.pending_withdraw_amount)
@@ -428,9 +372,7 @@ describe("Stake Test", function() {
         // balance after
         balance_new = Utils.getBalance(3)
         let gasFee = Utils.gasFee("updateCandidacy")
-        expect(balance_new.minus(balance_old).toNumber()).to.eq(
-          -gasFee.toNumber()
-        )
+        expect(balance_new.minus(balance_old).toNumber()).to.eq(-gasFee.toNumber())
         // check deliver tx tx_result
         // let tag = tx_result.deliver_tx.tags.find(
         //   t => t.key == Globals.GasFeeKey
@@ -476,12 +418,8 @@ describe("Stake Test", function() {
     it("Account D no longer a validator, and genesis validator restored", function() {
       // check validators, no Globals.Accounts[3]
       tx_result = web3.cmt.stake.validator.list()
-      tx_result.data.forEach(
-        d => (d.owner_address = d.owner_address.toLowerCase())
-      )
-      expect(tx_result.data).to.not.containSubset([
-        { owner_address: Globals.Accounts[3] }
-      ])
+      tx_result.data.forEach(d => (d.owner_address = d.owner_address.toLowerCase()))
+      expect(tx_result.data).to.not.containSubset([{ owner_address: Globals.Accounts[3] }])
       // check validators restored
       let vals = tx_result.data.filter(d => d.state == "Validator")
       expect(vals.length).to.eq(Globals.Params.max_vals)
@@ -497,15 +435,42 @@ describe("Stake Test", function() {
       for (i = 1; i < 4; ++i) {
         d = Utils.getDelegation(i, 3)
         expect(d).to.be.not.null
-        expect(
-          d.delegate_amount
-            .plus(d.award_amount)
-            .minus(d.slash_amount)
-            .minus(d.withdraw_amount)
-            .minus(d.pending_withdraw_amount)
-            .toNumber()
-        ).to.eq(0)
+        expect(d.shares.toNumber()).to.eq(0)
       }
+    })
+  })
+
+  describe("Block awards check after D withdraw candidacy", function() {
+    let awardInfos
+    before(function(done) {
+      if (Globals.TestMode == "single") {
+        // skips current and all nested describes
+        this.test.parent.pending = true
+        this.skip()
+      }
+      Utils.waitBlocks(done, 1)
+    })
+    before(function() {
+      awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+    })
+    it("sum of awards should equal to block award", function() {
+      let sum = web3.toBigNumber(0)
+      awardInfos.data.forEach(o => {
+        sum = sum.plus(web3.toBigNumber(o.amount))
+      })
+      logger.debug(awardInfos)
+      let diff = Math.abs(sum.minus(Utils.getBlockAward()).toNumber())
+      logger.debug("sum, diff: ", sum.toString(), diff)
+      expect(diff).to.be.below(Number(web3.toWei(1, "gwei")))
+    })
+    it.skip("4 in total, 4 validators, D is not there", function() {
+      expect(awardInfos.data.length).to.be.eq(4)
+      let vCount = awardInfos.data.filter(o => o.state == "Validator").length
+      let bCount = awardInfos.data.filter(o => o.state == "Backup Validator").length
+      expect(vCount).to.be.eq(4)
+      expect(bCount).to.be.eq(0)
+      let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
+      expect(data == null).to.be.true
     })
   })
 })

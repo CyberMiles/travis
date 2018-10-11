@@ -204,9 +204,10 @@ func (app *StoreApp) Query(reqQuery abci.RequestQuery) (resQuery abci.ResponseQu
 		address := common.HexToAddress(string(reqQuery.Data))
 		delegations := stake.QueryDelegationsByAddress(address)
 		for _, d := range delegations {
-			validator := stake.QueryCandidateByPubKey(d.PubKey)
+			validator := stake.QueryCandidateById(d.CandidateId)
 			if validator != nil {
 				d.ValidatorAddress = validator.OwnerAddress
+				d.PubKey = validator.PubKey
 			}
 		}
 
@@ -321,7 +322,7 @@ func loadState(dbName string, cacheSize int, historySize int64) (*sm.State, erro
 
 func (app *StoreApp) GetDbHash() []byte {
 	db, _ := dbm.Sqliter.GetDB()
-	tables := []string{"candidates", "delegations", "governance_proposal", "governance_vote", "unstake_requests"}
+	tables := []string{"candidates", "delegations", "governance_proposal", "governance_vote", "unstake_requests", "candidate_account_update_requests", "candidate_daily_stakes", "delegate_history", "slashes"}
 	hashes := make([]byte, len(tables))
 	for _, table := range tables {
 		hashes = append(hashes, getTableHash(db, table)...)

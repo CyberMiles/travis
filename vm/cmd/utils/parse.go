@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 
 	gen "github.com/CyberMiles/travis/misc/genesis"
+	"github.com/CyberMiles/travis/utils"
 )
 
 var blankGenesis = new(core.Genesis)
@@ -21,10 +22,15 @@ var errBlankGenesis = errors.New("could not parse a valid/non-blank Genesis")
 // use defaultGenesisBytes as the fallback genesis source. Otherwise,
 // it will open that path and if it encounters an error that doesn't
 // satisfy os.IsNotExist, it returns that error.
-func ParseGenesisOrDefault(genesisPath string) (*core.Genesis, error) {
-	//var genesisBlob = defaultGenesisBlob[:]
-	genesisBlob, err := gen.DevGenesisBlock().MarshalJSON()
-	//genesisBlob, err := gen.SimulateGenesisBlock().MarshalJSON();
+func ParseGenesisOrDefault(genesisPath string, chainID uint) (*core.Genesis, error) {
+	var genesisBlob []byte
+	var err error
+	if chainID == utils.MainNet {
+		genesisBlob, err = gen.DefaultGenesisBlock().MarshalJSON();
+	} else {
+		genesisBlob, err = gen.DevGenesisBlock().MarshalJSON()
+	}
+
 	if err != nil {
 		return nil, err
 	}

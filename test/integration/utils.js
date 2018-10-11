@@ -101,7 +101,7 @@ const getTokenBalance = () => {
   return balance
 }
 
-const getDelegation = (acc_index, pk_index) => {
+const getDelegation = (acc_index, pk_index, vals) => {
   let delegation = {
     delegate_amount: web3.toBigNumber(0),
     award_amount: web3.toBigNumber(0),
@@ -114,9 +114,7 @@ const getDelegation = (acc_index, pk_index) => {
   }
   result = web3.cmt.stake.delegator.query(Globals.Accounts[acc_index], 0)
   if (result && result.data) {
-    let data = result.data.find(
-      d => d.pub_key.value == Globals.PubKeys[pk_index]
-    )
+    let data = result.data.find(d => d.pub_key && d.pub_key.value == Globals.PubKeys[pk_index])
     if (data)
       delegation = {
         delegate_amount: web3.toBigNumber(data.delegate_amount),
@@ -151,12 +149,20 @@ const vote = (proposalId, from, answer) => {
   expect(proposalId).to.not.be.empty
   if (proposalId === "") return
 
-  let r = web3.cmt.governance.vote({
-    from: from,
-    proposalId: proposalId,
-    answer: answer
-  })
-  expectTxSuccess(r)
+  web3.cmt.governance.vote(
+    {
+      from: from,
+      proposalId: proposalId,
+      answer: answer
+    },
+    (err, res) => {
+      if (err) {
+        logger.error(err.message)
+      } else {
+        expectTxSuccess(res)
+      }
+    }
+  )
 }
 
 const getProposal = proposalId => {
@@ -164,8 +170,6 @@ const getProposal = proposalId => {
   if (proposalId === "") return
 
   let r = web3.cmt.governance.listProposals()
-  logger.debug("listProposals:", r)
-
   expect(r.data.length).to.be.above(0)
   if (r.data.length > 0) {
     proposal = r.data.filter(d => d.Id == proposalId)
@@ -268,22 +272,22 @@ const gasFee = txType => {
   let gasLimit = 0
   switch (txType) {
     case "declareCandidacy":
-      gasLimit = web3.toBigNumber(Globals.Params.declare_candidacy)
+      gasLimit = web3.toBigNumber(Globals.Params.declare_candidacy_gas)
       break
     case "updateCandidacy":
-      gasLimit = web3.toBigNumber(Globals.Params.update_candidacy)
+      gasLimit = web3.toBigNumber(Globals.Params.update_candidacy_gas)
       break
     case "proposeTransferFund":
-      gasLimit = web3.toBigNumber(Globals.Params.transfer_fund_proposal)
+      gasLimit = web3.toBigNumber(Globals.Params.transfer_fund_proposal_gas)
       break
     case "proposeChangeParam":
-      gasLimit = web3.toBigNumber(Globals.Params.change_params_proposal)
+      gasLimit = web3.toBigNumber(Globals.Params.change_params_proposal_gas)
       break
     case "proposeDeployLibEni":
-      gasLimit = web3.toBigNumber(Globals.Params.deploy_libeni_proposal)
+      gasLimit = web3.toBigNumber(Globals.Params.deploy_libeni_proposal_gas)
       break
     case "setCompRate":
-      gasLimit = web3.toBigNumber(Globals.Params.set_comp_rate)
+      gasLimit = web3.toBigNumber(Globals.Params.set_comp_rate_gas)
       break
   }
   return gasPrice.times(gasLimit)
@@ -350,18 +354,12 @@ const calcValAward = (award, vals) => {
   logger.debug(perc0)
 
   // threshold
-  const validator_size_threshold = Number(
-    Globals.Params.validator_size_threshold
-  )
-  let perc1 = perc0.map(
-    s => (s > validator_size_threshold ? validator_size_threshold : s)
-  )
+  const validator_size_threshold = Number(Globals.Params.validator_size_threshold)
+  let perc1 = perc0.map(s => (s > validator_size_threshold ? validator_size_threshold : s))
   logger.debug(perc1)
 
   // 1st round with threshold
-  let round1 = vals.map((v, idx) =>
-    award.times(perc1[idx]).dividedToIntegerBy(1)
-  )
+  let round1 = vals.map((v, idx) => award.times(perc1[idx]).dividedToIntegerBy(1))
   logger.debug("round1: ", round1.map(r => r.toString(10)))
 
   // 2nd round for the rest
@@ -369,9 +367,7 @@ const calcValAward = (award, vals) => {
     return s.plus(v)
   })
   let left = award.minus(total)
-  let round2 = vals.map((v, idx) =>
-    left.times(perc0[idx]).dividedToIntegerBy(1)
-  )
+  let round2 = vals.map((v, idx) => left.times(perc0[idx]).dividedToIntegerBy(1))
   logger.debug("round2: ", round2.map(r => r.toString(10)))
 
   // final
@@ -449,9 +445,7 @@ const calcDeleAward = (award, comp_rate, shares) => {
   percs = shares.map(s => toFixed(s.div(total)))
   logger.debug(percs)
 
-  let result = percs.map((p, idx) =>
-    shares[idx].plus(dele.times(p)).dividedToIntegerBy(1)
-  )
+  let result = percs.map((p, idx) => shares[idx].plus(dele.times(p)).dividedToIntegerBy(1))
   result[2] = result[2].plus(comp)
   logger.debug(result.map(r => r.toString(10)))
   logger.debug("<- calcDeleAward")

@@ -82,22 +82,10 @@ describe("API Input Parameter Test", function() {
       sendTx(D, "declare", [Globals.PubKeys[3], "1"], Utils.expectTxFail, done)
     })
     it("fail if bad comp_rate format", function(done) {
-      sendTx(
-        D,
-        "declare",
-        [Globals.PubKeys[3], "11", "a"],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(D, "declare", [Globals.PubKeys[3], "11", "a"], Utils.expectTxFail, done)
     })
     it("fail if wrong comp_rate scope", function(done) {
-      sendTx(
-        D,
-        "declare",
-        [Globals.PubKeys[3], "11", "-1"],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(D, "declare", [Globals.PubKeys[3], "11", "-1"], Utils.expectTxFail, done)
     })
   })
   describe("stake/updateCandidacy", function() {
@@ -191,73 +179,31 @@ describe("API Input Parameter Test", function() {
     it("fail if empty input", function(done) {
       sendTx(A, "transFund", [], Utils.expectTxFail, done)
     })
-    it("fail if no proposer", function(done) {
-      sendTx(A, "transFund", [null, A.addr, B.addr], Utils.expectTxFail, done)
-    })
-    it("fail if no from/to", function(done) {
+    it("fail if no transfer_to", function(done) {
       sendTx(A, "transFund", [A.addr], Utils.expectTxFail, done)
     })
     it("fail if bad amount format", function(done) {
-      sendTx(
-        A,
-        "transFund",
-        [A.addr, A.addr, B.addr, "A"],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(A, "transFund", [A.addr, B.addr, "A"], Utils.expectTxFail, done)
     })
     it("fail if amount<=0", function(done) {
-      sendTx(
-        A,
-        "transFund",
-        [A.addr, A.addr, B.addr, "-1"],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(A, "transFund", [A.addr, B.addr, "-1"], Utils.expectTxFail, done)
     })
   })
   describe("gov/changeParam", function() {
     it("fail if empty input", function(done) {
       sendTx(A, "changeParam", [], Utils.expectTxFail, done)
     })
-    it("fail if no name&value", function(done) {
-      sendTx(A, "changeParam", [A.addr], Utils.expectTxFail, done)
-    })
     it("fail if bad format", function(done) {
-      sendTx(
-        A,
-        "changeParam",
-        [A.addr, "max_vals", "A"],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(A, "changeParam", ["max_vals", "A"], Utils.expectTxFail, done)
     })
     it("fail if bad expire timestamp", function(done) {
-      sendTx(
-        A,
-        "changeParam",
-        [A.addr, "max_vals", "4", null, -1],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(A, "changeParam", ["max_vals", "4", null, -1], Utils.expectTxFail, done)
     })
     it("fail if bad expire block", function(done) {
-      sendTx(
-        A,
-        "changeParam",
-        [A.addr, "max_vals", "4", null, null, -1],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(A, "changeParam", ["max_vals", "4", null, null, -1], Utils.expectTxFail, done)
     })
     it("success if all set", function(done) {
-      sendTx(
-        A,
-        "changeParam",
-        [A.addr, "max_vals", "4"],
-        Utils.expectTxSuccess,
-        done
-      )
+      sendTx(A, "changeParam", ["max_vals", "4"], Utils.expectTxSuccess, done)
     })
   })
   describe("gov/deployLibEni", function() {
@@ -270,41 +216,20 @@ describe("API Input Parameter Test", function() {
     it("fail if empty input", function(done) {
       sendTx(A, "deployLibEni", [], Utils.expectTxFail, done)
     })
-    it("fail if no other parameters", function(done) {
-      sendTx(A, "deployLibEni", [A.addr], Utils.expectTxFail, done)
-    })
     it("fail if bad version format", function(done) {
-      sendTx(
-        A,
-        "deployLibEni",
-        [A.addr, "test", "aa"],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(A, "deployLibEni", ["test", "aa"], Utils.expectTxFail, done)
     })
     it("fail if no fileurl&md5", function(done) {
-      sendTx(
-        A,
-        "deployLibEni",
-        [A.addr, "test", "v1.0.0"],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(A, "deployLibEni", ["test", "v1.0.0"], Utils.expectTxFail, done)
     })
     it("fail if empty fileurl", function(done) {
-      sendTx(
-        A,
-        "deployLibEni",
-        [A.addr, "test", "v1.0.0", "{}"],
-        Utils.expectTxFail,
-        done
-      )
+      sendTx(A, "deployLibEni", ["test", "v1.0.0", "{}"], Utils.expectTxFail, done)
     })
     it("fail if empty md5", function(done) {
       sendTx(
         A,
         "deployLibEni",
-        [A.addr, "test", "v1.0.0", Globals.LibEni.FileUrl, "{}"],
+        ["test", "v1.0.0", Globals.LibEni.FileUrl, "{}"],
         Utils.expectTxFail,
         done
       )
@@ -321,16 +246,11 @@ describe("API Input Parameter Test", function() {
       sendTx(A, "vote", [], Utils.expectTxFail, done)
     })
     it("fail if bad proposal id", function(done) {
-      sendTx(A, "vote", ["A", A.addr], Utils.expectTxFail, done)
-    })
-    it("fail if bad voter", function(done) {
-      if (proposalId) {
-        sendTx(A, "vote", [proposalId, B.addr], Utils.expectTxFail, done)
-      } else done()
+      sendTx(A, "vote", ["A"], Utils.expectTxFail, done)
     })
     it("success if no answer set(default to empty string)", function(done) {
       if (proposalId) {
-        sendTx(A, "vote", [proposalId, A.addr], Utils.expectTxSuccess, done)
+        sendTx(A, "vote", [proposalId], Utils.expectTxSuccess, done)
       } else done()
     })
   })
@@ -389,13 +309,12 @@ function sendTx(account, op, data, fnExpect, done) {
       txInner = {
         type: "governance/propose/transfer_fund",
         data: {
-          proposer: data[0],
-          from: data[1],
-          to: data[2],
-          amount: data[3],
-          reason: data[4],
-          expire_timestamp: data[5],
-          expire_block_height: data[6]
+          transfer_from: data[0],
+          transfer_to: data[1],
+          amount: data[2],
+          reason: data[3],
+          expire_timestamp: data[4],
+          expire_block_height: data[5]
         }
       }
       break
@@ -403,12 +322,11 @@ function sendTx(account, op, data, fnExpect, done) {
       txInner = {
         type: "governance/propose/change_param",
         data: {
-          proposer: data[0],
-          name: data[1],
-          value: data[2],
-          reason: data[3],
-          expire_timestamp: data[4],
-          expire_block_height: data[5]
+          name: data[0],
+          value: data[1],
+          reason: data[2],
+          expire_timestamp: data[3],
+          expire_block_height: data[4]
         }
       }
       break
@@ -416,21 +334,20 @@ function sendTx(account, op, data, fnExpect, done) {
       txInner = {
         type: "governance/propose/deploy_libeni",
         data: {
-          proposer: data[0],
-          name: data[1],
-          version: data[2],
-          fileurl: data[3],
-          md5: data[4],
-          reason: data[5],
-          expire_timestamp: data[6],
-          expire_block_height: data[7]
+          name: data[0],
+          version: data[1],
+          file_url: data[2],
+          md5: data[3],
+          reason: data[4],
+          expire_timestamp: data[5],
+          expire_block_height: data[6]
         }
       }
       break
     case "vote":
       txInner = {
         type: "governance/vote",
-        data: { proposal_id: data[0], voter: data[1], answer: data[2] }
+        data: { proposal_id: data[0], answer: data[1] }
       }
       break
     default:

@@ -64,39 +64,39 @@ func (av AbsentValidators) Contains(pk types.PubKey) bool {
 	return false
 }
 
-func SlashByzantineValidator(pubKey types.PubKey) (err error) {
+func SlashByzantineValidator(pubKey types.PubKey, blockTime, blockHeight int64) (err error) {
 	slashRatio := utils.GetParams().SlashRatio
-	return slash(pubKey, "Byzantine validator", slashRatio)
+	return slash(pubKey, "Byzantine validator", slashRatio, blockTime, blockHeight)
 }
 
-func SlashAbsentValidator(pubKey types.PubKey, absence *Absence) (err error) {
+func SlashAbsentValidator(pubKey types.PubKey, absence *Absence, blockTime, blockHeight int64) (err error) {
 	slashRatio := utils.GetParams().SlashRatio
 	maxSlashBlocks := utils.GetParams().MaxSlashBlocks
 	if absence.GetCount() <= maxSlashBlocks {
-		err = slash(pubKey, "Absent validator", slashRatio)
+		err = slash(pubKey, "Absent validator", slashRatio, blockTime, blockHeight)
 	}
 
 	if absence.GetCount() == maxSlashBlocks {
-		err = RemoveValidator(pubKey)
+		err = RemoveValidator(pubKey, blockTime, blockHeight)
 	}
 	return
 }
 
-func SlashBadProposer(pubKey types.PubKey) (err error) {
+func SlashBadProposer(pubKey types.PubKey, blockTime, blockHeight int64) (err error) {
 	maxSlashBlocks := int64(utils.GetParams().MaxSlashBlocks)
 	slashRatio := utils.GetParams().SlashRatio
 	slashRatio = slashRatio.Mul(sdk.NewRat(maxSlashBlocks, 1))
 
-	err = slash(pubKey, "Bad block proposer", slashRatio)
+	err = slash(pubKey, "Bad block proposer", slashRatio, blockTime, blockHeight)
 	if err != nil {
 		return err
 	}
 
-	err = RemoveValidator(pubKey)
+	err = RemoveValidator(pubKey, blockTime, blockHeight)
 	return
 }
 
-func slash(pubKey types.PubKey, reason string, slashRatio sdk.Rat) (err error) {
+func slash(pubKey types.PubKey, reason string, slashRatio sdk.Rat, blockTime, blockHeight int64) (err error) {
 	totalDeduction := sdk.NewInt(0)
 	v := GetCandidateByPubKey(pubKey)
 	if v == nil {
@@ -108,7 +108,7 @@ func slash(pubKey types.PubKey, reason string, slashRatio sdk.Rat) (err error) {
 	}
 
 	// Get all of the delegators(includes the validator itself)
-	delegations := GetDelegationsByPubKey(v.PubKey, "Y")
+	delegations := GetDelegationsByCandidate(v.Id, "Y")
 	slashAmount := sdk.ZeroInt
 	for _, d := range delegations {
 		if utils.GetParams().SlashEnabled {
@@ -119,7 +119,7 @@ func slash(pubKey types.PubKey, reason string, slashRatio sdk.Rat) (err error) {
 	}
 
 	// Save slash history
-	slash := &Slash{PubKey: pubKey, SlashRatio: slashRatio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: utils.GetNow()}
+	slash := &Slash{CandidateId: v.Id, SlashRatio: slashRatio, SlashAmount: totalDeduction, Reason: reason, CreatedAt: blockTime, BlockHeight: blockHeight}
 	saveSlash(slash)
 
 	return
@@ -127,30 +127,26 @@ func slash(pubKey types.PubKey, reason string, slashRatio sdk.Rat) (err error) {
 
 func slashDelegator(d *Delegation, validatorAddress common.Address, amount sdk.Int) {
 	//fmt.Printf("slash delegator, address: %s, amount: %d\n", d.DelegatorAddress.String(), amount)
-	now := utils.GetNow()
 	d.AddSlashAmount(amount)
-	d.UpdatedAt = now
 	UpdateDelegation(d)
 
 	// accumulate shares of the validator
 	val := GetCandidateByAddress(validatorAddress)
 	val.AddShares(amount.Neg())
-	val.UpdatedAt = now
 	updateCandidate(val)
 }
 
-func RemoveValidator(pubKey types.PubKey) (err error) {
+func RemoveValidator(pubKey types.PubKey, blockTime, blockHeight int64) (err error) {
 	v := GetCandidateByPubKey(pubKey)
 	if v == nil {
 		return ErrBadValidatorAddr()
 	}
 
 	v.Active = "N"
-	v.UpdatedAt = utils.GetNow()
 	updateCandidate(v)
 
 	// Save slash history
-	slash := &Slash{PubKey: pubKey, SlashRatio: sdk.ZeroRat, SlashAmount: sdk.ZeroInt, Reason: "Absent for up to 12 consecutive blocks", CreatedAt: utils.GetNow()}
+	slash := &Slash{CandidateId: v.Id, SlashRatio: sdk.ZeroRat, SlashAmount: sdk.ZeroInt, Reason: "Absent for up to 12 consecutive blocks", CreatedAt: blockTime, BlockHeight: blockHeight}
 	saveSlash(slash)
 	return
 }

@@ -22,6 +22,7 @@ import (
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/p2p"
 	pv "github.com/tendermint/tendermint/privval"
+	"os/exec"
 )
 
 const (
@@ -30,13 +31,6 @@ const (
 	FlagVMGenesis = "vm-genesis"
 
 	defaultEnv = "private"
-)
-
-const (
-	Staging      = 20
-	TestNet      = 19
-	MainNet      = 18
-	PrivateChain = 1234
 )
 
 var InitCmd = GetInitCmd()
@@ -55,7 +49,8 @@ func GetInitCmd() *cobra.Command {
 
 func initFiles(cmd *cobra.Command, args []string) error {
 	initTendermint()
-	initTravisDb()
+	initCyberMilesDb()
+	// initTravisCmd()
 	return initEthermint()
 }
 
@@ -94,7 +89,6 @@ func initTendermint() {
 			Params:  utils.DefaultParams(),
 		}
 
-		// fixme Use specific values instead in production
 		genDoc.Validators = []types.GenesisValidator{{
 			PubKey:    types.PubKey{privValidator.GetPubKey()},
 			Power:     "1",
@@ -113,7 +107,7 @@ func initTendermint() {
 
 func initEthermint() error {
 	genesisPath := viper.GetString(FlagVMGenesis)
-	genesis, err := emtUtils.ParseGenesisOrDefault(genesisPath)
+	genesis, err := emtUtils.ParseGenesisOrDefault(genesisPath, config.EMConfig.ChainId)
 	if err != nil {
 		ethUtils.Fatalf("genesisJSON err: %v", err)
 	}
@@ -162,32 +156,42 @@ func initEthermint() error {
 	return nil
 }
 
-func initTravisDb() {
+func initCyberMilesDb() {
 	rootDir := viper.GetString(cli.HomeFlag)
-	stakeDbPath := filepath.Join(rootDir, "data", "travis.db")
+	stakeDbPath := filepath.Join(rootDir, "data", utils.DB_FILE_NAME)
 
 	if _, err := os.OpenFile(stakeDbPath, os.O_RDONLY, 0444); err != nil {
 		db, err := sql.Open("sqlite3", stakeDbPath)
 		if err != nil {
-			ethUtils.Fatalf("Initializing travis database: %s", err.Error())
+			ethUtils.Fatalf("Initializing cybermiles database: %s", err.Error())
 		}
 		defer db.Close()
 
 		sqlStmt := `
-	create table candidates(address text not null primary key, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, num_of_delegators integer not null default 0, created_at text not null, updated_at text not null default '');
+	create table candidates(id integer not null primary key autoincrement, address text not null, pub_key text not null, shares text not null default '0', voting_power integer default 0, pending_voting_power integer default 0, max_shares text not null default '0', comp_rate text not null default '0', name text not null default '', website text not null default '', location text not null default '', email text not null default '', profile text not null default '', verified text not null default 'N', active text not null default 'Y', rank integer not null default 0, state text not null default '', hash text not null default '', block_height integer not null, num_of_delegators integer not null default 0, created_at integer not null);
 	create unique index idx_candidates_pub_key on candidates(pub_key);
+	create unique index idx_candidates_address on candidates(address);
 	create index idx_candidates_hash on candidates(hash);
-	create table delegations(delegator_address text not null, pub_key text not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', pending_withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  voting_power integer not null default 0, state text not null default 'Y', block_height integer not null, average_staking_date integer not null default 0, created_at text not null, updated_at text not null default '');
-	create unique index idx_delegations_delegator_address_pub_key on delegations(delegator_address, pub_key);
+	create table delegations(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, delegate_amount text not null default '0', award_amount text not null default '0', withdraw_amount text not null default '0', pending_withdraw_amount text not null default '0', slash_amount text not null default '0', comp_rate text not null default '0', hash text not null default '',  voting_power integer not null default 0, state text not null default 'Y', block_height integer not null, average_staking_date integer not null default 0, created_at integer not null);
+	create unique index idx_delegations_delegator_address_candidate_id on delegations(delegator_address, candidate_id);
 	create index idx_delegations_hash on delegations(hash);
- 	create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, amount text not null default '0', op_code text not null default '', created_at text not null);
+ 	create table delegate_history(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, amount text not null default '0', op_code text not null default '', block_height integer not null, hash text not null default '');
 	create index idx_delegate_history_delegator_address on delegate_history(delegator_address);
-	create index idx_delegate_history_pub_key on delegate_history(pub_key);
-	
-	create table slashes(pub_key text not null, slash_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at text not null);
-	create index idx_slashes_pub_key on slashes(pub_key);
- 	create table unstake_requests(id integer not null primary key autoincrement, delegator_address text not null, pub_key text not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', hash text not null default '', created_at text not null, updated_at text not null default '');
- 	create table governance_proposal(id text not null primary key, type text not null, proposer text not null, block_height integer not null, expire_timestamp integer not null, expire_block_height integer not null, hash text not null default '', created_at text not null, result text not null default '', result_msg text not null default '', result_block_height integer not null default 0, result_at text not null default '');
+	create index idx_delegate_history_candidate_id on delegate_history(candidate_id);
+	create index idx_delegate_history_hash on delegate_history(hash);
+	create table slashes(id integer not null primary key autoincrement, candidate_id integer not null, slash_ratio integer default 0, slash_amount text not null, reason text not null default '', created_at integer not null, block_height integer not null, hash text not null default '');
+	create index idx_slashes_candidate_id on slashes(candidate_id);
+	create index idx_slashes_hash on slashes(hash);
+ 	create table unstake_requests(id integer not null primary key autoincrement, delegator_address text not null, candidate_id integer not null, initiated_block_height integer default 0, performed_block_height integer default 0, amount text not null default '0', state text not null default 'PENDING', hash text not null default '');
+ 	create index idx_unstake_requests_delegator_address on unstake_requests(delegator_address);
+ 	create table candidate_daily_stakes(id integer not null primary key autoincrement, candidate_id integer not null, amount text not null default '0', block_height integer not null, hash text not null default '');
+	create index idx_candidate_daily_stakes_candidate_id on candidate_daily_stakes(candidate_id);
+	create index idx_candidate_daily_stakes_hash on candidate_daily_stakes(hash);
+	create table candidate_account_update_requests(id integer primary key autoincrement, candidate_id integer not null, from_address text not null, to_address text not null, created_block_height integer not null, accepted_block_height integer not null, state text not null, hash text not null default '');
+	create index idx_candidate_account_update_requests_to_address on candidate_account_update_requests(to_address);
+	create index idx_candidate_account_update_requests_hash on candidate_account_update_requests(hash);
+
+ 	create table governance_proposal(id text not null primary key, type text not null, proposer text not null, block_height integer not null, expire_timestamp integer not null, expire_block_height integer not null, hash text not null default '', result text not null default '', result_msg text not null default '', result_block_height integer not null default 0);
 	create index idx_governance_proposal_hash on governance_proposal(hash);
  	create table governance_transfer_fund_detail(proposal_id text not null, from_address text not null, to_address text not null, amount text not null, reason text not null);
 	create index idx_governance_transfer_fund_detail_proposal_id on governance_transfer_fund_detail(proposal_id);
@@ -195,14 +199,14 @@ func initTravisDb() {
 	create index idx_governance_change_param_detail_proposal_id on governance_change_param_detail(proposal_id);
 	create table governance_deploy_libeni_detail(proposal_id text not null, name text not null, version text not null, fileurl text not null, md5 text not null, reason text not null, status text not null);
 	create index idx_governance_deploy_libeni_detail_proposal_id on governance_deploy_libeni_detail(proposal_id);
-	create table governance_retire_program_detail(proposal_id text not null, retired_version text not null, reason text not null);
+	create table governance_retire_program_detail(proposal_id text not null, retired_version text not null, preserved_validators text not null, reason text not null, status text not null);
 	create index idx_governance_retire_program_detail_proposal_id on governance_retire_program_detail(proposal_id);
-
- 	create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null,  hash text not null default '', created_at text not null, unique(proposal_id, voter) ON conflict replace);
+	create table governance_upgrade_program_detail(proposal_id text not null, retired_version text not null, name text not null, version text not null, fileurl text not null, md5 text not null, reason text not null);
+	create index idx_governance_upgrade_program_detail_proposal_id on governance_retire_program_detail(proposal_id);
+ 	create table governance_vote(proposal_id text not null, voter text not null, block_height integer not null, answer text not null,  hash text not null default '', unique(proposal_id, voter) ON conflict replace);
 	create index idx_governance_vote_voter on governance_vote(voter);
 	create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 	create index idx_governance_vote_hash on governance_vote(hash);
-	create table candidate_daily_stakes(id integer not null primary key autoincrement, pub_key text not null, amount text not null default '0', created_at text not null);
 	`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {
@@ -212,6 +216,18 @@ func initTravisDb() {
 		log.Info("Successfully init travis database and create tables!")
 	} else {
 		log.Warn("The travis database already exists!")
+	}
+}
+
+func initTravisCmd() {
+	rootDir := viper.GetString(cli.HomeFlag)
+	binPath := filepath.Join(rootDir, "bin")
+	if err := cmn.EnsureDir(binPath, 0700); err != nil {
+		cmn.PanicSanity(err.Error())
+	}
+	execPath, _ := exec.LookPath(os.Args[0])
+	if err := exec.Command("cp", execPath, binPath).Run(); err != nil {
+		log.Error("copy bin file error %s", execPath, err)
 	}
 }
 

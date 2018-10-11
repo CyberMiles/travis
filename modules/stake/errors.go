@@ -15,20 +15,22 @@ var (
 	errCommissionHuge     = fmt.Errorf("Commission cannot be more than 100%")
 	errBadCompRate        = fmt.Errorf("Compensation rate must between 0 and 1, and less than the default value")
 
-	errBadValidatorAddr                = fmt.Errorf("Validator does not exist for that address")
-	errCandidateExistsAddr             = fmt.Errorf("Candidate already exist, cannot re-declare candidacy")
-	errMissingSignature                = fmt.Errorf("Missing signature")
-	errBondNotNominated                = fmt.Errorf("Cannot bond to non-nominated account")
-	errNoDelegatorForAddress           = fmt.Errorf("Delegator does not contain validator bond")
-	errInsufficientFunds               = fmt.Errorf("Insufficient bond shares")
-	errBadRemoveValidator              = fmt.Errorf("Error removing validator")
-	errCandidateVerificationDisallowed = fmt.Errorf("Verification disallowed")
-	errCandidateVerifiedAlready        = fmt.Errorf("Candidate has been verified already")
-	errReachMaxAmount                  = fmt.Errorf("Validator has reached its declared max amount CMTs to be staked")
-	errDelegationNotExists             = fmt.Errorf("No corresponding delegation exists")
-	errInvalidWithdrawalAmount         = fmt.Errorf("Invalid withdrawal amount")
-	errCandidateWithdrawalDisallowed   = fmt.Errorf("Candidate can't withdraw the self-staking funds")
-	errInvalidCubeSignature            = fmt.Errorf("Invalid cube signature")
+	errBadValidatorAddr                   = fmt.Errorf("Validator does not exist for that address")
+	errCandidateExistsAddr                = fmt.Errorf("Candidate already exist, cannot re-declare candidacy")
+	errMissingSignature                   = fmt.Errorf("Missing signature")
+	errBondNotNominated                   = fmt.Errorf("Cannot bond to non-nominated account")
+	errNoDelegatorForAddress              = fmt.Errorf("Delegator does not contain validator bond")
+	errInsufficientFunds                  = fmt.Errorf("Insufficient bond shares")
+	errBadRemoveValidator                 = fmt.Errorf("Error removing validator")
+	errCandidateVerificationDisallowed    = fmt.Errorf("Verification disallowed")
+	errCandidateVerifiedAlready           = fmt.Errorf("Candidate has been verified already")
+	errReachMaxAmount                     = fmt.Errorf("Validator has reached its declared max amount CMTs to be staked")
+	errDelegationNotExists                = fmt.Errorf("No corresponding delegation exists")
+	errInvalidWithdrawalAmount            = fmt.Errorf("Invalid withdrawal amount")
+	errCandidateWithdrawalDisallowed      = fmt.Errorf("Candidate can't withdraw the self-staking funds")
+	errInvalidCubeSignature               = fmt.Errorf("Invalid cube signature")
+	errCandidateHasPendingUnstakeRequests = fmt.Errorf("The candidate has some pending withdrawal requests")
+	errBadRequest                         = fmt.Errorf("Bad request")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
@@ -59,10 +61,6 @@ func ErrReachMaxAmount() error {
 	return errors.WithCode(errReachMaxAmount, errors.CodeTypeBaseInvalidOutput)
 }
 
-func ErrVerifiedAlready() error {
-	return errors.WithCode(errCandidateVerifiedAlready, errors.CodeTypeBaseInvalidOutput)
-}
-
 func ErrDelegationNotExists() error {
 	return errors.WithCode(errDelegationNotExists, errors.CodeTypeBaseInvalidOutput)
 }
@@ -81,4 +79,12 @@ func ErrInvalidCubeSignature() error {
 
 func ErrBadCompRate() error {
 	return errors.WithCode(errBadCompRate, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrCandidateHasPendingUnstakeRequests() error {
+	return errors.WithCode(errCandidateHasPendingUnstakeRequests, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrBadRequest() error {
+	return errors.WithCode(errBadRequest, errors.CodeTypeBaseInvalidOutput)
 }

@@ -5,7 +5,6 @@ import (
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/state"
-	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tendermint/libs/log"
@@ -15,7 +14,7 @@ import (
 type simpleValidator struct {
 	s            int64
 	ownerAddress common.Address
-	pk           types.PubKey
+	id           int64
 	delegators   []*simpleDelegator
 	vp           int64
 	state        string
@@ -65,21 +64,17 @@ type simpleDelegator struct {
 }
 
 func (d simpleDelegator) distributeAward(v *simpleValidator, award sdk.Int) {
-	now := utils.GetNow()
-
-	delegation := GetDelegation(d.address, v.pk)
+	delegation := GetDelegation(d.address, v.id)
 	if delegation == nil {
 		return
 	}
 
 	delegation.AddAwardAmount(award)
-	delegation.UpdatedAt = now
 	UpdateDelegation(delegation)
 
 	// accumulate shares of the validator
 	val := GetCandidateByAddress(v.ownerAddress)
 	val.AddShares(award)
-	val.UpdatedAt = now
 	updateCandidate(val)
 }
 
@@ -174,11 +169,11 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		}
 
 		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
-		validator.pk = candidate.PubKey
+		validator.id = candidate.Id
 		validator.state = candidate.State
 
 		// Get all delegators
-		delegations := GetDelegationsByPubKey(candidate.PubKey, "Y")
+		delegations := GetDelegationsByCandidate(candidate.Id, "Y")
 		for _, delegation := range delegations {
 			// if the amount of staked CMTs is less than 1000, no awards will be distributed.
 			if delegation.VotingPower == 0 {
