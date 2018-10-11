@@ -25,9 +25,9 @@ import:
   subpackages:
   - data
 - package: github.com/tendermint/tendermint
-#  repo: https://github.com/CyberMiles/tendermint.git
 #  version: 54c1af40c300adfa4ce57260f77cc624d672f748
-  version: d542d2c3945116697f60451e6a407082c41c3cc9
+  repo: https://github.com/CyberMiles/tendermint.git
+  version: 48b626c2942a4706ce1a82bf554fa96e3aa1444b
   subpackages:
   - config
   - node
