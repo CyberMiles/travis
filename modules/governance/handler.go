@@ -95,12 +95,12 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().TransferFundProposalGas)
+		_, err = checkGasFee(app_state, sender, utils.GetParams().TransferFundProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
-		app_state.SubBalance(*txInner.From, amount)
-		app_state.SubBalance(sender, gasFee.Int)
+		// app_state.SubBalance(*txInner.From, amount)
+		// app_state.SubBalance(sender, gasFee.Int)
 
 	case TxChangeParamPropose:
 		validators := stake.GetCandidates().Validators()
@@ -133,11 +133,11 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().ChangeParamsProposalGas)
+		_, err = checkGasFee(app_state, sender, utils.GetParams().ChangeParamsProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
-		app_state.SubBalance(sender, gasFee.Int)
+		// app_state.SubBalance(sender, gasFee.Int)
 	case TxDeployLibEniPropose:
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
@@ -201,11 +201,11 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposalGas)
+		_, err = checkGasFee(app_state, sender, utils.GetParams().DeployLibEniProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
-		app_state.SubBalance(sender, gasFee.Int)
+		// app_state.SubBalance(sender, gasFee.Int)
 	case TxRetireProgramPropose:
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
@@ -234,11 +234,11 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().RetireProgramProposalGas)
+		_, err = checkGasFee(app_state, sender, utils.GetParams().RetireProgramProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
-		app_state.SubBalance(sender, gasFee.Int)
+		// app_state.SubBalance(sender, gasFee.Int)
 	case TxUpgradeProgramPropose:
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
@@ -278,11 +278,11 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 		}
 
 		// Transfer gasFee
-		gasFee, err := checkGasFee(app_state, sender, utils.GetParams().UpgradeProgramProposalGas)
+		_, err = checkGasFee(app_state, sender, utils.GetParams().UpgradeProgramProposalGas)
 		if err != nil {
 			return sdk.NewCheck(0, ""), err
 		}
-		app_state.SubBalance(sender, gasFee.Int)
+		// app_state.SubBalance(sender, gasFee.Int)
 	case TxVote:
 		validators := stake.GetCandidates().Validators()
 		if validators == nil || validators.Len() == 0 {
@@ -322,6 +322,11 @@ func CheckTx(ctx types.Context, store state.SimpleDB,
 func DeliverTx(ctx types.Context, store state.SimpleDB,
 	tx sdk.Tx, hash []byte) (res sdk.DeliverResult, err error) {
 
+	_, err = CheckTx(ctx, store, tx)
+	if err != nil {
+		return
+	}
+
 	res.GasFee = big.NewInt(0)
 
 	app_state := ctx.EthappState()
@@ -354,18 +359,13 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			expireBlockHeight,
 		)
 
-		balance, err := commons.GetBalance(app_state, *txInner.From)
-		if err != nil {
-			return res, ErrInvalidParameter()
-		}
+		amount := big.NewInt(0)
+		amount.SetString(txInner.Amount, 10)
 
-		amount, _ := sdk.NewIntFromString(txInner.Amount)
-		if balance.LT(amount) {
-			return res, ErrInsufficientBalance()
-		}
+		app_state.SubBalance(*pp.Detail["from"].(*common.Address), amount)
+		app_state.AddBalance(utils.GovHoldAccount, amount)
 
 		SaveProposal(pp)
-		commons.TransferWithReactor(*pp.Detail["from"].(*common.Address), utils.GovHoldAccount, amount, ProposalReactor{pp.Id, ctx.BlockHeight(), ""})
 
 		// Check gasFee  -- start
 		// get the sender
@@ -379,10 +379,11 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee.Int
+			res.GasFee = gasFee
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
-			commons.Transfer(sender, utils.HoldAccount, gasFee)
+			app_state.SubBalance(sender, gasFee)
+			app_state.AddBalance(utils.HoldAccount, gasFee)
 		}
 		// Check gasFee  -- end
 
@@ -424,10 +425,11 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee.Int
+			res.GasFee = gasFee
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
-			commons.Transfer(sender, utils.HoldAccount, gasFee)
+			app_state.SubBalance(sender, gasFee)
+			app_state.AddBalance(utils.HoldAccount, gasFee)
 		}
 		// Check gasFee  -- end
 
@@ -472,10 +474,11 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee.Int
+			res.GasFee = gasFee
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
-			commons.Transfer(sender, utils.HoldAccount, gasFee)
+			app_state.SubBalance(sender, gasFee)
+			app_state.AddBalance(utils.HoldAccount, gasFee)
 		}
 		// Check gasFee  -- end
 
@@ -514,10 +517,11 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee.Int
+			res.GasFee = gasFee
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
-			commons.Transfer(sender, utils.HoldAccount, gasFee)
+			app_state.SubBalance(sender, gasFee)
+			app_state.AddBalance(utils.HoldAccount, gasFee)
 		}
 		// Check gasFee  -- end
 
@@ -557,10 +561,11 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		if gasFee, err := checkGasFee(app_state, sender, gasUsed); err != nil {
 			return res, err
 		} else {
-			res.GasFee = gasFee.Int
+			res.GasFee = gasFee
 			res.GasUsed = int64(gasUsed)
 			// transfer gasFee
-			commons.Transfer(sender, utils.HoldAccount, gasFee)
+			app_state.SubBalance(sender, gasFee)
+			app_state.AddBalance(utils.HoldAccount, gasFee)
 		}
 		// Check gasFee  -- end
 
@@ -591,18 +596,23 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 
 		switch proposal.Type {
 		case TRANSFER_FUND_PROPOSAL:
-			amount, _ := sdk.NewIntFromString(proposal.Detail["amount"].(string))
+			amount := big.NewInt(0)
+			amount.SetString(proposal.Detail["amount"].(string), 10)
 			switch checkResult {
 			case "approved":
 				// as succeeded proposal only need to add balance to receiver,
 				// so the transfer should always be successful
 				// but we still use the reactor to keep the compatible with the old strategy
-				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["to"].(*common.Address), amount, ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"})
+				app_state.SubBalance(utils.GovHoldAccount, amount)
+				app_state.AddBalance(*proposal.Detail["to"].(*common.Address), amount)
+				UpdateProposalResult(proposal.Id, "Approved", "", ctx.BlockHeight())
 			case "rejected":
 				// as succeeded proposal only need to refund balance to sender,
 				// so the transfer should always be successful
 				// but we still use the reactor to keep the compatible with the old strategy
-				commons.TransferWithReactor(utils.GovHoldAccount, *proposal.Detail["from"].(*common.Address), amount, ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"})
+				app_state.SubBalance(utils.GovHoldAccount, amount)
+				app_state.AddBalance(*proposal.Detail["from"].(*common.Address), amount)
+				UpdateProposalResult(proposal.Id, "Rejected", "", ctx.BlockHeight())
 			}
 			if checkResult == "approved" || checkResult == "rejected" {
 				utils.PendingProposal.Del(proposal.Id)
@@ -611,9 +621,9 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 			switch checkResult {
 			case "approved":
 				utils.SetParam(proposal.Detail["name"].(string), proposal.Detail["value"].(string))
-				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
+				UpdateProposalResult(proposal.Id, "Approved", "", ctx.BlockHeight())
 			case "rejected":
-				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
+				UpdateProposalResult(proposal.Id, "Rejected", "", ctx.BlockHeight())
 			}
 			if checkResult == "approved" || checkResult == "rejected" {
 				utils.PendingProposal.Del(proposal.Id)
@@ -621,29 +631,29 @@ func DeliverTx(ctx types.Context, store state.SimpleDB,
 		case DEPLOY_LIBENI_PROPOSAL:
 			switch checkResult {
 			case "approved":
-				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
+				UpdateProposalResult(proposal.Id, "Approved", "", ctx.BlockHeight())
 			case "rejected":
 				if proposal.Detail["status"] != "ready" {
 					CancelDownload(proposal, false)
 				}
 				utils.PendingProposal.Del(proposal.Id)
-				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
+				UpdateProposalResult(proposal.Id, "Rejected", "", ctx.BlockHeight())
 			}
 		case RETIRE_PROGRAM_PROPOSAL:
 			switch checkResult {
 			case "approved":
-				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
+				UpdateProposalResult(proposal.Id, "Approved", "", ctx.BlockHeight())
 			case "rejected":
 				utils.PendingProposal.Del(proposal.Id)
-				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
+				UpdateProposalResult(proposal.Id, "Rejected", "", ctx.BlockHeight())
 			}
 		case UPGRADE_PROGRAM_PROPOSAL:
 			switch checkResult {
 			case "approved":
-				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Approved"}.React("success", "")
+				UpdateProposalResult(proposal.Id, "Approved", "", ctx.BlockHeight())
 			case "rejected":
 				utils.PendingProposal.Del(proposal.Id)
-				ProposalReactor{proposal.Id, ctx.BlockHeight(), "Rejected"}.React("success", "")
+				UpdateProposalResult(proposal.Id, "Rejected", "", ctx.BlockHeight())
 			}
 		}
 	}
@@ -727,16 +737,13 @@ func getTxSender(ctx types.Context) (sender common.Address, err error) {
 	return senders[0], nil
 }
 
-func checkGasFee(state *ethState.StateDB, address common.Address, gas uint64) (sdk.Int, error) {
-	balance, err := commons.GetBalance(state, address)
-	if err != nil {
-		return sdk.Int{}, ErrInvalidParameter()
-	}
+func checkGasFee(state *ethState.StateDB, address common.Address, gas uint64) (*big.Int, error) {
+	balance := state.GetBalance(address)
 
-	gasFee := utils.CalGasFee(gas, utils.GetParams().GasPrice)
+	gasFee := big.NewInt(0).Mul(big.NewInt(int64(gas)), big.NewInt(int64(utils.GetParams().GasPrice)))
 
-	if balance.LT(gasFee) {
-		return sdk.Int{}, ErrInsufficientBalance()
+	if balance.Cmp(gasFee) < 0 {
+		return nil, ErrInsufficientBalance()
 	}
 
 	return gasFee, nil
