@@ -180,5 +180,6 @@ func SaveAbsentValidators(store state.SimpleDB, absentValidators *AbsentValidato
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("############ SaveAbsentValidators: %v", common.Bytes2Hex(b))
 	store.Set(utils.AbsentValidatorsKey, b)
 }
