@@ -1,6 +1,7 @@
 package stake
 
 import (
+	"fmt"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/tendermint/go-amino"
 	"math/big"
@@ -26,6 +27,10 @@ func (a *Absence) Accumulate() {
 
 func (a Absence) GetCount() int16 {
 	return a.Count
+}
+
+func (a Absence) String() string {
+	return fmt.Sprintf("[Absence] count: %d, lastBlockHeight: %d\n", a.Count, a.LastBlockHeight)
 }
 
 type AbsentValidators struct {
@@ -167,9 +172,9 @@ func LoadAbsentValidators(store state.SimpleDB) *AbsentValidators {
 }
 
 func SaveAbsentValidators(store state.SimpleDB, absentValidators *AbsentValidators) {
-	if len(absentValidators.Validators) == 0 {
-		return
-	}
+	//if len(absentValidators.Validators) == 0 {
+	//	return
+	//}
 
 	b, err := cdc.MarshalJSON(AbsentValidators{Validators: absentValidators.Validators})
 	if err != nil {

@@ -400,6 +400,25 @@ func GetDelegationsByCandidate(candidateId int64, state string) (delegations []*
 	return getDelegationsInternal(cond)
 }
 
+func GetNumOfDelegatorsByCandidate(candidateId int64) int64 {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("select count(1) from delegations where candidate_id = ? and state = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var res int64
+	err = stmt.QueryRow(candidateId, "Y").Scan(&res)
+	if err != nil {
+		panic(err)
+	}
+
+	return res
+}
+
 func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegation) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
