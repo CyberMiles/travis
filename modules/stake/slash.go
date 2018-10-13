@@ -1,6 +1,7 @@
 package stake
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/tendermint/go-amino"
@@ -163,7 +164,7 @@ func LoadAbsentValidators(store state.SimpleDB) *AbsentValidators {
 	}
 
 	absentValidators := new(AbsentValidators)
-	err := cdc.UnmarshalJSON(b, absentValidators)
+	err := json.Unmarshal(b, absentValidators)
 	if err != nil {
 		panic(err) // This error should never occure big problem if does
 	}
@@ -172,14 +173,15 @@ func LoadAbsentValidators(store state.SimpleDB) *AbsentValidators {
 }
 
 func SaveAbsentValidators(store state.SimpleDB, absentValidators *AbsentValidators) {
-	//if len(absentValidators.Validators) == 0 {
-	//	return
-	//}
+	if len(absentValidators.Validators) == 0 {
+		return
+	}
 
-	b, err := cdc.MarshalJSON(AbsentValidators{Validators: absentValidators.Validators})
+	b, err := json.Marshal(AbsentValidators{Validators: absentValidators.Validators})
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Printf("############ SaveAbsentValidators: %v", common.Bytes2Hex(b))
 	store.Set(utils.AbsentValidatorsKey, b)
 }
