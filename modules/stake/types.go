@@ -169,7 +169,6 @@ func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
 	// update voting power
 	for _, c := range cs {
 		c.PendingVotingPower = c.CalcVotingPower(blockHeight)
-
 		if c.Active == "N" {
 			c.VotingPower = 0
 		} else if c.VotingPower != c.PendingVotingPower {
@@ -187,6 +186,8 @@ func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
 			} else {
 				c.State = "Backup Validator"
 			}
+		} else if c.VotingPower == 0 {
+			c.State = "Candidate"
 		} else {
 			c.State = "Validator"
 		}

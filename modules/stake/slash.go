@@ -1,6 +1,8 @@
 package stake
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/tendermint/go-amino"
 	"math/big"
@@ -26,6 +28,10 @@ func (a *Absence) Accumulate() {
 
 func (a Absence) GetCount() int16 {
 	return a.Count
+}
+
+func (a Absence) String() string {
+	return fmt.Sprintf("[Absence] count: %d, lastBlockHeight: %d\n", a.Count, a.LastBlockHeight)
 }
 
 type AbsentValidators struct {
@@ -152,28 +158,27 @@ func RemoveValidator(pubKey types.PubKey, blockTime, blockHeight int64) (err err
 }
 
 func LoadAbsentValidators(store state.SimpleDB) *AbsentValidators {
+	blank := &AbsentValidators{Validators: make(map[string]*Absence)}
 	b := store.Get(utils.AbsentValidatorsKey)
 	if b == nil {
-		return &AbsentValidators{Validators: make(map[string]*Absence)}
+		return blank
 	}
 
 	absentValidators := new(AbsentValidators)
-	err := cdc.UnmarshalJSON(b, absentValidators)
+	err := json.Unmarshal(b, absentValidators)
 	if err != nil {
-		panic(err) // This error should never occure big problem if does
+		//panic(err) // This error should never occur big problem if does
+		return blank
 	}
 
 	return absentValidators
 }
 
 func SaveAbsentValidators(store state.SimpleDB, absentValidators *AbsentValidators) {
-	if len(absentValidators.Validators) == 0 {
-		return
-	}
-
-	b, err := cdc.MarshalJSON(AbsentValidators{Validators: absentValidators.Validators})
+	b, err := json.Marshal(AbsentValidators{Validators: absentValidators.Validators})
 	if err != nil {
 		panic(err)
 	}
+
 	store.Set(utils.AbsentValidatorsKey, b)
 }

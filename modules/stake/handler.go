@@ -616,6 +616,7 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	}
 
 	candidate.Shares = "0"
+	candidate.NumOfDelegators = 0
 	updateCandidate(candidate)
 	return nil
 }
@@ -677,13 +678,8 @@ func (d deliver) delegate(tx TxDelegate) error {
 			BlockHeight:           d.ctx.BlockHeight(),
 			CreatedAt:             now,
 		}
-		candidate.NumOfDelegators += 1
 		SaveDelegation(delegation)
 	} else {
-		if delegation.Shares().Equal(sdk.ZeroInt) {
-			candidate.NumOfDelegators += 1
-		}
-
 		delegation.AddDelegateAmount(delegateAmount)
 		delegation.State = "Y"
 		UpdateDelegation(delegation)
@@ -691,6 +687,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 
 	// Add delegateAmount to candidate
 	candidate.AddShares(delegateAmount)
+	candidate.NumOfDelegators = GetNumOfDelegatorsByCandidate(candidate.Id)
 	updateCandidate(candidate)
 
 	delegateHistory := &DelegateHistory{DelegatorAddress: d.sender, CandidateId: candidate.Id, Amount: delegateAmount, OpCode: "delegate", BlockHeight: d.ctx.BlockHeight()}
@@ -725,10 +722,6 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 	// deduct shares from the candidate
 	candidate.AddShares(amount.Neg())
 	updateCandidate(candidate)
-
-	delegateHistory := &DelegateHistory{DelegatorAddress: d.sender, CandidateId: candidate.Id, Amount: amount, OpCode: "withdraw", BlockHeight: d.ctx.BlockHeight()}
-	saveDelegateHistory(delegateHistory)
-
 	return nil
 }
 
@@ -736,15 +729,6 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 	delegation.ReduceAverageStakingDate(amount)
 	delegation.AddPendingWithdrawAmount(amount)
 	UpdateDelegation(delegation)
-
-	// update the number of candidate
-	if delegation.Shares().LT(sdk.NewInt(10)) {
-		candidate.NumOfDelegators -= 1
-		if candidate.NumOfDelegators < 0 {
-			candidate.NumOfDelegators = 0
-		}
-		updateCandidate(candidate)
-	}
 
 	// record the unstaking requests which will be processed in 7 days
 	performedBlockHeight := d.ctx.BlockHeight() + int64(utils.GetParams().UnstakeWaitingPeriod)
@@ -758,6 +742,8 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 	}
 	saveUnstakeRequest(unstakeRequest)
 
+	delegateHistory := &DelegateHistory{DelegatorAddress: d.sender, CandidateId: candidate.Id, Amount: amount, OpCode: "withdraw", BlockHeight: d.ctx.BlockHeight()}
+	saveDelegateHistory(delegateHistory)
 	return
 }
 
@@ -859,12 +845,15 @@ func HandlePendingUnstakeRequests(height int64) error {
 		if delegation == nil {
 			continue
 		}
+
 		delegation.AddWithdrawAmount(amount)
 		delegation.AddPendingWithdrawAmount(amount.Neg())
 		UpdateDelegation(delegation)
 
-		if delegation.Shares().Cmp(big.NewInt(0)) == 0 {
+		if delegation.Shares().LT(sdk.NewInt(10)) {
 			RemoveDelegation(delegation.Id)
+			candidate.NumOfDelegators = GetNumOfDelegatorsByCandidate(candidate.Id)
+			updateCandidate(candidate)
 		}
 
 		req.State = "COMPLETED"
