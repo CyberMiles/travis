@@ -158,30 +158,27 @@ func RemoveValidator(pubKey types.PubKey, blockTime, blockHeight int64) (err err
 }
 
 func LoadAbsentValidators(store state.SimpleDB) *AbsentValidators {
+	blank := &AbsentValidators{Validators: make(map[string]*Absence)}
 	b := store.Get(utils.AbsentValidatorsKey)
 	if b == nil {
-		return &AbsentValidators{Validators: make(map[string]*Absence)}
+		return blank
 	}
 
 	absentValidators := new(AbsentValidators)
 	err := json.Unmarshal(b, absentValidators)
 	if err != nil {
-		panic(err) // This error should never occure big problem if does
+		//panic(err) // This error should never occur big problem if does
+		return blank
 	}
 
 	return absentValidators
 }
 
 func SaveAbsentValidators(store state.SimpleDB, absentValidators *AbsentValidators) {
-	if len(absentValidators.Validators) == 0 {
-		return
-	}
-
 	b, err := json.Marshal(AbsentValidators{Validators: absentValidators.Validators})
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("############ SaveAbsentValidators: %v", common.Bytes2Hex(b))
 	store.Set(utils.AbsentValidatorsKey, b)
 }
