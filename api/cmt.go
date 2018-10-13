@@ -461,6 +461,16 @@ func (s *CmtRPCService) QueryAwardInfos(height uint64) (*StakeQueryResult, error
 	return &StakeQueryResult{h, awardInfos}, nil
 }
 
+func (s *CmtRPCService) QueryAbsentValidatorsKey(height uint64) (*StakeQueryResult, error) {
+	var absentValidators stake.AbsentValidators
+	h, err := s.getParsedFromJson("/key", utils.AbsentValidatorsKey, &absentValidators, height)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StakeQueryResult{h, absentValidators}, nil
+}
+
 type GovernanceTransferFundProposalArgs struct {
 	Nonce             *hexutil.Uint64 `json:"nonce"`
 	From              common.Address  `json:"from"`
