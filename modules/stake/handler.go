@@ -654,13 +654,13 @@ func (d deliver) delegate(tx TxDelegate) error {
 		return ErrBadAmount()
 	}
 
-	err := checkBalance(d.ctx.EthappState(), d.sender, delegateAmount)
-	if err != nil {
-		return err
-	}
+	//err := checkBalance(d.ctx.EthappState(), d.sender, delegateAmount)
+	//if err != nil {
+	//	return err
+	//}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err = commons.Transfer(d.sender, utils.HoldAccount, delegateAmount)
+	err := commons.Transfer(d.sender, utils.HoldAccount, delegateAmount)
 	if err != nil {
 		return err
 	}
