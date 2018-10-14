@@ -138,6 +138,11 @@ func initEthermint() error {
 		ethUtils.Fatalf("mkdirAll keyStoreDir: %v", err)
 	}
 
+	// no keystore files on mainnet
+	if viper.GetString(FlagENV) == "mainnet" {
+		return nil
+	}
+
 	for filename, content := range keystoreFilesMap {
 		storeFileName := filepath.Join(keystoreDir, filename)
 		f, err := os.Create(storeFileName)
