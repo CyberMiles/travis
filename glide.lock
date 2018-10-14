@@ -291,11 +291,6 @@ imports:
   - extra25519
 - name: github.com/tendermint/go-amino
   version: 2106ca61d91029c931fd54968c2bb02dc96b1412
-- name: github.com/tendermint/go-wire
-  version: fd33313baedb08fffafa3837994d3f02a6587baf
-  repo: https://github.com/CyberMiles/go-wire.git
-  subpackages:
-  - data
 - name: github.com/tendermint/iavl
   version: 35f66e53d9b01e83b30de68b931f54b2477a94c9
 - name: github.com/tendermint/tendermint
