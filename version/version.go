@@ -6,8 +6,8 @@ import (
 
 const Major = "0"
 const Minor = "1"
-const Patch = "0"
-const Label = ""
+const Patch = "1"
+const Label = "beta"
 
 var (
 	// Version is the current version of Travis

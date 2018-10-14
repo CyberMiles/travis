@@ -15,6 +15,6 @@ Contents
 
    getting-started
    connect-testnet
-   validator
-   governance
+   connect-mainnet
+   transactions
    virtual-machine
