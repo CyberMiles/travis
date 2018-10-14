@@ -332,7 +332,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 	ws.handleStateChangeQueue()
 
 	// Commit ethereum state and update the header.
-	hashArray, err := ws.state.Commit(false) // XXX: ugh hardforks
+	hashArray, err := ws.state.Commit(true)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -360,7 +360,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 		config := ws.es.ethereum.APIBackend.ChainConfig()
 		ws.updateHeaderWithTimeInfo(config, pt.Uint64(), 0)
 
-		hashArray, er := ws.state.Commit(false) // XXX: ugh hardforks
+		hashArray, er := ws.state.Commit(true)
 		if er != nil {
 			return common.Hash{}, er
 		}
