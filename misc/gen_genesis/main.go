@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/CyberMiles/travis/misc/genesis"
 	"encoding/csv"
 	"os"
 	"io"
@@ -53,7 +54,15 @@ func main() {
 	case "simu":
 		gen.Alloc = *(simulateAllocs())
 	case "mainnet":
+		gen := genesis.DefaultGenesisBlock()
 		gen.Alloc = *(mainnetAllocs())
+		//getAllocs()
+		if genJSON, err := gen.MarshalJSON();  err != nil {
+			panic(err)
+		} else {
+			fmt.Println(string(genJSON))
+		}
+		return
 	default:
 		fmt.Printf("Not supported environment: %s\n", env)
 		os.Exit(1)
