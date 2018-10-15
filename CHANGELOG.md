@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.2-beta
+
+_October 15th, 2018_
+
+The Mainnet version is released. This version fixed all the bugs found in Travis v0.1.0 and Travis v0.1.1-beta.
+
 ## v0.1.0-rc.7
 
 _September 14th, 2018_
