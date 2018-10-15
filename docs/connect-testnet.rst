@@ -82,7 +82,7 @@ Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/cyber
 
 ::
 
-  $ docker pull cybermiles/travis
+  $ docker pull cybermiles/travis:vTestnet
 
 Note: Configuration and data will be stored at /travis directory in the container. The directory will also be exposed as a volume. The ports 8545, 26656 and 26657 will be exposed for connection.
 
@@ -92,7 +92,7 @@ Getting Travis TestNet Config
 ::
 
   rm -rf $HOME/.travis
-  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis node init --env testnet --home /travis
+  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:vTestnet node init --env testnet --home /travis
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/config.toml > $HOME/.travis/config/config.toml
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/genesis.json > $HOME/.travis/config/genesis.json
 
@@ -110,7 +110,7 @@ Run the docker Travis application:
 
 ::
 
-  $ docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 -t cybermiles/travis node start --home /travis
+  $ docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 -t cybermiles/travis:vTestnet node start --home /travis
 
 Now your node is syncing with TestNet, the output will look like the following. Wait until it completely syncs.
 
@@ -127,7 +127,7 @@ To access the TestNet type the following in a seperte terminal console to get yo
 
   $ docker inspect -f '{{ .NetworkSettings.IPAddress }}' travis
   172.17.0.2
-  $ docker run --rm -it cybermiles/travis attach http://172.17.0.2:8545
+  $ docker run --rm -it cybermiles/travis:vTestnet attach http://172.17.0.2:8545
 
 Now, you should see the web3-cmt JavaScript console, you can now jump to the "Test transactions" section to send test transactions.
 
