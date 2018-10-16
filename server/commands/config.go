@@ -9,10 +9,10 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/node"
 	tmcfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tendermint/libs/common"
-	"github.com/CyberMiles/travis/utils"
 )
 
 const (
@@ -61,6 +61,7 @@ type EthermintConfig struct {
 	WSListenAddrFlag    string `mapstructure:"wsaddr"`
 	WSPortFlag          uint   `mapstructure:"wsport"`
 	WSApiFlag           string `mapstructure:"wsapi"`
+	IPCDisabledFlag     bool   `mapstructure:"ipcdisable"`
 	VerbosityFlag       uint   `mapstructure:"verbosity"`
 	GCMode              string `mapstructure:"gcmode"`
 }
@@ -80,6 +81,7 @@ func DefaultEthermintConfig() EthermintConfig {
 		WSListenAddrFlag:    node.DefaultWSHost,
 		WSPortFlag:          node.DefaultWSPort,
 		WSApiFlag:           "",
+		IPCDisabledFlag:     false,
 		VerbosityFlag:       3,
 		GCMode:              "full",
 	}
@@ -175,5 +177,6 @@ rpcport = {{ .EMConfig.RPCPortFlag }}
 rpccorsdomain = "{{ .EMConfig.RPCCORSDomainFlag }}"
 rpcvhosts = "{{ .EMConfig.RPCVirtualHostsFlag }}"
 ws = {{ .EMConfig.WSEnabledFlag }}
+ipcdisable = {{ .EMConfig.IPCDisabledFlag }}
 verbosity = "{{ .EMConfig.VerbosityFlag }}"
 `

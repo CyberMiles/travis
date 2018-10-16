@@ -80,7 +80,7 @@ func DefaultNodeConfig() node.Config {
 	cfg.Version = params.Version
 	cfg.HTTPModules = append(cfg.HTTPModules, "eth")
 	cfg.WSModules = append(cfg.WSModules, "eth")
-	cfg.IPCPath = "geth.ipc"
+	cfg.IPCPath = "cybermiles.ipc"
 
 	emHome := os.Getenv(emHome)
 	if emHome != "" {

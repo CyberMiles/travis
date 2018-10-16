@@ -144,6 +144,8 @@ func setupEmtContext() error {
 	context.GlobalSet(ethUtils.WSEnabledFlag.Name, strconv.FormatBool(config.EMConfig.WSEnabledFlag))
 	context.GlobalSet(ethUtils.WSApiFlag.Name, config.EMConfig.WSApiFlag)
 
+	context.GlobalSet(ethUtils.IPCDisabledFlag.Name, strconv.FormatBool(config.EMConfig.IPCDisabledFlag))
+
 	if err := emtUtils.Setup(context); err != nil {
 		return err
 	}
