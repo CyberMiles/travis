@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -23,7 +25,7 @@ func remoteConsole(cmd *cobra.Command, args []string) error {
 		return errors.New("missing url")
 	}
 
-	client, err := rpc.Dial(args[0])
+	client, err := dialRPC(args[0])
 	if err != nil {
 		utils.Fatalf("Unable to attach to remote node: %v", err)
 	}
@@ -45,4 +47,13 @@ func remoteConsole(cmd *cobra.Command, args []string) error {
 	console.Interactive()
 
 	return nil
+}
+
+func dialRPC(endpoint string) (*rpc.Client, error) {
+	if strings.HasPrefix(endpoint, "rpc:") || strings.HasPrefix(endpoint, "ipc:") {
+		// Backwards compatibility with geth < 1.5 which required
+		// these prefixes.
+		endpoint = endpoint[4:]
+	}
+	return rpc.Dial(endpoint)
 }

@@ -209,15 +209,21 @@ func (s *CmtRPCService) GetTransactionByHash(hash string) (*RPCTransaction, erro
 	return newRPCTransaction(res)
 }
 
-// DecodeRawTx returns the transaction from the raw tx string in the block data
-func (s *CmtRPCService) DecodeRawTx(raw string) (*RPCTransaction, error) {
-	tx, err := base64.StdEncoding.DecodeString(raw)
-	if err != nil {
-		return nil, err
+// DecodeRawTxs returns the transactions from the raw tx array in the block data
+func (s *CmtRPCService) DecodeRawTxs(rawTxs []string) ([]*RPCTransaction, error) {
+	txs := make([]*RPCTransaction, len(rawTxs))
+	for index, raw := range rawTxs {
+		tx, err := base64.StdEncoding.DecodeString(raw)
+		if err != nil {
+			return txs, err
+		}
+		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx})
+		if err != nil {
+			return txs, err
+		}
+		txs[index] = rpcTx
 	}
-	return newRPCTransaction(&ctypes.ResultTx{
-		Tx: tx,
-	})
+	return txs, nil
 }
 
 // Info about the node's syncing state
