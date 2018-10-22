@@ -6,6 +6,7 @@ const expect = chai.expect
 const logger = require("./logger")
 const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
+const { Settings } = require("./constants")
 
 describe("Stake Test", function() {
   function Amounts(maxAmount) {
@@ -14,6 +15,7 @@ describe("Stake Test", function() {
     this.self = web3.toWei(maxAmount * self_staking_ratio, "cmt")
     this.dele1 = web3.toWei(maxAmount * 0.1, "cmt")
     this.dele2 = web3.toWei(maxAmount * (1 - self_staking_ratio - 0.3), "cmt")
+    this.increasedMax = web3.toWei(maxAmount * 1.5, "cmt")
     this.reducedMax = web3.toWei(maxAmount * 0.8, "cmt")
   }
 
@@ -351,11 +353,59 @@ describe("Stake Test", function() {
   })
 
   describe("Update Candidacy", function() {
-    before(function() {
-      // balance before
-      balance_old = Utils.getBalance(3)
+    describe("Account D increase max amount", function() {
+      before(function() {
+        // balance before
+        balance_old = Utils.getBalance(3)
+        delegation_before = Utils.getDelegation(3, 3)
+      })
+      it("The verified status will still be true", function() {
+        let payload = { from: Globals.Accounts[3], maxAmount: amounts.increasedMax }
+        tx_result = web3.cmt.stake.validator.update(payload)
+        Utils.expectTxSuccess(tx_result)
+        // check validator
+        let r = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
+        expect(r.data.max_shares).to.be.eq(amounts.increasedMax)
+        expect(r.data.verified).to.be.eq("Y")
+      })
+      it("More refund will be issued", function() {
+        delegation_after = Utils.getDelegation(3, 3)
+        let refund = delegation_after.delegate_amount.minus(delegation_before.delegate_amount)
+        expect(
+          web3
+            .toBigNumber(amounts.increasedMax)
+            .times(0.1)
+            .minus(delegation_before.shares)
+            .minus(refund)
+            .toNumber()
+        ).to.eq(0)
+        // balance after
+        balance_new = Utils.getBalance(3)
+        let gasFee = Utils.gasFee("updateCandidacy")
+        expect(
+          balance_old
+            .minus(balance_new)
+            .minus(gasFee)
+            .minus(refund)
+            .toNumber()
+        ).to.eq(0)
+        // check deliver tx tx_result
+        // let tag = tx_result.deliver_tx.tags.find(
+        //   t => t.key == Globals.GasFeeKey
+        // )
+        // expect(Buffer.from(tag.value, "base64").toString()).to.eq(
+        //   gasFee.toString()
+        // )
+        // expect(tx_result.deliver_tx.gasUsed).to.eq(
+        //   web3.toBigNumber(Globals.Params.update_candidacy).toString()
+        // )
+      })
     })
     describe("Account D reduce max amount", function() {
+      before(function() {
+        // balance before
+        balance_old = Utils.getBalance(3)
+      })
       it("The verified status will still be true", function() {
         let payload = {
           from: Globals.Accounts[3],
@@ -471,6 +521,66 @@ describe("Stake Test", function() {
       expect(bCount).to.be.eq(0)
       let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
       expect(data == null).to.be.true
+    })
+  })
+
+  describe("Update validator's account address", function() {
+    let newAccount, accountUpdateRequestId
+    before(function() {
+      newAccount = web3.personal.newAccount(Settings.Passphrase)
+      web3.personal.unlockAccount(newAccount, Settings.Passphrase)
+      // balance before
+      balance_old = Utils.getBalance(0)
+    })
+    it("update validator's account address", function() {
+      let payload = { from: Globals.Accounts[0], newCandidateAccount: newAccount }
+      tx_result = web3.cmt.stake.validator.updateAccount(payload)
+      Utils.expectTxSuccess(tx_result)
+      // balance after
+      balance_new = Utils.getBalance(0)
+      let gasFee = Utils.gasFee("updateAccount")
+      expect(
+        balance_old
+          .minus(balance_new)
+          .minus(gasFee)
+          .toNumber()
+      ).to.equal(0)
+      accountUpdateRequestId = Number(
+        Buffer.from(tx_result.deliver_tx.data, "base64").toString("utf-8")
+      )
+    })
+    describe("new account accept the update", function() {
+      before(function() {
+        // balance before
+        balance_old = Utils.getBalance(0)
+      })
+      it("no enough balance - fail", function() {
+        let payload = { from: newAccount, accountUpdateRequestId: accountUpdateRequestId }
+        tx_result = web3.cmt.stake.validator.acceptAccountUpdate(payload)
+        Utils.expectTxFail(tx_result)
+      })
+      it("send funds to the new account ", function() {
+        let gasFee = Utils.gasFee("acceptAccountUpdate")
+        delegation_before = Utils.getDelegation(0, 0)
+        Utils.transfer(web3.cmt.defaultAccount, newAccount, delegation_before.shares.plus(gasFee))
+      })
+      it("it has enough balance - success", function() {
+        let payload = { from: newAccount, accountUpdateRequestId: accountUpdateRequestId }
+        tx_result = web3.cmt.stake.validator.acceptAccountUpdate(payload)
+        Utils.expectTxSuccess(tx_result)
+        // check balance of old account
+        balance_new = Utils.getBalance(0)
+        expect(
+          balance_new
+            .minus(balance_old)
+            .minus(delegation_before.shares)
+            .toNumber()
+        ).to.be.equal(0)
+        // check balance of new account
+        balance = web3.cmt.getBalance(newAccount)
+        logger.debug(`balance in wei: --> ${balance}`)
+        expect(balance.toNumber()).to.be.eq(0)
+      })
     })
   })
 })
