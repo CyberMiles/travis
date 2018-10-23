@@ -24,11 +24,13 @@ const (
 	ByteTxSetCompRate                  = 0x62
 	ByteTxUpdateCandidacyAccount       = 0x63
 	ByteTxAcceptCandidacyAccountUpdate = 0x64
+	ByteTxDeactivateCandidacy          = 0x65
 	TypeTxDeclareCandidacy             = "stake/declareCandidacy"
 	TypeTxUpdateCandidacy              = "stake/updateCandidacy"
 	TypeTxVerifyCandidacy              = "stake/verifyCandidacy"
 	TypeTxWithdrawCandidacy            = "stake/withdrawCandidacy"
 	TypeTxActivateCandidacy            = "stake/activateCandidacy"
+	TypeTxDeactivateCandidacy          = "stake/deactivateCandidacy"
 	TypeTxDelegate                     = "stake/delegate"
 	TypeTxWithdraw                     = "stake/withdraw"
 	TypeTxSetCompRate                  = "stake/setCompRate"
@@ -42,6 +44,7 @@ func init() {
 	sdk.TxMapper.RegisterImplementation(TxWithdrawCandidacy{}, TypeTxWithdrawCandidacy, ByteTxWithdrawCandidacy)
 	sdk.TxMapper.RegisterImplementation(TxVerifyCandidacy{}, TypeTxVerifyCandidacy, ByteTxVerifyCandidacy)
 	sdk.TxMapper.RegisterImplementation(TxActivateCandidacy{}, TypeTxActivateCandidacy, ByteTxActivateCandidacy)
+	sdk.TxMapper.RegisterImplementation(TxDeactivateCandidacy{}, TypeTxDeactivateCandidacy, ByteTxDeactivateCandidacy)
 	sdk.TxMapper.RegisterImplementation(TxDelegate{}, TypeTxDelegate, ByteTxDelegate)
 	sdk.TxMapper.RegisterImplementation(TxWithdraw{}, TypeTxWithdraw, ByteTxWithdraw)
 	sdk.TxMapper.RegisterImplementation(TxSetCompRate{}, TypeTxSetCompRate, ByteTxSetCompRate)
@@ -50,7 +53,7 @@ func init() {
 }
 
 //Verify interface at compile time
-var _, _, _, _, _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, &TxWithdrawCandidacy{}, TxVerifyCandidacy{}, &TxActivateCandidacy{}, &TxDelegate{}, &TxWithdraw{}, &TxSetCompRate{}, &TxUpdateCandidacyAccount{}, &TxAcceptCandidacyAccountUpdate{}
+var _, _, _, _, _, _, _, _, _, _, _ sdk.TxInner = &TxDeclareCandidacy{}, &TxUpdateCandidacy{}, &TxWithdrawCandidacy{}, TxVerifyCandidacy{}, &TxActivateCandidacy{}, &TxDelegate{}, &TxWithdraw{}, &TxSetCompRate{}, &TxUpdateCandidacyAccount{}, &TxAcceptCandidacyAccountUpdate{}, &TxDeactivateCandidacy{}
 
 type TxDeclareCandidacy struct {
 	PubKey      string      `json:"pub_key"`
@@ -145,6 +148,20 @@ func NewTxActivateCandidacy() sdk.Tx {
 
 // Wrap - Wrap a Tx as a Basecoin Tx
 func (tx TxActivateCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
+
+type TxDeactivateCandidacy struct{}
+
+// ValidateBasic - Check for non-empty candidate, and valid coins
+func (tx TxDeactivateCandidacy) ValidateBasic() error {
+	return nil
+}
+
+func NewTxDeactivateCandidacy() sdk.Tx {
+	return TxDeactivateCandidacy{}.Wrap()
+}
+
+// Wrap - Wrap a Tx as a Basecoin Tx
+func (tx TxDeactivateCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 // TxDelegate - struct for bonding or unbonding transactions
 type TxDelegate struct {
