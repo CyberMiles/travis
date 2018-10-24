@@ -464,8 +464,8 @@ func (c check) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUp
 		return ErrBadRequest()
 	}
 
-	candidate := GetCandidateById(req.CandidateId)
-	totalCost := candidate.ParseShares().Add(gasFee)
+	delegation := GetDelegation(req.FromAddress, req.CandidateId)
+	totalCost := delegation.Shares().Add(gasFee)
 
 	// check if the new account has sufficient funds
 	if err := checkBalance(c.ctx.EthappState(), req.ToAddress, totalCost); err != nil {
@@ -889,10 +889,10 @@ func (d deliver) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccount
 	UpdateDelegation(delegation)
 
 	// return coins to the original account
-	commons.Transfer(utils.HoldAccount, req.FromAddress, candidate.ParseShares())
+	commons.Transfer(utils.HoldAccount, req.FromAddress, delegation.Shares())
 
 	// lock coins from the new account
-	commons.Transfer(req.ToAddress, utils.HoldAccount, candidate.ParseShares().Add(gasFee))
+	commons.Transfer(req.ToAddress, utils.HoldAccount, delegation.Shares().Add(gasFee))
 
 	// mark the request as completed
 	req.State = "COMPLETED"
