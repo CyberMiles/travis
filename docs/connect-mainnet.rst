@@ -184,6 +184,6 @@ We have deployed a rpc service for public to attach:
 
 ::
 
-  rpc.cmtchain.io:8545
+  rpc.cybermiles.io:8545
   
   
