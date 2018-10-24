@@ -245,7 +245,7 @@ func updateCandidate(candidate *Candidate) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, pending_voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, num_of_delegators = ? where id = ?")
+	stmt, err := txWrapper.tx.Prepare("update candidates set address = ?, shares = ?, voting_power = ?, pending_voting_power = ?, max_shares = ?, comp_rate = ?, name =?, website = ?, location = ?, profile = ?, email = ?, verified = ?, active = ?, hash = ?, rank = ?, state = ?, num_of_delegators = ?, pub_key = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}
@@ -270,6 +270,7 @@ func updateCandidate(candidate *Candidate) {
 		candidate.Rank,
 		candidate.State,
 		candidate.NumOfDelegators,
+		types.PubKeyString(candidate.PubKey),
 		candidate.Id,
 	)
 	if err != nil {

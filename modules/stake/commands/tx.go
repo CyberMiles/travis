@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/CyberMiles/travis/utils"
 	"math/big"
 
 	"github.com/spf13/cobra"
@@ -168,7 +169,9 @@ func init() {
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCandidate)
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCompRate)
 
+	CmdUpdateCandidacy.Flags().AddFlagSet(fsPk)
 	CmdUpdateCandidacy.Flags().AddFlagSet(fsCandidate)
+	CmdUpdateCandidacy.Flags().AddFlagSet(fsCompRate)
 
 	CmdVerifyCandidacy.Flags().AddFlagSet(fsValidatorAddress)
 	CmdVerifyCandidacy.Flags().AddFlagSet(fsVerified)
@@ -219,8 +222,17 @@ func cmdDeclareCandidacy(cmd *cobra.Command, args []string) error {
 }
 
 func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
+	pk := types.PubKey{}
+	if !utils.IsBlank(viper.GetString(FlagPubKey)) {
+		tmp, err := types.GetPubKey(viper.GetString(FlagPubKey))
+		if err != nil {
+			return err
+		}
+		pk = tmp
+	}
+
 	maxAmount := viper.GetString(FlagMaxAmount)
-	if maxAmount != "" {
+	if !utils.IsBlank(maxAmount) {
 		v := new(big.Int)
 		_, ok := v.SetString(maxAmount, 10)
 		if !ok || v.Cmp(big.NewInt(0)) <= 0 {
@@ -228,8 +240,17 @@ func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	cr := sdk.Rat{}
+	if viper.GetString(FlagCompRate) != "0" {
+		tmp, ok := sdk.NewRatFromString(viper.GetString(FlagCompRate))
+		if !ok || tmp.LTE(sdk.ZeroRat) || tmp.GTE(sdk.OneRat) {
+			return fmt.Errorf("comp-rate must between 0 and 1")
+		}
+		cr = tmp
+	}
+
 	newCandidateAddress := common.HexToAddress(viper.GetString(FlagNewCandidateAddress))
-	if newCandidateAddress.String() == "" {
+	if utils.IsBlank(newCandidateAddress.String()) {
 		return fmt.Errorf("please enter new candidate address using --new-candidate-address")
 	}
 
@@ -241,7 +262,7 @@ func cmdUpdateCandidacy(cmd *cobra.Command, args []string) error {
 		Profile:  viper.GetString(FlagProfile),
 	}
 
-	tx := stake.NewTxUpdateCandidacy(maxAmount, description)
+	tx := stake.NewTxUpdateCandidacy(pk, maxAmount, cr, description)
 	return txcmd.DoTx(tx)
 }
 

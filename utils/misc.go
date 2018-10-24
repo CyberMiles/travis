@@ -63,3 +63,7 @@ func Contains(slice []string, item string) bool {
 	_, ok := set[item]
 	return ok
 }
+
+func IsBlank(str string) bool {
+	return strings.TrimSpace(str) == ""
+}

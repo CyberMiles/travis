@@ -258,6 +258,13 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 }
 
 func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
+	if !utils.IsBlank(tx.PubKey) {
+		_, err := types.GetPubKey(tx.PubKey)
+		if err != nil {
+			return err
+		}
+	}
+
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
 		return fmt.Errorf("cannot edit non-exsits candidacy")
@@ -281,6 +288,10 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	// check if the delegator has sufficient funds
 	if err := checkBalance(c.ctx.EthappState(), c.sender, totalCost); err != nil {
 		return err
+	}
+
+	if tx.CompRate.LT(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
+		return ErrBadCompRate()
 	}
 
 	return nil
@@ -601,14 +612,39 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	}
 
 	// If other information was updated, set the verified status to false
-	if candidate.Description != tx.Description {
+	if len(tx.Description.Name) > 0 {
 		candidate.Verified = "N"
-		candidate.Description = tx.Description
+		candidate.Description.Name = tx.Description.Name
+	}
+	if len(tx.Description.Email) > 0 {
+		candidate.Verified = "N"
+		candidate.Description.Email = tx.Description.Email
+	}
+	if len(tx.Description.Website) > 0 {
+		candidate.Verified = "N"
+		candidate.Description.Website = tx.Description.Website
+	}
+	if len(tx.Description.Location) > 0 {
+		candidate.Verified = "N"
+		candidate.Description.Location = tx.Description.Location
+	}
+	if len(tx.Description.Profile) > 0 {
+		candidate.Verified = "N"
+		candidate.Description.Profile = tx.Description.Profile
 	}
 
 	// check if the delegator has sufficient funds
 	if err := checkBalance(d.ctx.EthappState(), d.sender, totalCost); err != nil {
 		return err
+	}
+
+	if !utils.IsBlank(tx.PubKey) {
+		pubKey, _ := types.GetPubKey(tx.PubKey)
+		candidate.PubKey = pubKey
+	}
+
+	if !sdk.ZeroRat.Equal(tx.CompRate) {
+		candidate.CompRate = tx.CompRate
 	}
 
 	commons.Transfer(d.sender, utils.HoldAccount, totalCost)

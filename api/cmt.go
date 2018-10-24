@@ -279,7 +279,9 @@ func (s *CmtRPCService) WithdrawCandidacy(args WithdrawCandidacyArgs) (*ctypes.R
 type UpdateCandidacyArgs struct {
 	Nonce       *hexutil.Uint64   `json:"nonce"`
 	From        common.Address    `json:"from"`
+	PubKey      string            `json:"pubKey"`
 	MaxAmount   *hexutil.Big      `json:"maxAmount"`
+	CompRate    sdk.Rat           `json:"compRate"`
 	Description stake.Description `json:"description"`
 }
 
@@ -288,7 +290,17 @@ func (s *CmtRPCService) UpdateCandidacy(args UpdateCandidacyArgs) (*ctypes.Resul
 	if args.MaxAmount != nil {
 		maxAmount = args.MaxAmount.ToInt().String()
 	}
-	tx := stake.NewTxUpdateCandidacy(maxAmount, args.Description)
+
+	pubKey := types.PubKey{}
+	if !utils.IsBlank(args.PubKey) {
+		tmp, err := types.GetPubKey(args.PubKey)
+		if err != nil {
+			return nil, err
+		}
+		pubKey = tmp
+	}
+
+	tx := stake.NewTxUpdateCandidacy(pubKey, maxAmount, args.CompRate, args.Description)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {
