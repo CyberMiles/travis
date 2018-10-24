@@ -205,6 +205,12 @@ func (b *Backend) APIs() []rpc.API {
 			Service:   NewEthRPCService(b, nonceLock),
 			Public:    true,
 		},
+		{
+			Namespace: "personal",
+			Version:   "1.0",
+			Service:   NewPrivateAccountAPI(b, nonceLock),
+			Public:    true,
+		},
 	}...)
 
 	retApis := []rpc.API{}
@@ -212,7 +218,7 @@ func (b *Backend) APIs() []rpc.API {
 		if v.Namespace == "net" {
 			v.Service = NewNetRPCService(b)
 		}
-		if v.Namespace == "miner" {
+		if v.Namespace == "miner" || v.Namespace == "txpool" {
 			continue
 		}
 		if _, ok := v.Service.(*eth.PublicMinerAPI); ok {

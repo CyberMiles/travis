@@ -129,6 +129,32 @@ func (b *Backend) signTransaction(args *SendTxArgs) (*ethTypes.Transaction, erro
 	return signed, nil
 }
 
+// signTransaction sets defaults and signs the given transaction
+// NOTE: the caller needs to ensure that the nonceLock is held, and release it after use.
+func (b *Backend) signTransactionWithPassphrase(args *SendTxArgs, passwd string) (*ethTypes.Transaction, error) {
+	// Look up the wallet containing the requested signer
+	account := accounts.Account{Address: args.From}
+
+	// Set some sanity defaults and terminate on failure
+	if err := args.setDefaults(b); err != nil {
+		return nil, err
+	}
+	// Assemble the transaction and sign with the wallet
+	tx := args.toTransaction()
+
+	wallet, err := b.ethereum.AccountManager().Find(account)
+	if err != nil {
+		return nil, err
+	}
+	ethChainId := int64(b.ethConfig.NetworkId)
+	signed, err := wallet.SignTxWithPassphrase(account, passwd, tx, big.NewInt(ethChainId))
+	if err != nil {
+		return nil, err
+	}
+
+	return signed, nil
+}
+
 //----------------------------------------------------------------------
 // wait for Tendermint to open the socket and run http endpoint
 

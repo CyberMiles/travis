@@ -96,3 +96,60 @@ func (s *EthRPCService) SendRawTransaction(encodedTx hexutil.Bytes) (string, err
 	}
 	return tx.Hash().Hex(), nil
 }
+
+// PrivateAccountAPI provides an API to access accounts managed by this node.
+// It offers methods to create, (un)lock en list accounts. Some methods accept
+// passwords and are therefore considered private by default.
+type PrivateAccountAPI struct {
+	am        *accounts.Manager
+	nonceLock *AddrLocker
+	backend   *Backend
+}
+
+// NewPrivateAccountAPI create a new PrivateAccountAPI.
+func NewPrivateAccountAPI(b *Backend, nonceLock *AddrLocker) *PrivateAccountAPI {
+	return &PrivateAccountAPI{
+		am:        b.ethereum.AccountManager(),
+		nonceLock: nonceLock,
+		backend:   b,
+	}
+}
+
+// sign tx and broardcast sync to tendermint.
+func (s *PrivateAccountAPI) signAndBroadcastSync(args SendTxArgs, passwd string) (*types.Transaction, error) {
+	if args.Nonce == nil {
+		// Hold the addresse's mutex around signing to prevent concurrent assignment of
+		// the same nonce to multiple accounts.
+		s.nonceLock.LockAddr(args.From)
+		// release noncelock after broadcast
+		defer s.nonceLock.UnlockAddr(args.From)
+	}
+
+	signed, err := s.backend.signTransactionWithPassphrase(&args, passwd)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := s.backend.BroadcastTxSync(signed)
+	if err != nil {
+		return nil, err
+	}
+	if result.Code > 0 {
+		return nil, errors.New(result.Log)
+	}
+
+	return signed, nil
+}
+
+// SendTransaction is compatible with Ethereum, return eth transaction hash.
+// It will create a transaction from the given arguments and try to sign it
+// with the key associated with args.From. If the given passwd isn't
+// able to decrypt the key it fails.
+func (s *PrivateAccountAPI) SendTransaction(args SendTxArgs, passwd string) (common.Hash, error) {
+	signed, err := s.signAndBroadcastSync(args, passwd)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return signed.Hash(), nil
+}
