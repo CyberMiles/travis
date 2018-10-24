@@ -21,6 +21,7 @@ type delegatedProofOfStake interface {
 	withdrawCandidacy(TxWithdrawCandidacy) error
 	verifyCandidacy(TxVerifyCandidacy) error
 	activateCandidacy(TxActivateCandidacy) error
+	deactivateCandidacy(TxDeactivateCandidacy) error
 	delegate(TxDelegate) error
 	withdraw(TxWithdraw) error
 	setCompRate(TxSetCompRate, sdk.Int) error
@@ -95,6 +96,8 @@ func CheckTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx) (res sdk.CheckR
 		return res, checker.verifyCandidacy(txInner)
 	case TxActivateCandidacy:
 		return res, checker.activateCandidacy(txInner)
+	case TxDeactivateCandidacy:
+		return res, checker.deactivateCandidacy(txInner)
 	case TxDelegate:
 		return res, checker.delegate(txInner)
 	case TxWithdraw:
@@ -159,6 +162,8 @@ func DeliverTx(ctx types.Context, store state.SimpleDB, tx sdk.Tx, hash []byte) 
 		return res, deliverer.verifyCandidacy(txInner)
 	case TxActivateCandidacy:
 		return res, deliverer.activateCandidacy(txInner)
+	case TxDeactivateCandidacy:
+		return res, deliverer.deactivateCandidacy(txInner)
 	case TxDelegate:
 		return res, deliverer.delegate(txInner)
 	case TxWithdraw:
@@ -320,7 +325,19 @@ func (c check) activateCandidacy(tx TxActivateCandidacy) error {
 	if candidate.ParseShares().Equal(sdk.ZeroInt) {
 		return fmt.Errorf("cannot activate withdrawed candidacy")
 	}
+	return nil
+}
 
+func (c check) deactivateCandidacy(tx TxDeactivateCandidacy) error {
+	// check to see if the address has been registered before
+	candidate := GetCandidateByAddress(c.sender)
+	if candidate == nil {
+		return fmt.Errorf("cannot deactivate non-exsits candidacy")
+	}
+
+	if candidate.Active == "N" {
+		return fmt.Errorf("already deactivated")
+	}
 	return nil
 }
 
@@ -641,6 +658,18 @@ func (d deliver) activateCandidacy(tx TxActivateCandidacy) error {
 	}
 
 	candidate.Active = "Y"
+	updateCandidate(candidate)
+	return nil
+}
+
+func (d deliver) deactivateCandidacy(tx TxDeactivateCandidacy) error {
+	// check to see if the address has been registered before
+	candidate := GetCandidateByAddress(d.sender)
+	if candidate == nil {
+		return fmt.Errorf("cannot deactivate non-exsits candidacy")
+	}
+
+	candidate.Active = "N"
 	updateCandidate(candidate)
 	return nil
 }

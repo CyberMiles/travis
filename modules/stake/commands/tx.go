@@ -87,6 +87,11 @@ var (
 		Short: "Allows a validator to activate itself",
 		RunE:  cmdActivateCandidacy,
 	}
+	CmdDeactivateCandidacy = &cobra.Command{
+		Use:   "deactivate-candidacy",
+		Short: "Allows a validator to deactivate itself",
+		RunE:  cmdDeactivateCandidacy,
+	}
 	CmdUpdateCandidacyAccount = &cobra.Command{
 		Use:   "update-candidacy-account",
 		Short: "Allows a validator to update its account",
@@ -258,6 +263,11 @@ func cmdVerifyCandidacy(cmd *cobra.Command, args []string) error {
 
 func cmdActivateCandidacy(cmd *cobra.Command, args []string) error {
 	tx := stake.NewTxActivateCandidacy()
+	return txcmd.DoTx(tx)
+}
+
+func cmdDeactivateCandidacy(cmd *cobra.Command, args []string) error {
+	tx := stake.NewTxDeactivateCandidacy()
 	return txcmd.DoTx(tx)
 }
 
