@@ -69,19 +69,21 @@ func (tx TxDeclareCandidacy) SelfStakingAmount(ssr sdk.Rat) (res sdk.Int) {
 	return
 }
 
-func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount string, compRate sdk.Rat, descrpition Description) sdk.Tx {
+func NewTxDeclareCandidacy(pubKey types.PubKey, maxAmount string, compRate sdk.Rat, description Description) sdk.Tx {
 	return TxDeclareCandidacy{
 		PubKey:      types.PubKeyString(pubKey),
 		MaxAmount:   maxAmount,
 		CompRate:    compRate,
-		Description: descrpition,
+		Description: description,
 	}.Wrap()
 }
 
 func (tx TxDeclareCandidacy) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxUpdateCandidacy struct {
+	PubKey      string      `json:"pub_key"`
 	MaxAmount   string      `json:"max_amount"`
+	CompRate    sdk.Rat     `json:"comp_rate"`
 	Description Description `json:"description"`
 }
 
@@ -89,10 +91,12 @@ func (tx TxUpdateCandidacy) ValidateBasic() error {
 	return nil
 }
 
-func NewTxUpdateCandidacy(maxAmount string, description Description) sdk.Tx {
+func NewTxUpdateCandidacy(pubKey types.PubKey, maxAmount string, compRate sdk.Rat, description Description) sdk.Tx {
 	return TxUpdateCandidacy{
+		PubKey:      types.PubKeyString(pubKey),
 		MaxAmount:   maxAmount,
 		Description: description,
+		CompRate:    compRate,
 	}.Wrap()
 }
 
