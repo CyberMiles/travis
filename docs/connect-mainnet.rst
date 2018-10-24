@@ -178,4 +178,12 @@ Then restart travis service and type the following in a seperte terminal console
   travis attach http://localhost:8545
 
 
-You should now the see the web3-cmt JavaScript console and have fun with MainNet..
+You should now the see the web3-cmt JavaScript console and have fun with MainNet.
+
+We have deployed a rpc service for public to attach:
+
+::
+
+  rpc.cmtchain.io:8545
+  
+  
