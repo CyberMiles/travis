@@ -22,6 +22,7 @@ describe("Stake Test", function() {
   let compRate = "4/5"
   let existingValidator = {}
   let amounts, balance_old, balance_new, tx_result
+  let newAccount
 
   before(function() {
     Utils.addFakeValidators()
@@ -454,22 +455,85 @@ describe("Stake Test", function() {
     })
   })
 
+  describe.skip("Update D's account address", function() {
+    let accountUpdateRequestId
+    before(function() {
+      newAccount = web3.personal.newAccount(Settings.Passphrase)
+      web3.personal.unlockAccount(newAccount, Settings.Passphrase)
+      // balance before
+      balance_old = Utils.getBalance(3)
+    })
+
+    it("update validator's account address", function() {
+      let payload = { from: Globals.Accounts[3], newCandidateAccount: newAccount }
+      tx_result = web3.cmt.stake.validator.updateAccount(payload)
+      Utils.expectTxSuccess(tx_result)
+      // balance after
+      balance_new = Utils.getBalance(3)
+      let gasFee = Utils.gasFee("updateAccount")
+      expect(
+        balance_old
+          .minus(balance_new)
+          .minus(gasFee)
+          .toNumber()
+      ).to.equal(0)
+      accountUpdateRequestId = Number(
+        Buffer.from(tx_result.deliver_tx.data, "base64").toString("utf-8")
+      )
+    })
+    describe("new account accept the update", function() {
+      before(function() {
+        // balance before
+        balance_old = Utils.getBalance(3)
+      })
+      it("no enough balance - fail", function() {
+        let payload = { from: newAccount, accountUpdateRequestId: accountUpdateRequestId }
+        tx_result = web3.cmt.stake.validator.acceptAccountUpdate(payload)
+        Utils.expectTxFail(tx_result)
+      })
+      it("send funds to the new account ", function() {
+        let gasFee = Utils.gasFee("acceptAccountUpdate")
+        delegation_before = Utils.getDelegation(3, 3)
+        Utils.transfer(web3.cmt.defaultAccount, newAccount, delegation_before.shares.plus(gasFee))
+      })
+      it("it has enough balance - success", function() {
+        let payload = { from: newAccount, accountUpdateRequestId: accountUpdateRequestId }
+        tx_result = web3.cmt.stake.validator.acceptAccountUpdate(payload)
+        Utils.expectTxSuccess(tx_result)
+        // check balance of old account
+        balance_new = Utils.getBalance(3)
+        expect(
+          balance_new
+            .minus(balance_old)
+            .minus(delegation_before.shares)
+            .toNumber()
+        ).to.be.equal(0)
+        // check balance of new account
+        balance = web3.cmt.getBalance(newAccount)
+        logger.debug(`balance in wei: --> ${balance}`)
+        expect(balance.toNumber()).to.be.eq(0)
+      })
+    })
+  })
+
   describe("Candidate drops candidacy", function() {
+    let theAccount
     before(function() {
       // balance before
       balance_old = Utils.getBalance()
+      theAccount = newAccount ? newAccount : Globals.Accounts[3]
     })
     it("Withdraw Candidacy", function(done) {
-      let payload = { from: Globals.Accounts[3] }
+      let payload = { from: theAccount }
       tx_result = web3.cmt.stake.validator.withdraw(payload)
       Utils.expectTxSuccess(tx_result)
       Utils.waitBlocks(done, 1)
     })
     it("Account D no longer a validator, and genesis validator restored", function() {
-      // check validators, no Globals.Accounts[3]
+      // check validators, no theAccount
       tx_result = web3.cmt.stake.validator.list()
       tx_result.data.forEach(d => (d.owner_address = d.owner_address.toLowerCase()))
-      expect(tx_result.data).to.not.containSubset([{ owner_address: Globals.Accounts[3] }])
+      expect(tx_result.data).to.not.containSubset([{ owner_address: theAccount }])
       // check validators restored
       let vals = tx_result.data.filter(d => d.state == "Validator")
       expect(vals.length).to.eq(Globals.Params.max_vals)
@@ -521,66 +585,6 @@ describe("Stake Test", function() {
       expect(bCount).to.be.eq(0)
       let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
       expect(data == null).to.be.true
-    })
-  })
-
-  describe("Update validator's account address", function() {
-    let newAccount, accountUpdateRequestId
-    before(function() {
-      newAccount = web3.personal.newAccount(Settings.Passphrase)
-      web3.personal.unlockAccount(newAccount, Settings.Passphrase)
-      // balance before
-      balance_old = Utils.getBalance(0)
-    })
-    it("update validator's account address", function() {
-      let payload = { from: Globals.Accounts[0], newCandidateAccount: newAccount }
-      tx_result = web3.cmt.stake.validator.updateAccount(payload)
-      Utils.expectTxSuccess(tx_result)
-      // balance after
-      balance_new = Utils.getBalance(0)
-      let gasFee = Utils.gasFee("updateAccount")
-      expect(
-        balance_old
-          .minus(balance_new)
-          .minus(gasFee)
-          .toNumber()
-      ).to.equal(0)
-      accountUpdateRequestId = Number(
-        Buffer.from(tx_result.deliver_tx.data, "base64").toString("utf-8")
-      )
-    })
-    describe("new account accept the update", function() {
-      before(function() {
-        // balance before
-        balance_old = Utils.getBalance(0)
-      })
-      it("no enough balance - fail", function() {
-        let payload = { from: newAccount, accountUpdateRequestId: accountUpdateRequestId }
-        tx_result = web3.cmt.stake.validator.acceptAccountUpdate(payload)
-        Utils.expectTxFail(tx_result)
-      })
-      it("send funds to the new account ", function() {
-        let gasFee = Utils.gasFee("acceptAccountUpdate")
-        delegation_before = Utils.getDelegation(0, 0)
-        Utils.transfer(web3.cmt.defaultAccount, newAccount, delegation_before.shares.plus(gasFee))
-      })
-      it("it has enough balance - success", function() {
-        let payload = { from: newAccount, accountUpdateRequestId: accountUpdateRequestId }
-        tx_result = web3.cmt.stake.validator.acceptAccountUpdate(payload)
-        Utils.expectTxSuccess(tx_result)
-        // check balance of old account
-        balance_new = Utils.getBalance(0)
-        expect(
-          balance_new
-            .minus(balance_old)
-            .minus(delegation_before.shares)
-            .toNumber()
-        ).to.be.equal(0)
-        // check balance of new account
-        balance = web3.cmt.getBalance(newAccount)
-        logger.debug(`balance in wei: --> ${balance}`)
-        expect(balance.toNumber()).to.be.eq(0)
-      })
     })
   })
 })
