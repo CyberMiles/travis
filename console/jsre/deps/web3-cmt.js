@@ -15191,6 +15191,11 @@ var methods = function() {
     params: 2,
     outputFormatter: formatters.outputTransactionFormatter
   })
+  var decodeRawTxs = new Method({
+    name: "decodeRawTxs",
+    call: "cmt_decodeRawTxs",
+    params: 1
+  })
 
   return [
     sendRawTx,
@@ -15199,7 +15204,8 @@ var methods = function() {
     sendRawTransaction,
     getCmtBlock,
     getCmtTransaction,
-    getCmtTransactionFromBlock
+    getCmtTransactionFromBlock,
+    decodeRawTxs
   ]
 }
 
@@ -15492,6 +15498,12 @@ var methods = function() {
     params: 1,
     inputFormatter: [formatters.inputStakeTxFormatter]
   })
+  var deactivate = new Method({
+    name: "deactivate",
+    call: "cmt_deactivateCandidacy",
+    params: 1,
+    inputFormatter: [formatters.inputStakeTxFormatter]
+  })
   var updateAccount = new Method({
     name: "updateAccount",
     call: "cmt_updateCandidacyAccount",
@@ -15536,6 +15548,7 @@ var methods = function() {
     update,
     verify,
     activate,
+    deactivate,
     setCompRate,
     updateAccount,
     acceptAccountUpdate,
