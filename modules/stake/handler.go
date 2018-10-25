@@ -290,7 +290,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		return err
 	}
 
-	if tx.CompRate.LT(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat) {
+	if !tx.CompRate.IsNil() && (tx.CompRate.LT(sdk.ZeroRat) || tx.CompRate.GTE(sdk.OneRat)) {
 		return ErrBadCompRate()
 	}
 
@@ -643,7 +643,7 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		candidate.PubKey = pubKey
 	}
 
-	if !sdk.ZeroRat.Equal(tx.CompRate) {
+	if !tx.CompRate.IsNil() && !sdk.ZeroRat.Equal(tx.CompRate) {
 		candidate.CompRate = tx.CompRate
 	}
 
