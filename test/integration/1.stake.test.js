@@ -455,7 +455,7 @@ describe("Stake Test", function() {
     })
   })
 
-  describe.skip("Update D's account address", function() {
+  describe("Update D's account address", function() {
     let accountUpdateRequestId
     before(function() {
       newAccount = web3.personal.newAccount(Settings.Passphrase)
