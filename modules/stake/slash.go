@@ -78,21 +78,15 @@ func SlashByzantineValidator(pubKey types.PubKey, blockTime, blockHeight int64) 
 func SlashAbsentValidator(pubKey types.PubKey, absence *Absence, blockTime, blockHeight int64) (err error) {
 	slashRatio := utils.GetParams().SlashRatio
 	maxSlashBlocks := utils.GetParams().MaxSlashBlocks
-	if absence.GetCount() <= maxSlashBlocks {
-		err = slash(pubKey, "Absent validator", slashRatio, blockTime, blockHeight)
-	}
-
 	if absence.GetCount() == maxSlashBlocks {
+		err = slash(pubKey, "Absent validator", slashRatio, blockTime, blockHeight)
 		err = RemoveValidator(pubKey, blockTime, blockHeight)
 	}
 	return
 }
 
 func SlashBadProposer(pubKey types.PubKey, blockTime, blockHeight int64) (err error) {
-	maxSlashBlocks := int64(utils.GetParams().MaxSlashBlocks)
 	slashRatio := utils.GetParams().SlashRatio
-	slashRatio = slashRatio.Mul(sdk.NewRat(maxSlashBlocks, 1))
-
 	err = slash(pubKey, "Bad block proposer", slashRatio, blockTime, blockHeight)
 	if err != nil {
 		return err
@@ -152,7 +146,8 @@ func RemoveValidator(pubKey types.PubKey, blockTime, blockHeight int64) (err err
 	updateCandidate(v)
 
 	// Save slash history
-	slash := &Slash{CandidateId: v.Id, SlashRatio: sdk.ZeroRat, SlashAmount: sdk.ZeroInt, Reason: "Absent for up to 12 consecutive blocks", CreatedAt: blockTime, BlockHeight: blockHeight}
+	maxSlashBlocks := utils.GetParams().MaxSlashBlocks
+	slash := &Slash{CandidateId: v.Id, SlashRatio: sdk.ZeroRat, SlashAmount: sdk.ZeroInt, Reason: fmt.Sprintf("Absent for up to %d consecutive blocks", maxSlashBlocks), CreatedAt: blockTime, BlockHeight: blockHeight}
 	saveSlash(slash)
 	return
 }
