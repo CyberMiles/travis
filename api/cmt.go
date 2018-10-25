@@ -326,6 +326,22 @@ func (s *CmtRPCService) ActivateCandidacy(args ActivateCandidacyArgs) (*ctypes.R
 	return s.signAndBroadcastTxCommit(txArgs)
 }
 
+type DeactivateCandidacyArgs struct {
+	Nonce *hexutil.Uint64 `json:"nonce"`
+	From  common.Address  `json:"from"`
+}
+
+func (s *CmtRPCService) DeactivateCandidacy(args DeactivateCandidacyArgs) (*ctypes.ResultBroadcastTxCommit, error) {
+	tx := stake.NewTxDeactivateCandidacy()
+
+	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.signAndBroadcastTxCommit(txArgs)
+}
+
 type SetCompRateArgs struct {
 	Nonce            *hexutil.Uint64 `json:"nonce"`
 	From             common.Address  `json:"from"`
