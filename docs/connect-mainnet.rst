@@ -50,7 +50,7 @@ Change your name from default name ``local``, set persistent peers
   moniker = "<your_custom_name>"
 
   # find the seeds option and change its value
-  seeds = "7e7a321470a6a437457293b32eeeddf0cb498f93@35.185.101.6:26656,607dd907c7e60f4884cd26001cf0d97fed227123@35.229.126.251:26656"
+  seeds = "595fa3946078dc8dbd752fa139462735c67027c7@104.154.232.196:26656,d7694fef6eb96838fd91279298314b4fcfb9aa03@35.193.249.179:26656,11b4a29a26d55c09d96a0af6a6dbb40ec840c263@35.226.7.62:26656,96d43bc533313e9c6ba7303390f1b858f38c3c5a@35.184.27.200:26656,873d6befc7145b86e48cf6c23a8c5fd3aebec6a3@35.196.9.192:26656,499decf32125463826cbb7b6eab6697179396688@35.196.33.211:26656"
 
 Copy libeni into the default Travis data directory
 --------------------------------------------------
@@ -111,7 +111,7 @@ First change your name from default name ``local``, set persistent peers
   moniker = "<your_custom_name>"
 
   # find the seeds option and change its value
-  seeds = "7e7a321470a6a437457293b32eeeddf0cb498f93@35.185.101.6:26656,607dd907c7e60f4884cd26001cf0d97fed227123@35.229.126.251:26656"
+  seeds = "595fa3946078dc8dbd752fa139462735c67027c7@104.154.232.196:26656,d7694fef6eb96838fd91279298314b4fcfb9aa03@35.193.249.179:26656,11b4a29a26d55c09d96a0af6a6dbb40ec840c263@35.226.7.62:26656,96d43bc533313e9c6ba7303390f1b858f38c3c5a@35.184.27.200:26656,873d6befc7145b86e48cf6c23a8c5fd3aebec6a3@35.196.9.192:26656,499decf32125463826cbb7b6eab6697179396688@35.196.33.211:26656"
 
 Run the docker Travis application:
 
@@ -150,7 +150,7 @@ Change your name from default name ``local``, set persistent peers
   moniker = "<your_custom_name>"
 
   # find the seeds option and change its value
-  seeds = "7e7a321470a6a437457293b32eeeddf0cb498f93@35.185.101.6:26656,607dd907c7e60f4884cd26001cf0d97fed227123@35.229.126.251:26656"
+  seeds = "595fa3946078dc8dbd752fa139462735c67027c7@104.154.232.196:26656,d7694fef6eb96838fd91279298314b4fcfb9aa03@35.193.249.179:26656,11b4a29a26d55c09d96a0af6a6dbb40ec840c263@35.226.7.62:26656,96d43bc533313e9c6ba7303390f1b858f38c3c5a@35.184.27.200:26656,873d6befc7145b86e48cf6c23a8c5fd3aebec6a3@35.196.9.192:26656,499decf32125463826cbb7b6eab6697179396688@35.196.33.211:26656"
 
 Start the Node and Join Travis MainNet
 --------------------------------------
