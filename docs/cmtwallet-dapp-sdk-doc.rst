@@ -35,6 +35,7 @@ Common web3 api:
 Error handling
 ----
 The DApp browser only handles some errors (such as the user entering the wrong password), most of the transaction errors will be returned to the DApp, DApps should handle these errors and prompt the user. We have done i18n processing of the error content, most of the time You can pop up error.message directly.
+
 The user cancels the operation and the Dapp browser returns the error code "1001"
 
 window.cmtwallet.closeDapp()
