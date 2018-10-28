@@ -120,6 +120,53 @@ Run the docker Travis application:
   docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:v0.1.2-beta node start --home /travis
 
 
+Snapshot
+========
+
+Make sure your os is Ubuntu 16.04 or CentOS 7
+
+Download snapshot file from AWS S3 `travis-ss-bucket <https://s3-us-west-2.amazonaws.com/travis-ss-bucket>`_
+------------------------------------------------------------------------------------------------------------
+
+You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1540723748_102028.tar.gz``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
+
+::
+
+  mkdir -p $HOME/release
+  cd $HOME/release
+  wget https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1540723748_102028.tar.gz
+  tar xzf travis_ss_mainnet_1540723748_102028.tar.gz
+
+  # if your os is Ubuntu
+  mv .travis/app/travis .
+  mkdir .travis/eni
+  mv .travis/app/lib .travis/eni
+  mv .travis $HOME
+
+  # or if your os is CentOS
+  mv .travis $HOME
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.2-beta/travis_v0.1.2-beta_centos-7.zip
+  unzip travis_v0.1.2-beta_centos-7.zip
+  mkdir -p $HOME/.travis/eni
+  cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
+
+Set env variables for eni lib
+--------------------------------------------------
+
+::
+
+  export ENI_LIBRARY_PATH=$HOME/.travis/eni/lib
+  export LD_LIBRARY_PATH=$HOME/.travis/eni/lib
+
+Start the Node and Join Travis MainNet
+--------------------------------------
+
+::
+
+  cd $HOME/release
+  ./travis node start --home $HOME/.travis
+  
+
 Build from source
 =================
 
