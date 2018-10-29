@@ -56,8 +56,35 @@ window.cmtwallet.getPlatform()
   ios
 
 Developer mode
- In the CMTWallet APP, by default you can't access the DApp by typing (or scanning) a url. You need to open the developer mode first (* I → About us → Click CMT Wallet logo five times*).
+ In the CMTWallet APP, by default you can't access the DApp by typing (or scanning) a url. You need to open the developer mode first (* Profile → About us → Click CMT Wallet logo five times*).
+ 
+ `MetaMask for CMT <https://www.cybermiles.io/metamask/>`_
+-----------------------------------------------------------------------------------------------------------
+
+ `Remix for CMT <https://remix.cybermiles.io>`_
+-----------------------------------------------------------------------------------------------------------
+
+ `web3-cmt.js <https://github.com/CyberMiles/web3-cmt.js>`_
+-----------------------------------------------------------------------------------------------------------
 
  `dApp SDK Example <https://cube-api.cybermiles.io/static/html/cw/cmtwallet-dappsdk-example.html>`_
 -----------------------------------------------------------------------------------------------------------
+
+Smart Contract source code in SDK Example
+::
+  contract EasyMsg {
+   string public msg;
+   uint public age;
+  
+   function getData() public constant returns (string,uint){
+      return (msg,age);
+   }
+  
+   function setData(string _msg,uint _age) public {
+       msg = _msg;
+       age = _age;
+   }
+  
+  }
+ 
 
