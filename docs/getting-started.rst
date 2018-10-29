@@ -118,10 +118,10 @@ Next, we need to build libENI and put it into the default Travis data directory 
 .. code:: bash
 
   sudo rm -rf ~/.travis
-  wget -O $HOME/libeni.tgz https://github.com/CyberMiles/libeni/releases/download/v1.3.2/libeni-1.3.2_ubuntu-16.04.tgz
+  wget -O $HOME/libeni.tgz https://github.com/CyberMiles/libeni/releases/download/v1.3.4/libeni-1.3.4_ubuntu-16.04.tgz
   tar zxvf $HOME/libeni.tgz -C $HOME
   mkdir -p $HOME/.travis/eni
-  cp -r $HOME/libeni-1.3.2/lib $HOME/.travis/eni/lib
+  cp -r $HOME/libeni-1.3.4/lib $HOME/.travis/eni/lib
 
 Currently libENI can only run on Ubuntu 16.04 and CentOS 7. If your operating system is CentOS, please change the downloading url. You can find it here: `https://github.com/CyberMiles/libeni/releases <https://github.com/CyberMiles/libeni/releases>`_
 

@@ -1,8 +1,8 @@
 ======================
-Deploy a Testnet Node
+Deploy a TestNet Node
 ======================
 
-In this document, we will discuss how to connect to the CyberMiles Travis Testnet. We will cover both Docker and "build from source" scenarios. If you are new to CyberMiles, deploying a Docker node is probably easier.
+In this document, we will discuss how to connect to the CyberMiles Travis TestNet. We will cover binary, Docker and "build from source" scenarios. If you are new to CyberMiles, deploying a Docker node is probably easier.
 
 While we highly recommend you to run your own Travis node, you can also ask for direct access to one of the nodes maintained by the CyberMiles Foundation. Send an email to travis@cybermiles.io to apply for access credentials. You still need the ``travis`` client either from Docker or source to access the node.
 
@@ -39,14 +39,15 @@ Getting Travis TestNet Config
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/genesis.json > $HOME/.travis/config/genesis.json
 
 
-Change your name from default name `local`
+Change your name from default name ``local``
 
 ::
 
   cd $HOME/.travis
   vim $HOME/.travis/config/config.toml
-  # moniker = "<your_custom_name>"
+
   # here you can change your name
+  moniker = "<your_custom_name>"
 
 Copy libeni into the default Travis data directory
 --------------------------------------------------
@@ -78,11 +79,11 @@ Please `setup docker <https://docs.docker.com/engine/installation/>`_.
 
 Docker Image
 ------------
-Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/cybermiles/travis/tags/>`_. TestNet environment is using the `'lastest' <https://github.com/cybermiles/travis/tree/staging>`_ branch which can be pulled automatically from Travis:
+Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/cybermiles/travis/tags/>`_. TestNet environment is using the `'vTestnet' <https://github.com/CyberMiles/travis/releases/tag/vTestnet>`_ release which can be pulled automatically from Travis:
 
 ::
 
-  $ docker pull cybermiles/travis
+  docker pull cybermiles/travis:vTestnet
 
 Note: Configuration and data will be stored at /travis directory in the container. The directory will also be exposed as a volume. The ports 8545, 26656 and 26657 will be exposed for connection.
 
@@ -92,7 +93,7 @@ Getting Travis TestNet Config
 ::
 
   rm -rf $HOME/.travis
-  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis node init --env testnet --home /travis
+  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:vTestnet node init --env testnet --home /travis
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/config.toml > $HOME/.travis/config/config.toml
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/genesis.json > $HOME/.travis/config/genesis.json
 
@@ -102,15 +103,16 @@ First change your name from default name ``local``
 
 ::
 
-  $ vim ~/.travis/config/config.toml
-  # moniker = "<your_custom_name>"
+  vim ~/.travis/config/config.toml
+
   # here you can change your name
+  moniker = "<your_custom_name>"
 
 Run the docker Travis application:
 
 ::
 
-  $ docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 -t cybermiles/travis node start --home /travis
+  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 -t cybermiles/travis:vTestnet node start --home /travis
 
 Now your node is syncing with TestNet, the output will look like the following. Wait until it completely syncs.
 
@@ -125,9 +127,9 @@ To access the TestNet type the following in a seperte terminal console to get yo
 
 ::
 
-  $ docker inspect -f '{{ .NetworkSettings.IPAddress }}' travis
+  docker inspect -f '{{ .NetworkSettings.IPAddress }}' travis
   172.17.0.2
-  $ docker run --rm -it cybermiles/travis attach http://172.17.0.2:8545
+  docker run --rm -it cybermiles/travis:vTestnet attach http://172.17.0.2:8545
 
 Now, you should see the web3-cmt JavaScript console, you can now jump to the "Test transactions" section to send test transactions.
 
@@ -154,7 +156,7 @@ Run the Travis application:
 
 ::
 
-  $ travis node start --home ~/.travis
+  travis node start --home ~/.travis
 
 Now your node is syncing with TestNet, the output will look like the following. Wait until it completely syncs.
 
@@ -169,14 +171,14 @@ To access the TestNet, type the following in a seperte terminal console (make su
 
 ::
 
-  $ travis attach http://localhost:8545
+  travis attach http://localhost:8545
 
 You should now the see the web3-cmt JavaScript console and can now test some transactions.
 
 Test transactions
 =================
 
-In this section, we will use the ``travis`` client's web3-cmt JavaScript console to send some transactions and verify that the system is set up properly. You can't test transactions untill you are completely in sync with the testnet. It might take hours to sync.
+In this section, we will use the ``travis`` client's web3-cmt JavaScript console to send some transactions and verify that the system is set up properly. You can't test transactions untill you are completely in sync with the TestNet. It might take hours to sync.
 
 Create and fund a test account
 -------------------------------
@@ -189,7 +191,7 @@ Once you attach the ``travis`` to the node as above, create two accounts on the 
   > personal.newAccount()
   ...
 
-Now you have created TWO accounts ``0x1234FROM`` and ``0x1234DEST`` on the Travis TestNet. It is time to get some test CMTs. Please go visit the website below, and ask for 1000 testnet CMTs for account ``0x1234FROM``. We will also send 1000 TEST tokens, issued by the TEST smart contract, to the account. 
+Now you have created TWO accounts ``0x1234FROM`` and ``0x1234DEST`` on the Travis TestNet. It is time to get some test CMTs. Please go visit the website below, and ask for 1000 TestNet CMTs for account ``0x1234FROM``. We will also send 1000 TEST tokens, issued by the TEST smart contract, to the account.
 
 http://travis-faucet.cybermiles.io
  
