@@ -64,6 +64,7 @@ type EthermintConfig struct {
 	IPCDisabledFlag     bool   `mapstructure:"ipcdisable"`
 	VerbosityFlag       uint   `mapstructure:"verbosity"`
 	GCMode              string `mapstructure:"gcmode"`
+	ListenPortFlag      uint   `mapstructure:"listenport"`
 }
 
 func DefaultEthermintConfig() EthermintConfig {
@@ -84,6 +85,7 @@ func DefaultEthermintConfig() EthermintConfig {
 		IPCDisabledFlag:     false,
 		VerbosityFlag:       3,
 		GCMode:              "full",
+		ListenPortFlag:      30333,
 	}
 }
 
