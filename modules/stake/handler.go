@@ -294,6 +294,18 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		return ErrBadCompRate()
 	}
 
+	if !utils.IsBlank(tx.PubKey) {
+		pk, err := types.GetPubKey(tx.PubKey)
+		if err != nil {
+			return err
+		}
+
+		candidate = GetCandidateByPubKey(pk)
+		if candidate != nil {
+			return fmt.Errorf("pubkey has been declared")
+		}
+	}
+
 	return nil
 }
 
