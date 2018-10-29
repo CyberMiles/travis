@@ -79,6 +79,7 @@ var (
 		ethUtils.GasPriceFlag,
 		// Network Id
 		ethUtils.NetworkIdFlag,
+		ethUtils.ListenPortFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -145,6 +146,9 @@ func setupEmtContext() error {
 	context.GlobalSet(ethUtils.WSApiFlag.Name, config.EMConfig.WSApiFlag)
 
 	context.GlobalSet(ethUtils.IPCDisabledFlag.Name, strconv.FormatBool(config.EMConfig.IPCDisabledFlag))
+	if config.EMConfig.ListenPortFlag > 0 {
+		context.GlobalSet(ethUtils.ListenPortFlag.Name, strconv.Itoa(int(config.EMConfig.ListenPortFlag)))
+	}
 
 	if err := emtUtils.Setup(context); err != nil {
 		return err
