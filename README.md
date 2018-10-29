@@ -56,15 +56,6 @@ cd SkyPat-3.1.1
 make
 sudo make install
 
-#Installing libENI
-cd ~
-git clone https://github.com/CyberMiles/libeni.git
-cd libeni
-mkdir build
-cd build
-cmake ..
-make
-
 #Installing Go
 cd ~
 bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
@@ -84,16 +75,30 @@ go get github.com/CyberMiles/travis
 
 cd $GOPATH/src/github.com/CyberMiles/travis
 git checkout master
+
+#Incorporate libENI
+sudo rm -rf ~/.travis
+wget -O ~/libeni.tgz https://github.com/CyberMiles/libeni/releases/download/v1.3.4/libeni-1.3.4_ubuntu-16.04.tgz
+tar zxvf ~/libeni.tgz -C ~
+mkdir -p ~/.travis/eni
+cp -r ~/libeni-1.3.4/lib ~/.travis/eni/lib
+
+#Continue installing Travis
+cd ~
+cd $GOPATH/src/github.com/CyberMiles/travis
 make all
 
 #Configuring Travis test network settings
 cd ~
-rm -rf .travis
 git clone https://github.com/CyberMiles/testnet.git
 cp -r testnet/travis/init .travis
 
 #Starting Travis test network node
 cd ~
+travis node init --env testnet
+curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/config.toml > ~/.travis/config/config.toml
+curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/genesis.json > ~/.travis/config/genesis.json
+
 
 #Please ensure that the system paths are known, or else the travis command will not be found (you will get an error like this "The program 'travis' is currently not installed")
 
