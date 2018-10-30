@@ -18,3 +18,4 @@ Contents
    connect-mainnet
    transactions
    virtual-machine
+   json-rpc
