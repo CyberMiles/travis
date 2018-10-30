@@ -537,6 +537,7 @@ Returns a transaction based on a block hash or number and the transactions index
 
 
 Stake Validator methods
+=======================
 
 cmt_declareCandidacy
 --------------------
@@ -1848,6 +1849,10 @@ Returns award information of all current validators and backup validators.
 		}
 	}
 
+
+Stake Delegator methods
+=======================
+
 cmt_delegate
 ------------
 
@@ -1931,6 +1936,432 @@ Used by a delegator to unbind staked CMTs from a validator.
 			},
 			hash: '8A40C44D31316BFB2D417A1985E03DA36145EF5A',
 			height: 319
+		}
+	}
+
+cmt_queryDelegator
+------------------
+
+Query the current stake status of a specific delegator.
+
+**Parameters**
+
+	* ``delegatorAddress`` String - The delegator address.
+	* ``height`` Number - The block number. Default to 0, means current head of the blockchain. NOT IMPLEMENTED YET.
+
+**Returns**
+
+	* ``height`` Number - Current block number or the block number if specified.
+	* ``data`` Object - The delegator object.
+
+**Example**
+
+::
+
+	// Request
+	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_queryDelegator","params":["0x3a436deae68b7d4c8ff9f1cb0498913a397472d7", 0],"id":1}'
+
+    // Result
+	{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"result": {
+			"height": 117466,
+			"data": [{
+				"id": 780,
+				"delegator_address": "0xcc64debb948ff9a2cb9ac5cbd292cef1d380221f",
+				"pub_key": {
+					"type": "tendermint/PubKeyEd25519",
+					"value": "sbmLYMzeezCgqJKQBXNVAiZtsdSAx75JUzAtwzWv9pw="
+				},
+				"validator_address": "0x70A52fF393256f016939Ae2926CBd999508A555B",
+				"delegate_amount": "34310000000000000000000",
+				"award_amount": "39040378244652451965",
+				"withdraw_amount": "0",
+				"pending_withdraw_amount": "0",
+				"slash_amount": "0",
+				"comp_rate": "1/4",
+				"voting_power": 970,
+				"created_at": 1540551045,
+				"state": "Y",
+				"block_height": 86269,
+				"average_staking_date": 4,
+				"candidate_id": 30
+			}]
+		}
+	}
+
+Governance methods
+==================
+
+cmt_proposeTransferFund
+-----------------------
+
+Propose a fund recovery proposal.
+
+**Parameters**
+
+	* ``from`` String - The address for the sending account. Uses the web3.cmt.defaultAccount property, if not specified. Must be a validator.
+	* ``nonce`` Number - (optional) The number of transactions made by the sender prior to this one.
+	* ``transferFrom`` String - From account address.
+	* ``transferTo`` String - To account address.
+	* ``amount`` String - Amount of CMTs in Wei.
+	* ``reason`` String - (optional) Reason.
+	* ``expireBlockHeight`` Number - (optional) Expiration block height.
+	* ``expireTimestamp`` Number - (optional) Timestamp when the proposal will expire.
+
+	Note: You can specify expiration block height or timestamp, but not both. If none is specified, a default of 7 days, as measured in block height(7 * 24 * 60 * 60 / 10), will be used.
+
+**Returns**
+
+	* ``height`` Number - The block number where the transaction is in. =0 if failed.
+	* ``hash`` String - Hash of the transaction.
+	* ``check_tx`` Object - CheckTx result. Contains error code and log if failed.
+	* ``deliver_tx`` Object - DeliverTx result. Contains error code and log if failed. If successful, the ProposalID will be set in the data property, for validators to vote later.
+
+**Example**
+
+::
+
+	// Request
+	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_proposeTransferFund","params":[{"from":"0x7eff122b94897ea5b0e2a9abf47b86337fafebdc", "transferFrom":"0xc4abd0339eb8d57087278718986382264244252f", "transferTo":"0x11f4d0A3c12e86B4b5F39B213F7E19D048276DAe", "amount":"0x186A0"}],"id":1}'
+
+    // Result
+	{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"result": {
+			check_tx: {
+				fee: {}
+			},
+			deliver_tx: {
+				data: 'JTUx+ODH0/OSdgfC0Sn66qjn2tX8LfvbiwnArzNpIus=',
+				gasUsed ": '2000000',
+				fee: {
+					key: 'R2FzRmVl',
+					value: "4000000000000000'
+				}
+			},
+			hash: '95A004438F89E809657EB119ACBDB42A33725B39',
+			height: 561
+		}
+	}
+
+cmt_proposeChangeParam
+----------------------
+
+Propose a system parameter change.
+
+**Parameters**
+
+	* ``from`` String - The address for the sending account. Uses the web3.cmt.defaultAccount property, if not specified. Must be a validator.
+	* ``nonce`` Number - (optional) The number of transactions made by the sender prior to this one.
+	* ``name`` String - The name of the parameter.
+	* ``value`` String - New value of the parameter.
+	* ``reason`` String - (optional) Reason.
+	* ``expireBlockHeight`` Number - (optional) Expiration block height.
+	* ``expireTimestamp`` Number - (optional) Timestamp when the proposal will expire.
+
+	Note: You can specify expiration block height or timestamp, but not both. If none is specified, a default of 7 days, as measured in block height(7 * 24 * 60 * 60 / 10), will be used.
+
+**Returns**
+
+	* ``height`` Number - The block number where the transaction is in. =0 if failed.
+	* ``hash`` String - Hash of the transaction.
+	* ``check_tx`` Object - CheckTx result. Contains error code and log if failed.
+	* ``deliver_tx`` Object - DeliverTx result. Contains error code and log if failed. If successful, the ProposalID will be set in the data property, for validators to vote later.
+
+**Example**
+
+::
+
+	// Request
+	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_proposeChangeParam","params":[{"from":"0x7eff122b94897ea5b0e2a9abf47b86337fafebdc", "name":"gas_price", "value":"3000000000"}],"id":1}'
+
+    // Result
+	{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"result": {
+			check_tx: {
+				fee: {}
+			},
+			deliver_tx: {
+				data: 'JTUx+ODH0/OSdgfC0Sn66qjn2tX8LfvbiwnArzNpIus=',
+				gasUsed ": '2000000',
+				fee: {
+					key: 'R2FzRmVl',
+					value: "4000000000000000'
+				}
+			},
+			hash: '95A004438F89E809657EB119ACBDB42A33725B39',
+			height: 561
+		}
+	}
+
+cmt_proposeDeployLibEni
+-----------------------
+
+Propose a new library for ENI.
+
+**Parameters**
+
+	* ``from`` String - The address for the sending account. Uses the web3.cmt.defaultAccount property, if not specified. Must be a validator.
+	* ``nonce`` Number - (optional) The number of transactions made by the sender prior to this one.
+	* ``name`` String - The name of the library.
+	* ``version`` String - Version of the library, data format: vX.Y.Z, where X, Y, and Z are non-negative integers.
+	* ``fileUrl`` String - JSON string of key/value pairs. Key is the name of the OS(so far, only ubuntu and centos are supported), value is the URL array to retrieve the library file.
+	* ``md5`` String - JSON string of key/value pairs. Key is the name of the OS(so far, only ubuntu and centos are supported), value is the MD5 of the library file.
+	* ``reason`` String - (optional) Reason.
+	* ``deployBlockHeight`` Number - (optional) The block number where the new ENI library will deploy.
+	* ``deployTimestamp`` Number - (optional) Timestamp when the new ENI library will deploy.
+
+	Note: You can specify deploy block height or timestamp, but not both. If none is specified, a default of 7 days, as measured in block height(7 * 24 * 60 * 60 / 10), will be used.
+
+**Returns**
+
+	* ``height`` Number - The block number where the transaction is in. =0 if failed.
+	* ``hash`` String - Hash of the transaction.
+	* ``check_tx`` Object - CheckTx result. Contains error code and log if failed.
+	* ``deliver_tx`` Object - DeliverTx result. Contains error code and log if failed. If successful, the ProposalID will be set in the data property, for validators to vote later.
+
+**Example**
+
+::
+
+	// Request
+	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_proposeDeployLibEni","params":[{"from":"0x7eff122b94897ea5b0e2a9abf47b86337fafebdc", "name":"reverse", "version":"v1.0.0", "fileUrl":"{\"ubuntu\": [\"<url1>\", \"<url2>\"], \"centos\": [\"<url1>\", \"<url2>\"]}", "md5":"{\"ubuntu\": \"<md5 text>\", \"centos\": \"<md5 text>\"}"}],"id":1}'
+
+    // Result
+	{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"result": {
+			check_tx: {
+				fee: {}
+			},
+			deliver_tx: {
+				data: 'JTUx+ODH0/OSdgfC0Sn66qjn2tX8LfvbiwnArzNpIus=',
+				gasUsed ": '2000000',
+				fee: {
+					key: 'R2FzRmVl',
+					value: "4000000000000000'
+				}
+			},
+			hash: '95A004438F89E809657EB119ACBDB42A33725B39',
+			height: 561
+		}
+	}
+
+cmt_proposeRetireProgram
+------------------------
+
+Propose to retire the program.
+
+**Parameters**
+
+	* ``from`` String - The address for the sending account. Uses the web3.cmt.defaultAccount property, if not specified. Must be a validator.
+	* ``nonce`` Number - (optional) The number of transactions made by the sender prior to this one.
+	* ``preservedValidators`` String - A comma seperated validator public key list. Valiators in this list will be preserved, other validators will be deactivated.
+	* ``reason`` String - (optional) Reason.
+	* ``retiredBlockHeight`` Number - (optional) The block number where the program will retire. If not specified, a default of 7 days, as measured in block height(7 * 24 * 60 * 60 / 10), will be used.
+
+**Returns**
+
+	* ``height`` Number - The block number where the transaction is in. =0 if failed.
+	* ``hash`` String - Hash of the transaction.
+	* ``check_tx`` Object - CheckTx result. Contains error code and log if failed.
+	* ``deliver_tx`` Object - DeliverTx result. Contains error code and log if failed. If successful, the ProposalID will be set in the data property, for validators to vote later.
+
+**Example**
+
+::
+
+	// Request
+	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_proposeRetireProgram","params":[{"from":"0x7eff122b94897ea5b0e2a9abf47b86337fafebdc", "preservedValidators":"Esdo0ZN+nHduoi/kNqjdQSNFmNyv2M3Tie/eZeC25gM=,X6qJkoWxW8YkEHquJQM7mZcfpt5r+l8V6C8rbg8dEHQ=", "reason":"System Upgrade"}],"id":1}'
+
+    // Result
+	{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"result": {
+			check_tx: {
+				fee: {}
+			},
+			deliver_tx: {
+				data: 'JTUx+ODH0/OSdgfC0Sn66qjn2tX8LfvbiwnArzNpIus=',
+				gasUsed ": '2000000',
+				fee: {
+					key: 'R2FzRmVl',
+					value: "4000000000000000'
+				}
+			},
+			hash: '95A004438F89E809657EB119ACBDB42A33725B39',
+			height: 561
+		}
+	}
+
+cmt_vote
+--------
+
+Vote on proposals of making changes to the system state.
+
+Here are some use cases:
+
+	* Vote to change system wide parameters such as the system inflation rate.
+	* Vote to accept new native libraries for ENI.
+	* Vote to recover funds for users.
+
+**Parameters**
+
+	* ``from`` String - The address for the sending account. Uses the web3.cmt.defaultAccount property, if not specified. Must be a validator.
+	* ``nonce`` Number - (optional) The number of transactions made by the sender prior to this one.
+	* ``proposalId`` String - The Proposal ID to vote.
+	* ``answer`` String - Y or N.
+
+**Returns**
+
+	* ``height`` Number - The block number where the transaction is in. =0 if failed.
+	* ``hash`` String - Hash of the transaction.
+	* ``check_tx`` Object - CheckTx result. Contains error code and log if failed.
+	* ``deliver_tx`` Object - DeliverTx result. Contains error code and log if failed.
+
+**Example**
+
+::
+
+	// Request
+	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_vote","params":[{"from":"0x7eff122b94897ea5b0e2a9abf47b86337fafebdc", "proposalId":"JTUx+ODH0/OSdgfC0Sn66qjn2tX8LfvbiwnArzNpIus=", "answer":"Y"}],"id":1}'
+
+    // Result
+	{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"result": {
+			check_tx: {
+				fee: {}
+			},
+			deliver_tx: {
+				fee: {}
+			},
+			hash: '95A004438F89E809657EB119ACBDB42A33725B39',
+			height: 561
+		}
+	}
+
+cmt_queryProposals
+------------------
+
+Returns a list of all proposals.
+
+**Parameters**
+
+	none
+
+**Returns**
+
+	* ``height`` Number - Current block number or the block number if specified.
+	* ``data`` Array - An array of all proposals
+
+**Example**
+
+::
+
+	// Request
+	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_queryProposals","params":[],"id":1}'
+
+    // Result
+	{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"result": {
+			"height": 58,
+			"data": [{
+					"Id": "/YRNInf2DpWJ6KBcS+Xqa+EUiBH3DMgeM2T57tsMd2E=",
+					"Type": "transfer_fund",
+					"Proposer": "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
+					"BlockHeight": 15,
+					"ExpireBlockHeight": 20,
+					"CreatedAt": "2018-07-03T14:27:11Z",
+					"Result": "Expired",
+					"ResultMsg": "",
+					"ResultBlockHeight": 20,
+					"ResultAt": "2018-07-03T14:28:01Z",
+					"Detail": {
+						"amount": "16",
+						"from": "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
+						"reason": "",
+						"to": "0xd5bb0351974eca5d116eff840a03a9b96d8ba9e7"
+					}
+				},
+				{
+					"Id": "DN6utTAmgX9Iy7naroaKgO2dEbIkwmwRPmmfk35cdEE=",
+					"Type": "change_param",
+					"Proposer": "0x7eff122b94897ea5b0e2a9abf47b86337fafebdc",
+					"BlockHeight": 16,
+					"ExpireBlockHeight": 60496,
+					"CreatedAt": "2018-07-03T14:27:21Z",
+					"Result": "",
+					"ResultMsg": "",
+					"ResultBlockHeight": 0,
+					"ResultAt": "",
+					"Detail": {
+						"name": "gas_price",
+						"reason": "test",
+						"value": "3000000000"
+					}
+				}
+			]
+		}
+	}
+
+cmt_queryParams
+---------------
+
+Returns current settings of system parameters.
+
+**Parameters**
+
+	* ``height`` Number - The block number. Default to 0, means current head of the blockchain.
+
+**Returns**
+
+	* ``height`` Number - Current block number or the block number if specified.
+	* ``data`` Array - An array of all proposals.
+
+**Example**
+
+::
+
+	// Request
+	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_queryParams","params":[0],"id":1}'
+
+    // Result
+	{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"result": {
+			"height": 1000,
+			"data": {
+				"max_vals": 19,
+				"backup_vals": 5,
+				"self_staking_ratio": "1/10",
+				"inflation_rate": "2/25",
+				"validator_size_threshold": "3/25",
+				"unstake_waiting_period": 60480,
+				"proposal_expire_period": 60480,
+				"declare_candidacy_gas": 1000000,
+				"update_candidacy_gas": 1000000,
+				"set_comp_rate_gas": 21000,
+				"update_candidate_account_gas": 1000000,
+				"accept_candidate_account_update_request_gas": 1000000,
+				"transfer_fund_proposal_gas": 2000000,
+				"change_params_proposal_gas": 2000000,
+				"deploy_libeni_proposal_gas": 2000000,
+				"retire_program_proposal_gas": 2000000,
+				"upgrade_program_proposal_gas": 2000000,
+				"gas_price": 2000000000
+			}
 		}
 	}
 
