@@ -14,15 +14,15 @@ Returns the sync object.
 
 **Parameters**
 
-none
+	none
 
 **Returns**
 
-`latest_block_hash` Number - The hash of the latest block.
-`latest_app_hash` Number - The hash of latest application state.
-`latest_block_height` Number - The latest block number.
-`latest_block_time` Number - The latest block time.
-`syncing` Boolean - Whether the node is syncing or not.
+	* ``latest_block_hash`` Number - The hash of the latest block.
+	* ``latest_app_hash`` Number - The hash of latest application state.
+	* ``latest_block_height`` Number - The latest block number.
+	* ``latest_block_time`` Number - The latest block time.
+	* ``catching_up`` Boolean - Whether the node is syncing or not.
 
 **Example**
 
