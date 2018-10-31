@@ -2,7 +2,7 @@
 Travis JSON-RPC
 ======
 
-Travis is compatible with Ethereum so most methods especially the ones for normal transaction are the same with Ethereum. Please refer to Ethereum `JSON-RPC <https://github.com/ethereum/wiki/wiki/JSON-RPC>`_ for more information.
+As travis is compatible with Ethereum so most methods especially the ones for normal transaction are the same with Ethereum. Please refer to Ethereum `JSON-RPC <https://github.com/ethereum/wiki/wiki/JSON-RPC>`_ for more information.
 
 CMT methods
 ===========
@@ -266,7 +266,7 @@ Returns a transaction based on a block hash or number and the transactions index
 	}
 
 
-Stake Validator methods
+Staking Validator methods
 =======================
 
 cmt_declareCandidacy
@@ -678,7 +678,7 @@ A validator uses its new address to accept an account updating request.
 cmt_queryValidator
 ------------------
 
-Query the current stake status of a specific validator.
+Query the current staking status of a specific validator.
 
 **Parameters**
 
@@ -930,7 +930,7 @@ Returns award information of all current validators and backup validators.
 	}
 
 
-Stake Delegator methods
+Staking Delegator methods
 =======================
 
 cmt_delegate
@@ -1022,7 +1022,7 @@ Used by a delegator to unbind staked CMTs from a validator.
 cmt_queryDelegator
 ------------------
 
-Query the current stake status of a specific delegator.
+Query the current staking status of a specific delegator.
 
 **Parameters**
 
