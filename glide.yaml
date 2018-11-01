@@ -22,7 +22,7 @@ import:
 - package: github.com/tendermint/tendermint
 #  version: 54c1af40c300adfa4ce57260f77cc624d672f748
   repo: https://github.com/CyberMiles/tendermint.git
-  version: 48b626c2942a4706ce1a82bf554fa96e3aa1444b
+  version: b97b46975ef8e830352c8c7f6248a436f185858a
   subpackages:
   - config
   - node

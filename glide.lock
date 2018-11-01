@@ -295,7 +295,7 @@ imports:
   version: 35f66e53d9b01e83b30de68b931f54b2477a94c9
 - name: github.com/tendermint/tendermint
   repo: https://github.com/CyberMiles/tendermint.git
-  version: 48b626c2942a4706ce1a82bf554fa96e3aa1444b
+  version: b97b46975ef8e830352c8c7f6248a436f185858a
   subpackages:
   - abci/client
   - abci/example/code
