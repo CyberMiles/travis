@@ -185,6 +185,7 @@ func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
 				c.VotingPower = 0
 			} else {
 				c.State = "Backup Validator"
+				c.VotingPower = 1
 			}
 		} else if c.VotingPower == 0 {
 			c.State = "Candidate"
@@ -217,7 +218,7 @@ func (cs Candidates) Validators() Validators {
 		if c.VotingPower == 0 { //exit as soon as the first Voting power set to zero is found
 			return validators[:i]
 		}
-		if i >= int(utils.GetParams().MaxVals) {
+		if i >= int(utils.GetParams().MaxVals+utils.GetParams().BackupVals) {
 			return validators[:i]
 		}
 		validators[i] = c.Validator()
