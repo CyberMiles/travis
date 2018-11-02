@@ -2,24 +2,24 @@ language: go
 
 branches:
   only:
-  - master
-  - develop
-  - staging
-  - tmup
-  - lity
-  - /^v.*$/
+    - master
+    - develop
+    - staging
+    - tmup
+    - lity
+    - /^v.*$/
 
 services:
   - docker
 
 addons:
   hosts:
-  - node-1
-  - node-2
-  - node-3
-  - node-4
-  - node-5
-  - node-6
+    - node-1
+    - node-2
+    - node-3
+    - node-4
+    - node-5
+    - node-6
 
 before_install:
   - echo Checking whether $TRAVIS_COMMIT_RANGE changed only docs
@@ -48,7 +48,7 @@ script:
 
 after_success:
   - if [[ "$TRAVIS_BRANCH" == "master" ]]; then
-      make push_image ;
+    make push_image ;
     fi
 
 after_failure:
@@ -63,9 +63,9 @@ before_deploy:
   - BUILD_TAG=$TRAVIS_TAG make dist
   - |
     if [[ "$TRAVIS_TAG" == "vStaging" ]]; then
-      export BODY=release for staging
+      export BODY='release for staging'
     elif [[ "$TRAVIS_TAG" == "vTestnet" ]]; then
-      export BODY=release for testnet
+      export BODY='release for testnet'
     else
       export BODY=https://github.com/CyberMiles/travis/blob/develop/CHANGELOG.md#${TRAVIS_TAG//.}
     fi
