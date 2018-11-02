@@ -260,7 +260,7 @@ describe("Stake Test", function() {
       logger.debug(awardInfos)
       let diff = Math.abs(sum.minus(Utils.getBlockAward()).toNumber())
       logger.debug("sum, diff: ", sum.toString(), diff)
-      expect(diff).to.be.below(Number(web3.toWei(1, "gwei")))
+      expect(diff).to.be.at.most(Number(web3.toWei(1, "gwei")))
     })
     it.skip("5 in total, 4 validators, 1 backup, D is validator", function() {
       expect(awardInfos.data.length).to.be.eq(5)
@@ -305,23 +305,23 @@ describe("Stake Test", function() {
       let n = val_D.num_of_delegators
       vp_B = Utils.calcVotingPower(n, dele_B.shares, p)
       let diff = Math.abs(dele_B.voting_power - vp_B)
-      expect(diff).to.be.below(1)
+      expect(diff).to.be.at.most(1)
     })
     it("check delegator C's voting power", function() {
       let n = val_D.num_of_delegators
       vp_C = Utils.calcVotingPower(n, dele_C.shares, p)
       let diff = Math.abs(dele_C.voting_power - vp_C)
-      expect(diff).to.be.below(1)
+      expect(diff).to.be.at.most(1)
     })
     it("check delegator D's voting power", function() {
       let n = val_D.num_of_delegators
       vp_D = Utils.calcVotingPower(n, dele_D.shares, p)
       let diff = Math.abs(dele_D.voting_power - vp_D)
-      expect(diff).to.be.below(1)
+      expect(diff).to.be.at.most(1)
     })
     it("check validator D's voting power", function() {
       let diff = Math.abs(val_D.voting_power - vp_B - vp_C - vp_D)
-      expect(diff).to.be.below(1)
+      expect(diff).to.be.at.most(1)
     })
   })
 
@@ -585,7 +585,7 @@ describe("Stake Test", function() {
       logger.debug(awardInfos)
       let diff = Math.abs(sum.minus(Utils.getBlockAward()).toNumber())
       logger.debug("sum, diff: ", sum.toString(), diff)
-      expect(diff).to.be.below(Number(web3.toWei(1, "gwei")))
+      expect(diff).to.be.at.most(Number(web3.toWei(1, "gwei")))
     })
     it.skip("4 in total, 4 validators, D is not there", function() {
       expect(awardInfos.data.length).to.be.eq(4)
