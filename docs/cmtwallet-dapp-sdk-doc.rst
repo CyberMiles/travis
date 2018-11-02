@@ -1,15 +1,17 @@
 ====
-CMT Wallet - dApp SDK Developer doc
+CMT Wallet - dApp SDK Developer Guideline
 ====
- version 0.8    updated at 2018/10/24
 
 Introduction
 ====
 
-This document user helps DApp developers access the CMT Wallet DApp SDK.
+This document user helps DApp developers access the CMT Wallet DApp SDK. 
+
 In general, DApp requires a hosting environment to interact with the user's wallet, just like metamask  CMT Walelet provides this environment in the app.
-In DApp browser, DApp can do the same and more things in metamask.
-To keep things simple, this document will use DApp browser for CMT Walelet* DApp browser* , DApp for DApp webpage.
+
+In DApp browser, DApp can do the same and more things in Metamask.
+
+To keep things simple, this document will use DApp browser for CMT Walelet* DApp browser* , DApp for DApp webpage. 
 
 Web3JS
 ====
@@ -57,6 +59,12 @@ window.cmtwallet.getPlatform()
 
 Developer mode
  In the CMTWallet APP, by default you can't access the DApp by typing (or scanning) a url. You need to open the developer mode first (* Profile → About us → Click CMT Wallet logo five times*).
+ 
+ dApp development sample process：
+  * 1.install Metamask for CMT, switch testnet, get CMT.
+  * 2.go to Remix for CMT, coding&deploy contract, get contract address/ABI/Binary Codes.
+  * 3.coding in HTML5 and import web3-cmt functions.
+  * 4.test dApp and contact CMT Community.
  
  `MetaMask for CMT <https://www.cybermiles.io/metamask/>`_
 -----------------------------------------------------------------------------------------------------------
