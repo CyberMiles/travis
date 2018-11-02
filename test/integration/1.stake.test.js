@@ -304,20 +304,24 @@ describe("Stake Test", function() {
     it("check delegator B's voting power", function() {
       let n = val_D.num_of_delegators
       vp_B = Utils.calcVotingPower(n, dele_B.shares, p)
-      expect(dele_B.voting_power).to.eq(vp_B)
+      let diff = Math.abs(dele_B.voting_power - vp_B)
+      expect(diff).to.be.below(1)
     })
     it("check delegator C's voting power", function() {
       let n = val_D.num_of_delegators
       vp_C = Utils.calcVotingPower(n, dele_C.shares, p)
-      expect(dele_C.voting_power).to.eq(vp_C)
+      let diff = Math.abs(dele_C.voting_power - vp_C)
+      expect(diff).to.be.below(1)
     })
     it("check delegator D's voting power", function() {
       let n = val_D.num_of_delegators
       vp_D = Utils.calcVotingPower(n, dele_D.shares, p)
-      expect(dele_D.voting_power).to.eq(vp_D)
+      let diff = Math.abs(dele_D.voting_power - vp_D)
+      expect(diff).to.be.below(1)
     })
     it("check validator D's voting power", function() {
-      expect(val_D.voting_power).to.eq(vp_B + vp_C + vp_D)
+      let diff = Math.abs(val_D.voting_power - vp_B - vp_C - vp_D)
+      expect(diff).to.be.below(1)
     })
   })
 
@@ -439,8 +443,12 @@ describe("Stake Test", function() {
     describe("Account D modify other information", function() {
       it("The verified status will set to false", function() {
         let website = "http://aaa.com"
+        let compRate = "1/3"
+        let pubKey = "LY3sRPcr63CE9uIJivApXlcYXKUoidtD+64mIljrYxk="
         let payload = {
           from: Globals.Accounts[3],
+          compRate: compRate,
+          pubKey: pubKey,
           description: {
             website: website
           }
@@ -449,6 +457,8 @@ describe("Stake Test", function() {
         Utils.expectTxSuccess(tx_result)
         // check validator
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
+        expect(tx_result.data.pub_key.value).to.be.eq(pubKey)
+        expect(tx_result.data.comp_rate).to.be.eq(compRate)
         expect(tx_result.data.description.website).to.be.eq(website)
         expect(tx_result.data.verified).to.be.eq("N")
       })
