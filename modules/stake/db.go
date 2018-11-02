@@ -660,24 +660,22 @@ func RemoveExpiredCandidateDailyStakes(blockHeight int64) {
 	}
 }
 
-func GetCandidateDailyStakeMaxValue(candidateId int64, startBlockHeight int64) (res sdk.Int) {
+func GetCandidateDailyStakeMaxValue(candidateId int64, startBlockHeight int64) (res int64) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("select max(amount) from candidate_daily_stakes where candidate_id = ? and block_height >= ?")
+	stmt, err := txWrapper.tx.Prepare("select cast(max(amount/1e18) as integer) from candidate_daily_stakes where candidate_id = ? and block_height >= ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 
-	var maxAmount string
-	err = stmt.QueryRow(candidateId, startBlockHeight).Scan(&maxAmount)
+	err = stmt.QueryRow(candidateId, startBlockHeight).Scan(&res)
 
 	if err != nil {
 		panic(err)
 	}
 
-	res, _ = sdk.NewIntFromString(maxAmount)
 	return
 }
 

@@ -424,10 +424,8 @@ func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64
 	candidate := GetCandidateById(d.CandidateId)
 	tenDaysAgoHeight := blockHeight - utils.ConvertDaysToHeight(10)
 	ninetyDaysAgoHeight := blockHeight - utils.ConvertDaysToHeight(90)
-	s1 := GetCandidateDailyStakeMaxValue(candidate.Id, tenDaysAgoHeight)
-	s2 := GetCandidateDailyStakeMaxValue(candidate.Id, ninetyDaysAgoHeight)
-	snum := s1.Div(sdk.E18Int).Int64()
-	sdenom := s2.Div(sdk.E18Int).Int64()
+	snum := GetCandidateDailyStakeMaxValue(candidate.Id, tenDaysAgoHeight)
+	sdenom := GetCandidateDailyStakeMaxValue(candidate.Id, ninetyDaysAgoHeight)
 	if sdenom == 0 {
 		sdenom = 1
 	}
