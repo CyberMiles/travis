@@ -51,7 +51,7 @@ curl -X POST --data '{"jsonrpc":"2.0","method":"cmt_declareCandidacy","params":[
     height: 271
 }
 
-cmt_declareCandidacy
+cmt_withdrawCandidacy
 -------- 
 Allow a validator to withdraw. All staked tokens will be returned to delegator addresses. Self-staked CMTs will be returned to the validator address. Signed by validator address.
 
