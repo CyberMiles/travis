@@ -15177,7 +15177,14 @@ var methods = function() {
   var getCmtBlock = new Method({
     name: "getCmtBlock",
     call: "cmt_getBlockByNumber",
-    params: 1
+    params: 2,
+    inputFormatter: [
+      null,
+      function(val) {
+        return !!val
+      }
+    ],
+    outputFormatter: formatters.outputBlockFormatter
   })
   var getCmtTransaction = new Method({
     name: "getCmtTransaction",
