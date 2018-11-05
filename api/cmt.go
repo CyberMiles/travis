@@ -112,9 +112,31 @@ func (s *CmtRPCService) SendRawTx(encodedTx hexutil.Bytes) (*ctypes.ResultBroadc
 }
 
 // GetBlockByNumber returns the requested block by height.
-func (s *CmtRPCService) GetBlockByNumber(height uint64) (*ctypes.ResultBlock, error) {
+func (s *CmtRPCService) GetBlockByNumber(height uint64, decodeTx bool) (*ctypes.ResultBlock, error) {
 	h := cast.ToInt64(height)
-	return s.backend.GetLocalClient().Block(&h)
+	block, err := s.backend.GetLocalClient().Block(&h)
+	if err != nil {
+		return nil, err
+	}
+	if !decodeTx {
+		return block, err
+	}
+	// decode txs
+	formatTx := func(index int) ([]byte, error) {
+		// get transaction by hash
+		tx := ttypes.Tx(block.Block.Txs[index])
+		rpcTx, err := s.GetTransactionByHash(hex.EncodeToString(tx.Hash()))
+		b, err := json.Marshal(rpcTx)
+		return b, err
+	}
+
+	txs := block.Block.Txs
+	for i := range txs {
+		if txs[i], err = formatTx(i); err != nil {
+			return nil, err
+		}
+	}
+	return block, nil
 }
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
