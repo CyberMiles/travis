@@ -226,26 +226,6 @@ func (s *CmtRPCService) DecodeRawTxs(rawTxs []string) ([]*RPCTransaction, error)
 	return txs, nil
 }
 
-// GetBlockTxs returns the transactions of the requested block by height.
-func (s *CmtRPCService) GetBlockTxs(height uint64) ([]*RPCTransaction, error) {
-	h := cast.ToInt64(height)
-	block, err := s.backend.GetLocalClient().Block(&h)
-	if err != nil {
-		return nil, err
-	}
-
-	rawTxs := block.Block.Txs
-	txs := make([]*RPCTransaction, len(rawTxs))
-	for index, tx := range rawTxs {
-		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx})
-		if err != nil {
-			return txs, err
-		}
-		txs[index] = rpcTx
-	}
-	return txs, nil
-}
-
 // Info about the node's syncing state
 func (s *CmtRPCService) Syncing() (*ctypes.SyncInfo, error) {
 	status, err := s.backend.GetLocalClient().Status()
