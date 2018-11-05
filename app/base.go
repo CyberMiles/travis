@@ -36,6 +36,7 @@ type BaseApp struct {
 	AbsentValidators    *stake.AbsentValidators
 	ByzantineValidators []abci.Evidence
 	PresentValidators   stake.Validators
+	BackupValidators    stake.Validators
 	blockTime           int64
 	deliverSqlTx        *sql.Tx
 	proposer            abci.Validator
@@ -186,6 +187,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.blockTime = req.GetHeader().Time
 	app.EthApp.BeginBlock(req)
 	app.PresentValidators = app.PresentValidators[:0]
+	app.BackupValidators = app.BackupValidators[:0]
 	app.AbsentValidators = stake.LoadAbsentValidators(app.Append())
 
 	// init deliver sql tx for statke
@@ -202,7 +204,30 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	governance.SetDeliverSqlTx(deliverSqlTx)
 	// init end
 
-	// handle the absent validators
+	// handle absent validators
+	app.getAbsentValidators(req)
+	app.AbsentValidators.Clear(app.WorkingHeight())
+	stake.SaveAbsentValidators(app.Append(), app.AbsentValidators)
+
+	// handle backup validators
+	for _, bv := range stake.GetBackupValidators() {
+		// exclude the absent validators
+		if !app.AbsentValidators.Contains(bv.PubKey) {
+			app.BackupValidators = append(app.BackupValidators, bv.Validator())
+		}
+	}
+
+	// handle present validators
+	app.getPresentValidators(req)
+
+	app.logger.Info("BeginBlock", "absent_validators", app.AbsentValidators)
+	app.ByzantineValidators = req.ByzantineValidators
+	app.proposer = req.Header.Proposer
+
+	return abci.ResponseBeginBlock{}
+}
+
+func (app *BaseApp) getAbsentValidators(req abci.RequestBeginBlock) {
 	for _, sv := range req.Validators {
 		var pk ed25519.PubKeyEd25519
 		copy(pk[:], sv.Validator.PubKey.Data)
@@ -210,22 +235,23 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		pubKey := ttypes.PubKey{pk}
 		if !sv.SignedLastBlock {
 			app.AbsentValidators.Add(pubKey, app.WorkingHeight())
-		} else {
+		}
+	}
+}
+
+func (app *BaseApp) getPresentValidators(req abci.RequestBeginBlock) {
+	for _, sv := range req.Validators {
+		var pk ed25519.PubKeyEd25519
+		copy(pk[:], sv.Validator.PubKey.Data)
+
+		pubKey := ttypes.PubKey{pk}
+		if sv.SignedLastBlock {
 			v := stake.GetCandidateByPubKey(pubKey)
-			if v != nil {
+			if v != nil && !app.BackupValidators.Contains(pubKey) {
 				app.PresentValidators = append(app.PresentValidators, v.Validator())
 			}
 		}
 	}
-
-	app.AbsentValidators.Clear(app.WorkingHeight())
-	stake.SaveAbsentValidators(app.Append(), app.AbsentValidators)
-
-	app.logger.Info("BeginBlock", "absent_validators", app.AbsentValidators)
-	app.ByzantineValidators = req.ByzantineValidators
-	app.proposer = req.Header.Proposer
-
-	return abci.ResponseBeginBlock{}
 }
 
 // EndBlock - ABCI - triggers Tick actions
@@ -254,14 +280,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		}
 
 		stake.SlashAbsentValidator(pk, v, app.blockTime, app.WorkingHeight())
-	}
-
-	var backups stake.Validators
-	for _, bv := range stake.GetBackupValidators() {
-		// exclude the absent validators
-		if !app.AbsentValidators.Contains(bv.PubKey) && !app.PresentValidators.Contains(bv.PubKey) {
-			backups = append(backups, bv.Validator())
-		}
 	}
 
 	// Deactivate validators that not in the list of preserved validators
@@ -313,7 +331,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	// block award
 	// run once per hour
 	if len(app.PresentValidators) > 0 {
-		stake.NewAwardDistributor(app.Append(), app.WorkingHeight(), app.PresentValidators, backups, app.logger).Distribute()
+		stake.NewAwardDistributor(app.Append(), app.WorkingHeight(), app.PresentValidators, app.BackupValidators, app.logger).Distribute()
 	}
 	// block award end
 
