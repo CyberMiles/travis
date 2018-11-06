@@ -184,8 +184,12 @@ func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
 				c.State = "Candidate"
 				c.VotingPower = 0
 			} else {
-				c.State = "Backup Validator"
-				c.VotingPower = 1
+				if c.Active == "Y" {
+					c.State = "Backup Validator"
+					c.VotingPower = 1
+				} else {
+					c.State = "Candidate"
+				}
 			}
 		} else if c.VotingPower == 0 {
 			c.State = "Candidate"

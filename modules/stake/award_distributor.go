@@ -164,7 +164,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		var validator simpleValidator
 		var delegators []*simpleDelegator
 		candidate := GetCandidateByAddress(common.HexToAddress(val.OwnerAddress))
-		if candidate == nil || candidate.ParseShares() == sdk.ZeroInt {
+		if candidate == nil || candidate.ParseShares() == sdk.ZeroInt || candidate.Active == "N" {
 			continue
 		}
 
