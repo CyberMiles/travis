@@ -43,7 +43,7 @@ describe("Stake Test", function() {
     expect(existingValidator).be.an("object")
 
     if (Globals.TestMode == "single") {
-      amounts = new Amounts(20000)
+      amounts = new Amounts(10000)
     }
   })
 
@@ -135,11 +135,22 @@ describe("Stake Test", function() {
           //   web3.toBigNumber(Globals.Params.declare_candidacy).toString()
           // )
         })
-        it("D is not a validator yet", function() {
+        it("D is not a validator yet", function(done) {
           tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
           // backup validator has voting power now
           expect(tx_result.data.voting_power).to.be.above(0)
           expect(tx_result.data.state).to.not.eq("Validator")
+          Utils.waitBlocks(done, 1)
+        })
+        it("5 validators on tendermint", function(done) {
+          Utils.getTMValidators((err, res) => {
+            expect(err).to.be.null
+            expect(res).to.be.not.null
+            expect(res.result.validators.length).to.eq(5)
+            let result = res.result.validators.filter(v => v.pub_key.value == Globals.PubKeys[3])
+            expect(result.length).to.eq(1)
+            done()
+          })
         })
       })
     })
@@ -181,6 +192,105 @@ describe("Stake Test", function() {
       ).to.gte(0)
       expect(tx_result.data.state).to.not.eq("Validator")
       delegation_after = Utils.getDelegation(3, 3)
+    })
+  })
+
+  describe("Deactivate and activate", function() {
+    describe("Deactivate D", function() {
+      before(function(done) {
+        let payload = {
+          from: Globals.Accounts[3]
+        }
+        tx_result = web3.cmt.stake.validator.deactivate(payload)
+        Utils.expectTxSuccess(tx_result)
+        Utils.waitBlocks(done, 1)
+      })
+      it("active=N, state=Candidate, vp=0", function() {
+        tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
+        expect(tx_result.data.active).to.be.eq("N")
+        expect(tx_result.data.state).to.be.eq("Candidate")
+        expect(tx_result.data.voting_power).to.be.eq(0)
+      })
+      it("no award", function() {
+        let awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+        let award = awardInfos.data.filter(a => a.address == Globals.Accounts[3])
+        expect(award.length).to.be.eq(0)
+      })
+    })
+    describe("Deactivate C", function() {
+      before(function(done) {
+        let payload = {
+          from: Globals.Accounts[2]
+        }
+        tx_result = web3.cmt.stake.validator.deactivate(payload)
+        Utils.expectTxSuccess(tx_result)
+        Utils.waitBlocks(done, 1)
+      })
+      it("active=N, state=Candidate, vp=0", function() {
+        tx_result = web3.cmt.stake.validator.query(Globals.Accounts[2], 0)
+        expect(tx_result.data.active).to.be.eq("N")
+        expect(tx_result.data.state).to.be.eq("Candidate")
+        expect(tx_result.data.voting_power).to.be.eq(0)
+      })
+      it("no award", function() {
+        let awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+        let award = awardInfos.data.filter(a => a.address == Globals.Accounts[2])
+        expect(award.length).to.be.eq(0)
+      })
+    })
+    describe("Activate D", function() {
+      before(function(done) {
+        let payload = {
+          from: Globals.Accounts[3]
+        }
+        tx_result = web3.cmt.stake.validator.activate(payload)
+        Utils.expectTxSuccess(tx_result)
+        Utils.waitBlocks(done, 3)
+      })
+      it("active=Y, state=Validator, vp>1", function() {
+        tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
+        expect(tx_result.data.active).to.be.eq("Y")
+        expect(tx_result.data.state).to.be.eq("Validator")
+        expect(tx_result.data.voting_power).to.be.gt(1)
+      })
+      it("got award", function() {
+        if (Globals.TestMode == "cluster") {
+          let awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+          let award = awardInfos.data.filter(a => a.address == Globals.Accounts[3])
+          expect(award.length).to.be.eq(1)
+          expect(Number(award[0].amount)).to.be.gt(0)
+        }
+      })
+    })
+    describe("Activate C", function() {
+      before(function(done) {
+        let payload = {
+          from: Globals.Accounts[2]
+        }
+        tx_result = web3.cmt.stake.validator.activate(payload)
+        Utils.expectTxSuccess(tx_result)
+        Utils.waitBlocks(done, 3)
+      })
+      it("C active=Y, state=Validator, vp>1", function() {
+        tx_result = web3.cmt.stake.validator.query(Globals.Accounts[2], 0)
+        expect(tx_result.data.active).to.be.eq("Y")
+        expect(tx_result.data.state).to.be.eq("Validator")
+        expect(tx_result.data.voting_power).to.be.gt(1)
+      })
+      it("D active=Y, state=Backup Validator, vp=1", function() {
+        tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
+        expect(tx_result.data.active).to.be.eq("Y")
+        expect(tx_result.data.state).to.be.eq("Backup Validator")
+        expect(tx_result.data.voting_power).to.be.eq(1)
+      })
+      it("C got award", function() {
+        if (Globals.TestMode == "cluster") {
+          let awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+          let award = awardInfos.data.filter(a => a.address == Globals.Accounts[2])
+          expect(award.length).to.be.eq(1)
+          expect(Number(award[0].amount)).to.be.gt(0)
+        }
+      })
     })
   })
 
@@ -241,14 +351,6 @@ describe("Stake Test", function() {
 
   describe("Block awards check after D becomes a validator", function() {
     let awardInfos
-    before(function(done) {
-      if (Globals.TestMode == "single") {
-        // skips current and all nested describes
-        this.test.parent.pending = true
-        this.skip()
-      }
-      Utils.waitBlocks(done, 1)
-    })
     before(function() {
       awardInfos = web3.cmt.stake.validator.queryAwardInfos()
     })
@@ -262,14 +364,18 @@ describe("Stake Test", function() {
       logger.debug("sum, diff: ", sum.toString(), diff)
       expect(diff).to.be.at.most(Number(web3.toWei(1, "gwei")))
     })
-    it.skip("5 in total, 4 validators, 1 backup, D is validator", function() {
-      expect(awardInfos.data.length).to.be.eq(5)
-      let vCount = awardInfos.data.filter(o => o.state == "Validator").length
-      let bCount = awardInfos.data.filter(o => o.state == "Backup Validator").length
-      expect(vCount).to.be.eq(4)
-      expect(bCount).to.be.eq(1)
-      let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
-      expect(data != null && data.state == "Validator").to.be.true
+    it("5 in total, 4 validators, 1 backup, D is validator", function() {
+      if (Globals.TestMode == "cluster") {
+        expect(awardInfos.data.length).to.be.eq(5)
+        let vCount = awardInfos.data.filter(o => o.state == "Validator").length
+        let bCount = awardInfos.data.filter(o => o.state == "Backup Validator").length
+        expect(vCount).to.be.eq(4)
+        expect(bCount).to.be.eq(1)
+        let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
+        expect(data != null && data.state == "Validator").to.be.true
+      } else {
+        expect(awardInfos.data.length).to.be.eq(1)
+      }
     })
   })
 
@@ -537,7 +643,7 @@ describe("Stake Test", function() {
       let payload = { from: theAccount }
       tx_result = web3.cmt.stake.validator.withdraw(payload)
       Utils.expectTxSuccess(tx_result)
-      Utils.waitBlocks(done, 1)
+      Utils.waitBlocks(done, 3)
     })
     it("Account D no longer a validator, and genesis validator restored", function() {
       // check validators, no theAccount
@@ -562,20 +668,21 @@ describe("Stake Test", function() {
         expect(d.shares.toNumber()).to.eq(0)
       }
     })
+    it("4 validators on tendermint", function(done) {
+      Utils.getTMValidators((err, res) => {
+        expect(err).to.be.null
+        expect(res).to.be.not.null
+        expect(res.result.validators.length).to.eq(4)
+        done()
+      })
+    })
   })
 
   describe("Block awards check after D withdraw candidacy", function() {
-    let awardInfos
-    before(function(done) {
-      if (Globals.TestMode == "single") {
-        // skips current and all nested describes
-        this.test.parent.pending = true
-        this.skip()
-      }
-      Utils.waitBlocks(done, 1)
-    })
+    let awardInfos, theAccount
     before(function() {
       awardInfos = web3.cmt.stake.validator.queryAwardInfos()
+      theAccount = newAccount ? newAccount : Globals.Accounts[3]
     })
     it("sum of awards should equal to block award", function() {
       let sum = web3.toBigNumber(0)
@@ -587,14 +694,16 @@ describe("Stake Test", function() {
       logger.debug("sum, diff: ", sum.toString(), diff)
       expect(diff).to.be.at.most(Number(web3.toWei(1, "gwei")))
     })
-    it.skip("4 in total, 4 validators, D is not there", function() {
-      expect(awardInfos.data.length).to.be.eq(4)
-      let vCount = awardInfos.data.filter(o => o.state == "Validator").length
-      let bCount = awardInfos.data.filter(o => o.state == "Backup Validator").length
-      expect(vCount).to.be.eq(4)
-      expect(bCount).to.be.eq(0)
-      let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
-      expect(data == null).to.be.true
+    it("4 in total, 4 validators, D is not there", function() {
+      if (Globals.TestMode == "cluster") {
+        expect(awardInfos.data.length).to.be.eq(4)
+        let vCount = awardInfos.data.filter(o => o.state == "Validator").length
+        let bCount = awardInfos.data.filter(o => o.state == "Backup Validator").length
+        expect(vCount).to.be.eq(4)
+        expect(bCount).to.be.eq(0)
+        let data = awardInfos.data.find(o => o.address == theAccount.toLowerCase())
+        expect(data == null).to.be.true
+      }
     })
   })
 })
