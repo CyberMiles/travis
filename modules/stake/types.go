@@ -2,6 +2,8 @@ package stake
 
 import (
 	"bytes"
+	"encoding/json"
+	"github.com/CyberMiles/travis/sdk/state"
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -312,10 +314,24 @@ func (vs Validators) Remove(i int) Validators {
 
 // UpdateValidatorSet - Updates the voting power for the candidate set and
 // returns the subset of validators which have changed for Tendermint
-func UpdateValidatorSet(blockHeight int64) (change []abci.Validator, err error) {
+func UpdateValidatorSet(store state.SimpleDB, blockHeight int64) (change []abci.Validator, err error) {
 	// get the validators before update
 	candidates := GetCandidates()
 	v1 := candidates.Validators()
+
+	// check if there are any pubkeys need to be replaced, and if so, add them into v1
+	var pks []types.PubKey
+	b := store.Get(utils.ToBeReplacedPubKeysKey)
+	if b != nil {
+		json.Unmarshal(b, &pks)
+		for _, pk := range pks {
+			v1 = append(v1, Validator{PubKey: pk})
+		}
+
+		// clean store
+		store.Remove(utils.ToBeReplacedPubKeysKey)
+	}
+
 	v2 := candidates.updateVotingPower(blockHeight).Validators()
 	change = v1.validatorsChanged(v2)
 

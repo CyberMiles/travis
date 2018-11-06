@@ -320,7 +320,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	if !toBeShutdown { // should not update validator set twice if the node is to be shutdown
 		// calculate the validator set difference
 		if calVPCheck(app.WorkingHeight()) {
-			diff, err := stake.UpdateValidatorSet(app.WorkingHeight())
+			diff, err := stake.UpdateValidatorSet(app.Append(), app.WorkingHeight())
 			if err != nil {
 				panic(err)
 			}
