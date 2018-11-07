@@ -950,7 +950,8 @@ func HandlePendingUnstakeRequests(height int64) error {
 		delegation.AddPendingWithdrawAmount(amount.Neg())
 		UpdateDelegation(delegation)
 
-		if delegation.Shares().LT(sdk.NewInt(10)) {
+		minStakingAmount := sdk.NewInt(utils.GetParams().MinStakingAmount).Mul(sdk.E18Int)
+		if delegation.Shares().LT(minStakingAmount) {
 			RemoveDelegation(delegation.Id)
 			candidate.NumOfDelegators = GetNumOfDelegatorsByCandidate(candidate.Id)
 			updateCandidate(candidate)
