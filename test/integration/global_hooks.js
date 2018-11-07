@@ -7,7 +7,7 @@ const Utils = require("./utils")
 const Globals = require("./global_vars")
 
 // web3 setup before all
-web3 = new Web3(new Web3.providers.HttpProvider(Settings.Providers.node1))
+web3 = new Web3(new Web3.providers.HttpProvider(`http://${Settings.Nodes[0].domain}:8545`))
 if (!web3 || !web3.isConnected()) throw new Error("cannot connect to server. ")
 
 // test mode
@@ -45,11 +45,7 @@ before("Prepare 4 accounts", function() {
 before("Unlock all accounts", function() {
   logger.info(this.test.fullTitle())
   // unlock account
-  web3.personal.unlockAccount(
-    web3.cmt.defaultAccount,
-    Settings.Passphrase,
-    3000
-  )
+  web3.personal.unlockAccount(web3.cmt.defaultAccount, Settings.Passphrase, 3000)
   Globals.Accounts.forEach(acc => {
     web3.personal.unlockAccount(acc, Settings.Passphrase, 3000)
   })
@@ -78,24 +74,17 @@ before("Setup a ERC20 Smart contract called ETH", function(done) {
   let first = Globals.ETH.contractAddress
   if (web3.cmt.getCode(first) === "0x") {
     let deployAddress = web3.cmt.accounts[0]
-    Utils.newContract(
-      deployAddress,
-      Globals.ETH.abi,
-      Globals.ETH.bytecode,
-      addr => {
-        Globals.ETH.contractAddress = addr
-        done()
-      }
-    )
+    Utils.newContract(deployAddress, Globals.ETH.abi, Globals.ETH.bytecode, addr => {
+      Globals.ETH.contractAddress = addr
+      done()
+    })
   } else {
     logger.debug("create new contract skipped. ")
     done()
   }
 })
 
-before("Transfer 5000000 CMT to A, B, C, D from defaultAccount", function(
-  done
-) {
+before("Transfer 5000000 CMT to A, B, C, D from defaultAccount", function(done) {
   logger.info(this.test.fullTitle())
   let balances = Utils.getBalance()
   let arrFund = []

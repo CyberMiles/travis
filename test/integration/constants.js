@@ -1,8 +1,6 @@
 module.exports = Object.freeze({
   Settings: {
-    Providers: {
-      node1: "http://localhost:8545"
-    },
+    Nodes: [{ domain: "localhost" }],
     Passphrase: "1234",
     BlockTimeout: 5,
     IntervalMs: 2000,

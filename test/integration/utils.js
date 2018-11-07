@@ -1,5 +1,6 @@
 const expect = require("chai").expect
 const async = require("async")
+const http = require("http")
 const logger = require("./logger")
 const { Settings } = require("./constants")
 const Globals = require("./global_vars")
@@ -422,6 +423,21 @@ const cubeSign = (address, nonce) => {
   return signature_hex
 }
 
+const getTMValidators = cb => {
+  let url = `http://${Settings.Nodes[0].domain}:26657/validators`
+  http.get(url, resp => {
+    let data = ""
+    // A chunk of data has been recieved.
+    resp.on("data", chunk => {
+      data += chunk
+    })
+    // The whole response has been received. Print out the result.
+    resp.on("end", () => {
+      cb(null, JSON.parse(data))
+    })
+  })
+}
+
 module.exports = {
   transfer,
   getBalance,
@@ -443,5 +459,6 @@ module.exports = {
   delegatorAccept,
   cubeSign,
   calcVotingPower,
-  getBlockAward
+  getBlockAward,
+  getTMValidators
 }
