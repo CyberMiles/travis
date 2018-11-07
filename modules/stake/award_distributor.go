@@ -18,6 +18,7 @@ type simpleValidator struct {
 	delegators   []*simpleDelegator
 	vp           int64
 	state        string
+	logger       log.Logger
 }
 
 func (v *simpleValidator) distributeAward(totalAward sdk.Int, totalVotingPower int64) (res sdk.Int) {
@@ -46,7 +47,7 @@ func (v *simpleValidator) distributeAward(totalAward sdk.Int, totalVotingPower i
 
 func (v *simpleValidator) distributeAwardToSelf(award sdk.Int) {
 	// A validator is a delegator as well
-	d := simpleDelegator{address: v.ownerAddress}
+	d := simpleDelegator{address: v.ownerAddress, logger: v.logger}
 	d.distributeAward(v, award)
 }
 
@@ -61,6 +62,7 @@ type simpleDelegator struct {
 	s       int64
 	c       sdk.Rat
 	vp      int64
+	logger  log.Logger
 }
 
 func (d simpleDelegator) distributeAward(v *simpleValidator, award sdk.Int) {
@@ -70,6 +72,7 @@ func (d simpleDelegator) distributeAward(v *simpleValidator, award sdk.Int) {
 	}
 
 	delegation.AddAwardAmount(award)
+	d.logger.Debug("[award to delegator]", "validator", v.ownerAddress.String(), "delegator", d.address.String(), "award", award)
 	UpdateDelegation(delegation)
 
 	// accumulate shares of the validator
@@ -79,7 +82,7 @@ func (d simpleDelegator) distributeAward(v *simpleValidator, award sdk.Int) {
 }
 
 func (d simpleDelegator) String() string {
-	return fmt.Sprintf("[simpleDeligator] address: %s, s: %d, c: %v, vp: %d", d.address.String(), d.s, d.c, d.vp)
+	return fmt.Sprintf("[simpleDelegator] address: %s, s: %d, c: %v, vp: %d", d.address.String(), d.s, d.c, d.vp)
 }
 
 type AwardInfo struct {
@@ -168,6 +171,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			continue
 		}
 
+		validator.logger = ad.logger
 		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
 		validator.id = candidate.Id
 		validator.state = candidate.State
@@ -181,6 +185,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 			}
 
 			d := simpleDelegator{}
+			d.logger = ad.logger
 			d.address = delegation.DelegatorAddress
 			d.s = delegation.Shares().Div(sdk.E18Int).Int64()
 			d.c = delegation.CompRate
@@ -204,8 +209,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 
 func (ad *awardDistributor) distribute(vals []*simpleValidator, totalAward sdk.Int, totalVotingPower int64, awardInfos AwardInfos) AwardInfos {
 	for _, val := range vals {
-		ad.logger.Debug("Prepare to distribute.", "address", val.ownerAddress, "totalAward", totalAward)
-		//fmt.Printf("Prepare to distribute, address: %v, totalAward: %v\n", val.ownerAddress.String(), totalAward)
+		ad.logger.Debug("[award to validator]", "validator", val.ownerAddress, "totalAward", totalAward)
 		award := val.distributeAward(totalAward, totalVotingPower)
 		ai := AwardInfo{Address: val.ownerAddress, State: val.state, Amount: award.String()}
 		awardInfos = append(awardInfos, ai)
