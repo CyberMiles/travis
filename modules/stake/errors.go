@@ -8,20 +8,12 @@ import (
 )
 
 var (
-	errCandidateEmpty     = fmt.Errorf("Cannot bond to an empty candidate")
-	errBadAmount          = fmt.Errorf("Amount must be > 0")
-	errNoBondingAcct      = fmt.Errorf("No bond account for this (address, validator) pair")
-	errCommissionNegative = fmt.Errorf("Commission must be positive")
-	errCommissionHuge     = fmt.Errorf("Commission cannot be more than 100%")
-	errBadCompRate        = fmt.Errorf("Compensation rate must between 0 and 1, and less than the default value")
-
-	errBadValidatorAddr                   = fmt.Errorf("Validator does not exist for that address")
-	errCandidateExistsAddr                = fmt.Errorf("Candidate already exist, cannot re-declare candidacy")
+	errBadAmount                          = fmt.Errorf("Amount must be > 0")
+	errBadCompRate                        = fmt.Errorf("Compensation rate must between 0 and 1, and less than the default value")
+	errBadValidatorAddr                   = fmt.Errorf("Candidate does not exist for that address")
+	errCandidateExistsAddr                = fmt.Errorf("Candidate already exists, cannot re-declare candidate")
 	errMissingSignature                   = fmt.Errorf("Missing signature")
-	errBondNotNominated                   = fmt.Errorf("Cannot bond to non-nominated account")
-	errNoDelegatorForAddress              = fmt.Errorf("Delegator does not contain validator bond")
-	errInsufficientFunds                  = fmt.Errorf("Insufficient bond shares")
-	errBadRemoveValidator                 = fmt.Errorf("Error removing validator")
+	errInsufficientFunds                  = fmt.Errorf("Insufficient funds")
 	errCandidateVerificationDisallowed    = fmt.Errorf("Verification disallowed")
 	errCandidateVerifiedAlready           = fmt.Errorf("Candidate has been verified already")
 	errReachMaxAmount                     = fmt.Errorf("Validator has reached its declared max amount CMTs to be staked")
@@ -29,7 +21,11 @@ var (
 	errInvalidWithdrawalAmount            = fmt.Errorf("Invalid withdrawal amount")
 	errCandidateWithdrawalDisallowed      = fmt.Errorf("Candidate can't withdraw the self-staking funds")
 	errInvalidCubeSignature               = fmt.Errorf("Invalid cube signature")
-	errCandidateHasPendingUnstakeRequests = fmt.Errorf("The candidate has some pending withdrawal requests")
+	errCandidateHasPendingUnstakeRequests = fmt.Errorf("Candidate has some pending withdrawal requests")
+	errAddressAlreadyDeclared             = fmt.Errorf("Address has been declared")
+	errPubKeyAlreadyDeclared              = fmt.Errorf("PubKey has been declared")
+	errCandidateAlreadyActivated          = fmt.Errorf("Candidate has been activated")
+	errCandidateAlreadyDeactivated        = fmt.Errorf("Candidate has been deactivated")
 	errBadRequest                         = fmt.Errorf("Bad request")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
@@ -87,4 +83,20 @@ func ErrCandidateHasPendingUnstakeRequests() error {
 
 func ErrBadRequest() error {
 	return errors.WithCode(errBadRequest, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrAddressAlreadyDeclared() error {
+	return errors.WithCode(errAddressAlreadyDeclared, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrPubKeyAleadyDeclared() error {
+	return errors.WithCode(errPubKeyAlreadyDeclared, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrCandidateAlreadyActivated() error {
+	return errors.WithCode(errCandidateAlreadyActivated, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrCandidateAlreadyDeactivated() error {
+	return errors.WithCode(errCandidateAlreadyDeactivated, errors.CodeTypeBaseInvalidOutput)
 }

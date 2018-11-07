@@ -2,7 +2,6 @@ package stake
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/errors"
@@ -228,12 +227,12 @@ func (c check) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	// check to see if the pubkey or address has been registered before
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate != nil {
-		return fmt.Errorf("address has been declared")
+		return ErrAddressAlreadyDeclared()
 	}
 
 	candidate = GetCandidateByPubKey(pk)
 	if candidate != nil {
-		return fmt.Errorf("pubkey has been declared")
+		return ErrPubKeyAleadyDeclared()
 	}
 
 	// check to see if the associated account has 10%(ssr, short for self-staking ratio, configurable) of the max staked CMT amount
@@ -268,7 +267,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
-		return fmt.Errorf("cannot edit non-exsits candidacy")
+		return ErrBadValidatorAddr()
 	}
 
 	totalCost := gasFee
@@ -303,7 +302,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 
 		candidate = GetCandidateByPubKey(pk)
 		if candidate != nil {
-			return fmt.Errorf("pubkey has been declared")
+			return ErrPubKeyAleadyDeclared()
 		}
 	}
 
@@ -314,7 +313,7 @@ func (c check) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	// check to see if the address has been registered before
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
-		return fmt.Errorf("cannot withdraw non-exsits candidacy")
+		return ErrBadValidatorAddr()
 	}
 
 	return nil
@@ -324,7 +323,7 @@ func (c check) verifyCandidacy(tx TxVerifyCandidacy) error {
 	// check to see if the candidate address to be verified has been registered before
 	candidate := GetCandidateByAddress(tx.CandidateAddress)
 	if candidate == nil {
-		return fmt.Errorf("cannot verify non-exsits candidacy")
+		return ErrBadValidatorAddr()
 	}
 
 	// check to see if the request was initiated by a special account
@@ -339,15 +338,15 @@ func (c check) activateCandidacy(tx TxActivateCandidacy) error {
 	// check to see if the address has been registered before
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
-		return fmt.Errorf("cannot activate non-exsits candidacy")
+		return ErrBadValidatorAddr()
 	}
 
 	if candidate.Active == "Y" {
-		return fmt.Errorf("already activated")
+		return ErrCandidateAlreadyActivated()
 	}
 
 	if candidate.ParseShares().Equal(sdk.ZeroInt) {
-		return fmt.Errorf("cannot activate withdrawed candidacy")
+		return ErrBadRequest()
 	}
 	return nil
 }
@@ -356,11 +355,11 @@ func (c check) deactivateCandidacy(tx TxDeactivateCandidacy) error {
 	// check to see if the address has been registered before
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
-		return fmt.Errorf("cannot deactivate non-exsits candidacy")
+		return ErrBadValidatorAddr()
 	}
 
 	if candidate.Active == "N" {
-		return fmt.Errorf("already deactivated")
+		return ErrCandidateAlreadyDeactivated()
 	}
 	return nil
 }
@@ -720,7 +719,7 @@ func (d deliver) activateCandidacy(tx TxActivateCandidacy) error {
 	// check to see if the address has been registered before
 	candidate := GetCandidateByAddress(d.sender)
 	if candidate == nil {
-		return fmt.Errorf("cannot activate non-exsits candidacy")
+		return ErrBadValidatorAddr()
 	}
 
 	candidate.Active = "Y"
@@ -732,7 +731,7 @@ func (d deliver) deactivateCandidacy(tx TxDeactivateCandidacy) error {
 	// check to see if the address has been registered before
 	candidate := GetCandidateByAddress(d.sender)
 	if candidate == nil {
-		return fmt.Errorf("cannot deactivate non-exsits candidacy")
+		return ErrBadValidatorAddr()
 	}
 
 	candidate.Active = "N"
