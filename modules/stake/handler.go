@@ -484,6 +484,12 @@ func (c check) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUp
 		return ErrBadRequest()
 	}
 
+	// check if the new address has been delegated the candidate
+	d := GetDelegation(req.ToAddress, req.CandidateId)
+	if d != nil {
+		return ErrBadRequest()
+	}
+
 	if req.ToAddress != c.sender || req.State != "PENDING" {
 		return ErrBadRequest()
 	}
