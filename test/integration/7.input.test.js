@@ -150,7 +150,7 @@ describe("API Input Parameter Test", function() {
       sendTx(D, "accept", [A.addr, "-1", "01"], Utils.expectTxFail, done)
     })
   })
-  describe.skip("stake/withdraw", function() {
+  describe("stake/withdraw", function() {
     before(function(done) {
       let balance = web3.cmt.getBalance(D.addr)
       if (balance < 1) Utils.transfer(A.addr, D.addr, 1)
@@ -169,7 +169,7 @@ describe("API Input Parameter Test", function() {
       sendTx(D, "withdraw", [A.addr, "-1"], Utils.expectTxFail, done)
     })
     it("fail if bad delegator", function(done) {
-      sendTx(B, "withdraw", [A.addr, "1"], Utils.expectTxFail, done)
+      sendTx(C, "withdraw", [A.addr, "1"], Utils.expectTxFail, done)
     })
     it("success if all set", function(done) {
       sendTx(D, "withdraw", [A.addr, "1"], Utils.expectTxSuccess, done)

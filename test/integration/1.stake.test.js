@@ -139,6 +139,7 @@ describe("Stake Test", function() {
           tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
           // backup validator has voting power now
           expect(tx_result.data.voting_power).to.be.above(0)
+          // expect(tx_result.data.tendermint_voting_power).to.eq(1)
           expect(tx_result.data.state).to.not.eq("Validator")
           Utils.waitBlocks(done, 1)
         })
@@ -149,6 +150,7 @@ describe("Stake Test", function() {
             expect(res.result.validators.length).to.eq(5)
             let result = res.result.validators.filter(v => v.pub_key.value == Globals.PubKeys[3])
             expect(result.length).to.eq(1)
+            expect(Number(result[0].voting_power)).to.eq(1)
             done()
           })
         })
@@ -205,11 +207,12 @@ describe("Stake Test", function() {
         Utils.expectTxSuccess(tx_result)
         Utils.waitBlocks(done, 1)
       })
-      it("active=N, state=Candidate, vp=0", function() {
+      it("active=N, state=Candidate, vp=tvp=0", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.active).to.be.eq("N")
         expect(tx_result.data.state).to.be.eq("Candidate")
         expect(tx_result.data.voting_power).to.be.eq(0)
+        // expect(tx_result.data.tendermint_voting_power).to.be.eq(0)
       })
       it("no award", function() {
         let awardInfos = web3.cmt.stake.validator.queryAwardInfos()
@@ -226,11 +229,12 @@ describe("Stake Test", function() {
         Utils.expectTxSuccess(tx_result)
         Utils.waitBlocks(done, 1)
       })
-      it("active=N, state=Candidate, vp=0", function() {
+      it("active=N, state=Candidate, vp=tvp=0", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[2], 0)
         expect(tx_result.data.active).to.be.eq("N")
         expect(tx_result.data.state).to.be.eq("Candidate")
         expect(tx_result.data.voting_power).to.be.eq(0)
+        // expect(tx_result.data.tendermint_voting_power).to.be.eq(0)
       })
       it("no award", function() {
         let awardInfos = web3.cmt.stake.validator.queryAwardInfos()
@@ -247,11 +251,12 @@ describe("Stake Test", function() {
         Utils.expectTxSuccess(tx_result)
         Utils.waitBlocks(done, 3)
       })
-      it("active=Y, state=Validator, vp>1", function() {
+      it("active=Y, state=Validator, vp>1, tvp=10", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.active).to.be.eq("Y")
         expect(tx_result.data.state).to.be.eq("Validator")
         expect(tx_result.data.voting_power).to.be.gt(1)
+        // expect(tx_result.data.tendermint_voting_power).to.eq(10)
       })
       it("got award", function() {
         if (Globals.TestMode == "cluster") {
@@ -271,17 +276,19 @@ describe("Stake Test", function() {
         Utils.expectTxSuccess(tx_result)
         Utils.waitBlocks(done, 3)
       })
-      it("C active=Y, state=Validator, vp>1", function() {
+      it("C active=Y, state=Validator, vp>1, tvp=10", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[2], 0)
         expect(tx_result.data.active).to.be.eq("Y")
         expect(tx_result.data.state).to.be.eq("Validator")
         expect(tx_result.data.voting_power).to.be.gt(1)
+        // expect(tx_result.data.tendermint_voting_power).to.eq(10)
       })
-      it("D active=Y, state=Backup Validator, vp=1", function() {
+      it("D active=Y, state=Backup Validator, vp>1, tvp=1", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.active).to.be.eq("Y")
         expect(tx_result.data.state).to.be.eq("Backup Validator")
-        expect(tx_result.data.voting_power).to.be.eq(1)
+        expect(tx_result.data.voting_power).to.be.gt(1)
+        // expect(tx_result.data.tendermint_voting_power).to.be.eq(1)
       })
       it("C got award", function() {
         if (Globals.TestMode == "cluster") {
@@ -339,6 +346,7 @@ describe("Stake Test", function() {
       it("D is now a validator", function() {
         tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
         expect(tx_result.data.voting_power).to.be.above(0)
+        // expect(tx_result.data.tendermint_voting_power).to.eq(10)
         expect(tx_result.data.state).to.eq("Validator")
       })
       it("One of the genesis validators now drops off", function() {
@@ -711,6 +719,9 @@ describe("Stake Test", function() {
         expect(err).to.be.null
         expect(res).to.be.not.null
         expect(res.result.validators.length).to.eq(4)
+        res.result.validators.forEach(v => {
+          expect(Number(v.voting_power)).to.eq(10)
+        })
         done()
       })
     })
