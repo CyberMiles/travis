@@ -22,7 +22,7 @@ describe("Stake Test", function() {
   let compRate = "4/5"
   let existingValidator = {}
   let amounts, balance_old, balance_new, tx_result
-  let newAccount
+  let newAccount, newAccount2
 
   before(function() {
     Utils.addFakeValidators()
@@ -572,14 +572,21 @@ describe("Stake Test", function() {
   })
 
   describe("Update D's account address", function() {
-    let accountUpdateRequestId
+    let accountUpdateRequestId, accountUpdateRequestId2
     before(function() {
       newAccount = web3.personal.newAccount(Settings.Passphrase)
       web3.personal.unlockAccount(newAccount, Settings.Passphrase)
+      newAccount2 = web3.personal.newAccount(Settings.Passphrase)
+      web3.personal.unlockAccount(newAccount2, Settings.Passphrase)
       // balance before
       balance_old = Utils.getBalance(3)
     })
 
+    it("fail if update to an existing delegator's address", function() {
+      let payload = { from: Globals.Accounts[3], newCandidateAccount: Globals.Accounts[1] }
+      tx_result = web3.cmt.stake.validator.updateAccount(payload)
+      Utils.expectTxFail(tx_result)
+    })
     it("update validator's account address", function() {
       let payload = { from: Globals.Accounts[3], newCandidateAccount: newAccount }
       tx_result = web3.cmt.stake.validator.updateAccount(payload)
@@ -597,11 +604,42 @@ describe("Stake Test", function() {
         Buffer.from(tx_result.deliver_tx.data, "base64").toString("utf-8")
       )
     })
+    it("fail if update to an address that has been used in update_account", function() {
+      let payload = { from: Globals.Accounts[3], newCandidateAccount: newAccount }
+      tx_result = web3.cmt.stake.validator.updateAccount(payload)
+      Utils.expectTxFail(tx_result)
+    })
+    it("request to update B's address to newAccount2", function() {
+      let payload = { from: Globals.Accounts[1], newCandidateAccount: newAccount2 }
+      tx_result = web3.cmt.stake.validator.updateAccount(payload)
+      Utils.expectTxSuccess(tx_result)
+      accountUpdateRequestId2 = Number(
+        Buffer.from(tx_result.deliver_tx.data, "base64").toString("utf-8")
+      )
+    })
     describe("new account accept the update", function() {
       before(function() {
         // balance before
         balance_old = Utils.getBalance(3)
       })
+      it("fail if newAccount2 delegate to B, then acceptAccountUpdate", function() {
+        // fund
+        let gasFee = Utils.gasFee("acceptAccountUpdate")
+        let CMT1000 = web3.toWei(1000, "cmt")
+        delegation_before = Utils.getDelegation(1, 1)
+        Utils.transfer(
+          web3.cmt.defaultAccount,
+          newAccount2,
+          delegation_before.shares.plus(gasFee).plus(CMT1000)
+        )
+        // delegate to D
+        Utils.delegatorAccept(newAccount2, Globals.Accounts[1], CMT1000)
+        // accept account update
+        let payload = { from: newAccount2, accountUpdateRequestId: accountUpdateRequestId2 }
+        tx_result = web3.cmt.stake.validator.acceptAccountUpdate(payload)
+        Utils.expectTxFail(tx_result)
+      })
+
       it("no enough balance - fail", function() {
         let payload = { from: newAccount, accountUpdateRequestId: accountUpdateRequestId }
         tx_result = web3.cmt.stake.validator.acceptAccountUpdate(payload)
