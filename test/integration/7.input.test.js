@@ -150,7 +150,7 @@ describe("API Input Parameter Test", function() {
       sendTx(D, "accept", [A.addr, "-1", "01"], Utils.expectTxFail, done)
     })
   })
-  describe("stake/withdraw", function() {
+  describe.skip("stake/withdraw", function() {
     before(function(done) {
       let balance = web3.cmt.getBalance(D.addr)
       if (balance < 1) Utils.transfer(A.addr, D.addr, 1)
