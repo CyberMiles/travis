@@ -28,22 +28,23 @@ import (
 // exchange rate.
 // NOTE if the Owner.Empty() == true then this is a candidate who has revoked candidacy
 type Candidate struct {
-	Id                 int64        `json:"id"`
-	PubKey             types.PubKey `json:"pub_key"`       // Pubkey of candidate
-	OwnerAddress       string       `json:"owner_address"` // Sender of BondTx - UnbondTx returns here
-	Shares             string       `json:"shares"`        // Total number of delegated shares to this candidate, equivalent to coins held in bond account
-	VotingPower        int64        `json:"voting_power"`  // Voting power if pubKey is a considered a validator
-	PendingVotingPower int64        `json:"pending_voting_power"`
-	MaxShares          string       `json:"max_shares"`
-	CompRate           sdk.Rat      `json:"comp_rate"`
-	CreatedAt          int64        `json:"created_at"`
-	Description        Description  `json:"description"`
-	Verified           string       `json:"verified"`
-	Active             string       `json:"active"`
-	BlockHeight        int64        `json:"block_height"`
-	Rank               int64        `json:"rank"`
-	State              string       `json:"state"`
-	NumOfDelegators    int64        `json:"num_of_delegators"`
+	Id                    int64        `json:"id"`
+	PubKey                types.PubKey `json:"pub_key"`                 // Pubkey of candidate
+	OwnerAddress          string       `json:"owner_address"`           // Sender of BondTx - UnbondTx returns here
+	Shares                string       `json:"shares"`                  // Total number of delegated shares to this candidate, equivalent to coins held in bond account
+	VotingPower           int64        `json:"voting_power"`            // Voting power which is used to calculate rewards
+	TendermintVotingPower int64        `json:"tendermint_voting_power"` // Tendermint Voting power which is used by tendermint
+	PendingVotingPower    int64        `json:"pending_voting_power"`
+	MaxShares             string       `json:"max_shares"`
+	CompRate              sdk.Rat      `json:"comp_rate"`
+	CreatedAt             int64        `json:"created_at"`
+	Description           Description  `json:"description"`
+	Verified              string       `json:"verified"`
+	Active                string       `json:"active"`
+	BlockHeight           int64        `json:"block_height"`
+	Rank                  int64        `json:"rank"`
+	State                 string       `json:"state"`
+	NumOfDelegators       int64        `json:"num_of_delegators"`
 }
 
 type Description struct {
@@ -137,7 +138,7 @@ func (v Validator) ABCIValidator() abci.Validator {
 			Type: abci.PubKeyEd25519,
 			Data: pk[:],
 		},
-		Power: v.VotingPower,
+		Power: v.TendermintVotingPower,
 	}
 }
 
@@ -185,18 +186,22 @@ func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
 			if i >= (int(utils.GetParams().MaxVals + utils.GetParams().BackupVals)) {
 				c.State = "Candidate"
 				c.VotingPower = 0
+				c.TendermintVotingPower = 0
 			} else {
 				if c.Active == "Y" {
 					c.State = "Backup Validator"
-					c.VotingPower = 1
+					c.TendermintVotingPower = 1
 				} else {
 					c.State = "Candidate"
+					c.TendermintVotingPower = 0
 				}
 			}
 		} else if c.VotingPower == 0 {
 			c.State = "Candidate"
+			c.TendermintVotingPower = 0
 		} else {
 			c.State = "Validator"
+			c.TendermintVotingPower = 10
 		}
 
 		c.Rank = int64(i)
