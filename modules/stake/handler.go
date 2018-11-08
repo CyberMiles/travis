@@ -452,6 +452,18 @@ func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount, gasFee sdk.In
 		return 0, ErrBadRequest()
 	}
 
+	// check if the new address has been delegated the candidate
+	d := GetDelegation(tx.NewCandidateAddress, candidate.Id)
+	if d != nil {
+		return 0, ErrBadRequest()
+	}
+
+	// check if the new address has been used
+	exists := getCandidateAccountUpdateRequestByToAddress(tx.NewCandidateAddress)
+	if len(exists) > 0 {
+		return 0, ErrBadRequest()
+	}
+
 	// check if the address has been changed
 	ownerAddress := common.HexToAddress(candidate.OwnerAddress)
 	if utils.IsEmptyAddress(tx.NewCandidateAddress) || tx.NewCandidateAddress == ownerAddress {
@@ -467,7 +479,7 @@ func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount, gasFee sdk.In
 }
 
 func (c check) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUpdate, gasFee sdk.Int) error {
-	req := getCandidateAccountUpdateRequest(tx.AccountUpdateRequestId)
+	req := getCandidateAccountUpdateRequestById(tx.AccountUpdateRequestId)
 	if req == nil {
 		return ErrBadRequest()
 	}
@@ -886,7 +898,7 @@ func (d deliver) updateCandidateAccount(tx TxUpdateCandidacyAccount, gasFee sdk.
 }
 
 func (d deliver) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUpdate, gasFee sdk.Int) error {
-	req := getCandidateAccountUpdateRequest(tx.AccountUpdateRequestId)
+	req := getCandidateAccountUpdateRequestById(tx.AccountUpdateRequestId)
 	if req == nil {
 		return ErrBadRequest()
 	}

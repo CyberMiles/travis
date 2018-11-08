@@ -706,35 +706,65 @@ func saveCandidateAccountUpdateRequest(req *CandidateAccountUpdateRequest) int64
 	return lastInsertId
 }
 
-func getCandidateAccountUpdateRequest(id int64) *CandidateAccountUpdateRequest {
+func getCandidateAccountUpdateRequestById(id int64) *CandidateAccountUpdateRequest {
+	cond := make(map[string]interface{})
+	cond["id"] = id
+	reqs := getCandidateAccountUpdateRequestInternal(cond)
+
+	if len(reqs) == 0 {
+		return nil
+	} else {
+		return reqs[0]
+	}
+}
+
+func getCandidateAccountUpdateRequestByToAddress(toAddress common.Address) (res []*CandidateAccountUpdateRequest) {
+	cond := make(map[string]interface{})
+	cond["to_address"] = toAddress.String()
+	res = getCandidateAccountUpdateRequestInternal(cond)
+	return
+}
+
+func getCandidateAccountUpdateRequestInternal(cond map[string]interface{}) (reqs []*CandidateAccountUpdateRequest) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("select candidate_id, from_address, to_address, created_block_height, accepted_block_height, state from candidate_account_update_requests where id = ?")
+	clause, params := buildQueryClause(cond)
+	rows, err := txWrapper.tx.Query("select id, candidate_id, from_address, to_address, created_block_height, accepted_block_height, state from candidate_account_update_requests"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
-	defer stmt.Close()
+	defer rows.Close()
 
-	var candidateId, createdBlockHeight, acceptedBlockHeight int64
-	var fromAddress, toAddress, state string
-	err = stmt.QueryRow(id).Scan(&candidateId, &fromAddress, &toAddress, &createdBlockHeight, &acceptedBlockHeight, &state)
-	if err != nil {
-		//panic(err)
-		return nil
+	reqs = composeCandidateAccountUpdateRequestResults(rows)
+	return
+}
+
+func composeCandidateAccountUpdateRequestResults(rows *sql.Rows) (reqs []*CandidateAccountUpdateRequest) {
+	for rows.Next() {
+		var id, candidateId, createdBlockHeight, acceptedBlockHeight int64
+		var fromAddress, toAddress, state string
+		err := rows.Scan(&id, &candidateId, &fromAddress, &toAddress, &createdBlockHeight, &acceptedBlockHeight, &state)
+		if err != nil {
+			return nil
+		}
+
+		req := &CandidateAccountUpdateRequest{
+			Id:                  id,
+			CandidateId:         candidateId,
+			FromAddress:         common.HexToAddress(fromAddress),
+			ToAddress:           common.HexToAddress(toAddress),
+			CreatedBlockHeight:  createdBlockHeight,
+			AcceptedBlockHeight: acceptedBlockHeight,
+			State:               state,
+		}
+		reqs = append(reqs, req)
 	}
 
-	res := &CandidateAccountUpdateRequest{
-		Id:                  id,
-		CandidateId:         candidateId,
-		FromAddress:         common.HexToAddress(fromAddress),
-		ToAddress:           common.HexToAddress(toAddress),
-		CreatedBlockHeight:  createdBlockHeight,
-		AcceptedBlockHeight: acceptedBlockHeight,
-		State:               state,
+	if err := rows.Err(); err != nil {
+		panic(err)
 	}
-
-	return res
+	return
 }
 
 func updateCandidateAccountUpdateRequest(req *CandidateAccountUpdateRequest) {
