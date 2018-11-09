@@ -205,7 +205,7 @@ make all
 
 #Starting Travis test network node
 cd ~
-travis node init --env testnet
+travis node init
 
 #Please ensure that the system paths are known, or else the travis command will not be found (you will get an error like this "The program 'travis' is currently not installed")
 
@@ -214,7 +214,7 @@ echo 'export GOBIN=$GOPATH/go/bin' >> ~/.bashrc
 echo 'export PATH=$GOBIN:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
-travis node start --home=./.travis
+travis node start
 ```
 
 Obviously with a private network there is no syncing required because the blockchain starts at 0 on your own private hardware. You can now attach to the Travis node using the following command.
