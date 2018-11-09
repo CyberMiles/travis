@@ -128,13 +128,13 @@ Make sure your os is Ubuntu 16.04 or CentOS 7
 Download snapshot file from AWS S3 `travis-ss-bucket <https://s3-us-west-2.amazonaws.com/travis-ss-bucket>`_
 ------------------------------------------------------------------------------------------------------------
 
-You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1540723748_102028.tar.gz``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
+You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1541418581_165988.tar.gz``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
 ::
 
   mkdir -p $HOME/release
   cd $HOME/release
-  wget https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1540723748_102028.tar.gz
+  wget https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1541418581_165988.tar.gz
   tar xzf travis_ss_mainnet_1540723748_102028.tar.gz
 
   # if your os is Ubuntu
