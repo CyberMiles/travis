@@ -15688,7 +15688,7 @@ module.exports = {
 
 },{"bignumber.js":"bignumber.js","web3/lib/utils/utils":62}],102:[function(require,module,exports){
 module.exports={
-  "version": "0.0.2"
+  "version": "0.0.4"
 }
 
 },{}],103:[function(require,module,exports){
