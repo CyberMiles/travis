@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.1.3-beta
+
+_November 13th, 2018_
+
+### FEATURES
+
+- Fix a bug on voting power computation which allowed some validators to take disproportionately large amounts of block awards.
+- Allow Validators to change its default compensation rate.
+- Make backup validators participate in normal operations to ensure that the backup is always ready.
+
+### IMPROVEMENTS
+
+- Allow validators to temporally deactivate itself for emergencies.
+- Support hot swap for validators to decrease slashing risk.
+
+### FIXES
+- Many stability improvements.
+
 ## v0.1.2-beta
 
 _October 15th, 2018_
