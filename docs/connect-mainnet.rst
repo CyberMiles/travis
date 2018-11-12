@@ -134,8 +134,8 @@ You can splice the file name from the bucket list. The downloading url will be l
 
   mkdir -p $HOME/release
   cd $HOME/release
-  wget https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1541418581_165988.tar.gz
-  tar xzf travis_ss_mainnet_1540723748_102028.tar.gz
+  wget https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1541996017_219790.tar
+  tar xf travis_ss_mainnet_1541996017_219790.tar
 
   # if your os is Ubuntu
   mv .travis/app/travis .
@@ -160,6 +160,20 @@ Set env variables for eni lib
 
 Start the Node and Join Travis MainNet
 --------------------------------------
+First download the config and change your name from default name ``local``, set persistent peers
+
+::
+
+  mkdir $HOME/.travis/config
+  curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init-mainnet/config.toml > $HOME/.travis/config/config.toml
+  vim ~/.travis/config/config.toml
+  # here you can change your name
+  moniker = "<your_custom_name>"
+
+  # find the seeds option and change its value
+  seeds = "595fa3946078dc8dbd752fa139462735c67027c7@104.154.232.196:26656,d7694fef6eb96838fd91279298314b4fcfb9aa03@35.193.249.179:26656,11b4a29a26d55c09d96a0af6a6dbb40ec840c263@35.226.7.62:26656,96d43bc533313e9c6ba7303390f1b858f38c3c5a@35.184.27.200:26656,873d6befc7145b86e48cf6c23a8c5fd3aebec6a3@35.196.9.192:26656,499decf32125463826cbb7b6eab6697179396688@35.196.33.211:26656"
+
+Start the application
 
 ::
 
