@@ -294,6 +294,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 				i := 0
 				for ; i < len(pks); i++ {
 					if pks[i] == ttypes.PubKeyString(v.PubKey) {
+						v.TendermintVotingPower = 10
 						abciVs = append(abciVs, v.ABCIValidator())
 						pvSize++
 						break
