@@ -129,14 +129,14 @@ Make sure your os is Ubuntu 16.04 or CentOS 7
 Download snapshot file from AWS S3 `travis-ss-bucket <https://s3-us-west-2.amazonaws.com/travis-ss-bucket>`_
 ------------------------------------------------------------------------------------------------------------
 
-You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1541418581_165988.tar.gz``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
+You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1542115117_231140.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
 ::
 
   mkdir -p $HOME/release
   cd $HOME/release
-  wget https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1541996017_219790.tar
-  tar xf travis_ss_mainnet_1541996017_219790.tar
+  wget https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1542115117_231140.tar
+  tar xf travis_ss_mainnet_1542115117_231140.tar
 
   # if your os is Ubuntu
   mv .travis/app/travis .
@@ -146,8 +146,8 @@ You can splice the file name from the bucket list. The downloading url will be l
 
   # or if your os is CentOS
   mv .travis $HOME
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.2-beta/travis_v0.1.2-beta_centos-7.zip
-  unzip travis_v0.1.2-beta_centos-7.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta/travis_v0.1.3-beta_centos-7.zip
+  unzip travis_v0.1.3-beta_centos-7.zip
   mkdir -p $HOME/.travis/eni
   cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
 
