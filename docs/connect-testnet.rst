@@ -134,6 +134,66 @@ To access the TestNet type the following in a seperte terminal console to get yo
 
 Now, you should see the web3-cmt JavaScript console, you can now jump to the "Test transactions" section to send test transactions.
 
+
+Snapshot
+========
+
+Make sure your os is Ubuntu 16.04 or CentOS 7
+
+Download snapshot file from AWS S3 `travis-ss-testnet <https://s3-us-west-2.amazonaws.com/travis-ss-testnet>`_
+------------------------------------------------------------------------------------------------------------
+
+You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542077334_191366.tar.gz``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
+
+::
+
+  mkdir -p $HOME/release
+  cd $HOME/release
+  wget https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542077334_191366.tar.gz
+  tar xf travis_ss_testnet_1542077334_191366.tar.gz
+
+  # if your os is Ubuntu
+  mv .travis/app/travis .
+  mkdir .travis/eni
+  mv .travis/app/lib .travis/eni
+  mv .travis $HOME
+
+  # or if your os is CentOS
+  mv .travis $HOME
+  wget https://github.com/CyberMiles/travis/releases/download/vTestnet/travis_vTestnet_centos-7.zip
+  unzip travis_vTestnet_centos-7.zip
+  mkdir -p $HOME/.travis/eni
+  cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
+
+Set env variables for eni lib
+--------------------------------------------------
+
+::
+
+  # for convenience, you should also put these two lines in your .bashrc or .zshrc
+  export ENI_LIBRARY_PATH=$HOME/.travis/eni/lib
+  export LD_LIBRARY_PATH=$HOME/.travis/eni/lib
+
+Start the Node and Join Travis TestNet
+--------------------------------------
+First download the config and change your name from default name ``local``, set persistent peers
+
+::
+
+  mkdir $HOME/.travis/config
+  curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/config.toml > $HOME/.travis/config/config.toml
+  vim ~/.travis/config/config.toml
+  # here you can change your name
+  moniker = "<your_custom_name>"
+
+Start the application
+
+::
+
+  cd $HOME/release
+  ./travis node start --home $HOME/.travis
+
+
 Build from source
 =================
 
