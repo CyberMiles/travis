@@ -61,6 +61,7 @@ Copy libeni into the default Travis data directory
   cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
   
   # set env variables for eni lib
+  # for convenience, you should also put these two lines in your .bashrc or .zshrc
   export ENI_LIBRARY_PATH=$HOME/.travis/eni/lib
   export LD_LIBRARY_PATH=$HOME/.travis/eni/lib
 
@@ -155,6 +156,7 @@ Set env variables for eni lib
 
 ::
 
+  # for convenience, you should also put these two lines in your .bashrc or .zshrc
   export ENI_LIBRARY_PATH=$HOME/.travis/eni/lib
   export LD_LIBRARY_PATH=$HOME/.travis/eni/lib
 
