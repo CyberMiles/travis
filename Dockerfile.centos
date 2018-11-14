@@ -21,7 +21,7 @@ WORKDIR /go/src/github.com/CyberMiles/travis
 # copy travis source code from local
 ADD . .
 
-RUN ENI_LIB=$ENI_LIBRARY_PATH make build && cp build/travis /app/ && sha256sum /app/travis > /app/travis.sha256
+RUN ENI_LIB=$ENI_LIBRARY_PATH make build && cp build/travis /app/ && cd /app && sha256sum travis > travis.sha256
 
 WORKDIR /app
 EXPOSE 8545 26656 26657
