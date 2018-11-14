@@ -6,4 +6,4 @@ set -e
 yum update -y && yum -y install zip wget tar
 
 cd /app
-zip "/scripts/travis_${BUILD_TAG}_centos-7.zip" travis lib/*
+zip "/scripts/travis_${BUILD_TAG}_centos-7.zip" travis* lib/*

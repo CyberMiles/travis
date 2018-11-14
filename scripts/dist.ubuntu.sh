@@ -6,4 +6,4 @@ set -e
 apt-get update && apt-get -y install zip wget tar
 
 cd /app
-zip "/scripts/travis_${BUILD_TAG}_ubuntu-16.04.zip" travis lib/*
+zip "/scripts/travis_${BUILD_TAG}_ubuntu-16.04.zip" travis* lib/*
