@@ -149,7 +149,7 @@ You can splice the file name from the bucket list. The downloading url will be l
 
   mkdir -p $HOME/release
   cd $HOME/release
-  wget https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542077334_191366.tar.gz
+  wget https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542277779_226170.tar
   tar xf travis_ss_testnet_1542077334_191366.tar.gz
 
   # if your os is Ubuntu
