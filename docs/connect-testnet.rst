@@ -246,7 +246,7 @@ The general process for syncing a node from genesis is as follows:
 * You will download 0.1.3-beta software, and restart the node
 * The process repeats until the block height is current
 
-In the instructions below, we will explain 
+In the instructions below, we will explain how to sync a Linux binary node and a Docker node from genesis.
 
 Binary
 ======
