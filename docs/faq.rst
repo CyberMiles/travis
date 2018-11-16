@@ -2,7 +2,7 @@
 Frequently Asked Questions (FAQ)
 ================================
 
-In this document, we will list the frequently asked technical and general questions and answers.
+In this document, we will list the frequently asked technical and general questions and answers. If you can't find you question in this FAQ, create an issue on `CyberMiles <https://github.com/CyberMiles/travis/issues/new>`_.
 
 General
 ----------------------------
