@@ -112,4 +112,4 @@ Official CMT Contract address in Ethereum: https://etherscan.io/address/0xf85fee
 ``````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
 For validator, use web3-cmt.js or rpc to call updateAccount method to update your validator address. follow the command and example in https://cybermiles.github.io/web3-cmt.js/api/validator.html#updateaccount. It will affect your delegators. 
 
-But if your validator misses more than 12 blocks when you try to update your address, your validator node will be slashed and all the delegators on this node will be affeced. If so, manual activate your node is needed(https://cybermiles.github.io/web3-cmt.js/api/validator.html#activate).
+But if your validator misses more than 120 blocks when you try to update your address, your validator node will be slashed and all the delegators on this node will be affeced. If so, manual activate your node is needed(https://cybermiles.github.io/web3-cmt.js/api/validator.html#activate).
