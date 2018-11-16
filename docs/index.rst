@@ -19,3 +19,4 @@ Contents
    transactions
    virtual-machine
    json-rpc
+   faq
