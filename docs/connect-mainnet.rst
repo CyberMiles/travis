@@ -84,7 +84,6 @@ In another terminal window, log into the Docker container and then run the ``tra
 
 ::
 
-  cd $HOME/release
   docker exec -it travis bash
   > ./travis attach http://localhost:8545
 
