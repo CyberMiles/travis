@@ -74,7 +74,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 -p 8545:8545 cybermiles/travis:0.1.3-beta node start --home /travis
+  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 -p 8545:8545 cybermiles/travis:v0.1.3-beta node start --home /travis
 
 
 Attach to the Node and run web3-cmt.js 
@@ -319,7 +319,7 @@ Getting Travis MainNet Config
 ::
 
   rm -rf $HOME/.travis
-  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:0.1.2-beta node init --env mainnet --home /travis
+  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:v0.1.2-beta node init --env mainnet --home /travis
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init-mainnet/config.toml > $HOME/.travis/config/config.toml
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init-mainnet/genesis.json > $HOME/.travis/config/genesis.json
 
