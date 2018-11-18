@@ -9,9 +9,9 @@ In this document, we will discuss how to start your own node and connect to the 
 Snapshot
 ********
 
-The easiest and fastest way to start a node is to use a snapshot. You can run the node inside a Docker container or on Ubuntu 16.04 / CentOS 7 servers.
+The easiest and fastest way to start a node is to use a snapshot. It is also recommended for most people. You can run the node inside a Docker container or on Ubuntu 16.04 / CentOS 7 servers.
 
-Docker
+Option 1: Docker from a snapshot
 ======
 
 Prerequisite
@@ -78,10 +78,10 @@ In another terminal window, log into the Docker container and then run the ``tra
   docker exec -it travis bash
   > ./travis attach http://localhost:8545
 
-Binary
+Option 2: Binary from a snapshot
 ======
 
-Make sure your os is Ubuntu 16.04 or CentOS 7
+**Make sure your os is Ubuntu 16.04 or CentOS 7**
 
 Download snapshot
 ------------------
@@ -226,6 +226,8 @@ To try a fee-free smart contract-based token transaction, use the following in t
 Sync from Genesis
 ******************
 
+**Experts Only**: This section is not recommend not necessary for most people. But it is important that we can always start the CyberMiles blockchain from genesis to prove its correctness.
+
 You can always start a new CyberMiles blockchain node from genesis, and sync it all the way to the current block height. The process is fairly involved since it requires you to upgrade and restart the node at certain block heights.
 
 One of the key characteristics of the CyberMiles blockchain is the finality of each block. The blockchain will never fork. It will only produce a new block when 2/3 of the validator voting power reach consensus. Software upgrade on the CyberMiles blockchain is done via consensus. That is, at an agreed upon block height, all nodes must upgrade to a new version of the software to continue. Any node that does not upgrade will not reach consensus with the rest of the blockchain and stop.
@@ -248,10 +250,10 @@ The general process for syncing a node from genesis is as follows:
 
 In the instructions below, we will explain how to sync a Linux binary node and a Docker node from genesis.
 
-Binary
+Option 3 (not recommended): Binary from genesis
 ======
 
-Make sure your os is Ubuntu 16.04 or CentOS 7
+**Make sure your os is Ubuntu 16.04 or CentOS 7**
 
 Download pre-built binaries
 ----------------------------
@@ -336,7 +338,7 @@ At certain block heights, the node will stop. Download the next version of the s
   ./travis node start
 
 
-Docker
+Option 4 (not recommended): Docker from genesis
 ======
 
 Prerequisite
