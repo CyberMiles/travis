@@ -171,13 +171,11 @@ func (cs Candidates) Sort() {
 func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
 	// update voting power
 	for _, c := range cs {
+		c.PendingVotingPower = c.CalcVotingPower(blockHeight)
 		if c.Active == "N" {
 			c.VotingPower = 0
-		} else {
-			c.PendingVotingPower = c.CalcVotingPower(blockHeight)
-			if c.VotingPower != c.PendingVotingPower {
-				c.VotingPower = c.PendingVotingPower
-			}
+		} else if c.VotingPower != c.PendingVotingPower {
+			c.VotingPower = c.PendingVotingPower
 		}
 	}
 
