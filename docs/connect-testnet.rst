@@ -12,7 +12,7 @@ Snapshot
 The easiest and fastest way to start a node is to use a snapshot. It is also recommended for most people. You can run the node inside a Docker container or on Ubuntu 16.04 / CentOS 7 servers.
 
 Option 1: Docker from a snapshot
-======
+=================================
 
 Prerequisite
 ------------
@@ -45,7 +45,7 @@ Download snapshot
 
 Get a list of recent snapshots of the testnet from AWS S3 `travis-ss-testnet <https://s3-us-west-2.amazonaws.com/travis-ss-testnet>`_
 
-You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542277779_226170.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
+You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542333095_231745.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
 Extract the file and copy the ``data`` and ``vm`` subdirectories from the uncompressed directory to ``$HOME/.travis``
 
@@ -74,12 +74,13 @@ In another terminal window, log into the Docker container and then run the ``tra
 
 ::
 
-  cd $HOME/release
   docker exec -it travis bash
   > ./travis attach http://localhost:8545
 
+----
+
 Option 2: Binary from a snapshot
-======
+=================================
 
 **Make sure your os is Ubuntu 16.04 or CentOS 7**
 
@@ -88,14 +89,14 @@ Download snapshot
 
 Get a list of recent snapshots of the testnet from AWS S3 `travis-ss-testnet <https://s3-us-west-2.amazonaws.com/travis-ss-testnet>`_
 
-You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542277779_226170.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
+You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542333095_231745.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
 ::
 
   mkdir -p $HOME/release
   cd $HOME/release
-  wget https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542277779_226170.tar
-  tar xf travis_ss_testnet_1542277779_226170.tar
+  wget https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542333095_231745.tar
+  tar xf travis_ss_testnet_1542333095_231745.tar
 
   # if your os is Ubuntu 16.04
   mv .travis $HOME
@@ -250,8 +251,8 @@ The general process for syncing a node from genesis is as follows:
 
 In the instructions below, we will explain how to sync a Linux binary node and a Docker node from genesis.
 
-Option 3 (not recommended): Binary from genesis
-======
+Option 3 (the hard way): Binary from genesis
+=============================================
 
 **Make sure your os is Ubuntu 16.04 or CentOS 7**
 
@@ -337,9 +338,10 @@ At certain block heights, the node will stop. Download the next version of the s
   
   ./travis node start
 
+----
 
-Option 4 (not recommended): Docker from genesis
-======
+Option 4 (the hard way): Docker from genesis
+=============================================
 
 Prerequisite
 ------------
