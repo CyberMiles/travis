@@ -11,8 +11,8 @@ Snapshot
 
 The easiest and fastest way to start a node is to use a snapshot. You can run the node inside a Docker container or on Ubuntu 16.04 / CentOS 7 servers.
 
-Docker
-======
+Option 1: Docker from snapshot
+===============================
 
 Prerequisite
 ------------
@@ -88,11 +88,12 @@ In another terminal window, log into the Docker container and then run the ``tra
   docker exec -it travis bash
   > ./travis attach http://localhost:8545
 
+----
 
-Binary
-======
+Option 2: Binary from snapshot
+===============================
 
-Make sure your os is Ubuntu 16.04 or CentOS 7
+**Make sure your os is Ubuntu 16.04 or CentOS 7**
 
 Download snapshot
 ------------------
@@ -178,32 +179,32 @@ In another terminal window, run the ``travis`` client and attach to the node. It
 Sync from Genesis
 ******************
 
-You can always start a new CyberMiles blockchain node from genesis, and sync it all the way to the current block height. The process is fairly involved since it requires you to upgrade and restart the node at certain block heights.
+**Expert Only:** You can always start a new CyberMiles blockchain node from genesis, and sync it all the way to the current block height. The process is fairly involved since it requires you to upgrade and restart the node at certain block heights.
 
 One of the key characteristics of the CyberMiles blockchain is the finality of each block. The blockchain will never fork. It will only produce a new block when 2/3 of the validator voting power reach consensus. Software upgrade on the CyberMiles blockchain is done via consensus. That is, at an agreed upon block height, all nodes must upgrade to a new version of the software to continue. Any node that does not upgrade will not reach consensus with the rest of the blockchain and stop.
 
 The table below shows the software version and their corresponding block heights on the mainnet.
 
-============ =================
+============ ====================
 Blocks       Software version
-============ =================
+============ ====================
 0 - 230767   0.1.2-beta
-230768 -     0.1.3-beta
-============ =================
+230768 -     0.1.3-beta-hotfix1
+============ ====================
 
 The general process for syncing a node from genesis is as follows:
 
 * The 0.1.2-beta software starts from genesis
 * It automatically stops at block 230767
-* You will download 0.1.3-beta software, and restart the node
+* You will download 0.1.3-beta-hotfix1 software, and restart the node
 * The process repeats until the block height is current
 
-In the instructions below, we will explain 
+In the instructions below, we will explain how to switch from one version of the software to the next at specific block heights.
 
-Binary
-======
+Option 3 (the hard way): Binary from Genesis
+=============================================
 
-Make sure your os is Ubuntu 16.04 or CentOS 7
+**Make sure your os is Ubuntu 16.04 or CentOS 7**
 
 Download pre-built binaries
 ----------------------------
@@ -291,9 +292,10 @@ At certain block heights, the node will stop. Download the next version of the s
   
   ./travis node start
 
+----
 
-Docker
-======
+Option 4 (the hard way): Docker from Genesis
+=============================================
 
 Prerequisite
 ------------
