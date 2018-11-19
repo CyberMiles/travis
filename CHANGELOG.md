@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.3-beta-hotfix
+
+_November 19th, 2018_
+
+Fix a bug concerning the slashing mechanism.  
+
 ## v0.1.3-beta
 
 _November 13th, 2018_
