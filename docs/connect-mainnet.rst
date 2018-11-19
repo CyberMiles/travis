@@ -100,6 +100,8 @@ You can splice the file name from the bucket list. The downloading url will be l
 
 ::
 
+  rm -rf $HOME/.travis
+  
   mkdir -p $HOME/release
   cd $HOME/release
   wget https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1542277779_226170.tar
