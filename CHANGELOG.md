@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.3-beta-hotfix
+## v0.1.3-beta-hotfix1
 
 _November 19th, 2018_
 
