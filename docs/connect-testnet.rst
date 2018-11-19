@@ -35,8 +35,7 @@ Getting Travis TestNet Config
 
 ::
 
-  rm -rf $HOME/.travis
-  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:vTestnet node init --env testnet --home /travis
+  rm -rf $HOME/.travis && mkdir -p $HOME/.travis/config
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/config.toml > $HOME/.travis/config/config.toml
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/genesis.json > $HOME/.travis/config/genesis.json
 
