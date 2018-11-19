@@ -673,7 +673,7 @@ func GetCandidateDailyStakeMaxValue(candidateId int64, startBlockHeight int64) (
 	err = stmt.QueryRow(candidateId, startBlockHeight).Scan(&res)
 
 	if err != nil {
-		panic(err)
+		return 0
 	}
 
 	return

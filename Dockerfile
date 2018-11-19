@@ -42,7 +42,8 @@ ENV LD_LIBRARY_PATH=/app/lib
 
 # add the binary
 COPY --from=build-env /go/src/github.com/CyberMiles/travis/build/travis .
-COPY --from=build-env /app/lib/*.so $ENI_LIBRARY_PATH/
+COPY --from=build-env /app/lib/* $ENI_LIBRARY_PATH/
+RUN sha256sum travis > travis.sha256
 
 EXPOSE 8545 26656 26657
 
