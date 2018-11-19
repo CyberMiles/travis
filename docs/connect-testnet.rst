@@ -267,7 +267,7 @@ Get software version 0.1.2-beta from from `release page <https://github.com/Cybe
   cd $HOME/release
   
   # if your os is Ubuntu
-  https://github.com/CyberMiles/travis/releases/download/v0.1.2-beta/travis_v0.1.2-beta_ubuntu-16.04.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.2-beta/travis_v0.1.2-beta_ubuntu-16.04.zip
   unzip travis_v0.1.2-beta_ubuntu-16.04.zip
 
   # or if your os is CentOS
@@ -329,7 +329,7 @@ At certain block heights, the node will stop. Download the next version of the s
   cd $HOME/release
   
   # if your os is Ubuntu
-  https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta/travis_v0.1.3-beta_ubuntu-16.04.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta/travis_v0.1.3-beta_ubuntu-16.04.zip
   unzip travis_v0.1.3-beta_ubuntu-16.04.zip
 
   # or if your os is CentOS
