@@ -63,7 +63,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 -p 8545:8545 cybermiles/travis:vTestnet node start --home /travis
+  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:vTestnet node start --home /travis
 
 
 Attach to the Node and run web3-cmt.js 
@@ -234,18 +234,18 @@ One of the key characteristics of the CyberMiles blockchain is the finality of e
 
 The table below shows the software version and their corresponding block heights on the testnet.
 
-============ =================
+============ ====================
 Blocks       Software version
-============ =================
+============ ====================
 0 - 224550   0.1.2-beta
-224551 -     0.1.3-beta
-============ =================
+224551 -     0.1.3-beta-hotfix1
+============ ====================
 
 The general process for syncing a node from genesis is as follows:
 
 * The 0.1.2-beta software starts from genesis
 * It automatically stops at block 224550
-* You will download 0.1.3-beta software, and restart the node
+* You will download 0.1.3-beta-hotfix1 software, and restart the node
 * The process repeats until the block height is current
 
 In the instructions below, we will explain how to sync a Linux binary node and a Docker node from genesis.
@@ -319,7 +319,7 @@ Start the Node and Join Travis TestNet
 Upgrade and Continue
 ---------------------
 
-At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta`` at block height 224550), and restart.
+At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix1`` at block height 224550), and restart.
 
 ::
 
@@ -328,12 +328,12 @@ At certain block heights, the node will stop. Download the next version of the s
   cd $HOME/release
   
   # if your os is Ubuntu
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta/travis_v0.1.3-beta_ubuntu-16.04.zip
-  unzip travis_v0.1.3-beta_ubuntu-16.04.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta-hotfix1/travis_v0.1.3-beta-hotfix1_ubuntu-16.04.zip
+  unzip travis_v0.1.3-beta-hotfix1_ubuntu-16.04.zip
 
   # or if your os is CentOS
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta/travis_v0.1.3-beta_centos-7.zip
-  unzip travis_v0.1.3-beta_centos-7.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta-hotfix1/travis_v0.1.3-beta-hotfix1_centos-7.zip
+  unzip travis_v0.1.3-beta-hotfix1_centos-7.zip
   
   ./travis node start
 
@@ -383,20 +383,20 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 -t cybermiles/travis:v0.1.2-beta node start --home /travis
+  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.2-beta node start --home /travis
 
 Upgrade and Continue
 ---------------------
 
-At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta`` at block height 224550), and restart.
+At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix1`` at block height 224550), and restart.
 
 ::
 
   docker stop travis
   docker rm travis
   
-  docker pull cybermiles/travis:v0.1.3-beta
-  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 -t cybermiles/travis:v0.1.3-beta node start --home /travis
+  docker pull cybermiles/travis:v0.1.3-beta-hotfix1
+  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta-hotfix1 node start --home /travis
   
 
 
