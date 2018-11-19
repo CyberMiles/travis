@@ -59,9 +59,6 @@ Change your name from default name ``local`` and then set persistent peers.
   vim $HOME/.travis/config/config.toml
   # here you can change your name
   moniker = "<your_custom_name>"
-  
-  # find the seeds option and change its value
-  seeds = "595fa3946078dc8dbd752fa139462735c67027c7@104.154.232.196:26656,d7694fef6eb96838fd91279298314b4fcfb9aa03@35.193.249.179:26656,11b4a29a26d55c09d96a0af6a6dbb40ec840c263@35.226.7.62:26656,96d43bc533313e9c6ba7303390f1b858f38c3c5a@35.184.27.200:26656,873d6befc7145b86e48cf6c23a8c5fd3aebec6a3@35.196.9.192:26656,499decf32125463826cbb7b6eab6697179396688@35.196.33.211:26656"
 
 For the security concern, the rpc service is disabled by default, you can enable it by changing the ``config.toml``:
 
@@ -74,7 +71,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 -p 8545:8545 cybermiles/travis:v0.1.3-beta node start --home /travis
+  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:v0.1.3-beta node start --home /travis
 
 
 Attach to the Node and run web3-cmt.js 
