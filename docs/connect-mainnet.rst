@@ -52,7 +52,7 @@ Extract the file and copy the ``data`` and ``vm`` subdirectories from the uncomp
 Start the Node and Join Travis MainNet
 --------------------------------------
 
-Change your name from default name ``local`` and then set persistent peers.
+Change your name from default name ``local``.
 
 ::
 
@@ -132,7 +132,7 @@ Set env variables for eni lib
 Start the Node and Join MainNet
 --------------------------------------
 
-Download the mainnet config and change your name from default name ``local``. Set persistent peers.
+Download the mainnet config and change your name from default name ``local``.
 
 ::
 
@@ -141,9 +141,6 @@ Download the mainnet config and change your name from default name ``local``. Se
   # here you can change your name
   moniker = "<your_custom_name>"
   
-  # find the seeds option and change its value
-  seeds = "595fa3946078dc8dbd752fa139462735c67027c7@104.154.232.196:26656,d7694fef6eb96838fd91279298314b4fcfb9aa03@35.193.249.179:26656,11b4a29a26d55c09d96a0af6a6dbb40ec840c263@35.226.7.62:26656,96d43bc533313e9c6ba7303390f1b858f38c3c5a@35.184.27.200:26656,873d6befc7145b86e48cf6c23a8c5fd3aebec6a3@35.196.9.192:26656,499decf32125463826cbb7b6eab6697179396688@35.196.33.211:26656"
-
 For the security concern, the rpc service is disabled by default, you can enable it by changing the ``config.toml``:
 
 ::
@@ -232,7 +229,7 @@ Getting Travis MainNet Config
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init-mainnet/genesis.json > $HOME/.travis/config/genesis.json
 
 
-Change your name from default name ``local``, and set persisten peers.
+Change your name from default name ``local``.
 
 ::
 
@@ -241,9 +238,6 @@ Change your name from default name ``local``, and set persisten peers.
 
   # here you can change your name
   moniker = "<your_custom_name>"
-  
-  # find the seeds option and change its value
-  seeds = "595fa3946078dc8dbd752fa139462735c67027c7@104.154.232.196:26656,d7694fef6eb96838fd91279298314b4fcfb9aa03@35.193.249.179:26656,11b4a29a26d55c09d96a0af6a6dbb40ec840c263@35.226.7.62:26656,96d43bc533313e9c6ba7303390f1b858f38c3c5a@35.184.27.200:26656,873d6befc7145b86e48cf6c23a8c5fd3aebec6a3@35.196.9.192:26656,499decf32125463826cbb7b6eab6697179396688@35.196.33.211:26656"
 
 
 Copy libeni into the default Travis data directory
@@ -270,7 +264,7 @@ Start the Node and Join Travis MainNet
 Upgrade and Continue
 ---------------------
 
-At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta`` at block height 230767), and restart.
+At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix1`` at block height 230767), and restart.
 
 ::
 
@@ -321,7 +315,7 @@ Getting Travis MainNet Config
 
 Start the Node and Join MainNet
 --------------------------------------
-First change your name from default name ``local``, and set persistent peers.
+First change your name from default name ``local``.
 
 ::
 
@@ -330,9 +324,6 @@ First change your name from default name ``local``, and set persistent peers.
   # here you can change your name
   moniker = "<your_custom_name>"
   
-  # find the seeds option and change its value
-  seeds = "595fa3946078dc8dbd752fa139462735c67027c7@104.154.232.196:26656,d7694fef6eb96838fd91279298314b4fcfb9aa03@35.193.249.179:26656,11b4a29a26d55c09d96a0af6a6dbb40ec840c263@35.226.7.62:26656,96d43bc533313e9c6ba7303390f1b858f38c3c5a@35.184.27.200:26656,873d6befc7145b86e48cf6c23a8c5fd3aebec6a3@35.196.9.192:26656,499decf32125463826cbb7b6eab6697179396688@35.196.33.211:26656"
-
 Run the docker Travis application:
 
 ::
@@ -342,7 +333,7 @@ Run the docker Travis application:
 Upgrade and Continue
 ---------------------
 
-At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta`` at block height 230767), and restart.
+At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix1`` at block height 230767), and restart.
 
 ::
 
@@ -350,5 +341,5 @@ At certain block heights, the node will stop. Download the next version of the s
   docker rm travis
   
   docker pull cybermiles/travis:v0.1.3-beta-hotfix1
-  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta node start --home /travis
+  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta-hotfix1 node start --home /travis
   
