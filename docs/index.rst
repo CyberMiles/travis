@@ -19,4 +19,5 @@ Contents
    transactions
    virtual-machine
    json-rpc
+   cmtwallet-dapp-sdk-doc
    faq
