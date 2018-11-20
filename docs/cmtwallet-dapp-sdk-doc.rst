@@ -56,7 +56,9 @@ window.cmtwallet.getPlatform()
   Get the current CMT Wallet phone system:
   android
   ios
-
+window.cmtwallet.getAssetTokens()
+ Get current address asset token list,return json array data
+ 
 Developer mode
  In the CMTWallet APP, by default you can't access the DApp by typing (or scanning) a url. You need to open the developer mode first (* Profile → About us → Click CMT Wallet logo five times*).
  
