@@ -1,5 +1,5 @@
 ====
-CMT Wallet - dApp SDK Developer Guideline
+CMT Wallet - dApp SDK Guideline
 ====
 
 Introduction
@@ -68,6 +68,8 @@ Developer mode
   * 3.coding in HTML5 and import web3-cmt functions.
   * 4.test dApp and contact CMT Community.
  
+Developer Toolkit
+====
  `MetaMask for CMT <https://www.cybermiles.io/metamask/>`_
 -----------------------------------------------------------------------------------------------------------
 
