@@ -54,7 +54,7 @@ dist:
 	docker run --rm -e "BUILD_TAG=${BUILD_TAG}" -v "${CURDIR}/scripts":/scripts --entrypoint /bin/sh -t ${LATEST} /scripts/dist.ubuntu.sh
 	docker build -t ${NAME}:centos -f Dockerfile.centos .
 	docker run --rm -e "BUILD_TAG=${BUILD_TAG}" -v "${CURDIR}/scripts":/scripts --entrypoint /bin/sh -t ${NAME}:centos /scripts/dist.centos.sh
-	rm -rf build/dist && mkdir -p build/dist && mv -f scripts/*.zip build/dist/
+	rm -rf build/dist && mkdir -p build/dist && mv -f scripts/*.zip build/dist/ && cd build/dist && sha256sum *.* > SHA256SUMS
 
 print_cybermiles_logo:
 	@echo "\n\n"
