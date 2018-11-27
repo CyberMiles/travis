@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/rpc"
 	ttypes "github.com/tendermint/tendermint/types"
 )
 
@@ -26,6 +27,15 @@ func NewEthRPCService(b *Backend, nonceLock *AddrLocker) *EthRPCService {
 		am:        b.ethereum.AccountManager(),
 		nonceLock: nonceLock,
 	}
+}
+
+// GetTransactionCount returns the number of transactions sent from the given address.
+// blockNr is useless, be compatible with eth call
+func (s *EthRPCService) GetTransactionCount(address common.Address, blockNr rpc.BlockNumber) (*hexutil.Uint64, error) {
+	state := s.backend.ManagedState()
+	nonce := state.GetNonce(address)
+
+	return (*hexutil.Uint64)(&nonce), nil
 }
 
 // sign tx and broardcast sync to tendermint.

@@ -45,24 +45,35 @@ func NewCmtRPCService(b *Backend, nonceLock *AddrLocker) *CmtRPCService {
 	}
 }
 
-func (s *CmtRPCService) makeTravisTxArgs(tx sdk.Tx, address common.Address, nonce *hexutil.Uint64) (*SendTxArgs, error) {
-	data, err := tx.MarshalJSON()
+// Get number of unconfirmed transactions in the mempool.
+func (s *CmtRPCService) PendingTransactionCount() (*hexutil.Uint64, error) {
+	res, err := core.NumUnconfirmedTxs()
 	if err != nil {
 		return nil, err
 	}
+	num := uint64(res.N)
+	return (*hexutil.Uint64)(&num), nil
+}
 
-	zeroUint := hexutil.Uint64(0)
-	zeroBigInt := big.NewInt(0)
-	return &SendTxArgs{
-		address,
-		nil,
-		&zeroUint,
-		(*hexutil.Big)(zeroBigInt),
-		(*hexutil.Big)(zeroBigInt),
-		nonce,
-		(*hexutil.Bytes)(&data),
-		nil,
-	}, nil
+// Get unconfirmed transactions in the mempool(limit default=30, max=100).
+func (s *CmtRPCService) GetPendingTransactions(limit int) ([]*RPCTransaction, error) {
+	unConfirmedTxs, err := core.UnconfirmedTxs(limit)
+	if err != nil {
+		return nil, err
+	}
+	if unConfirmedTxs.N == 0 {
+		return nil, nil
+	}
+
+	txs := make([]*RPCTransaction, len(unConfirmedTxs.Txs))
+	for index, tx := range unConfirmedTxs.Txs {
+		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx})
+		if err != nil {
+			return txs, err
+		}
+		txs[index] = rpcTx
+	}
+	return txs, nil
 }
 
 // sign tx and broadcast commit to tendermint.
@@ -258,35 +269,24 @@ func (s *CmtRPCService) Syncing() (*ctypes.SyncInfo, error) {
 	return &status.SyncInfo, nil
 }
 
-// Get unconfirmed transactions in the mempool(limit default=30, max=100).
-func (s *CmtRPCService) GetPendingTransactions(limit int) ([]*RPCTransaction, error) {
-	unConfirmedTxs, err := core.UnconfirmedTxs(limit)
+func (s *CmtRPCService) makeTravisTxArgs(tx sdk.Tx, address common.Address, nonce *hexutil.Uint64) (*SendTxArgs, error) {
+	data, err := tx.MarshalJSON()
 	if err != nil {
 		return nil, err
 	}
-	if unConfirmedTxs.N == 0 {
-		return nil, nil
-	}
 
-	txs := make([]*RPCTransaction, len(unConfirmedTxs.Txs))
-	for index, tx := range unConfirmedTxs.Txs {
-		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx})
-		if err != nil {
-			return txs, err
-		}
-		txs[index] = rpcTx
-	}
-	return txs, nil
-}
-
-// Get number of unconfirmed transactions in the mempool.
-func (s *CmtRPCService) PendingTransactionCount() (*uint64, error) {
-	res, err := core.NumUnconfirmedTxs()
-	if err != nil {
-		return nil, err
-	}
-	num := uint64(res.N)
-	return &num, nil
+	zeroUint := hexutil.Uint64(0)
+	zeroBigInt := big.NewInt(0)
+	return &SendTxArgs{
+		address,
+		nil,
+		&zeroUint,
+		(*hexutil.Big)(zeroBigInt),
+		(*hexutil.Big)(zeroBigInt),
+		nonce,
+		(*hexutil.Bytes)(&data),
+		nil,
+	}, nil
 }
 
 type DeclareCandidacyArgs struct {
