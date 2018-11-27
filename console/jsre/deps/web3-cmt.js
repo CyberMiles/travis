@@ -15016,14 +15016,14 @@ var formatters = require("web3/lib/web3/formatters")
 var utils = require("web3/lib/utils/utils")
 var config = require("web3/lib/utils/config")
 
-inputDefaultHeightFormatter = function(height) {
+var inputDefaultHeightFormatter = function(height) {
   if (height === undefined) {
     return 0
   }
   return height
 }
 
-inputStakeTxFormatter = function(options) {
+var inputStakeTxFormatter = function(options) {
   options.from = options.from || config.defaultAccount
   options.from = formatters.inputAddressFormatter(options.from)
 
@@ -15051,10 +15051,20 @@ inputStakeTxFormatter = function(options) {
   return options
 }
 
-formatters.inputDefaultHeightFormatter = inputDefaultHeightFormatter
-formatters.inputStakeTxFormatter = inputStakeTxFormatter
+var outputTransactionsFormatter = function(txs) {
+  if (utils.isArray(txs)) {
+    txs.forEach(function(item) {
+      if (!utils.isString(item)) return formatters.outputTransactionFormatter(item)
+    })
+  }
+  return txs
+}
 
-module.exports = formatters
+module.exports = {
+  inputDefaultHeightFormatter: inputDefaultHeightFormatter,
+  inputStakeTxFormatter: inputStakeTxFormatter,
+  outputTransactionsFormatter: outputTransactionsFormatter
+}
 
 },{"web3/lib/utils/config":60,"web3/lib/utils/utils":62,"web3/lib/web3/formatters":72}],94:[function(require,module,exports){
 var XHR2 = require("xhr2")
@@ -15134,9 +15144,8 @@ var Cmt = function(web3) {
     p.setRequestManager(self._requestManager)
   })
 
-  // isSyncing/getSyncing are not supported
+  // eth.isSyncing is not supported
   delete this.isSyncing
-  delete this.getSyncing
 
   // restore the original defineProperty
   Object.defineProperty = _defineProperty
@@ -15203,6 +15212,17 @@ var methods = function() {
     call: "cmt_decodeRawTxs",
     params: 1
   })
+  var getPendingTransactions = new Method({
+    name: "getPendingTransactions",
+    call: "cmt_getPendingTransactions",
+    params: 1,
+    inputFormatter: [
+      function(val) {
+        return val || 0
+      }
+    ],
+    outputFormatter: formatters.outputTransactionsFormatter
+  })
 
   return [
     sendRawTx,
@@ -15212,7 +15232,8 @@ var methods = function() {
     getCmtBlock,
     getCmtTransaction,
     getCmtTransactionFromBlock,
-    decodeRawTxs
+    decodeRawTxs,
+    getPendingTransactions
   ]
 }
 
@@ -15221,6 +15242,11 @@ var properties = function() {
     new Property({
       name: "syncing",
       getter: "cmt_syncing"
+    }),
+    new Property({
+      name: "pendingTransactionCount",
+      getter: "cmt_pendingTransactionCount",
+      outputFormatter: utils.toDecimal
     })
   ]
 }
