@@ -18,10 +18,10 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	abci "github.com/tendermint/tendermint/abci/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
+	tmcmn "github.com/tendermint/tendermint/libs/common"
+	"github.com/tendermint/tendermint/rpc/core"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	ttypes "github.com/tendermint/tendermint/types"
-
-	tmcmn "github.com/tendermint/tendermint/libs/common"
 
 	"github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/modules/stake"
@@ -256,6 +256,37 @@ func (s *CmtRPCService) Syncing() (*ctypes.SyncInfo, error) {
 	}
 
 	return &status.SyncInfo, nil
+}
+
+// Get unconfirmed transactions in the mempool(limit default=30, max=100).
+func (s *CmtRPCService) GetPendingTransactions(limit int) ([]*RPCTransaction, error) {
+	unConfirmedTxs, err := core.UnconfirmedTxs(limit)
+	if err != nil {
+		return nil, err
+	}
+	if unConfirmedTxs.N == 0 {
+		return nil, nil
+	}
+
+	txs := make([]*RPCTransaction, len(unConfirmedTxs.Txs))
+	for index, tx := range unConfirmedTxs.Txs {
+		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx})
+		if err != nil {
+			return txs, err
+		}
+		txs[index] = rpcTx
+	}
+	return txs, nil
+}
+
+// Get number of unconfirmed transactions in the mempool.
+func (s *CmtRPCService) PendingTransactionCount() (*uint64, error) {
+	res, err := core.NumUnconfirmedTxs()
+	if err != nil {
+		return nil, err
+	}
+	num := uint64(res.N)
+	return &num, nil
 }
 
 type DeclareCandidacyArgs struct {
