@@ -15182,6 +15182,13 @@ var methods = function() {
     params: 1,
     inputFormatter: [null]
   })
+  var getTransactionCount = new Method({
+    name: "getTransactionCount",
+    call: "eth_getTransactionCount",
+    params: 2,
+    inputFormatter: [null, formatters.inputDefaultBlockNumberFormatter],
+    outputFormatter: utils.toDecimal
+  })
 
   var getCmtBlock = new Method({
     name: "getCmtBlock",
@@ -15233,6 +15240,7 @@ var methods = function() {
     getCmtTransaction,
     getCmtTransactionFromBlock,
     decodeRawTxs,
+    getTransactionCount,
     getPendingTransactions
   ]
 }
