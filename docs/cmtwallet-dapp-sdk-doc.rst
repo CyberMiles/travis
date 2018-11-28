@@ -76,7 +76,7 @@ Developer Toolkit
  `Remix for CMT <https://remix.cybermiles.io>`_
 -----------------------------------------------------------------------------------------------------------
 
- `CMT Wallet-iOS(Testnet) <https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/ios-test/manifest.plist>`_
+ `CMT Wallet-iOS(Testnet) [itms-services://?action=download-manifest&url=https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/ios-test/manifest.plist]`_
 -----------------------------------------------------------------------------------------------------------
 
  `CMT Wallet-android(Testnet) <https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/android-test/CMT-Wallet-Android-testnet.apk>`_
