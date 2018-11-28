@@ -80,7 +80,7 @@ Developer Toolkit
  `web3-cmt.js <https://github.com/CyberMiles/web3-cmt.js>`_
 -----------------------------------------------------------------------------------------------------------
 
- `dApp SDK Example <https://www.cmtplay.io/cmtwallet-dappsdk-example.html>`_
+ `dApp SDK Example <https://test.cmtplay.io/cmtwallet-dappsdk-example.html>`_
 -----------------------------------------------------------------------------------------------------------
 
 Smart Contract source code in SDK Example
