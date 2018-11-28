@@ -191,22 +191,41 @@ func (s *CmtRPCService) GetTransactionByHash(hash string) (*RPCTransaction, erro
 	}
 	// get transaction
 	res, err := s.backend.GetLocalClient().Tx(bkey, false)
+	errNotFound := fmt.Errorf("Tx (%X) not found", hash)
+	if err != nil && err != errNotFound {
+		// error other than not found
+		return nil, err
+	} else {
+		return newRPCTransaction(res)
+	}
+	// No finalized transaction, try to retrieve it from the pool
+	unConfirmedTxs, err := core.UnconfirmedTxs(-1)
 	if err != nil {
 		return nil, err
 	}
-
-	return newRPCTransaction(res)
+	for _, tx := range unConfirmedTxs.Txs {
+		if bytes.Equal(bkey, tx.Hash()) {
+			rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: ttypes.Tx(tx), Hash: tx.Hash()})
+			if err != nil {
+				return nil, err
+			}
+			return rpcTx, nil
+		}
+	}
+	// Transaction unknown, return as such
+	return nil, err
 }
 
 // DecodeRawTxs returns the transactions from the raw tx array in the block data
 func (s *CmtRPCService) DecodeRawTxs(rawTxs []string) ([]*RPCTransaction, error) {
 	txs := make([]*RPCTransaction, len(rawTxs))
 	for index, raw := range rawTxs {
-		tx, err := base64.StdEncoding.DecodeString(raw)
+		rawTx, err := base64.StdEncoding.DecodeString(raw)
 		if err != nil {
 			return txs, err
 		}
-		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx})
+		tx := ttypes.Tx(rawTx)
+		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx, Hash: tx.Hash()})
 		if err != nil {
 			return txs, err
 		}
@@ -247,7 +266,7 @@ func (s *CmtRPCService) GetPendingTransactions(limit int) ([]*RPCTransaction, er
 
 	txs := make([]*RPCTransaction, len(unConfirmedTxs.Txs))
 	for index, tx := range unConfirmedTxs.Txs {
-		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx})
+		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx, Hash: tx.Hash()})
 		if err != nil {
 			return txs, err
 		}

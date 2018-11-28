@@ -76,19 +76,24 @@ func (s *EthRPCService) GetTransactionByHash(hash common.Hash) *RPCTransaction {
 	if tx, _, blockNumber, index := rawdb.ReadTransaction(s.backend.Ethereum().ChainDb(), hash); tx != nil {
 		return newEthRPCTransaction(tx, blockNumber, index)
 	}
-
 	// No finalized transaction, try to retrieve it from the pool
 	unConfirmedTxs, err := core.UnconfirmedTxs(-1)
 	if err != nil {
 		return nil
 	}
-
-	for _, tx := range unConfirmedTxs.Txs {
-		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: ttypes.Tx(tx)})
-		if err != nil {
+	for _, rawTx := range unConfirmedTxs.Txs {
+		tx := new(types.Transaction)
+		rlpStream := rlp.NewStream(bytes.NewBuffer(rawTx), 0)
+		if err := tx.DecodeRLP(rlpStream); err != nil {
 			return nil
 		}
-		return rpcTx
+		if bytes.Equal(hash.Bytes(), tx.Hash().Bytes()) {
+			rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: ttypes.Tx(rawTx), Hash: rawTx.Hash()})
+			if err != nil {
+				return nil
+			}
+			return rpcTx
+		}
 	}
 	// Transaction unknown, return as such
 	return nil
