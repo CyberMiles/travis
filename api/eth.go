@@ -2,15 +2,19 @@ package api
 
 import (
 	"bytes"
+	"math/big"
 
 	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/tendermint/tendermint/rpc/core"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	ttypes "github.com/tendermint/tendermint/types"
 )
 
@@ -36,6 +40,58 @@ func (s *EthRPCService) GetTransactionCount(address common.Address, blockNr rpc.
 	nonce := state.GetNonce(address)
 
 	return (*hexutil.Uint64)(&nonce), nil
+}
+
+func newEthRPCTransaction(tx *types.Transaction, blockNumber uint64, index uint64) *RPCTransaction {
+	var signer types.Signer = types.FrontierSigner{}
+	if tx.Protected() {
+		signer = types.NewEIP155Signer(tx.ChainId())
+	}
+	from, _ := types.Sender(signer, tx)
+	v, r, s := tx.RawSignatureValues()
+
+	result := &RPCTransaction{
+		From:     from,
+		Gas:      hexutil.Uint64(tx.Gas()),
+		GasPrice: (*hexutil.Big)(tx.GasPrice()),
+		Hash:     tx.Hash(),
+		Input:    hexutil.Bytes(tx.Data()),
+		Nonce:    hexutil.Uint64(tx.Nonce()),
+		To:       tx.To(),
+		Value:    (*hexutil.Big)(tx.Value()),
+		V:        (*hexutil.Big)(v),
+		R:        (*hexutil.Big)(r),
+		S:        (*hexutil.Big)(s),
+	}
+	if blockNumber > 0 {
+		result.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(blockNumber))
+		result.TransactionIndex = hexutil.Uint(index)
+	}
+	return result
+}
+
+// GetTransactionByHash returns the transaction for the given hash
+func (s *EthRPCService) GetTransactionByHash(hash common.Hash) *RPCTransaction {
+	// Try to return an already finalized transaction
+	if tx, _, blockNumber, index := rawdb.ReadTransaction(s.backend.Ethereum().ChainDb(), hash); tx != nil {
+		return newEthRPCTransaction(tx, blockNumber, index)
+	}
+
+	// No finalized transaction, try to retrieve it from the pool
+	unConfirmedTxs, err := core.UnconfirmedTxs(-1)
+	if err != nil {
+		return nil
+	}
+
+	for _, tx := range unConfirmedTxs.Txs {
+		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: ttypes.Tx(tx)})
+		if err != nil {
+			return nil
+		}
+		return rpcTx
+	}
+	// Transaction unknown, return as such
+	return nil
 }
 
 // sign tx and broardcast sync to tendermint.

@@ -45,37 +45,6 @@ func NewCmtRPCService(b *Backend, nonceLock *AddrLocker) *CmtRPCService {
 	}
 }
 
-// Get number of unconfirmed transactions in the mempool.
-func (s *CmtRPCService) PendingTransactionCount() (*hexutil.Uint64, error) {
-	res, err := core.NumUnconfirmedTxs()
-	if err != nil {
-		return nil, err
-	}
-	num := uint64(res.N)
-	return (*hexutil.Uint64)(&num), nil
-}
-
-// Get unconfirmed transactions in the mempool(limit default=30, max=100).
-func (s *CmtRPCService) GetPendingTransactions(limit int) ([]*RPCTransaction, error) {
-	unConfirmedTxs, err := core.UnconfirmedTxs(limit)
-	if err != nil {
-		return nil, err
-	}
-	if unConfirmedTxs.N == 0 {
-		return nil, nil
-	}
-
-	txs := make([]*RPCTransaction, len(unConfirmedTxs.Txs))
-	for index, tx := range unConfirmedTxs.Txs {
-		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx})
-		if err != nil {
-			return txs, err
-		}
-		txs[index] = rpcTx
-	}
-	return txs, nil
-}
-
 // sign tx and broadcast commit to tendermint.
 func (s *CmtRPCService) signAndBroadcastTxCommit(args *SendTxArgs) (*ctypes.ResultBroadcastTxCommit, error) {
 	signTx := func(args *SendTxArgs) (*ethTypes.Transaction, error) {
@@ -178,35 +147,22 @@ func newRPCTransaction(res *ctypes.ResultTx) (*RPCTransaction, error) {
 		return nil, err
 	}
 
-	signer := ethTypes.NewEIP155Signer(tx.ChainId())
-	from, _ := ethTypes.Sender(signer, tx)
-	v, r, s := tx.RawSignatureValues()
-
 	var travisTx sdk.Tx
 	if !utils.IsEthTx(tx) {
 		if err := json.Unmarshal(tx.Data(), &travisTx); err != nil {
 			return nil, err
 		}
 	}
+	blockNumber := uint64(res.Height)
+	index := uint64(res.Index)
+	rpcTx := newEthRPCTransaction(tx, blockNumber, index)
+	if rpcTx != nil {
+		rpcTx.CmtHash = res.Hash
+		rpcTx.CmtInput = travisTx
+		rpcTx.TxResult = res.TxResult
+	}
 
-	return &RPCTransaction{
-		BlockNumber:      (*hexutil.Big)(big.NewInt(res.Height)),
-		From:             from,
-		Gas:              hexutil.Uint64(tx.Gas()),
-		GasPrice:         (*hexutil.Big)(tx.GasPrice()),
-		Hash:             tx.Hash(),
-		CmtHash:          res.Hash,
-		Input:            hexutil.Bytes(tx.Data()),
-		CmtInput:         travisTx,
-		Nonce:            hexutil.Uint64(tx.Nonce()),
-		To:               tx.To(),
-		TransactionIndex: hexutil.Uint(res.Index),
-		Value:            (*hexutil.Big)(tx.Value()),
-		V:                (*hexutil.Big)(v),
-		R:                (*hexutil.Big)(r),
-		S:                (*hexutil.Big)(s),
-		TxResult:         res.TxResult,
-	}, nil
+	return rpcTx, nil
 }
 
 // GetTransactionFromBlock returns the transaction for the given block number and index.
@@ -267,6 +223,37 @@ func (s *CmtRPCService) Syncing() (*ctypes.SyncInfo, error) {
 	}
 
 	return &status.SyncInfo, nil
+}
+
+// Get number of unconfirmed transactions in the mempool.
+func (s *CmtRPCService) PendingTransactionCount() (*hexutil.Uint64, error) {
+	res, err := core.NumUnconfirmedTxs()
+	if err != nil {
+		return nil, err
+	}
+	num := uint64(res.N)
+	return (*hexutil.Uint64)(&num), nil
+}
+
+// Get unconfirmed transactions in the mempool(limit default=30, max=100).
+func (s *CmtRPCService) GetPendingTransactions(limit int) ([]*RPCTransaction, error) {
+	unConfirmedTxs, err := core.UnconfirmedTxs(limit)
+	if err != nil {
+		return nil, err
+	}
+	if unConfirmedTxs.N == 0 {
+		return nil, nil
+	}
+
+	txs := make([]*RPCTransaction, len(unConfirmedTxs.Txs))
+	for index, tx := range unConfirmedTxs.Txs {
+		rpcTx, err := newRPCTransaction(&ctypes.ResultTx{Tx: tx})
+		if err != nil {
+			return txs, err
+		}
+		txs[index] = rpcTx
+	}
+	return txs, nil
 }
 
 func (s *CmtRPCService) makeTravisTxArgs(tx sdk.Tx, address common.Address, nonce *hexutil.Uint64) (*SendTxArgs, error) {
