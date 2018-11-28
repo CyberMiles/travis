@@ -74,6 +74,12 @@ Developer Toolkit
  `Remix for CMT <https://remix.cybermiles.io>`_
 -----------------------------------------------------------------------------------------------------------
 
+ `CMT Wallet-android(Testnet) <https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/android-test/CMT-Wallet-Android-testnet.apk>`_
+-----------------------------------------------------------------------------------------------------------
+
+ `CMT Wallet-ios(Testnet) <https://test.cmtplay.io/cmtwallet-dappsdk-example.html?download=cmtwiostest>`_
+-----------------------------------------------------------------------------------------------------------
+
  `CMTTracking <https://www.cmttracking.io/>`_
 -----------------------------------------------------------------------------------------------------------
 
