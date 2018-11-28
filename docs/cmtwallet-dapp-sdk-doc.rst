@@ -76,13 +76,19 @@ Developer Toolkit
  `Remix for CMT <https://remix.cybermiles.io>`_
 -----------------------------------------------------------------------------------------------------------
 
+ `CMT Wallet-iOS(Testnet) <https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/ios-test/manifest.plist>`_
+-----------------------------------------------------------------------------------------------------------
+
+ `CMT Wallet-android(Testnet) <https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/android-test/CMT-Wallet-Android-testnet.apk>`_
+-----------------------------------------------------------------------------------------------------------
+
  `CMTTracking <https://www.cmttracking.io/>`_
 -----------------------------------------------------------------------------------------------------------
 
  `web3-cmt.js <https://github.com/CyberMiles/web3-cmt.js>`_
 -----------------------------------------------------------------------------------------------------------
 
- `dApp SDK Example <https://cube-api.cybermiles.io/static/html/cw/cmtwallet-dappsdk-example.html>`_
+ `dApp SDK Example <https://www.cmtplay.io/cmtwallet-dappsdk-example.html>`_
 -----------------------------------------------------------------------------------------------------------
 
 Smart Contract source code in SDK Example
