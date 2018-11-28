@@ -56,13 +56,11 @@ window.cmtwallet.getPlatform()
   Get the current CMT Wallet phone system:
   android
   ios
+  
 window.cmtwallet.getAssetTokens()
  Get current address asset token list,return json array data
  
-Developer mode
- In the CMTWallet APP, by default you can't access the DApp by typing (or scanning) a url. You need to open the developer mode first (* Profile → About us → Click CMT Wallet logo five times*).
- 
- dApp development sample process：
+dApp development sample process：
   * 1.install Metamask for CMT, switch testnet, get CMT.
   * 2.go to Remix for CMT, coding&deploy contract, get contract address/ABI/Binary Codes.
   * 3.coding in HTML5 and import web3-cmt functions.
@@ -74,12 +72,6 @@ Developer Toolkit
 -----------------------------------------------------------------------------------------------------------
 
  `Remix for CMT <https://remix.cybermiles.io>`_
------------------------------------------------------------------------------------------------------------
-
- `CMT Wallet-iOS(Testnet) [itms-services://?action=download-manifest&url=https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/ios-test/manifest.plist]`_
------------------------------------------------------------------------------------------------------------
-
- `CMT Wallet-android(Testnet) <https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/android-test/CMT-Wallet-Android-testnet.apk>`_
 -----------------------------------------------------------------------------------------------------------
 
  `CMTTracking <https://www.cmttracking.io/>`_
