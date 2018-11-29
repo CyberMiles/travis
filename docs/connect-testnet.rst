@@ -87,7 +87,7 @@ Option 2: Binary from a snapshot
 Download snapshot
 ------------------
 
-Get a list of recent snapshots of the testnet from AWS S3 `travis-ss-testnet <https://s3-us-west-2.amazonaws.com/travis-ss-testnet>`_
+Get a list of recent snapshots of the testnet from AWS S3 `travis-ss-testnet <https://s3-us-west-2.amazonaws.com/travis-ss-testnet/latest.txt>`_
 
 You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542333095_231745.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
