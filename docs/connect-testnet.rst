@@ -96,8 +96,10 @@ You can splice the file name from the bucket list. The downloading url will be l
   
   mkdir -p $HOME/release
   cd $HOME/release
-  wget https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542623121_254975.tar
-  tar xf travis_ss_testnet_1542623121_254975.tar
+  SNAPSHOT_URL=$(curl -s http://s3-us-west-2.amazonaws.com/travis-ss-testnet/latest.txt)
+  wget $SNAPSHOT_URL
+  TAR_FILE="${SNAPSHOT_URL##*/}"
+  tar xf $TAR_FILE
 
   # if your os is Ubuntu 16.04
   mv .travis $HOME
