@@ -169,7 +169,7 @@ Once you attach the ``travis`` to the node as above, create two accounts on the 
 
 ::
 
-  Welcome to the Geth JavaScript console!
+  Welcome to the Travis JavaScript console!
   > personal.newAccount()
   ...
 
