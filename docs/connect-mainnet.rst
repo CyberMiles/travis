@@ -43,7 +43,7 @@ Getting Travis MainNet Config
 Download snapshot
 ------------------
 
-Get a list of recent snapshots of the mainnet from AWS S3 `travis-ss-bucket <https://s3-us-west-2.amazonaws.com/travis-ss-bucket>`_
+Get a list of recent snapshots of the mainnet from AWS S3 `travis-ss-bucket <https://s3-us-west-2.amazonaws.com/travis-ss-bucket/latest.html>`_
 
 You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1542277779_226170.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
@@ -94,7 +94,7 @@ Option 2: Binary from snapshot
 Download snapshot
 ------------------
 
-Get a list of recent snapshots of the mainnet from AWS S3 `travis-ss-bucket <https://s3-us-west-2.amazonaws.com/travis-ss-bucket>`_
+Get a list of recent snapshots of the mainnet from AWS S3 `travis-ss-bucket <https://s3-us-west-2.amazonaws.com/travis-ss-bucket/latest.html>`_
 
 You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1542277779_226170.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
@@ -104,7 +104,7 @@ You can splice the file name from the bucket list. The downloading url will be l
   
   mkdir -p $HOME/release
   cd $HOME/release
-  SNAPSHOT_URL=$(curl -s http://s3-us-west-2.amazonaws.com/travis-ss-bucket/latest.txt)
+  SNAPSHOT_URL=$(curl -s http://s3-us-west-2.amazonaws.com/travis-ss-bucket/latest.html)
   wget $SNAPSHOT_URL
   TAR_FILE="${SNAPSHOT_URL##*/}"
   tar xf $TAR_FILE
