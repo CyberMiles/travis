@@ -36,6 +36,8 @@ func main() {
 		nodeCmd,
 		clientCmd,
 		attachCmd,
+		basecmd.RemoveAddrBookCmd,
+		basecmd.ResetPrivValidatorCmd,
 		versionCmd,
 
 		lineBreak,
