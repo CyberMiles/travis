@@ -60,6 +60,15 @@ window.cmtwallet.getPlatform()
 window.cmtwallet.getAssetTokens()
  Get current address asset token list,return json array data
  
+CMT Code Example
+:: 
+  Copy CMT Code and goto CMT Wallet App to Open Red Packet! 
+  cmtwallet://dapp?url=http://www.cmtoken.io/envelop/open.html?id=1&cmd=W1pYF  
+  CMT Wallet Download Link：https://www.cybermiles.io/cmt-wallet/
+  
+ 
+
+ 
 dApp development sample process：
   * 1.install Metamask for CMT, switch testnet, get CMT.
   * 2.go to Remix for CMT, coding&deploy contract, get contract address/ABI/Binary Codes.
@@ -77,7 +86,7 @@ Developer Toolkit
  `CMT Wallet-android(Testnet) <https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/android-test/CMT-Wallet-Android-testnet.apk>`_
 -----------------------------------------------------------------------------------------------------------
 
- `CMT Wallet-ios(Testnet) <https://test.cmtoken.io/cmtwallet-dappsdk-example.html?download=cmtwiostest>`_
+ `CMT Wallet-ios(Testnet) <https://test.cmtplay.io/cmtwallet-dappsdk-example.html?download=cmtwiostest>`_
 -----------------------------------------------------------------------------------------------------------
 
  `CMTTracking <https://www.cmttracking.io/>`_
