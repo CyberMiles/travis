@@ -232,6 +232,7 @@ func (cs Candidates) Validators() Validators {
 		if i >= int(utils.GetParams().MaxVals+utils.GetParams().BackupVals) {
 			return validators[:i]
 		}
+		c.TendermintVotingPower = 10
 		validators[i] = c.Validator()
 	}
 
@@ -249,9 +250,6 @@ var _ sort.Interface = Validators{} //enforce the sort interface at compile time
 func (vs Validators) Len() int      { return len(vs) }
 func (vs Validators) Swap(i, j int) { vs[i], vs[j] = vs[j], vs[i] }
 func (vs Validators) Less(i, j int) bool {
-	//pk1, pk2 := vs[i].PubKey.Bytes(), vs[j].PubKey.Bytes()
-	//return bytes.Compare(pk1, pk2) == -1
-
 	pk1, pk2 := vs[i].PubKey, vs[j].PubKey
 	return bytes.Compare(pk1.Address(), pk2.Address()) == -1
 }
@@ -276,7 +274,6 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 
 		if !vs[i].PubKey.Equals(vs2[j].PubKey) {
 			// pk1 > pk2, a new validator was introduced between these pubkeys
-			//if bytes.Compare(vs[i].PubKey.Bytes(), vs2[j].PubKey.Bytes()) == 1 {
 			if bytes.Compare(vs[i].PubKey.Address(), vs2[j].PubKey.Address()) == 1 {
 				changed[n] = vs2[j].ABCIValidator()
 				n++
@@ -290,7 +287,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 			continue
 		}
 
-		if vs[i].VotingPower != vs2[j].VotingPower {
+		if vs[i].TendermintVotingPower != vs2[j].TendermintVotingPower {
 			changed[n] = vs2[j].ABCIValidator()
 			n++
 		}
