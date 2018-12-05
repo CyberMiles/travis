@@ -62,7 +62,7 @@ after_failure:
 before_deploy:
   - BUILD_TAG=$TRAVIS_TAG make dist
   - |
-    if [[ "$TRAVIS_TAG" =~ ^v[0-9]+ ]]; then
+    if [[ "$TRAVIS_TAG" =~ ^v[0-9]+.[0-9]+.[0-9]+ ]]; then
       export BODY=https://github.com/CyberMiles/travis/blob/develop/CHANGELOG.md#${TRAVIS_TAG//.}
       export PRE=false
     elif [[ "$TRAVIS_TAG" =~ ^v ]]; then
