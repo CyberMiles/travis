@@ -452,6 +452,11 @@ func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount, gasFee sdk.In
 		return 0, ErrBadRequest()
 	}
 
+	tmp := GetCandidateByAddress(tx.NewCandidateAddress)
+	if tmp != nil {
+		return 0, ErrBadRequest()
+	}
+
 	// check if the new address has been delegated the candidate
 	d := GetDelegation(tx.NewCandidateAddress, candidate.Id)
 	if d != nil {
@@ -481,6 +486,11 @@ func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount, gasFee sdk.In
 func (c check) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccountUpdate, gasFee sdk.Int) error {
 	req := getCandidateAccountUpdateRequestById(tx.AccountUpdateRequestId)
 	if req == nil {
+		return ErrBadRequest()
+	}
+
+	tmp := GetCandidateByAddress(req.ToAddress)
+	if tmp != nil {
 		return ErrBadRequest()
 	}
 

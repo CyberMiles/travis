@@ -1,5 +1,5 @@
 ====
-CMT Wallet - dApp SDK Developer Guideline
+CMT Wallet - dApp SDK Guideline
 ====
 
 Introduction
@@ -56,26 +56,46 @@ window.cmtwallet.getPlatform()
   Get the current CMT Wallet phone system:
   android
   ios
-
-Developer mode
- In the CMTWallet APP, by default you can't access the DApp by typing (or scanning) a url. You need to open the developer mode first (* Profile → About us → Click CMT Wallet logo five times*).
+  
+window.cmtwallet.getAssetTokens()
+ Get current address asset token list,return json array data
  
- dApp development sample process：
+CMT Code Example
+:: 
+  Copy CMT Code and goto CMT Wallet App to Open Red Packet! 
+  cmtwallet://dapp?url=http://www.cmtoken.io/envelop/open.html?id=1&cmd=W1pYF  
+  CMT Wallet Download Link：https://www.cybermiles.io/cmt-wallet/
+  
+ 
+
+ 
+dApp development sample process：
   * 1.install Metamask for CMT, switch testnet, get CMT.
   * 2.go to Remix for CMT, coding&deploy contract, get contract address/ABI/Binary Codes.
   * 3.coding in HTML5 and import web3-cmt functions.
   * 4.test dApp and contact CMT Community.
  
+Developer Toolkit
+====
  `MetaMask for CMT <https://www.cybermiles.io/metamask/>`_
 -----------------------------------------------------------------------------------------------------------
 
  `Remix for CMT <https://remix.cybermiles.io>`_
 -----------------------------------------------------------------------------------------------------------
 
+ `CMT Wallet-android(Testnet) <https://s3.cn-north-1.amazonaws.com.cn/cmtwallet/android-test/CMT-Wallet-Android-testnet.apk>`_
+-----------------------------------------------------------------------------------------------------------
+
+ `CMT Wallet-ios(Testnet) <https://test.cmtplay.io/cmtwallet-dappsdk-example.html?download=cmtwiostest>`_
+-----------------------------------------------------------------------------------------------------------
+
+ `CMTTracking <https://www.cmttracking.io/>`_
+-----------------------------------------------------------------------------------------------------------
+
  `web3-cmt.js <https://github.com/CyberMiles/web3-cmt.js>`_
 -----------------------------------------------------------------------------------------------------------
 
- `dApp SDK Example <https://cube-api.cybermiles.io/static/html/cw/cmtwallet-dappsdk-example.html>`_
+ `dApp SDK Example <https://test.cmtplay.io/cmtwallet-dappsdk-example.html>`_
 -----------------------------------------------------------------------------------------------------------
 
 Smart Contract source code in SDK Example

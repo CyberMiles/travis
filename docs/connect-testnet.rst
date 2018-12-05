@@ -35,17 +35,16 @@ Getting Travis TestNet Config
 
 ::
 
-  rm -rf $HOME/.travis
-  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:vTestnet node init --env testnet --home /travis
+  rm -rf $HOME/.travis && mkdir -p $HOME/.travis/config
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/config.toml > $HOME/.travis/config/config.toml
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init/config/genesis.json > $HOME/.travis/config/genesis.json
 
 Download snapshot
 ------------------
 
-Get a list of recent snapshots of the testnet from AWS S3 `travis-ss-testnet <https://s3-us-west-2.amazonaws.com/travis-ss-testne/latest.html>`_
+Get a list of recent snapshots of the testnet from AWS S3 `travis-ss-testnet <https://s3-us-west-2.amazonaws.com/travis-ss-testnet/latest.html>`_
 
-You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542333095_231745.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
+You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542623121_254975.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
 Extract the file and copy the ``data`` and ``vm`` subdirectories from the uncompressed directory to ``$HOME/.travis``
 
@@ -64,7 +63,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 -p 8545:8545 cybermiles/travis:vTestnet node start --home /travis
+  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:vTestnet node start --home /travis
 
 
 Attach to the Node and run web3-cmt.js 
@@ -89,14 +88,18 @@ Download snapshot
 
 Get a list of recent snapshots of the testnet from AWS S3 `travis-ss-testnet <https://s3-us-west-2.amazonaws.com/travis-ss-testnet/latest.html>`_
 
-You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542333095_231745.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
+You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542623121_254975.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
 ::
 
+  rm -rf $HOME/.travis
+  
   mkdir -p $HOME/release
   cd $HOME/release
-  wget https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542333095_231745.tar
-  tar xf travis_ss_testnet_1542333095_231745.tar
+  SNAPSHOT_URL=$(curl -s http://s3-us-west-2.amazonaws.com/travis-ss-testnet/latest.html)
+  wget $SNAPSHOT_URL
+  TAR_FILE="${SNAPSHOT_URL##*/}"
+  tar xf $TAR_FILE
 
   # if your os is Ubuntu 16.04
   mv .travis $HOME
@@ -166,7 +169,7 @@ Once you attach the ``travis`` to the node as above, create two accounts on the 
 
 ::
 
-  Welcome to the Geth JavaScript console!
+  Welcome to the Travis JavaScript console!
   > personal.newAccount()
   ...
 
@@ -235,18 +238,18 @@ One of the key characteristics of the CyberMiles blockchain is the finality of e
 
 The table below shows the software version and their corresponding block heights on the testnet.
 
-============ =================
+============ ====================
 Blocks       Software version
-============ =================
+============ ====================
 0 - 224550   0.1.2-beta
-224551 -     0.1.3-beta
-============ =================
+224551 -     0.1.3-beta-hotfix1
+============ ====================
 
 The general process for syncing a node from genesis is as follows:
 
 * The 0.1.2-beta software starts from genesis
 * It automatically stops at block 224550
-* You will download 0.1.3-beta software, and restart the node
+* You will download 0.1.3-beta-hotfix1 software, and restart the node
 * The process repeats until the block height is current
 
 In the instructions below, we will explain how to sync a Linux binary node and a Docker node from genesis.
@@ -267,7 +270,7 @@ Get software version 0.1.2-beta from from `release page <https://github.com/Cybe
   cd $HOME/release
   
   # if your os is Ubuntu
-  https://github.com/CyberMiles/travis/releases/download/v0.1.2-beta/travis_v0.1.2-beta_ubuntu-16.04.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.2-beta/travis_v0.1.2-beta_ubuntu-16.04.zip
   unzip travis_v0.1.2-beta_ubuntu-16.04.zip
 
   # or if your os is CentOS
@@ -320,7 +323,7 @@ Start the Node and Join Travis TestNet
 Upgrade and Continue
 ---------------------
 
-At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta`` at block height 224550), and restart.
+At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix1`` at block height 224550), and restart.
 
 ::
 
@@ -329,12 +332,12 @@ At certain block heights, the node will stop. Download the next version of the s
   cd $HOME/release
   
   # if your os is Ubuntu
-  https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta/travis_v0.1.3-beta_ubuntu-16.04.zip
-  unzip travis_v0.1.3-beta_ubuntu-16.04.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta-hotfix1/travis_v0.1.3-beta-hotfix1_ubuntu-16.04.zip
+  unzip travis_v0.1.3-beta-hotfix1_ubuntu-16.04.zip
 
   # or if your os is CentOS
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta/travis_v0.1.3-beta_centos-7.zip
-  unzip travis_v0.1.3-beta_centos-7.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta-hotfix1/travis_v0.1.3-beta-hotfix1_centos-7.zip
+  unzip travis_v0.1.3-beta-hotfix1_centos-7.zip
   
   ./travis node start
 
@@ -384,20 +387,20 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 -t cybermiles/travis:v0.1.2-beta node start --home /travis
+  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.2-beta node start --home /travis
 
 Upgrade and Continue
 ---------------------
 
-At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta`` at block height 224550), and restart.
+At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix1`` at block height 224550), and restart.
 
 ::
 
   docker stop travis
   docker rm travis
   
-  docker pull cybermiles/travis:v0.1.3-beta
-  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -p 8545:8545 -t cybermiles/travis:v0.1.3-beta node start --home /travis
+  docker pull cybermiles/travis:v0.1.3-beta-hotfix1
+  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta-hotfix1 node start --home /travis
   
 
 
