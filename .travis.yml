@@ -62,12 +62,15 @@ after_failure:
 before_deploy:
   - BUILD_TAG=$TRAVIS_TAG make dist
   - |
-    if [[ "$TRAVIS_TAG" == "vStaging" ]]; then
-      export BODY='release for staging'
-    elif [[ "$TRAVIS_TAG" == "vTestnet" ]]; then
-      export BODY='release for testnet'
-    else
+    if [[ "$TRAVIS_TAG" =~ ^v[0-9]+ ]]; then
       export BODY=https://github.com/CyberMiles/travis/blob/develop/CHANGELOG.md#${TRAVIS_TAG//.}
+      export PRE=false
+    elif [[ "$TRAVIS_TAG" =~ ^v ]]; then
+      export BODY="release for ${TRAVIS_TAG:1}"
+      export PRE=true
+    else
+      export BODY="release for ${TRAVIS_TAG}"
+      export PRE=true
     fi
 
 deploy:
@@ -80,6 +83,7 @@ deploy:
   file: "build/dist/*"
   name: Travis $TRAVIS_TAG
   body: $BODY
+  prerelease: $PRE
   on:
     repo: CyberMiles/travis
     tags: true
