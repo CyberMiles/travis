@@ -47,6 +47,11 @@ Get a list of recent snapshots of the mainnet from AWS S3 `travis-ss-bucket <htt
 
 You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-bucket/mainnet/travis_ss_mainnet_1542277779_226170.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
+::
+
+  SNAPSHOT_URL=$(curl -s http://s3-us-west-2.amazonaws.com/travis-ss-bucket/latest.html)
+  wget $SNAPSHOT_URL
+
 Extract the file and copy the ``data`` and ``vm`` subdirectories from the uncompressed directory to ``$HOME/.travis``
 
 Start the Node and Join Travis MainNet
