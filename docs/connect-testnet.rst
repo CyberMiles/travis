@@ -46,6 +46,10 @@ Get a list of recent snapshots of the testnet from AWS S3 `travis-ss-testnet <ht
 
 You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542623121_254975.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
+::
+
+  wget $(curl -s http://s3-us-west-2.amazonaws.com/travis-ss-testnet/latest.html)
+
 Extract the file and copy the ``data`` and ``vm`` subdirectories from the uncompressed directory to ``$HOME/.travis``
 
 Start the Node and Join Travis TestNet
