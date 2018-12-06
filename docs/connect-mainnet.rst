@@ -49,8 +49,7 @@ You can splice the file name from the bucket list. The downloading url will be l
 
 ::
 
-  SNAPSHOT_URL=$(curl -s http://s3-us-west-2.amazonaws.com/travis-ss-bucket/latest.html)
-  wget $SNAPSHOT_URL
+  wget $(curl -s http://s3-us-west-2.amazonaws.com/travis-ss-bucket/latest.html)
 
 Extract the file and copy the ``data`` and ``vm`` subdirectories from the uncompressed directory to ``$HOME/.travis``
 
