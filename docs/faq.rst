@@ -110,9 +110,9 @@ https://travis.readthedocs.io/en/latest/json-rpc.html
 
 9. How to calculate validator's voting power or delegator's rewards ?
 ``````````````````````````````````````````````````````````````````````
-English version(page 10 ~ 21): https://www.cybermiles.io/wp-content/uploads/2018/10/CN_CyberMiles_DPoS.pdf
+English version(page 10 ~ 21): https://www.cybermiles.io/wp-content/uploads/2018/10/EN_CyberMiles_DPoS_1.4.2.pdf
 
-中文版(第8 ~ 17页): https://www.cybermiles.io/wp-content/uploads/2018/10/EN_CyberMiles_DPoS_1.4.2.pdf
+中文版(第8 ~ 17页): https://www.cybermiles.io/wp-content/uploads/2018/10/CN_CyberMiles_DPoS.pdf
 
 10. How to recover/re-sync my node when it crashed or missed too many blocks?
 `````````````````````````````````````````````````````````````````````````````
