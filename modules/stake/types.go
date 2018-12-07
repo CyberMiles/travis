@@ -190,7 +190,7 @@ func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
 			} else {
 				if c.Active == "Y" {
 					c.State = "Backup Validator"
-					c.TendermintVotingPower = 1
+					c.TendermintVotingPower = 10
 				} else {
 					c.State = "Candidate"
 					c.TendermintVotingPower = 0
@@ -286,7 +286,6 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 			i++
 			continue
 		}
-
 		if vs[i].TendermintVotingPower != vs2[j].TendermintVotingPower {
 			changed[n] = vs2[j].ABCIValidator()
 			n++
