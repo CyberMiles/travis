@@ -150,7 +150,7 @@ describe("Stake Test", function() {
             expect(res.result.validators.length).to.eq(5)
             let result = res.result.validators.filter(v => v.pub_key.value == Globals.PubKeys[3])
             expect(result.length).to.eq(1)
-            expect(Number(result[0].voting_power)).to.eq(1)
+            expect(Number(result[0].voting_power)).to.eq(10)
             done()
           })
         })
