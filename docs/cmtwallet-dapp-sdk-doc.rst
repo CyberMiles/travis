@@ -92,7 +92,7 @@ Developer Toolkit
  `CMTTracking <https://www.cmttracking.io/>`_
 -----------------------------------------------------------------------------------------------------------
 
- `Get testnet CMT <http://travis-faucet.cybermiles.io/index.html/>`_
+ `Get testnet CMT <http://travis-faucet.cybermiles.io/index.html>`_
 -----------------------------------------------------------------------------------------------------------
 
  `web3-cmt.js <https://github.com/CyberMiles/web3-cmt.js>`_
