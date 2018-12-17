@@ -191,12 +191,13 @@ func (s *CmtRPCService) GetTransactionByHash(hash string) (*RPCTransaction, erro
 	}
 	// get transaction
 	res, err := s.backend.GetLocalClient().Tx(bkey, false)
-	errNotFound := fmt.Errorf("Tx (%X) not found", hash)
-	if err != nil && err != errNotFound {
+	if err == nil {
+		return newRPCTransaction(res)
+	}
+	errNotFound := fmt.Sprintf("Tx (%X) not found", bkey)
+	if err != nil && err.Error() != errNotFound {
 		// error other than not found
 		return nil, err
-	} else {
-		return newRPCTransaction(res)
 	}
 	// No finalized transaction, try to retrieve it from the pool
 	unConfirmedTxs, err := core.UnconfirmedTxs(-1)
