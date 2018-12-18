@@ -148,9 +148,12 @@ describe("Stake Test", function() {
             expect(err).to.be.null
             expect(res).to.be.not.null
             expect(res.result.validators.length).to.eq(5)
+            // backup validator on tendermint
             let result = res.result.validators.filter(v => v.pub_key.value == Globals.PubKeys[3])
             expect(result.length).to.eq(1)
-            expect(Number(result[0].voting_power)).to.eq(10)
+            // tendermint vp=10 for both valiators and backup validators
+            result = res.result.validators.filter(v => v.voting_power == "10")
+            expect(result.length).to.eq(5)
             done()
           })
         })
