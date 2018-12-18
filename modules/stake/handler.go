@@ -2,16 +2,18 @@ package stake
 
 import (
 	"encoding/json"
+	"math/big"
+	"strconv"
+
+	"github.com/ethereum/go-ethereum/common"
+	ethstat "github.com/ethereum/go-ethereum/core/state"
+
 	"github.com/CyberMiles/travis/commons"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/sdk/errors"
 	"github.com/CyberMiles/travis/sdk/state"
 	"github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
-	"github.com/ethereum/go-ethereum/common"
-	ethstat "github.com/ethereum/go-ethereum/core/state"
-	"math/big"
-	"strconv"
 )
 
 // DelegatedProofOfStake - interface to enforce delegation stake
@@ -566,7 +568,9 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	}
 
 	// only charge gas fee here
-	commons.Transfer(d.sender, utils.HoldAccount, gasFee)
+	//commons.Transfer(d.sender, utils.HoldAccount, gasFee)
+	d.ctx.EthappState().SubBalance(d.sender, gasFee.Int)
+	d.ctx.EthappState().AddBalance(utils.HoldAccount, gasFee.Int)
 	SaveCandidate(candidate)
 
 	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
@@ -704,7 +708,9 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		candidate.CompRate = tx.CompRate
 	}
 
-	commons.Transfer(d.sender, utils.HoldAccount, totalCost)
+	//commons.Transfer(d.sender, utils.HoldAccount, totalCost)
+	d.ctx.EthappState().SubBalance(d.sender, totalCost.Int)
+	d.ctx.EthappState().AddBalance(utils.HoldAccount, totalCost.Int)
 	updateCandidate(candidate)
 	return nil
 }
@@ -782,9 +788,16 @@ func (d deliver) delegate(tx TxDelegate) error {
 	//}
 
 	// Move coins from the delegator account to the pubKey lock account
-	err := commons.Transfer(d.sender, utils.HoldAccount, delegateAmount)
-	if err != nil {
-		return err
+	if d.ctx.BlockHeight() == 0 && d.ctx.EthappState() == nil {
+		// call from declareGenesisCandidacy
+		err := commons.Transfer(d.sender, utils.HoldAccount, delegateAmount)
+		if err != nil {
+			return err
+		}
+	} else {
+		// normal tx
+		d.ctx.EthappState().SubBalance(d.sender, delegateAmount.Int)
+		d.ctx.EthappState().AddBalance(utils.HoldAccount, delegateAmount.Int)
 	}
 
 	// create or update delegation
@@ -886,7 +899,9 @@ func (d deliver) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 		return err
 	}
 	// only charge gas fee here
-	commons.Transfer(d.sender, utils.HoldAccount, gasFee)
+	//commons.Transfer(d.sender, utils.HoldAccount, gasFee)
+	d.ctx.EthappState().SubBalance(d.sender, gasFee.Int)
+	d.ctx.EthappState().AddBalance(utils.HoldAccount, gasFee.Int)
 
 	delegation.CompRate = tx.CompRate
 	UpdateDelegation(delegation)
@@ -900,7 +915,9 @@ func (d deliver) updateCandidateAccount(tx TxUpdateCandidacyAccount, gasFee sdk.
 	}
 
 	// only charge gas fee here
-	commons.Transfer(d.sender, utils.HoldAccount, gasFee)
+	//commons.Transfer(d.sender, utils.HoldAccount, gasFee)
+	d.ctx.EthappState().SubBalance(d.sender, gasFee.Int)
+	d.ctx.EthappState().AddBalance(utils.HoldAccount, gasFee.Int)
 
 	candidate := GetCandidateByAddress(d.sender)
 	req := &CandidateAccountUpdateRequest{
@@ -946,10 +963,14 @@ func (d deliver) acceptCandidateAccountUpdateRequest(tx TxAcceptCandidacyAccount
 	UpdateDelegation(delegation)
 
 	// return coins to the original account
-	commons.Transfer(utils.HoldAccount, req.FromAddress, delegation.Shares())
+	//commons.Transfer(utils.HoldAccount, req.FromAddress, delegation.Shares())
+	d.ctx.EthappState().SubBalance(utils.HoldAccount, delegation.Shares().Int)
+	d.ctx.EthappState().AddBalance(req.FromAddress, delegation.Shares().Int)
 
 	// lock coins from the new account
-	commons.Transfer(req.ToAddress, utils.HoldAccount, delegation.Shares().Add(gasFee))
+	//commons.Transfer(req.ToAddress, utils.HoldAccount, delegation.Shares().Add(gasFee))
+	d.ctx.EthappState().SubBalance(req.ToAddress, delegation.Shares().Add(gasFee).Int)
+	d.ctx.EthappState().AddBalance(utils.HoldAccount, delegation.Shares().Add(gasFee).Int)
 
 	// mark the request as completed
 	req.State = "COMPLETED"

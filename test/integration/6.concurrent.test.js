@@ -18,6 +18,7 @@ describe("Concurrent Test", function() {
     B = Globals.Accounts[0]
     C = Globals.Accounts[3]
   })
+
   after(function(done) {
     // transfer back
     let balance = web3.toWei(web3.toBigNumber(50000), "cmt").minus(web3.cmt.getBalance(B, "latest"))
@@ -67,7 +68,7 @@ describe("Concurrent Test", function() {
           done()
         })
       })
-      it("if A has enough CMTs, but B has gas fee for only one tx", function(done) {
+      it("if A has enough CMTs, but B has CMTs for only one tx", function(done) {
         Utils.transfer(
           C,
           A,
@@ -90,7 +91,7 @@ describe("Concurrent Test", function() {
     })
   })
 
-  describe.skip("Stake: UpdateCandidacy", function() {
+  describe("Stake: UpdateCandidacy", function() {
     before(function(done) {
       // clear all balance of A
       let balance = web3.cmt.getBalance(A, "latest")
@@ -125,7 +126,7 @@ describe("Concurrent Test", function() {
     })
   })
 
-  describe.skip("Stake: SetCompRate", function() {
+  describe("Stake: SetCompRate", function() {
     before(function(done) {
       // clear all balance of A
       let balance = web3.cmt.getBalance(A, "latest")
@@ -192,7 +193,7 @@ describe("Concurrent Test", function() {
     })
   })
 
-  describe.skip("Stake: Delegator Accept from one account", function() {
+  describe("Stake: Delegator Accept from one account", function() {
     before(function(done) {
       // clear all balance of B
       let balance = web3.cmt.getBalance(B, "latest")
