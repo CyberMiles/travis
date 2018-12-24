@@ -52,6 +52,7 @@ Returns a block matching the block number.
 **Parameters**
 
 	* ``blockNumber`` Number - The block number.
+	* ``decodeTx`` Boolean - Currently should always be false.
 
 **Returns**
 
@@ -62,7 +63,7 @@ Returns a block matching the block number.
 ::
 
 	// Request
-	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_getBlockByNumber","params":[78],"id":1}'
+	curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"cmt_getBlockByNumber","params":[78, false],"id":1}'
 
 	// Result
 	{
