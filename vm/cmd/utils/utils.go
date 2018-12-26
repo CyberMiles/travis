@@ -33,6 +33,8 @@ func StartNode(stack *ethereum.Node) {
 				log.Warn("Already shutting down, interrupt more to panic.", "times", i-1)
 			}
 		}
+		log.Error("Force quitting...")
+		os.Exit(1)
 	}()
 }
 
