@@ -681,21 +681,23 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	if !utils.IsBlank(tx.PubKey) {
 		pubKey, _ := types.GetPubKey(tx.PubKey)
 
-		// save the previous pubkey which will be used to update validator set
-		var pks []types.PubKey
-		b := d.store.Get(utils.ToBeReplacedPubKeysKey)
-		if b == nil {
-			pks = []types.PubKey{candidate.PubKey}
-		} else {
-			json.Unmarshal(b, &pks)
-			pks = append(pks, candidate.PubKey)
+		// hotfix: inform tendermint if vp>0
+		if candidate.VotingPower > 0 {
+			// save the previous pubkey which will be used to update validator set
+			var pks []types.PubKey
+			b := d.store.Get(utils.ToBeReplacedPubKeysKey)
+			if b == nil {
+				pks = []types.PubKey{candidate.PubKey}
+			} else {
+				json.Unmarshal(b, &pks)
+				pks = append(pks, candidate.PubKey)
+			}
+			b, err := json.Marshal(pks)
+			if err != nil {
+				panic(err)
+			}
+			d.store.Set(utils.ToBeReplacedPubKeysKey, b)
 		}
-		b, err := json.Marshal(pks)
-		if err != nil {
-			panic(err)
-		}
-
-		d.store.Set(utils.ToBeReplacedPubKeysKey, b)
 
 		candidate.PubKey = pubKey
 	}
