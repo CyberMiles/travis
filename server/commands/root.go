@@ -10,6 +10,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	ethUtils "github.com/ethereum/go-ethereum/cmd/utils"
+	ethlog "github.com/ethereum/go-ethereum/log"
 	tmcli "github.com/tendermint/tendermint/libs/cli"
 	tmflags "github.com/tendermint/tendermint/libs/cli/flags"
 	"github.com/tendermint/tendermint/libs/log"
@@ -20,6 +21,8 @@ import (
 //nolint
 const (
 	FlagLogLevel = "log_level"
+	FlagPassword = "password"
+	FlagLightKDF = "lightkdf"
 
 	defaultLogLevel = "error"
 )
@@ -69,6 +72,7 @@ var (
 		ethUtils.UnlockedAccountFlag,
 		ethUtils.PasswordFileFlag,
 		ethUtils.VMEnableDebugFlag,
+		ethUtils.LightKDFFlag,
 		// Logging and debug settings
 		ethUtils.NoCompactionFlag,
 		// Gas price oracle settings
@@ -150,6 +154,8 @@ func setupEmtContext() error {
 		context.GlobalSet(ethUtils.ListenPortFlag.Name, strconv.Itoa(int(config.EMConfig.ListenPortFlag)))
 	}
 
+	context.GlobalSet(ethUtils.LightKDFFlag.Name, strconv.FormatBool(config.EMConfig.LightKDFFlag))
+
 	if err := emtUtils.Setup(context); err != nil {
 		return err
 	}
@@ -163,4 +169,29 @@ func flagSet(name string, flags []cli.Flag) (*flag.FlagSet, error) {
 		f.Apply(set)
 	}
 	return set, nil
+}
+
+func SetupAccountContext() (*cli.Context, error) {
+	err := setupEmtContext()
+	if err != nil {
+		return nil, err
+	}
+
+	// extra flag from command line args
+	// log level
+	lvl, err := ethlog.LvlFromString(viper.GetString(FlagLogLevel))
+	if err != nil {
+		return nil, err
+	}
+	context.GlobalSet(emtUtils.VerbosityFlag.Name, strconv.Itoa(int(lvl)))
+	if err := emtUtils.Setup(context); err != nil {
+		return nil, err
+	}
+	// password file
+	context.GlobalSet(ethUtils.PasswordFileFlag.Name, viper.GetString(FlagPassword))
+
+	// lightkdf
+	context.GlobalSet(ethUtils.LightKDFFlag.Name, strconv.FormatBool(viper.GetBool(FlagLightKDF)))
+
+	return context, nil
 }

@@ -31,8 +31,10 @@ func main() {
 	// add commands
 	prepareNodeCommands()
 	prepareClientCommands()
+	prepareAccountCommands()
 
 	TravisCmd.AddCommand(
+		accountCmd,
 		nodeCmd,
 		clientCmd,
 		attachCmd,

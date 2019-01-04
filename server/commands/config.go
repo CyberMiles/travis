@@ -65,6 +65,7 @@ type EthermintConfig struct {
 	VerbosityFlag       uint   `mapstructure:"verbosity"`
 	GCMode              string `mapstructure:"gcmode"`
 	ListenPortFlag      uint   `mapstructure:"listenport"`
+	LightKDFFlag        bool   `mapstructure:"lightkdf"`
 }
 
 func DefaultEthermintConfig() EthermintConfig {
@@ -86,6 +87,7 @@ func DefaultEthermintConfig() EthermintConfig {
 		VerbosityFlag:       3,
 		GCMode:              "full",
 		ListenPortFlag:      30333,
+		LightKDFFlag:        false,
 	}
 }
 
