@@ -78,12 +78,12 @@ func DefaultParams() *Params {
 
 var (
 	// Keys for store prefixes
-	ParamKey               = []byte{0x01} // key for global parameters
-	AwardInfosKey          = []byte{0x02} // key for award infos
-	AbsentValidatorsKey    = []byte{0x03} // key for absent validators
-	ToBeReplacedPubKeysKey = []byte{0x04} // key for absent validators
-	dirty                  = false
-	params                 = new(Params)
+	ParamKey             = []byte{0x01} // key for global parameters
+	AwardInfosKey        = []byte{0x02} // key for award infos
+	AbsentValidatorsKey  = []byte{0x03} // key for absent validators
+	PubKeyUpdatePairsKey = []byte{0x04} // key for absent validators
+	dirty                = false
+	params               = new(Params)
 )
 
 // load/save the global params

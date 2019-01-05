@@ -168,9 +168,16 @@ func (cs Candidates) Sort() {
 }
 
 // update the voting power and save
-func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
+func (cs Candidates) updateVotingPower(blockHeight int64, updatePairs PubKeyUpdatePairs) Candidates {
 	// update voting power
 	for _, c := range cs {
+		if len(updatePairs) != 0 {
+			newPk, exists := updatePairs.GetNewPubKey(c.PubKey)
+			if exists {
+				c.PubKey = newPk
+			}
+		}
+
 		c.PendingVotingPower = c.CalcVotingPower(blockHeight)
 		if c.Active == "N" {
 			c.VotingPower = 0
@@ -271,8 +278,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 	i, j, n := 0, 0, 0 //counters for vs loop, vs2 loop, changed element
 
 	for i < len(vs) && j < len(vs2) {
-
-		if !vs[i].PubKey.Equals(vs2[j].PubKey) {
+		if bytes.Compare(vs[i].PubKey.Address(), vs2[j].PubKey.Address()) != 0 {
 			// pk1 > pk2, a new validator was introduced between these pubkeys
 			if bytes.Compare(vs[i].PubKey.Address(), vs2[j].PubKey.Address()) == 1 {
 				changed[n] = vs2[j].ABCIValidator()
@@ -320,24 +326,20 @@ func UpdateValidatorSet(store state.SimpleDB, blockHeight int64) (change []abci.
 	candidates := GetCandidates()
 	v1 := candidates.Validators()
 
-	// check if there are any pubkeys need to be replaced, and if so, add them into v1
-	var pks []types.PubKey
-	b := store.Get(utils.ToBeReplacedPubKeysKey)
+	// check if there are any pubkeys need to update
+	var pairs PubKeyUpdatePairs
+	b := store.Get(utils.PubKeyUpdatePairsKey)
 	if b != nil {
-		json.Unmarshal(b, &pks)
-		for _, pk := range pks {
-			v1 = append(v1, Validator{PubKey: pk})
-		}
-
-		// clean store
-		store.Remove(utils.ToBeReplacedPubKeysKey)
+		json.Unmarshal(b, &pairs)
 	}
 
-	v2 := candidates.updateVotingPower(blockHeight).Validators()
+	v2 := candidates.updateVotingPower(blockHeight, pairs).Validators()
 	change = v1.validatorsChanged(v2)
 
 	// clean all of the candidates had been withdrawed
 	cleanCandidates()
+	store.Remove(utils.PubKeyUpdatePairsKey)
+
 	return
 }
 
@@ -593,4 +595,22 @@ func (c *CandidateAccountUpdateRequest) Hash() []byte {
 	hasher := ripemd160.New()
 	hasher.Write(bs)
 	return hasher.Sum(nil)
+}
+
+type PubKeyUpdatePair struct {
+	OldPubKey types.PubKey `json:"old_pub_key"`
+	NewPubKey types.PubKey `json:"new_pub_key"`
+}
+
+type PubKeyUpdatePairs []PubKeyUpdatePair
+
+func (pairs PubKeyUpdatePairs) GetNewPubKey(pk types.PubKey) (res types.PubKey, exists bool) {
+	exists = false
+	for _, pair := range pairs {
+		if pair.OldPubKey.Equals(pk) {
+			return pair.NewPubKey, true
+		}
+	}
+
+	return types.PubKey{}, exists
 }

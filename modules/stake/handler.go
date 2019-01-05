@@ -679,25 +679,28 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 	}
 
 	if !utils.IsBlank(tx.PubKey) {
-		pubKey, _ := types.GetPubKey(tx.PubKey)
+		newPk, _ := types.GetPubKey(tx.PubKey)
 
 		// save the previous pubkey which will be used to update validator set
-		var pks []types.PubKey
-		b := d.store.Get(utils.ToBeReplacedPubKeysKey)
-		if b == nil {
-			pks = []types.PubKey{candidate.PubKey}
-		} else {
-			json.Unmarshal(b, &pks)
-			pks = append(pks, candidate.PubKey)
-		}
-		b, err := json.Marshal(pks)
-		if err != nil {
-			panic(err)
+		if candidate.VotingPower > 0 {
+			var pairs PubKeyUpdatePairs
+			pair := PubKeyUpdatePair{candidate.PubKey, newPk}
+			b := d.store.Get(utils.PubKeyUpdatePairsKey)
+			if b == nil {
+				pairs = PubKeyUpdatePairs{pair}
+			} else {
+				json.Unmarshal(b, &pairs)
+				pairs = append(pairs, pair)
+			}
+			b, err := json.Marshal(pairs)
+			if err != nil {
+				panic(err)
+			}
+
+			d.store.Set(utils.PubKeyUpdatePairsKey, b)
 		}
 
-		d.store.Set(utils.ToBeReplacedPubKeysKey, b)
-
-		candidate.PubKey = pubKey
+		//candidate.PubKey = newPk
 	}
 
 	if !tx.CompRate.IsNil() && !sdk.ZeroRat.Equal(tx.CompRate) {
