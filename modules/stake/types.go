@@ -329,6 +329,7 @@ func UpdateValidatorSet(store state.SimpleDB, blockHeight int64) (change []abci.
 	// check if there are any pubkeys need to update
 	var pairs PubKeyUpdatePairs
 	b := store.Get(utils.PubKeyUpdatePairsKey)
+	//fmt.Printf("UpdateValidatorSet, loading data...\n")
 	if b != nil {
 		json.Unmarshal(b, &pairs)
 	}
@@ -607,7 +608,7 @@ type PubKeyUpdatePairs []PubKeyUpdatePair
 func (pairs PubKeyUpdatePairs) GetNewPubKey(pk types.PubKey) (res types.PubKey, exists bool) {
 	exists = false
 	for _, pair := range pairs {
-		if pair.OldPubKey.Equals(pk) {
+		if bytes.Compare(pair.OldPubKey.Bytes(), pk.Bytes()) == 0 {
 			return pair.NewPubKey, true
 		}
 	}

@@ -699,7 +699,6 @@ func (d deliver) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 
 			d.store.Set(utils.PubKeyUpdatePairsKey, b)
 		}
-
 		//candidate.PubKey = newPk
 	}
 
