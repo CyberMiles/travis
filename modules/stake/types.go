@@ -168,12 +168,12 @@ func (cs Candidates) Sort() {
 }
 
 // update the voting power and save
-func (cs Candidates) updateVotingPower(blockHeight int64, updatePairs PubKeyUpdatePairs) Candidates {
+func (cs Candidates) updateVotingPower(blockHeight int64, updates PubKeyUpdates) Candidates {
 	// update voting power
 	for _, c := range cs {
-		if len(updatePairs) != 0 {
-			newPk, exists := updatePairs.GetNewPubKey(c.PubKey)
-			if exists {
+		if len(updates) != 0 {
+			newPk, exists, vp := updates.GetNewPubKey(c.PubKey)
+			if exists && vp > 0 {
 				c.PubKey = newPk
 			}
 		}
@@ -327,18 +327,28 @@ func UpdateValidatorSet(store state.SimpleDB, blockHeight int64) (change []abci.
 	v1 := candidates.Validators()
 
 	// check if there are any pubkeys need to update
-	var pairs PubKeyUpdatePairs
-	b := store.Get(utils.PubKeyUpdatePairsKey)
+	var updates PubKeyUpdates
+	b := store.Get(utils.PubKeyUpdatesKey)
 	if b != nil {
-		json.Unmarshal(b, &pairs)
+		json.Unmarshal(b, &updates)
 	}
 
-	v2 := candidates.updateVotingPower(blockHeight, pairs).Validators()
+	v2 := candidates.updateVotingPower(blockHeight, updates).Validators()
 	change = v1.validatorsChanged(v2)
 
 	// clean all of the candidates had been withdrawed
 	cleanCandidates()
-	store.Remove(utils.PubKeyUpdatePairsKey)
+
+	if len(updates) != 0 {
+		for _, c := range candidates {
+			newPk, exists, vp := updates.GetNewPubKey(c.PubKey)
+			if exists && vp == 0 {
+				c.PubKey = newPk
+				updateCandidate(c)
+			}
+		}
+		store.Remove(utils.PubKeyUpdatesKey)
+	}
 
 	return
 }
@@ -597,20 +607,21 @@ func (c *CandidateAccountUpdateRequest) Hash() []byte {
 	return hasher.Sum(nil)
 }
 
-type PubKeyUpdatePair struct {
-	OldPubKey types.PubKey `json:"old_pub_key"`
-	NewPubKey types.PubKey `json:"new_pub_key"`
+type PubKeyUpdate struct {
+	OldPubKey   types.PubKey `json:"old_pub_key"`
+	NewPubKey   types.PubKey `json:"new_pub_key"`
+	VotingPower int64        `json:"voting_power"`
 }
 
-type PubKeyUpdatePairs []PubKeyUpdatePair
+type PubKeyUpdates []PubKeyUpdate
 
-func (pairs PubKeyUpdatePairs) GetNewPubKey(pk types.PubKey) (res types.PubKey, exists bool) {
+func (tuples PubKeyUpdates) GetNewPubKey(pk types.PubKey) (res types.PubKey, exists bool, votingPower int64) {
 	exists = false
-	for _, pair := range pairs {
-		if bytes.Compare(pair.OldPubKey.Bytes(), pk.Bytes()) == 0 {
-			return pair.NewPubKey, true
+	for _, tuple := range tuples {
+		if bytes.Compare(tuple.OldPubKey.Bytes(), pk.Bytes()) == 0 {
+			return tuple.NewPubKey, true, tuple.VotingPower
 		}
 	}
 
-	return types.PubKey{}, exists
+	return types.PubKey{}, exists, 0
 }
