@@ -1,15 +1,5 @@
 language: go
 
-branches:
-  only:
-    - master
-    - develop
-    - staging
-    - tmup
-    - lity
-    - update-tenderint-voting-power
-    - /^v.*$/
-
 services:
   - docker
 
