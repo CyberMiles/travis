@@ -8,7 +8,7 @@ const Utils = require("./global_hooks")
 const Globals = require("./global_vars")
 const { Settings } = require("./constants")
 
-describe.skip("Stake Test", function() {
+describe("Stake Test", function() {
   function Amounts(maxAmount) {
     self_staking_ratio = eval(Globals.Params.self_staking_ratio)
     this.max = web3.toWei(maxAmount, "cmt")
