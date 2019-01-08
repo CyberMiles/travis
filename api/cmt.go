@@ -555,7 +555,7 @@ func (s *CmtRPCService) QueryAwardInfos(height uint64) (*StakeQueryResult, error
 	return &StakeQueryResult{h, awardInfos}, nil
 }
 
-func (s *CmtRPCService) QueryAbsentValidatorsKey(height uint64) (*StakeQueryResult, error) {
+func (s *CmtRPCService) QueryAbsentValidators(height uint64) (*StakeQueryResult, error) {
 	var absentValidators stake.AbsentValidators
 	h, err := s.getParsedFromJson("/key", utils.AbsentValidatorsKey, &absentValidators, height)
 	if err != nil {
