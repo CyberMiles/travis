@@ -12,6 +12,7 @@ git clone https://github.com/CyberMiles/testnet.git ~/volumes/testnet
 cd ~/volumes/testnet/travis/scripts
 git checkout master
 yes "" | sudo ./cluster.sh test 6 4
+sed -i 's/image:/privileged: true\n    image:/g' docker-compose.yml
 docker-compose up -d all
 sleep 3
 curl http://localhost:26657/status
