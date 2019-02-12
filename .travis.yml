@@ -30,7 +30,7 @@ install:
 
 script:
   - make docker_image
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+  - # docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
   - TAG=$TRAVIS_BRANCH make push_tag_image ;
   - |
     if [ -z "$TRAVIS_TAG" ]; then
