@@ -56,8 +56,8 @@ module.exports = {
   },
   LibEni: {
     FileUrl:
-      '{"ubuntu":["https://libeni.cybermiles.io/libs/reverse/eni_reverse_1.2.0_ubuntu16.04.so", "http://45.77.171.204/eni_reverse_ubuntu16.04.so"], \
-        "centos":["https://libeni.cybermiles.io/libs/reverse/eni_reverse_1.2.0_centos7.so", "http://45.77.171.204/eni_reverse_centos7.so"]}',
+      '{"ubuntu":["https://libeni.cybermiles.io/libs/reverse/eni_reverse_1.2.0_ubuntu16.04.so", "http://35.221.106.176/eni_reverse_1.2.0_ubuntu16.04.so"], \
+        "centos":["https://libeni.cybermiles.io/libs/reverse/eni_reverse_1.2.0_centos7.so", "http://35.221.106.176/eni_reverse_1.2.0_centos7.so"]}',
     MD5:
       '{"ubuntu":"b440ff88be3fb2d47da4f5b34577d92477bb7f01b52d9d3a09557ea83c97a696211453ff75fb3446b1e99e1a520df2d6539b47bc5151f2689598ecbba23e906d", \
         "centos":"04ae4cd328bd550aae2c18f9fb2945ab849ec763a075f2d6e6010a676dba526082233722827d684a0de733c48b7faa2846094026657d42c3bf360a313c7b0851"}'
