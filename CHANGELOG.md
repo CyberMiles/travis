@@ -4,7 +4,7 @@
 
 _December 4th, 2018_
 
-Fix an emergency bug.  
+Fix an emergency bug.
 
 ## v0.1.3-beta-hotfix1
 
