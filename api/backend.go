@@ -61,25 +61,25 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config) (*Backend, erro
 
 	// eth.New takes a ServiceContext for the EventMux, the AccountManager,
 	// and some basic functions around the DataDir.
-	ethereum, err := eth.New(ctx, ethConfig, es)
+	ether, err := eth.New(ctx, ethConfig, es)
 	if err != nil {
 		return nil, err
 	}
 
-	es.SetEthereum(ethereum)
+	es.SetEthereum(ether)
 	es.SetEthConfig(ethConfig)
 
 	// send special event to go-ethereum to switch homestead=true.
-	currentBlock := ethereum.BlockChain().CurrentBlock()
-	ethereum.EventMux().Post(core.ChainHeadEvent{currentBlock}) // nolint: vet, errcheck
+	currentBlock := ether.BlockChain().CurrentBlock()
+	ether.EventMux().Post(core.ChainHeadEvent{currentBlock}) // nolint: vet, errcheck
 
 	// We don't need PoW/Uncle validation.
-	ethereum.BlockChain().SetValidator(NullBlockProcessor{})
+	ether.BlockChain().SetValidator(NullBlockProcessor{})
 
-	ethereum.BlockChain().SetUmbrella(&EthUmbrella{})
+	ether.BlockChain().SetUmbrella(&ethereum.EthUmbrella{})
 
 	ethBackend := &Backend{
-		ethereum:  ethereum,
+		ethereum:  ether,
 		ethConfig: ethConfig,
 		es:        es,
 	}

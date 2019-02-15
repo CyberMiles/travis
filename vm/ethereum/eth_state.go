@@ -200,7 +200,11 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	ws.handleStateChangeQueue()
 	ws.travisTxIndex = len(utils.StateChangeQueue)
 
-	ws.state.Prepare(tx.Hash(), blockHash, ws.txIndex)
+	txHash := tx.Hash()
+	ws.state.Prepare(txHash, blockHash, ws.txIndex)
+
+	umbrella := ws.es.ethereum.BlockChain().Umbrella().(*EthUmbrella)
+	umbrella.DeliveringTxHash = &txHash
 	receipt, usedGas, err := core.ApplyTransaction(
 		chainConfig,
 		blockchain,
@@ -212,6 +216,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		ws.totalUsedGas,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
 	)
+	umbrella.DeliveringTxHash = nil
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
 	}
@@ -219,7 +224,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	usedGasFee := big.NewInt(0).Mul(new(big.Int).SetUint64(usedGas), tx.GasPrice())
 	ws.totalUsedGasFee.Add(ws.totalUsedGasFee, usedGasFee)
 
-	logs := ws.state.GetLogs(tx.Hash())
+	logs := ws.state.GetLogs(txHash)
 
 	ws.txIndex++
 

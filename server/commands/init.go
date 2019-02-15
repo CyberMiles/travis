@@ -212,6 +212,9 @@ func initCyberMilesDb() {
 	create index idx_governance_vote_voter on governance_vote(voter);
 	create index idx_governance_vote_proposal_id on governance_vote(proposal_id);
 	create index idx_governance_vote_hash on governance_vote(hash);
+
+	create table schedule_tx(parent_hash text not null primary key, from_address text not null, to_address text not null, data text not null, time integer not null, status text not null default '', hash text not null default '');
+	create index idx_schedule_tx_parent_time on schedule_tx(time);
 	`
 		_, err = db.Exec(sqlStmt)
 		if err != nil {

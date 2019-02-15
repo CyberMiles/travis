@@ -17,6 +17,7 @@ import (
 	ttypes "github.com/CyberMiles/travis/types"
 	"github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/version"
+	schedule "github.com/CyberMiles/travis/vm/ethereum/schedule_tx"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -202,6 +203,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.deliverSqlTx = deliverSqlTx
 	stake.SetDeliverSqlTx(deliverSqlTx)
 	governance.SetDeliverSqlTx(deliverSqlTx)
+	schedule.SetDeliverSqlTx(deliverSqlTx)
 	// init end
 
 	// handle absent validators
@@ -370,6 +372,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 			}
 			stake.ResetDeliverSqlTx()
 			governance.ResetDeliverSqlTx()
+			schedule.ResetDeliverSqlTx()
 		}
 
 		// slash block proposer
@@ -386,6 +389,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 			}
 			stake.ResetDeliverSqlTx()
 			governance.ResetDeliverSqlTx()
+			schedule.ResetDeliverSqlTx()
 		}
 	}
 
