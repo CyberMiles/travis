@@ -42,7 +42,7 @@ _September 14th, 2018_
 
 ### FEATURES
 
-- Improve block award system and its effectiveness: Block reward will be released when a block is committed. 
+- Improve block award system and its effectiveness: Block reward will be released when a block is committed.
 
 ### IMPROVEMENTS
 
