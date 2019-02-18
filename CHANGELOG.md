@@ -10,7 +10,7 @@ Fix an emergency bug.
 
 _November 19th, 2018_
 
-Fix a bug concerning the slashing mechanism.  
+Fix a bug concerning the slashing mechanism.
 
 ## v0.1.3-beta
 
