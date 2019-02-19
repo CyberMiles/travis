@@ -159,7 +159,7 @@ _July 5th, 2018_
 
 ### FEATURES
 
-- Gas fee: Charge Validator for declaring candidacy, updating candidate information and proposing transactions. 
+- Gas fee: Charge Validator for declaring candidacy, updating candidate information and proposing transactions.
 - Governance Transactions: Change system parameters through governance transactions.
 
 ### IMPROVEMENTS
