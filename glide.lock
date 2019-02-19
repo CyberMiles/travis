@@ -30,7 +30,7 @@ imports:
   subpackages:
   - sys/windows
 - name: github.com/ethereum/go-ethereum
-  version: c4907eaa1f72a5be434b52aa4ee2ca36696ad583
+  version: 3fcfabdfda2993ee7f028882ddae0cd36b0d7a0e
   repo: https://github.com/sifmelcara/go-ethereum.git
   subpackages:
   - accounts
