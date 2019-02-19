@@ -142,7 +142,7 @@ _July 13th, 2018_
 
 ### IMPROVEMENTS
 - Modify the governance mechanism: A validator can vote multiple times before the proposal is executed. Only the last vote counts.
-- Update tendermit to v0.22.0. 
+- Update tendermit to v0.22.0.
 - Improve network security by adding：
   * Backup Validator test-cases
   * System parameters test-cases
