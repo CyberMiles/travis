@@ -130,7 +130,7 @@ For more information, visit https://www.litylang.org/
 
 ### IMPROVEMENTS
 1. Compatible with Ethereum: Upgrade go-ethereum to version 1.8.12 
-2. Improve security: Staking in CMT cube requires signing by address. 
+2. Improve security: Staking in CMT cube requires signing by address.
 3. Complete the Governance and Staking mechanism Documentation: http://travis.readthedocs.io/
 
 ### FIXES
