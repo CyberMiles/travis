@@ -4,13 +4,13 @@
 
 _December 4th, 2018_
 
-Fix an emergency bug.
+Fix an emergency bug.  
 
 ## v0.1.3-beta-hotfix1
 
 _November 19th, 2018_
 
-Fix a bug concerning the slashing mechanism.
+Fix a bug concerning the slashing mechanism.  
 
 ## v0.1.3-beta
 
@@ -42,7 +42,7 @@ _September 14th, 2018_
 
 ### FEATURES
 
-- Improve block award system and its effectiveness: Block reward will be released when a block is committed.
+- Improve block award system and its effectiveness: Block reward will be released when a block is committed. 
 
 ### IMPROVEMENTS
 
@@ -130,7 +130,7 @@ For more information, visit https://www.litylang.org/
 
 ### IMPROVEMENTS
 1. Compatible with Ethereum: Upgrade go-ethereum to version 1.8.12 
-2. Improve security: Staking in CMT cube requires signing by address.
+2. Improve security: Staking in CMT cube requires signing by address. 
 3. Complete the Governance and Staking mechanism Documentation: http://travis.readthedocs.io/
 
 ### FIXES
@@ -142,10 +142,10 @@ _July 13th, 2018_
 
 ### IMPROVEMENTS
 - Modify the governance mechanism: A validator can vote multiple times before the proposal is executed. Only the last vote counts.
-- Update tendermit to v0.22.0.
+- Update tendermit to v0.22.0.  
 - Improve network security by adding：
   * Backup Validator test-cases
-  * System parameters test-cases
+  * System parameters test-cases 
   * Block Award calculation test-cases
 - Fix compatibility issues of 0x0 address.
 
@@ -159,7 +159,7 @@ _July 5th, 2018_
 
 ### FEATURES
 
-- Gas fee: Charge Validator for declaring candidacy, updating candidate information and proposing transactions.
+- Gas fee: Charge Validator for declaring candidacy, updating candidate information and proposing transactions. 
 - Governance Transactions: Change system parameters through governance transactions.
 
 ### IMPROVEMENTS

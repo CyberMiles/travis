@@ -30,8 +30,8 @@ install:
 
 script:
   - make docker_image
-  - # docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-  - # TAG=$TRAVIS_BRANCH make push_tag_image ;
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+  - TAG=$TRAVIS_BRANCH make push_tag_image ;
   - |
     if [ -z "$TRAVIS_TAG" ]; then
       ./test/integration/test.sh
@@ -48,7 +48,7 @@ after_failure:
     curl -X POST http://localhost:8545
     -H 'Content-Type: application/json'
     -d '{"jsonrpc":"2.0","id":1,"method":"cmt_queryValidators", "params": [0]}'
-  - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t --tail 1000
+  - cd ~/volumes/testnet/travis/scripts && docker-compose logs -t --tail 50
 
 before_deploy:
   - BUILD_TAG=$TRAVIS_TAG make dist
