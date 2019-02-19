@@ -145,7 +145,7 @@ _July 13th, 2018_
 - Update tendermit to v0.22.0.  
 - Improve network security by adding：
   * Backup Validator test-cases
-  * System parameters test-cases 
+  * System parameters test-cases
   * Block Award calculation test-cases
 - Fix compatibility issues of 0x0 address.
 
