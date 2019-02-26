@@ -30,8 +30,11 @@ install:
 
 script:
   - make docker_image
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
-  - TAG=$TRAVIS_BRANCH make push_tag_image ;
+  - |
+    if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+      docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD ;
+      TAG=$TRAVIS_BRANCH make push_tag_image ;
+    fi
   - |
     if [ -z "$TRAVIS_TAG" ]; then
       ./test/integration/test.sh
