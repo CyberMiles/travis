@@ -99,18 +99,20 @@ func (app *StoreApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInit
 func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 	ethInfoRes := app.EthApp.Info(req)
 
-	if big.NewInt(ethInfoRes.LastBlockHeight).Cmp(bigZero) == 0 {
+	lbh := ethInfoRes.LastBlockHeight
+
+	if big.NewInt(lbh).Cmp(bigZero) == 0 {
 		return ethInfoRes
 	}
 
 	rp := governance.GetRetiringProposal(version.Version)
 	if rp != nil {
-		if rp.ExpireBlockHeight <= ethInfoRes.LastBlockHeight {
+		if rp.ExpireBlockHeight <= lbh {
 			rp = governance.GetProposalById(rp.Id)
 			if rp.Detail["status"] == "success" {
 				server.StopFlag <- true
 			}
-		} else if rp.ExpireBlockHeight == ethInfoRes.LastBlockHeight+1 {
+		} else if rp.ExpireBlockHeight == lbh+1 {
 			if rp.Result == "Approved" {
 				utils.RetiringProposalId = rp.Id
 			}
@@ -122,7 +124,16 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 
 	travisInfoRes := app.StoreApp.Info(req)
 
-	travisInfoRes.LastBlockAppHash = finalAppHash(ethInfoRes.LastBlockAppHash, travisInfoRes.LastBlockAppHash, app.StoreApp.GetDbHash(), travisInfoRes.LastBlockHeight, nil)
+	// If the chain has just relaunched from a retired version,
+	// then use the old algorithm to match the old hash
+	var travisDbHash []byte
+	if governance.GetLatestRetiredHeight() == lbh {
+		travisDbHash = app.StoreApp.GetOldDbHash()
+	} else {
+		travisDbHash = app.StoreApp.GetDbHash()
+	}
+
+	travisInfoRes.LastBlockAppHash = finalAppHash(ethInfoRes.LastBlockAppHash, travisInfoRes.LastBlockAppHash, travisDbHash, travisInfoRes.LastBlockHeight, nil)
 	return travisInfoRes
 }
 
