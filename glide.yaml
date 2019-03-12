@@ -11,7 +11,7 @@ import:
   version: 54d17b57dd7d4a3aa092476596b3f8a933bde349
 - package: github.com/prometheus/prometheus
   version: v2.0.0
-  
+
 - package: github.com/pkg/errors
   version: ^0.8.0
 - package: github.com/spf13/cobra
@@ -34,7 +34,7 @@ import:
   - types
 - package: github.com/ethereum/go-ethereum
   repo: https://github.com/CyberMiles/go-ethereum.git
-  version: cee13888bae1d0a3e94c80a00001742741c3ca24
+  version: ead31a13375a7f018c93e7c04ce0ec749bad46ed
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
 - package: github.com/mattn/go-sqlite3

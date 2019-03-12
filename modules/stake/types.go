@@ -168,9 +168,16 @@ func (cs Candidates) Sort() {
 }
 
 // update the voting power and save
-func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
+func (cs Candidates) updateVotingPower(blockHeight int64, updates PubKeyUpdates) Candidates {
 	// update voting power
 	for _, c := range cs {
+		if len(updates) != 0 {
+			newPk, exists, vp := updates.GetNewPubKey(c.PubKey)
+			if exists && vp > 0 {
+				c.PubKey = newPk
+			}
+		}
+
 		c.PendingVotingPower = c.CalcVotingPower(blockHeight)
 		if c.Active == "N" {
 			c.VotingPower = 0
@@ -190,7 +197,7 @@ func (cs Candidates) updateVotingPower(blockHeight int64) Candidates {
 			} else {
 				if c.Active == "Y" {
 					c.State = "Backup Validator"
-					c.TendermintVotingPower = 1
+					c.TendermintVotingPower = 10
 				} else {
 					c.State = "Candidate"
 					c.TendermintVotingPower = 0
@@ -232,6 +239,7 @@ func (cs Candidates) Validators() Validators {
 		if i >= int(utils.GetParams().MaxVals+utils.GetParams().BackupVals) {
 			return validators[:i]
 		}
+		c.TendermintVotingPower = 10
 		validators[i] = c.Validator()
 	}
 
@@ -249,9 +257,6 @@ var _ sort.Interface = Validators{} //enforce the sort interface at compile time
 func (vs Validators) Len() int      { return len(vs) }
 func (vs Validators) Swap(i, j int) { vs[i], vs[j] = vs[j], vs[i] }
 func (vs Validators) Less(i, j int) bool {
-	//pk1, pk2 := vs[i].PubKey.Bytes(), vs[j].PubKey.Bytes()
-	//return bytes.Compare(pk1, pk2) == -1
-
 	pk1, pk2 := vs[i].PubKey, vs[j].PubKey
 	return bytes.Compare(pk1.Address(), pk2.Address()) == -1
 }
@@ -273,10 +278,8 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 	i, j, n := 0, 0, 0 //counters for vs loop, vs2 loop, changed element
 
 	for i < len(vs) && j < len(vs2) {
-
-		if !vs[i].PubKey.Equals(vs2[j].PubKey) {
+		if bytes.Compare(vs[i].PubKey.Address(), vs2[j].PubKey.Address()) != 0 {
 			// pk1 > pk2, a new validator was introduced between these pubkeys
-			//if bytes.Compare(vs[i].PubKey.Bytes(), vs2[j].PubKey.Bytes()) == 1 {
 			if bytes.Compare(vs[i].PubKey.Address(), vs2[j].PubKey.Address()) == 1 {
 				changed[n] = vs2[j].ABCIValidator()
 				n++
@@ -289,8 +292,7 @@ func (vs Validators) validatorsChanged(vs2 Validators) (changed []abci.Validator
 			i++
 			continue
 		}
-
-		if vs[i].VotingPower != vs2[j].VotingPower {
+		if vs[i].TendermintVotingPower != vs2[j].TendermintVotingPower {
 			changed[n] = vs2[j].ABCIValidator()
 			n++
 		}
@@ -324,24 +326,30 @@ func UpdateValidatorSet(store state.SimpleDB, blockHeight int64) (change []abci.
 	candidates := GetCandidates()
 	v1 := candidates.Validators()
 
-	// check if there are any pubkeys need to be replaced, and if so, add them into v1
-	var pks []types.PubKey
-	b := store.Get(utils.ToBeReplacedPubKeysKey)
+	// check if there are any pubkeys need to update
+	var updates PubKeyUpdates
+	b := store.Get(utils.PubKeyUpdatesKey)
 	if b != nil {
-		json.Unmarshal(b, &pks)
-		for _, pk := range pks {
-			v1 = append(v1, Validator{PubKey: pk})
-		}
-
-		// clean store
-		store.Remove(utils.ToBeReplacedPubKeysKey)
+		json.Unmarshal(b, &updates)
 	}
 
-	v2 := candidates.updateVotingPower(blockHeight).Validators()
+	v2 := candidates.updateVotingPower(blockHeight, updates).Validators()
 	change = v1.validatorsChanged(v2)
 
 	// clean all of the candidates had been withdrawed
 	cleanCandidates()
+
+	if len(updates) != 0 {
+		for _, c := range candidates {
+			newPk, exists, vp := updates.GetNewPubKey(c.PubKey)
+			if exists && vp == 0 {
+				c.PubKey = newPk
+				updateCandidate(c)
+			}
+		}
+		store.Remove(utils.PubKeyUpdatesKey)
+	}
+
 	return
 }
 
@@ -597,4 +605,23 @@ func (c *CandidateAccountUpdateRequest) Hash() []byte {
 	hasher := ripemd160.New()
 	hasher.Write(bs)
 	return hasher.Sum(nil)
+}
+
+type PubKeyUpdate struct {
+	OldPubKey   types.PubKey `json:"old_pub_key"`
+	NewPubKey   types.PubKey `json:"new_pub_key"`
+	VotingPower int64        `json:"voting_power"`
+}
+
+type PubKeyUpdates []PubKeyUpdate
+
+func (tuples PubKeyUpdates) GetNewPubKey(pk types.PubKey) (res types.PubKey, exists bool, votingPower int64) {
+	exists = false
+	for _, tuple := range tuples {
+		if bytes.Compare(tuple.OldPubKey.Bytes(), pk.Bytes()) == 0 {
+			return tuple.NewPubKey, true, tuple.VotingPower
+		}
+	}
+
+	return types.PubKey{}, exists, 0
 }

@@ -42,7 +42,7 @@ type EthermintApplication struct {
 
 	logger tmLog.Logger
 
-	lowPriceCheckTransactions map[FromTo]struct{}
+	lowPriceCheckTransactions   map[FromTo]struct{}
 	lowPriceDeliverTransactions map[FromTo]struct{}
 }
 
@@ -57,11 +57,11 @@ func NewEthermintApplication(backend *api.Backend,
 	}
 
 	app := &EthermintApplication{
-		backend:              backend,
-		rpcClient:            client,
-		checkTxState:         state.StateDB,
-		strategy:             strategy,
-		lowPriceCheckTransactions: make(map[FromTo]struct{}),
+		backend:                     backend,
+		rpcClient:                   client,
+		checkTxState:                state.StateDB,
+		strategy:                    strategy,
+		lowPriceCheckTransactions:   make(map[FromTo]struct{}),
 		lowPriceDeliverTransactions: make(map[FromTo]struct{}),
 	}
 
@@ -148,8 +148,8 @@ func (app *EthermintApplication) DeliverTx(tx *ethTypes.Transaction) abciTypes.R
 	if err != nil {
 		// TODO: Add errors.CodeTypeInvalidSignature ?
 		return abciTypes.ResponseDeliverTx{
-				Code: errors.CodeTypeInternalErr,
-				Log:  err.Error()}
+			Code: errors.CodeTypeInternalErr,
+			Log:  err.Error()}
 	}
 	if code, errLog := app.lowPriceTxCheck(from, tx, app.lowPriceDeliverTransactions); code != abciTypes.CodeTypeOK {
 		return abciTypes.ResponseDeliverTx{Code: code, Log: errLog}
@@ -180,7 +180,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 
 	// update the eth header with the tendermint header
-	app.backend.UpdateHeaderWithTimeInfo(beginBlock.GetHeader())
+	app.backend.UpdateHeaderWithTimeInfo(beginBlock.GetHeader(), beginBlock.GetHash())
 	return abciTypes.ResponseBeginBlock{}
 }
 
@@ -301,7 +301,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }
 
-func  (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTypes.Transaction, lowPriceTxs map[FromTo]struct{}) (uint32, string)  {
+func (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTypes.Transaction, lowPriceTxs map[FromTo]struct{}) (uint32, string) {
 	// Iterate over all transactions to check if the gas price is too low for the
 	// non-first transaction with the same from/to address
 	// Todo performance maybe

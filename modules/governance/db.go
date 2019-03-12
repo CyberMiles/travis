@@ -646,6 +646,39 @@ func GetRetiringProposal(version string) *Proposal {
 	return nil
 }
 
+func GetLatestRetiredHeight() int64 {
+	txWrapper := getSqlTxWrapper()
+	defer txWrapper.Commit()
+
+	stmt, err := txWrapper.tx.Prepare("select expire_block_height from governance_proposal p where result = 'Approved' and type = 'retire_program' and exists (select * from governance_retire_program_detail d where d.proposal_id=p.id and d.status = 'success') order by expire_block_height desc limit 1")
+	if err != nil {
+		panic(err)
+	}
+
+	rows, err := stmt.Query()
+
+	if err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+		var expireBlockHeight int64
+
+		err = rows.Scan(&expireBlockHeight)
+		if err != nil {
+			panic(err)
+		}
+
+		return expireBlockHeight
+	}
+
+	if err = rows.Err(); err != nil {
+		panic(err)
+	}
+
+	return -1
+}
+
 func GetUpgradingProposal(version string) *Proposal {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()

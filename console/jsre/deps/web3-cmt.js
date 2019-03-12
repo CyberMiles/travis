@@ -15060,11 +15060,11 @@ var outputTransactionsFormatter = function(txs) {
   return txs
 }
 
-module.exports = {
-  inputDefaultHeightFormatter: inputDefaultHeightFormatter,
-  inputStakeTxFormatter: inputStakeTxFormatter,
-  outputTransactionsFormatter: outputTransactionsFormatter
-}
+formatters.inputDefaultHeightFormatter = inputDefaultHeightFormatter
+formatters.inputStakeTxFormatter = inputStakeTxFormatter
+formatters.outputTransactionsFormatter = outputTransactionsFormatter
+
+module.exports = formatters
 
 },{"web3/lib/utils/config":60,"web3/lib/utils/utils":62,"web3/lib/web3/formatters":72}],94:[function(require,module,exports){
 var XHR2 = require("xhr2")

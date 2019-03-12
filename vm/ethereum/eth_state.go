@@ -9,12 +9,12 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/types"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 
@@ -133,12 +133,12 @@ func (es *EthState) GetEthState() *state.StateDB {
 }
 
 func (es *EthState) UpdateHeaderWithTimeInfo(
-	config *params.ChainConfig, parentTime uint64, numTx uint64) {
+	config *params.ChainConfig, parentTime uint64, numTx uint64, blockHash []byte) {
 
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
-	es.work.updateHeaderWithTimeInfo(config, parentTime, numTx)
+	es.work.updateHeaderWithTimeInfo(config, parentTime, numTx, blockHash)
 }
 
 func (es *EthState) GasLimit() *core.GasPool {
@@ -298,14 +298,14 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 				utils.RetiringProposalId = pid
 			} else {
 				switch gov.CheckProposal(pid, nil) {
-					case "approved":
-						// process will be killed at next block
-						utils.RetiringProposalId = pid
-						gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
-					case "rejected":
-						gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
-					default:
-						gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
+				case "approved":
+					// process will be killed at next block
+					utils.RetiringProposalId = pid
+					gov.ProposalReactor{proposal.Id, currentHeight, "Approved"}.React("success", "")
+				case "rejected":
+					gov.ProposalReactor{proposal.Id, currentHeight, "Rejected"}.React("success", "")
+				default:
+					gov.ProposalReactor{proposal.Id, currentHeight, "Expired"}.React("success", "")
 				}
 			}
 		case gov.UPGRADE_PROGRAM_PROPOSAL:
@@ -358,7 +358,7 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 		pt := ws.parent.Time()
 		pt = pt.Add(pt, big.NewInt(1))
 		config := ws.es.ethereum.APIBackend.ChainConfig()
-		ws.updateHeaderWithTimeInfo(config, pt.Uint64(), 0)
+		ws.updateHeaderWithTimeInfo(config, pt.Uint64(), 0, []byte{1})
 
 		hashArray, er := ws.state.Commit(true)
 		if er != nil {
@@ -413,16 +413,21 @@ func (ws *workState) handleStateChangeQueue() {
 }
 
 func (ws *workState) updateHeaderWithTimeInfo(
-	config *params.ChainConfig, parentTime uint64, numTx uint64) {
+	config *params.ChainConfig, parentTime uint64, numTx uint64, blockHash []byte) {
 
-	lastBlock := ws.parent
-	parentHeader := &ethTypes.Header{
-		Difficulty: lastBlock.Difficulty(),
-		Number:     lastBlock.Number(),
-		Time:       lastBlock.Time(),
-	}
+	/*
+		lastBlock := ws.parent
+		parentHeader := &ethTypes.Header{
+			Difficulty: lastBlock.Difficulty(),
+			Number:     lastBlock.Number(),
+			Time:       lastBlock.Time(),
+		}
+		ws.header.Difficulty = ethash.CalcDifficulty(config, parentTime, parentHeader)
+	*/
+	hi := big.NewInt(0)
+	hi.SetBytes(blockHash)
+	ws.header.Difficulty = hi
 	ws.header.Time = new(big.Int).SetUint64(parentTime)
-	ws.header.Difficulty = ethash.CalcDifficulty(config, parentTime, parentHeader)
 	ws.transactions = make([]*ethTypes.Transaction, 0, numTx)
 	ws.receipts = make([]*ethTypes.Receipt, 0, numTx)
 	ws.allLogs = make([]*ethTypes.Log, 0, numTx)
@@ -435,8 +440,8 @@ func newBlockHeader(receiver common.Address, prevBlock *ethTypes.Block) *ethType
 	return &ethTypes.Header{
 		Number:     prevBlock.Number().Add(prevBlock.Number(), big.NewInt(1)),
 		ParentHash: prevBlock.Hash(),
-		GasLimit: calcGasLimit(prevBlock),
-		Coinbase: receiver,
+		GasLimit:   calcGasLimit(prevBlock),
+		Coinbase:   receiver,
 	}
 }
 

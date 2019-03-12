@@ -99,7 +99,7 @@ describe("API Input Parameter Test", function() {
       sendTx(A, "update", ["A"], Utils.expectTxFail, done)
     })
   })
-  describe("stake/set-comprate", function() {
+  describe("stake/setComprate", function() {
     it("fail if empty input", function(done) {
       sendTx(A, "compRate", [], Utils.expectTxFail, done)
     })
@@ -117,6 +117,9 @@ describe("API Input Parameter Test", function() {
     })
     it("fail if wrong comp_rate scope", function(done) {
       sendTx(A, "compRate", [A.addr, "-1"], Utils.expectTxFail, done)
+    })
+    it("success if all set", function(done) {
+      sendTx(A, "compRate", [A.addr, "0.1"], Utils.expectTxSuccess, done)
     })
   })
   describe("stake/verify", function() {
@@ -272,7 +275,7 @@ function sendTx(account, op, data, fnExpect, done) {
       break
     case "compRate":
       txInner = {
-        type: "stake/set-comprate",
+        type: "stake/setCompRate",
         data: { delegator_address: data[0], comp_rate: data[1] }
       }
       break
