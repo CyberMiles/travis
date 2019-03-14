@@ -2,7 +2,7 @@
 Deploy a TestNet Node
 ======================
 
-In this document, we will discuss how to start your own node and connect to the CyberMiles Travis TestNet. While we highly recommend you to run your own Travis node, you could still directly access `RPC services <https://travis.readthedocs.io/en/latest/json-rpc.html>`_ from a node provided by the CyberMiles Foundation at ``testnet.cmtwallet.io:8545``.
+In this document, we will discuss how to start your own node and connect to the CyberMiles Travis TestNet. While we highly recommend you to run your own Travis node, you could still directly access `RPC services <https://travis.readthedocs.io/en/latest/json-rpc.html>`_ from a node provided by the CyberMiles Foundation at ``https://testnet-rpc.cybermiles.io:8545``.
 
 
 ********
