@@ -263,7 +263,8 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	currentBalance := currentState.GetBalance(from)
 
 	// cost == V + GP * GL
-	if currentBalance.Cmp(tx.Cost()) < 0 {
+	if currentBalance.Cmp(tx.Cost()) < 0 &&
+		(tx.To() == nil || len(tx.Data()) == 0 || currentState.GetBalance(*tx.To()).Cmp(tx.Cost()) < 0) {
 		return abciTypes.ResponseCheckTx{
 			// TODO: Add errors.CodeTypeInsufficientFunds ?
 			Code: errors.CodeTypeBaseInvalidInput,
