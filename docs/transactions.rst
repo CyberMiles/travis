@@ -55,7 +55,7 @@ Most CyberMiles transactions require the caller to pay a gas fee. However, it is
 
 * If the transaction ``gasLimit`` is less than 500,000 (this is an adjustable parameter in the system), the transaction will be accepted and executed for free.
 
-* If the transaction ``gasLimit > 500000`` and the transaction is a smart contract function call, the function call will be executed by the VM. However, the VM would then require the function to be ``freegas``, meaning that the gas fee will come from the contract itself. If the ``freegas`` requirements are not met, the VM will fail the transaction. Learn more about the _`freegas transactions <https://lity.readthedocs.io/en/latest/freegas.html>`_
+* If the transaction ``gasLimit > 500000`` and the transaction is a smart contract function call, the function call will be executed by the VM. However, the VM would then require the function to be ``freegas``, meaning that the gas fee will come from the contract itself. If the ``freegas`` requirements are not met, the VM will fail the transaction. Learn more about the `freegas transactions <https://lity.readthedocs.io/en/latest/freegas.html>`
 
 CyberMiles allows only one free transaction per block for the same from / to addresses.
 
