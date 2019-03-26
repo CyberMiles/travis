@@ -97,7 +97,7 @@ func (c *Candidate) CalcVotingPower(blockHeight int64) (res int64) {
 	for _, d := range delegations {
 		var vp int64
 		// if the amount of staked CMTs is less than 1000, no awards will be distributed.
-		if d.Shares().LT(minStakingAmount) {
+		if d.ProfitableShares().LT(minStakingAmount) {
 			vp = 0
 			d.ResetVotingPower()
 		} else {
@@ -399,6 +399,11 @@ func (d *Delegation) Shares() (res sdk.Int) {
 	return
 }
 
+func (d *Delegation) ProfitableShares() (res sdk.Int) {
+	res = d.ParseDelegateAmount().Add(d.ParseAwardAmount()).Sub(d.ParseWithdrawAmount()).Sub(d.ParseSlashAmount())
+	return
+}
+
 func (d *Delegation) ParseDelegateAmount() sdk.Int {
 	return utils.ParseInt(d.DelegateAmount)
 }
@@ -455,7 +460,7 @@ func (d *Delegation) ResetVotingPower() {
 
 func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64) int64 {
 	candidate := GetCandidateById(d.CandidateId)
-	s := d.Shares().Div(sdk.E18Int).MulRat(sharesPercentage).Int64()
+	s := d.ProfitableShares().Div(sdk.E18Int).MulRat(sharesPercentage).Int64()
 
 	t := d.AverageStakingDate
 	if t == 0 {
