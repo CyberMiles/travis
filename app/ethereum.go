@@ -279,8 +279,14 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	// This check don't do anything
 	// It only filter the tx which qualified the freegas requirement
 	if tx.GasPrice().Int64() == 0 && tx.Gas() > utils.GetParams().LowPriceTxGasLimit && 
-		tx.To() != nil && len(tx.Data()) > 0 &&
-		(currentBalance.Cmp(defaultCost) >= 0 || currentState.GetBalance(*tx.To()).Cmp(defaultCost) >= 0) {
+		tx.To() != nil && len(tx.Data()) > 0 {
+		if currentState.GetBalance(*tx.To()).Cmp(defaultCost) < 0 {
+			return abciTypes.ResponseCheckTx{
+				// TODO: Add errors.CodeTypeInsufficientFunds ?
+				Code: errors.CodeHighGasLimitErr,
+				Log: "The gas limit is too high for low price transaction",
+			}
+		}
 	} else {
 		// cost == V + GP * GL
 		if currentBalance.Cmp(tx.Cost()) < 0 {
