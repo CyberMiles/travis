@@ -248,7 +248,8 @@ Blocks                Software version
 0 - 224550            0.1.2-beta
 224551 - 1083930      0.1.3-beta-hotfix1
 1083931 - 1190700     0.1.4-beta
-1190701 -             0.1.5-beta
+1190701 - 1248300     0.1.5-beta
+1248301 -             0.1.6-beta
 ===================== ====================
 
 The general process for syncing a node from genesis is as follows:
