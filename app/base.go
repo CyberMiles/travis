@@ -351,10 +351,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	stake.HandlePendingUnstakeRequests(app.WorkingHeight())
 
 	// record candidates stakes daily
-	if calStakeCheck(app.WorkingHeight()) {
-		// run once a day
-		stake.RecordCandidateDailyStakes(app.WorkingHeight())
-	}
+	//if calStakeCheck(app.WorkingHeight()) {
+	//	// run once a day
+	//	stake.RecordCandidateDailyStakes(app.WorkingHeight())
+	//}
 
 	// Accumulates the average staking date of all delegations
 	if calAvgStakingDateCheck(app.WorkingHeight()) {

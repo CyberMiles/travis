@@ -97,7 +97,7 @@ func (c *Candidate) CalcVotingPower(blockHeight int64) (res int64) {
 	for _, d := range delegations {
 		var vp int64
 		// if the amount of staked CMTs is less than 1000, no awards will be distributed.
-		if d.Shares().LT(minStakingAmount) {
+		if d.ProfitableShares().LT(minStakingAmount) {
 			vp = 0
 			d.ResetVotingPower()
 		} else {
@@ -399,6 +399,11 @@ func (d *Delegation) Shares() (res sdk.Int) {
 	return
 }
 
+func (d *Delegation) ProfitableShares() (res sdk.Int) {
+	res = d.ParseDelegateAmount().Add(d.ParseAwardAmount()).Sub(d.ParseWithdrawAmount()).Sub(d.ParseSlashAmount())
+	return
+}
+
 func (d *Delegation) ParseDelegateAmount() sdk.Int {
 	return utils.ParseInt(d.DelegateAmount)
 }
@@ -455,14 +460,7 @@ func (d *Delegation) ResetVotingPower() {
 
 func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64) int64 {
 	candidate := GetCandidateById(d.CandidateId)
-	tenDaysAgoHeight := blockHeight - utils.ConvertDaysToHeight(10)
-	ninetyDaysAgoHeight := blockHeight - utils.ConvertDaysToHeight(90)
-	snum := GetCandidateDailyStakeMaxValue(candidate.Id, tenDaysAgoHeight)
-	sdenom := GetCandidateDailyStakeMaxValue(candidate.Id, ninetyDaysAgoHeight)
-	if sdenom == 0 {
-		sdenom = 1
-	}
-	s := d.Shares().Div(sdk.E18Int).MulRat(sharesPercentage).Int64()
+	s := d.ProfitableShares().Div(sdk.E18Int).MulRat(sharesPercentage).Int64()
 
 	t := d.AverageStakingDate
 	if t == 0 {
@@ -472,12 +470,10 @@ func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64
 	}
 
 	one := sdk.OneRat
-	r1 := sdk.NewRat(snum, sdenom)
+	r1 := one
 	r2 := sdk.NewRat(t, 180)
 	r3 := sdk.NewRat(candidate.NumOfDelegators*4, 1)
 	r4 := sdk.NewRat(s, 1)
-
-	r1 = r1.Mul(r1)
 	r2 = r2.Add(one)
 	r3 = one.Sub(one.Quo(r3.Add(one)))
 	r3 = r3.Mul(r3)
