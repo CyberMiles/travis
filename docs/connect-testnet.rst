@@ -67,7 +67,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:vTestnet node start --home /travis
+  docker run --privileged --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:vTestnet node start --home /travis
 
 
 Attach to the Node and run web3-cmt.js 
@@ -395,7 +395,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.2-beta node start --home /travis
+  docker run --privileged --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.2-beta node start --home /travis
 
 Upgrade and Continue
 ---------------------
@@ -408,7 +408,7 @@ At certain block heights, the node will stop. Download the next version of the s
   docker rm travis
   
   docker pull cybermiles/travis:v0.1.3-beta-hotfix1
-  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta-hotfix1 node start --home /travis
+  docker run --privileged --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta-hotfix1 node start --home /travis
   
 
 
