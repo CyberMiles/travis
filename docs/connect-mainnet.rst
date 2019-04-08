@@ -190,8 +190,9 @@ The table below shows the software version and their corresponding block heights
 ================ ====================
 Blocks           Software version
 ================ ====================
-0 - 230767       0.1.2-beta
-286246 -         0.1.3-beta-hotfix2
+0 - 230767       v0.1.2-beta
+286246 - 1321175 v0.1.3-beta-hotfix2
+1321176 -        v0.1.7-beta
 ================ ====================
 
 The general process for syncing a node from genesis is as follows:
