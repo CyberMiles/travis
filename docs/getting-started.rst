@@ -31,7 +31,7 @@ Now you can start the CyberMiles Travis node in docker.
 
 .. code:: bash
 
-  docker run --name travis -v ~/volumes/local:/travis -t -p 26657:26657 -p 8545:8545 cybermiles/travis node start --home /travis
+  docker run --privileged --name travis -v ~/volumes/local:/travis -t -p 26657:26657 -p 8545:8545 cybermiles/travis node start --home /travis
 
 At this point, you can Ctrl-C to exit to the terminal and travis will remain running in the background. 
 You can check the CyberMiles Travis node’s logs at anytime via the following docker command.
