@@ -320,6 +320,16 @@ func loadState(dbName string, cacheSize int, historySize int64) (*sm.State, erro
 	return sm.NewState(tree, historySize), nil
 }
 
+func (app *StoreApp) GetOldDbHash() []byte {
+	db, _ := dbm.Sqliter.GetDB()
+	tables := []string{"candidates", "delegations", "governance_proposal", "governance_vote", "candidate_account_update_requests", "slashes"}
+	hashes := make([]byte, len(tables))
+	for _, table := range tables {
+		hashes = append(hashes, getTableHash(db, table)...)
+	}
+	return hashing(hashes)
+}
+
 func (app *StoreApp) GetDbHash() []byte {
 	db, _ := dbm.Sqliter.GetDB()
 	tables := []string{"candidates", "delegations", "governance_proposal", "governance_vote", "candidate_account_update_requests", "slashes"}

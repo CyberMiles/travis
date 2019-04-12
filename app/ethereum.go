@@ -42,7 +42,7 @@ type EthermintApplication struct {
 
 	logger tmLog.Logger
 
-	lowPriceCheckTransactions map[FromTo]struct{}
+	lowPriceCheckTransactions   map[FromTo]struct{}
 	lowPriceDeliverTransactions map[FromTo]struct{}
 }
 
@@ -57,11 +57,11 @@ func NewEthermintApplication(backend *api.Backend,
 	}
 
 	app := &EthermintApplication{
-		backend:              backend,
-		rpcClient:            client,
-		checkTxState:         state.StateDB,
-		strategy:             strategy,
-		lowPriceCheckTransactions: make(map[FromTo]struct{}),
+		backend:                     backend,
+		rpcClient:                   client,
+		checkTxState:                state.StateDB,
+		strategy:                    strategy,
+		lowPriceCheckTransactions:   make(map[FromTo]struct{}),
 		lowPriceDeliverTransactions: make(map[FromTo]struct{}),
 	}
 
@@ -148,8 +148,8 @@ func (app *EthermintApplication) DeliverTx(tx *ethTypes.Transaction) abciTypes.R
 	if err != nil {
 		// TODO: Add errors.CodeTypeInvalidSignature ?
 		return abciTypes.ResponseDeliverTx{
-				Code: errors.CodeTypeInternalErr,
-				Log:  err.Error()}
+			Code: errors.CodeTypeInternalErr,
+			Log:  err.Error()}
 	}
 	if code, errLog := app.lowPriceTxCheck(from, tx, app.lowPriceDeliverTransactions); code != abciTypes.CodeTypeOK {
 		return abciTypes.ResponseDeliverTx{Code: code, Log: errLog}
@@ -180,7 +180,7 @@ func (app *EthermintApplication) BeginBlock(beginBlock abciTypes.RequestBeginBlo
 	app.logger.Debug("BeginBlock") // nolint: errcheck
 
 	// update the eth header with the tendermint header
-	app.backend.UpdateHeaderWithTimeInfo(beginBlock.GetHeader())
+	app.backend.UpdateHeaderWithTimeInfo(beginBlock.GetHeader(), beginBlock.GetHash())
 	return abciTypes.ResponseBeginBlock{}
 }
 
@@ -259,19 +259,6 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 		return resp
 	}
 
-	// Transactor should have enough funds to cover the costs
-	currentBalance := currentState.GetBalance(from)
-
-	// cost == V + GP * GL
-	if currentBalance.Cmp(tx.Cost()) < 0 {
-		return abciTypes.ResponseCheckTx{
-			// TODO: Add errors.CodeTypeInsufficientFunds ?
-			Code: errors.CodeTypeBaseInvalidInput,
-			Log: fmt.Sprintf(
-				"Current balance: %s, tx cost: %s",
-				currentBalance, tx.Cost())}
-	}
-
 	intrGas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, true) // homestead == true
 	if err != nil {
 		return abciTypes.ResponseCheckTx{
@@ -284,8 +271,36 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 			Log:  core.ErrIntrinsicGas.Error()}
 	}
 
-	if code, errLog := app.lowPriceTxCheck(from, tx, app.lowPriceCheckTransactions); code != abciTypes.CodeTypeOK {
-		return abciTypes.ResponseCheckTx{Code: code, Log: errLog}
+	defaultCost := new(big.Int).Mul(new(big.Int).SetUint64(utils.GetParams().GasPrice), new(big.Int).SetUint64(tx.Gas()))
+
+	// Transactor should have enough funds to cover the costs
+	currentBalance := currentState.GetBalance(from)
+
+	// This check don't do anything
+	// It only filter the tx which qualified the freegas requirement
+	if tx.GasPrice().Int64() == 0 && tx.Gas() > utils.GetParams().LowPriceTxGasLimit && 
+		tx.To() != nil && len(tx.Data()) > 0 {
+		if currentState.GetBalance(*tx.To()).Cmp(defaultCost) < 0 {
+			return abciTypes.ResponseCheckTx{
+				// TODO: Add errors.CodeTypeInsufficientFunds ?
+				Code: errors.CodeHighGasLimitErr,
+				Log: "The gas limit is too high for low price transaction",
+			}
+		}
+	} else {
+		// cost == V + GP * GL
+		if currentBalance.Cmp(tx.Cost()) < 0 {
+			return abciTypes.ResponseCheckTx{
+				// TODO: Add errors.CodeTypeInsufficientFunds ?
+				Code: errors.CodeTypeBaseInvalidInput,
+				Log: fmt.Sprintf(
+					"Current balance: %s, tx cost: %s",
+					currentBalance, tx.Cost())}
+		}
+
+		if code, errLog := app.lowPriceTxCheck(from, tx, app.lowPriceCheckTransactions); code != abciTypes.CodeTypeOK {
+			return abciTypes.ResponseCheckTx{Code: code, Log: errLog}
+		}
 	}
 
 	// Update ether balances
@@ -301,7 +316,7 @@ func (app *EthermintApplication) validateTx(tx *ethTypes.Transaction) abciTypes.
 	return abciTypes.ResponseCheckTx{Code: abciTypes.CodeTypeOK}
 }
 
-func  (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTypes.Transaction, lowPriceTxs map[FromTo]struct{}) (uint32, string)  {
+func (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTypes.Transaction, lowPriceTxs map[FromTo]struct{}) (uint32, string) {
 	// Iterate over all transactions to check if the gas price is too low for the
 	// non-first transaction with the same from/to address
 	// Todo performance maybe
@@ -315,7 +330,8 @@ func  (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTy
 		if _, ok := lowPriceTxs[ft]; ok {
 			return errors.CodeLowGasPriceErr, "The gas price is too low for transaction"
 		}
-		if tx.Gas() > utils.GetParams().LowPriceTxGasLimit {
+		// Bypass if the gasprice == 0 and gaslimit > lowPriceCap
+		if tx.GasPrice().Int64() > 0 && tx.Gas() > utils.GetParams().LowPriceTxGasLimit {
 			return errors.CodeHighGasLimitErr, "The gas limit is too high for low price transaction"
 		}
 		if len(lowPriceTxs) > utils.GetParams().LowPriceTxSlotsCap {

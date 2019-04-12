@@ -628,7 +628,7 @@ func updateUnstakeRequest(req *UnstakeRequest) {
 	}
 }
 
-func SaveCandidateDailyStake(cds *CandidateDailyStake) {
+/*func SaveCandidateDailyStake(cds *CandidateDailyStake) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
@@ -677,7 +677,7 @@ func GetCandidateDailyStakeMaxValue(candidateId int64, startBlockHeight int64) (
 	}
 
 	return
-}
+}*/
 
 func saveCandidateAccountUpdateRequest(req *CandidateAccountUpdateRequest) int64 {
 	txWrapper := getSqlTxWrapper()

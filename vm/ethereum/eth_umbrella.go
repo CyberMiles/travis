@@ -3,7 +3,10 @@ package ethereum
 import (
 	"fmt"
 
+	"math/big"
+
 	"github.com/CyberMiles/travis/modules/stake"
+	"github.com/CyberMiles/travis/utils"
 	schedule "github.com/CyberMiles/travis/vm/ethereum/schedule_tx"
 	"github.com/ethereum/go-ethereum/common"
 	um "github.com/ethereum/go-ethereum/core/vm/umbrella"
@@ -11,8 +14,8 @@ import (
 
 type EthUmbrella struct {
 	DeliveringTxHash *common.Hash
-	lastTxHash *common.Hash
-	hashIndex int
+	lastTxHash       *common.Hash
+	hashIndex        int
 }
 
 func (eu *EthUmbrella) GetValidators() []common.Address {
@@ -41,4 +44,12 @@ func (eu *EthUmbrella) EmitScheduleTx(stx um.ScheduleTx) {
 
 func (eu *EthUmbrella) GetDueTxs() []um.ScheduleTx {
 	return nil
+}
+
+func (eu *EthUmbrella) DefaultGasPrice() *big.Int {
+	return new(big.Int).SetUint64(utils.GetParams().GasPrice)
+}
+
+func (eu *EthUmbrella) FreeGasLimit() *big.Int {
+	return new(big.Int).SetUint64(utils.GetParams().LowPriceTxGasLimit)
 }

@@ -577,8 +577,8 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	d.delegate(txDelegate)
 
 	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
-	cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: d.ctx.BlockHeight()}
-	SaveCandidateDailyStake(cds)
+	//cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: d.ctx.BlockHeight()}
+	//SaveCandidateDailyStake(cds)
 	candidate.PendingVotingPower = candidate.CalcVotingPower(d.ctx.BlockHeight())
 	updateCandidate(candidate)
 	return nil
@@ -614,8 +614,8 @@ func (d deliver) declareGenesisCandidacy(tx TxDeclareCandidacy, val types.Genesi
 	d.delegate(txDelegate)
 
 	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
-	cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: d.ctx.BlockHeight()}
-	SaveCandidateDailyStake(cds)
+	//cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: d.ctx.BlockHeight()}
+	//SaveCandidateDailyStake(cds)
 	candidate.PendingVotingPower = candidate.CalcVotingPower(d.ctx.BlockHeight())
 	updateCandidate(candidate)
 	return nil
@@ -1034,7 +1034,7 @@ func getRechargeAmount(maxAmount sdk.Int, candidate *Candidate, ssr sdk.Rat) (re
 	return
 }
 
-func RecordCandidateDailyStakes(blockHeight int64) error {
+/*func RecordCandidateDailyStakes(blockHeight int64) error {
 	candidates := GetActiveCandidates()
 	for _, candidate := range candidates {
 		cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: blockHeight}
@@ -1045,7 +1045,7 @@ func RecordCandidateDailyStakes(blockHeight int64) error {
 	startBlockHeight := blockHeight - utils.ConvertDaysToHeight(90)
 	RemoveExpiredCandidateDailyStakes(startBlockHeight)
 	return nil
-}
+}*/
 
 func AccumulateDelegationsAverageStakingDate() error {
 	delegations := GetDelegations("Y")

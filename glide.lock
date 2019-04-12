@@ -30,7 +30,7 @@ imports:
   subpackages:
   - sys/windows
 - name: github.com/ethereum/go-ethereum
-  version: b8cbb5195811d83a9c47a657c02e44c406b11e58
+  version: 1f89df98b3a4e9d0867341676ae8578b02c6b655
   repo: https://github.com/CyberMiles/go-ethereum.git
   subpackages:
   - accounts
@@ -241,7 +241,7 @@ imports:
 - name: github.com/rcrowley/go-metrics
   version: e2704e165165ec55d062f5919b4b29494e9fa790
 - name: github.com/rjeczalik/notify
-  version: d152f3ce359a5464dc41e84a8919fc67e55bbbf0
+  version: 629144ba06a1c6af28c1e42c228e3d42594ce081
 - name: github.com/robertkrimen/otto
   version: 15f95af6e78dcd2030d8195a138bd88d4f403546
   subpackages:
