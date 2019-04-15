@@ -16,6 +16,7 @@ type EthUmbrella struct {
 	DeliveringTxHash *common.Hash
 	lastTxHash       *common.Hash
 	hashIndex        int
+	UpSchTx          *schedule.UpcomingScheduleTx
 }
 
 func (eu *EthUmbrella) GetValidators() []common.Address {
@@ -36,9 +37,11 @@ func (eu *EthUmbrella) EmitScheduleTx(stx um.ScheduleTx) {
 			eu.hashIndex += 1
 		} else {
 			eu.lastTxHash = eu.DeliveringTxHash
-			eu.hashIndex = 1
+			eu.hashIndex = 0
 		}
-		schedule.SaveScheduleTx(fmt.Sprintf("%s_%d", eu.DeliveringTxHash.String(), eu.hashIndex), &stx)
+		indexedHash := fmt.Sprintf("%s_%d", eu.DeliveringTxHash.String(), eu.hashIndex)
+		schedule.SaveScheduleTx(indexedHash, &stx)
+		eu.UpSchTx.Add(int64(stx.Unixtime), indexedHash)
 	}
 }
 

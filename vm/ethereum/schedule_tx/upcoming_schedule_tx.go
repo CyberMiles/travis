@@ -67,12 +67,11 @@ func (ust *UpcomingScheduleTx) update(fresh bool) {
 	}
 }
 
-func (ust *UpcomingScheduleTx) Due(lastTs int64) (tsHash map[int64][]string) {
+func (ust *UpcomingScheduleTx) Due(lastTs int64) (hashes []string) {
 	if becomeDue(ust.minTs, lastTs) {
-		tsHash = make(map[int64][]string)
 		for _ts, _hash := range ust.tsHash {
 			if becomeDue(_ts, lastTs) {
-				tsHash[_ts] = _hash
+				hashes = append(hashes, _hash...)
 				delete(ust.tsHash, _ts)
 			}
 		}

@@ -19,6 +19,7 @@ import (
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/CyberMiles/travis/vm/ethereum"
+	schedule "github.com/CyberMiles/travis/vm/ethereum/schedule_tx"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
 	"github.com/ethereum/go-ethereum/params"
 )
@@ -76,7 +77,9 @@ func NewBackend(ctx *node.ServiceContext, ethConfig *eth.Config) (*Backend, erro
 	// We don't need PoW/Uncle validation.
 	ether.BlockChain().SetValidator(NullBlockProcessor{})
 
-	ether.BlockChain().SetUmbrella(&ethereum.EthUmbrella{})
+	ether.BlockChain().SetUmbrella(&ethereum.EthUmbrella{
+		UpSchTx: &schedule.UpcomingScheduleTx{},
+	})
 
 	ethBackend := &Backend{
 		ethereum:  ether,

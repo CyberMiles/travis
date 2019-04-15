@@ -3,11 +3,15 @@ package ethereum
 import (
 	"bytes"
 	"math/big"
+	"strings"
 	"sync"
+
+	"github.com/ethereum/go-ethereum/core/vm/umbrella"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
@@ -23,6 +27,7 @@ import (
 	gov "github.com/CyberMiles/travis/modules/governance"
 	"github.com/CyberMiles/travis/sdk"
 	"github.com/CyberMiles/travis/utils"
+	schedule "github.com/CyberMiles/travis/vm/ethereum/schedule_tx"
 	emtTypes "github.com/CyberMiles/travis/vm/types"
 )
 
@@ -85,7 +90,8 @@ func (es *EthState) Commit(receiver common.Address) (common.Hash, error) {
 	es.mtx.Lock()
 	defer es.mtx.Unlock()
 
-	blockHash, err := es.work.commit(es.ethereum.BlockChain(), es.ethereum.ChainDb(), receiver)
+	chainConfig := es.ethereum.APIBackend.ChainConfig()
+	blockHash, err := es.work.commit(es.ethereum.BlockChain(), es.ethConfig, chainConfig, es.ethereum.ChainDb(), receiver)
 	es.resetWorkState(receiver)
 
 	return blockHash, err
@@ -176,6 +182,7 @@ type workState struct {
 
 	txIndex      int
 	transactions []*ethTypes.Transaction
+	txWithSch    []*umbrella.TxWithSchedule
 	receipts     ethTypes.Receipts
 	allLogs      []*ethTypes.Log
 
@@ -203,8 +210,8 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	txHash := tx.Hash()
 	ws.state.Prepare(txHash, blockHash, ws.txIndex)
 
-	umbrella := ws.es.ethereum.BlockChain().Umbrella().(*EthUmbrella)
-	umbrella.DeliveringTxHash = &txHash
+	um := ws.es.ethereum.BlockChain().Umbrella().(*EthUmbrella)
+	um.DeliveringTxHash = &txHash
 	receipt, usedGas, err := core.ApplyTransaction(
 		chainConfig,
 		blockchain,
@@ -216,7 +223,7 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 		ws.totalUsedGas,
 		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
 	)
-	umbrella.DeliveringTxHash = nil
+	um.DeliveringTxHash = nil
 	if err != nil {
 		return abciTypes.ResponseDeliverTx{Code: errors.CodeTypeInternalErr, Log: err.Error()}
 	}
@@ -236,13 +243,36 @@ func (ws *workState) deliverTx(blockchain *core.BlockChain, config *eth.Config,
 	return abciTypes.ResponseDeliverTx{Code: abciTypes.CodeTypeOK}
 }
 
+func (ws *workState) applySchTx(blockchain *core.BlockChain, config *eth.Config,
+	chainConfig *params.ChainConfig, tx *ethTypes.Transaction, schTx *umbrella.ScheduleTx) error {
+	_, usedGas, err := core.ApplyScheduleTransaction(
+		chainConfig,
+		blockchain,
+		nil, // defaults to address of the author of the header
+		ws.gp,
+		ws.state,
+		ws.header,
+		tx,
+		schTx,
+		ws.totalUsedGas,
+		vm.Config{EnablePreimageRecording: config.EnablePreimageRecording},
+	)
+	if err != nil {
+		return err
+	}
+	usedGasFee := big.NewInt(0).Mul(new(big.Int).SetUint64(usedGas), tx.GasPrice())
+	ws.totalUsedGasFee.Add(ws.totalUsedGasFee, usedGasFee)
+
+	return nil
+}
+
 // Commit the ethereum state, update the header, make a new block and add it to
 // the ethereum blockchain. The application root hash is the hash of the
 // ethereum block.
-func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, receiver common.Address) (common.Hash, error) {
+func (ws *workState) commit(blockchain *core.BlockChain, config *eth.Config, chainConfig *params.ChainConfig, db ethdb.Database, receiver common.Address) (common.Hash, error) {
 	currentHeight := ws.header.Number.Int64()
 
-	proposalIds := utils.PendingProposal.ReachMin(ws.parent.Time().Int64(), currentHeight)
+	proposalIds := utils.PendingProposal.ReachMin(ws.header.Time.Int64(), currentHeight)
 	for _, pid := range proposalIds {
 		proposal := gov.GetProposalById(pid)
 
@@ -336,6 +366,22 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 
 	ws.handleStateChangeQueue()
 
+	um := ws.es.ethereum.BlockChain().Umbrella().(*EthUmbrella)
+	schTxIds := um.UpSchTx.Due(ws.header.Time.Int64())
+	for _, stId := range schTxIds {
+		if schTx, status := schedule.GetScheduleTxByHash(stId); schTx != nil && status != "" {
+			hash := strings.Split(stId, "_")[0]
+			if tx, _, _, _ := rawdb.ReadTransaction(ws.es.ethereum.ChainDb(), common.HexToHash(hash)); tx != nil {
+				ws.applySchTx(blockchain, config, chainConfig, tx, schTx)
+				tws := &umbrella.TxWithSchedule{
+					tx,
+					schTx,
+				}
+				ws.txWithSch = append(ws.txWithSch, tws)
+			}
+		}
+	}
+
 	// Commit ethereum state and update the header.
 	hashArray, err := ws.state.Commit(true)
 	if err != nil {
@@ -354,13 +400,13 @@ func (ws *workState) commit(blockchain *core.BlockChain, db ethdb.Database, rece
 
 	// Save the block to disk.
 	// log.Info("Committing block", "stateHash", hashArray, "blockHash", blockHash)
-	_, err = blockchain.InsertChain([]*ethTypes.Block{block})
+	_, err = blockchain.InsertChainWithSchedule([]*ethTypes.Block{block}, ws.txWithSch)
 	if err != nil {
 		log.Info("Error inserting ethereum block in chain", "err", err)
 
 		ws.es.resetWorkState(receiver)
 
-		pt := ws.parent.Time()
+		pt := ws.header.Time
 		pt = pt.Add(pt, big.NewInt(1))
 		config := ws.es.ethereum.APIBackend.ChainConfig()
 		ws.updateHeaderWithTimeInfo(config, pt.Uint64(), 0, []byte{1})
@@ -434,6 +480,7 @@ func (ws *workState) updateHeaderWithTimeInfo(
 	ws.header.Difficulty = hi
 	ws.header.Time = new(big.Int).SetUint64(parentTime)
 	ws.transactions = make([]*ethTypes.Transaction, 0, numTx)
+	ws.txWithSch = make([]*umbrella.TxWithSchedule, 0)
 	ws.receipts = make([]*ethTypes.Receipt, 0, numTx)
 	ws.allLogs = make([]*ethTypes.Log, 0, numTx)
 }

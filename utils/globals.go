@@ -140,8 +140,8 @@ func (p *pendingProposal) updateBH() {
 	p.minExpireBlockHeight = min
 }
 
-func (p *pendingProposal) ReachMin(timestamp, blockHeight int64) (pids []string) {
-	if shouldBePacked(p.minExpireTimestamp, timestamp) {
+func (p *pendingProposal) ReachMin(blockTs, blockHeight int64) (pids []string) {
+	if shouldBePacked(p.minExpireTimestamp, blockTs) {
 		pids = p.minTSMappedPid
 
 		for _, pid := range pids {
@@ -149,7 +149,7 @@ func (p *pendingProposal) ReachMin(timestamp, blockHeight int64) (pids []string)
 		}
 
 		for pid, ts := range p.proposalsTS {
-			if shouldBePacked(ts, timestamp) {
+			if shouldBePacked(ts, blockTs) {
 				delete(p.proposalsTS, pid)
 				pids = append(pids, pid)
 			}
@@ -171,8 +171,8 @@ func (p *pendingProposal) ReachMin(timestamp, blockHeight int64) (pids []string)
 	return
 }
 
-func shouldBePacked(timestamp, lastTs int64) bool {
-	if timestamp < lastTs || timestamp-lastTs < CommitSeconds {
+func shouldBePacked(timestamp, blockTs int64) bool {
+	if timestamp < blockTs {
 		return true
 	}
 	return false

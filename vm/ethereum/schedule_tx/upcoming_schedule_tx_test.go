@@ -111,14 +111,7 @@ func TestDue(t *testing.T) {
 	ust.Add(baseTs+7, hash3)
 	ust.Add(baseTs+8, hash4)
 	tsHash := ust.Due(baseTs - 4)
-	if len(tsHash) != 2 {
-		t.Error("length of tsHash is expected to be 1, but got", len(tsHash))
-	}
-	ha := tsHash[baseTs+3]
-	if len(ha) != 2 {
-		t.Error("length of tsHash is expected to be 1, but got", len(ha))
-	}
-	if len(ust.tsHash) != 2 {
-		t.Error("length of tsHash is expected to be 1, but got", len(ust.tsHash))
+	if len(tsHash) != 3 {
+		t.Error("length of tsHash is expected to be 3, but got", len(tsHash))
 	}
 }
