@@ -33,7 +33,7 @@ import:
   - rpc/lib/types
   - types
 - package: github.com/ethereum/go-ethereum
-  repo: https://github.com/CyberMiles/go-ethereum.git
+  repo: https://github.com/second-state/lityvm.git
   version: b2246c227d9db7b8e02f72b3354d49e1becbeede
 - package: gopkg.in/urfave/cli.v1
   version: 1.x
