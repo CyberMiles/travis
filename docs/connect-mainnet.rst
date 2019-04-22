@@ -276,7 +276,7 @@ Start the Node and Join Travis MainNet
 Upgrade and Continue
 ---------------------
 
-At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix2`` at block height 230767), and restart.
+At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix1`` at block height 230767), and restart. A notable exception is the switch between ``0.1.3-beta-hotfix1`` and ``0.1.3-beta-hotfix2`` -- that has to happen manually within a specific range of block heights.
 
 ::
 
@@ -285,12 +285,12 @@ At certain block heights, the node will stop. Download the next version of the s
   cd $HOME/release
   
   # if your os is Ubuntu
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta-hotfix2/travis_v0.1.3-beta-hotfix2_ubuntu-16.04.zip
-  unzip travis_v0.1.3-beta-hotfix2_ubuntu-16.04.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta-hotfix1/travis_v0.1.3-beta-hotfix1_ubuntu-16.04.zip
+  unzip travis_v0.1.3-beta-hotfix1_ubuntu-16.04.zip
 
   # or if your os is CentOS
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta-hotfix2/travis_v0.1.3-beta-hotfix2_centos-7.zip
-  unzip travis_v0.1.3-beta-hotfix2_centos-7.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.3-beta-hotfix1/travis_v0.1.3-beta-hotfix1_centos-7.zip
+  unzip travis_v0.1.3-beta-hotfix1_centos-7.zip
   
   ./travis node start
 
@@ -345,13 +345,13 @@ Run the docker Travis application:
 Upgrade and Continue
 ---------------------
 
-At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix2`` at block height 230767), and restart.
+At certain block heights, the node will stop. Download the next version of the software (e.g., ``0.1.3-beta-hotfix1`` at block height 230767), and restart. A notable exception is the switch between ``0.1.3-beta-hotfix1`` and ``0.1.3-beta-hotfix2`` -- that has to happen manually within a specific range of block heights.
 
 ::
 
   docker stop travis
   docker rm travis
   
-  docker pull cybermiles/travis:v0.1.3-beta-hotfix2
-  docker run --privileged --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta-hotfix2 node start --home /travis
+  docker pull cybermiles/travis:v0.1.3-beta-hotfix1
+  docker run --privileged --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta-hotfix1 node start --home /travis
   
