@@ -187,21 +187,21 @@ One of the key characteristics of the CyberMiles blockchain is the finality of e
 
 The table below shows the software version and their corresponding block heights on the mainnet.
 
-================ ==================== ==============
+================ ==================== =====================================================================
 Blocks           Software version     Note
-================ ==================== ==============
+================ ==================== =====================================================================
 0 - 230767       v0.1.2-beta          The chain stops itself at 230767
 230768 - 386223  v0.1.3-beta-hotfix1  
-386224 - 386245  v0.1.3-beta-hotfix2  You will need to mannualy stop the chain within this height range and deploy hotfix2
+386224 - 386245  v0.1.3-beta-hotfix2  Mannualy stop the chain within this height range and deploy hotfix2
 286246 - 1321175 v0.1.3-beta-hotfix2  The chain stops itself at 1321175
 1321176 -        v0.1.7-beta
-================ ==================== ===============
+================ ==================== =====================================================================
 
 The general process for syncing a node from genesis is as follows:
 
 * The 0.1.2-beta software starts from genesis
 * It automatically stops at block 230767
-* You will download 0.1.3-beta-hotfix2 software, and restart the node
+* You will download 0.1.3-beta-hotfix1 software, and restart the node
 * The process repeats until the block height is current
 
 In the instructions below, we will explain how to switch from one version of the software to the next at specific block heights.
