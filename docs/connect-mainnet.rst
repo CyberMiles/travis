@@ -146,7 +146,7 @@ Download the mainnet config and change your name from default name ``local``.
 
   mkdir -p $HOME/.travis/config
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init-mainnet/config.toml > $HOME/.travis/config/config.toml
-  vim ~/.travis/config/config.toml
+  vim $HOME/.travis/config/config.toml
   # here you can change your name
   moniker = "<your_custom_name>"
   
