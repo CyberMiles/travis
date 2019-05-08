@@ -6,7 +6,7 @@ import (
 
 const Major = "0"
 const Minor = "1"
-const Patch = "7"
+const Patch = "8"
 const Label = "beta"
 
 var (
