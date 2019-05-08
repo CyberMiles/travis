@@ -14,7 +14,6 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"golang.org/x/crypto/ripemd160"
-	"math"
 )
 
 //_________________________________________________________________________
@@ -392,6 +391,7 @@ type Delegation struct {
 	BlockHeight           int64          `json:"block_height"`
 	AverageStakingDate    int64          `json:"average_staking_date"`
 	CandidateId           int64          `json:"candidate_id"`
+	Source                string         `json:"source"`
 }
 
 func (d *Delegation) Shares() (res sdk.Int) {
@@ -459,35 +459,20 @@ func (d *Delegation) ResetVotingPower() {
 }
 
 func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64) int64 {
-	candidate := GetCandidateById(d.CandidateId)
-	s := d.ProfitableShares().Div(sdk.E18Int).MulRat(sharesPercentage).Int64()
-
-	t := d.AverageStakingDate
-	if t == 0 {
-		t = 1
-	} else if t > utils.HalfYear {
-		t = utils.HalfYear
+	s := d.ProfitableShares().Div(sdk.E18Int).MulRat(sharesPercentage)
+	var vp int64
+	if d.Source == "cmt_wallet" {
+		vp = s.MulRat(utils.GetParams().CmtWalletStakingYield).Int64()
+	} else {
+		vp = s.Int64()
 	}
 
-	one := sdk.OneRat
-	r1 := one
-	r2 := sdk.NewRat(t, 180)
-	r3 := sdk.NewRat(candidate.NumOfDelegators*4, 1)
-	r4 := sdk.NewRat(s, 1)
-	r2 = r2.Add(one)
-	r3 = one.Sub(one.Quo(r3.Add(one)))
-	r3 = r3.Mul(r3)
-	x, _ := r1.Mul(r3).Mul(r4).Float64()
-	f2, _ := r2.Float64()
-	f2 = utils.RoundFloat(f2, 2)
-	l := math.Log2(f2)
-	vp := int64(math.Ceil(x * l))
 	d.VotingPower = vp
 	return vp
 }
 
 func (d *Delegation) Hash() []byte {
-	var excludedFields []string
+	excludedFields := []string{"source"}
 	bs := types.Hash(d, excludedFields)
 	hasher := ripemd160.New()
 	hasher.Write(bs)

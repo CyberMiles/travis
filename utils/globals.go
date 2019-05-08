@@ -15,6 +15,8 @@ const (
 	YearlyBlockNumber   = 365 * 24 * 3600 / CommitSeconds
 	BasicMintableAmount = "1000000000000000000000000000"
 	DB_FILE_NAME        = "cybermiles.db"
+	Cube                = "cube"
+	CmtWallet           = "cmt_wallet"
 )
 
 const (
