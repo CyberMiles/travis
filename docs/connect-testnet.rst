@@ -2,7 +2,7 @@
 Deploy a TestNet Node
 ======================
 
-In this document, we will discuss how to start your own node and connect to the CyberMiles Travis TestNet. While we highly recommend you to run your own Travis node, you could still directly access `RPC services <https://travis.readthedocs.io/en/latest/json-rpc.html>`_ from a node provided by the CyberMiles Foundation at ``testnet.cmtwallet.io:8545``.
+In this document, we will discuss how to start your own node and connect to the CyberMiles Travis TestNet. While we highly recommend you to run your own Travis node, you could still directly access `RPC services <https://travis.readthedocs.io/en/latest/json-rpc.html>`_ from a node provided by the CyberMiles Foundation at ``https://testnet-rpc.cybermiles.io:8545``.
 
 
 ********
@@ -22,7 +22,7 @@ Please `setup docker <https://docs.docker.com/engine/installation/>`_.
 Docker Image
 ------------
 
-Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/cybermiles/travis/tags/>`_. TestNet environment is using the `'vTestnet' <https://github.com/CyberMiles/travis/releases/tag/vTestnet>`_ release which can be pulled automatically from Travis:
+Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/cybermiles/travis/tags/>`_. The current version of the TestNet environment is always using the `'vTestnet' <https://github.com/CyberMiles/travis/releases/tag/vTestnet>`_ release which can be pulled as follows.
 
 ::
 
@@ -46,6 +46,10 @@ Get a list of recent snapshots of the testnet from AWS S3 `travis-ss-testnet <ht
 
 You can splice the file name from the bucket list. The downloading url will be like ``https://s3-us-west-2.amazonaws.com/travis-ss-testnet/testnet/travis_ss_testnet_1542623121_254975.tar``. You must have found that the file name contains timestamp and block number at which the snapshot is made.
 
+::
+
+  wget $(curl -s http://s3-us-west-2.amazonaws.com/travis-ss-testnet/latest.html)
+
 Extract the file and copy the ``data`` and ``vm`` subdirectories from the uncompressed directory to ``$HOME/.travis``
 
 Start the Node and Join Travis TestNet
@@ -63,7 +67,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:vTestnet node start --home /travis
+  docker run --privileged --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:vTestnet node start --home /travis
 
 
 Attach to the Node and run web3-cmt.js 
@@ -238,13 +242,16 @@ One of the key characteristics of the CyberMiles blockchain is the finality of e
 
 The table below shows the software version and their corresponding block heights on the testnet.
 
-================= ====================
-Blocks            Software version
-================= ====================
-0 - 224550        0.1.2-beta
-224551 - 1083930  0.1.3-beta-hotfix1
-1083931 -         0.1.4-beta
-================= ====================
+===================== ====================
+Blocks                Software version
+===================== ====================
+0 - 224550            0.1.2-beta
+224551 - 1083930      0.1.3-beta-hotfix1
+1083931 - 1190700     0.1.4-beta
+1190701 - 1248300     0.1.5-beta
+1248301 - 1306100     0.1.6-beta-testnet
+1306101 -             0.1.7-beta-testnet
+===================== ====================
 
 The general process for syncing a node from genesis is as follows:
 
@@ -388,7 +395,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.2-beta node start --home /travis
+  docker run --privileged --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.2-beta node start --home /travis
 
 Upgrade and Continue
 ---------------------
@@ -401,7 +408,7 @@ At certain block heights, the node will stop. Download the next version of the s
   docker rm travis
   
   docker pull cybermiles/travis:v0.1.3-beta-hotfix1
-  docker run --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta-hotfix1 node start --home /travis
+  docker run --privileged --name travis -v $HOME/.travis:/travis -p 26657:26657 -t cybermiles/travis:v0.1.3-beta-hotfix1 node start --home /travis
   
 
 

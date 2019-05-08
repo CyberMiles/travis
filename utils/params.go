@@ -39,6 +39,7 @@ type Params struct {
 	CalStakeInterval                       uint64  `json:"cal_stake_interval" type:"uint"`
 	CalVPInterval                          uint64  `json:"cal_vp_interval" type:"uint"`
 	CalAverageStakingDateInterval          uint64  `json:"cal_avg_staking_date_interval" type:"uint"`
+	CmtWalletStakingYield                  sdk.Rat `json:"cmt_wallet_staking_yield" type:"rat"`
 }
 
 func DefaultParams() *Params {
@@ -73,6 +74,7 @@ func DefaultParams() *Params {
 		CalStakeInterval:                       1, // calculate stake interval, default per block
 		CalVPInterval:                          1, // calculate voting power interval, default per block
 		CalAverageStakingDateInterval:          24 * 3600 / 10,
+		CmtWalletStakingYield:                  sdk.NewRat(80, 100),
 	}
 }
 

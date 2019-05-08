@@ -48,5 +48,17 @@ can propose governance changes, but only the current validators can vote. Learn 
 `governance transactions <https://cybermiles.github.io/web3-cmt.js/api/governance.html>`_.
 
 
+"Free" transactions
+-------- 
+
+Most CyberMiles transactions require the caller to pay a gas fee. However, it is sometimes possible to set the ``gasPrice`` to zero and avoid paying the fee altogether! When the caller sends in a transaction with ``gasPrice=0``, the node determines whether to reject the transaction.
+
+* If the transaction ``gasLimit`` is less than 500,000 (this is an adjustable parameter in the system), the transaction will be accepted and executed for free.
+
+* If the transaction ``gasLimit > 500000`` and the transaction is a smart contract function call, the function call will be executed by the VM. However, the VM would then require the function to be ``freegas``, meaning that the gas fee will come from the contract itself. If the ``freegas`` requirements are not met, the VM will fail the transaction. Learn more about the `freegas transactions <https://lity.readthedocs.io/en/latest/freegas.html>`_
+
+CyberMiles allows only one free transaction per block for the same from / to addresses.
+
+
 
 

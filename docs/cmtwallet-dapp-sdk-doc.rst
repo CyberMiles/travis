@@ -5,13 +5,13 @@ CMT Wallet - dApp SDK Guideline
 Introduction
 ====
 
-This document user helps DApp developers access the CMT Wallet DApp SDK. 
+This document helps DApp developers access the CMT Wallet DApp SDK. 
 
-In general, DApp requires a hosting environment to interact with the user's wallet, just like metamask  CMT Walelet provides this environment in the app.
+In general, DApp requires a hosting environment to interact with the user's wallet, just like metamask, CMT Wallet provides this environment in the app.
 
 In DApp browser, DApp can do the same and more things in Metamask.
 
-To keep things simple, this document will use DApp browser for CMT Walelet* DApp browser* , DApp for DApp webpage. 
+To keep things simple, this document will use DApp browser for CMT Wallet DApp browser, DApp for DApp webpage. 
 
 Web3JS
 ====
@@ -90,6 +90,9 @@ Developer Toolkit
 -----------------------------------------------------------------------------------------------------------
 
  `CMTTracking <https://www.cmttracking.io/>`_
+-----------------------------------------------------------------------------------------------------------
+
+ `Get testnet CMT <http://travis-faucet.cybermiles.io/index.html>`_
 -----------------------------------------------------------------------------------------------------------
 
  `web3-cmt.js <https://github.com/CyberMiles/web3-cmt.js>`_

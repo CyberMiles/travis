@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"database/sql"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"gopkg.in/urfave/cli.v1"
@@ -19,6 +21,7 @@ import (
 
 	"github.com/CyberMiles/travis/api"
 	"github.com/CyberMiles/travis/app"
+	travisUtils "github.com/CyberMiles/travis/utils"
 	"github.com/CyberMiles/travis/vm/cmd/utils"
 	emtUtils "github.com/CyberMiles/travis/vm/cmd/utils"
 	"github.com/CyberMiles/travis/vm/ethereum"
@@ -54,6 +57,12 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 		os.Exit(1)
 	}
 	ethApp.SetLogger(emtUtils.EthermintLogger().With("module", "vm"))
+
+	// Alter database if needed
+	if err = alterDatabaseIfNeeded(rootDir); err != nil {
+		log.Warn(err.Error())
+		os.Exit(1)
+	}
 
 	// Create Basecoin app
 	basecoinApp, err := createBaseApp(rootDir, storeApp, ethApp, backend.Ethereum())
@@ -159,4 +168,34 @@ func startTendermint(basecoinApp abcitypes.Application) (*node.Node, error) {
 	}
 
 	return n, nil
+}
+
+func alterDatabaseIfNeeded(rootDir string) error {
+	stakeDbPath := filepath.Join(rootDir, "data", travisUtils.DB_FILE_NAME)
+	db, err := sql.Open("sqlite3", stakeDbPath)
+	if err != nil {
+		return err
+	}
+
+	defer db.Close()
+
+	var cnt int64
+	err = db.QueryRow("SELECT COUNT(*) AS cnt FROM pragma_table_info('delegations') WHERE name='source'").Scan(&cnt)
+	if err != nil {
+		return err
+	}
+
+	if cnt == 1 {
+		return nil
+	}
+
+	sqlStmt := "alter table delegations add column source text not null default 'cube'"
+	_, err = db.Exec(sqlStmt)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Successfully altered database!")
+
+	return nil
 }

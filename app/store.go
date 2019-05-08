@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/CyberMiles/travis/utils"
 	"math/big"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/CyberMiles/travis/utils"
 
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/ripemd160"
