@@ -327,14 +327,14 @@ func SaveDelegation(d *Delegation) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
 
-	stmt, err := txWrapper.tx.Prepare("insert into delegations(delegator_address, candidate_id, delegate_amount, award_amount, withdraw_amount, pending_withdraw_amount, slash_amount, comp_rate, hash, voting_power, state, block_height, average_staking_date, created_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := txWrapper.tx.Prepare("insert into delegations(delegator_address, candidate_id, delegate_amount, award_amount, withdraw_amount, pending_withdraw_amount, slash_amount, comp_rate, hash, voting_power, state, block_height, average_staking_date, created_at, source) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		panic(err)
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.DelegatorAddress.String(), d.CandidateId, d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.PendingWithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.State, d.BlockHeight, d.AverageStakingDate, d.CreatedAt)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), d.CandidateId, d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.PendingWithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.State, d.BlockHeight, d.AverageStakingDate, d.CreatedAt, d.Source)
 	if err != nil {
 		panic(err)
 	}
@@ -360,12 +360,12 @@ func RemoveDelegation(id int64) {
 func UpdateDelegation(d *Delegation) {
 	txWrapper := getSqlTxWrapper()
 	defer txWrapper.Commit()
-	stmt, err := txWrapper.tx.Prepare("update delegations set delegator_address = ?, delegate_amount = ?, award_amount =?, withdraw_amount = ?, pending_withdraw_amount = ?, slash_amount = ?, comp_rate = ?, hash = ?, voting_power = ?, state = ?, average_staking_date = ? where id = ?")
+	stmt, err := txWrapper.tx.Prepare("update delegations set delegator_address = ?, delegate_amount = ?, award_amount =?, withdraw_amount = ?, pending_withdraw_amount = ?, slash_amount = ?, comp_rate = ?, hash = ?, voting_power = ?, state = ?, average_staking_date = ?, source = ? where id = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(d.DelegatorAddress.String(), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.PendingWithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.State, d.AverageStakingDate, d.Id)
+	_, err = stmt.Exec(d.DelegatorAddress.String(), d.DelegateAmount, d.AwardAmount, d.WithdrawAmount, d.PendingWithdrawAmount, d.SlashAmount, d.CompRate.String(), common.Bytes2Hex(d.Hash()), d.VotingPower, d.State, d.AverageStakingDate, d.Source, d.Id)
 	if err != nil {
 		panic(err)
 	}
@@ -425,7 +425,7 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	defer txWrapper.Commit()
 
 	clause, params := buildQueryClause(cond)
-	rows, err := txWrapper.tx.Query("select id, delegator_address, candidate_id, delegate_amount, award_amount, withdraw_amount, pending_withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at from delegations"+clause, params...)
+	rows, err := txWrapper.tx.Query("select id, delegator_address, candidate_id, delegate_amount, award_amount, withdraw_amount, pending_withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at, source from delegations"+clause, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -437,9 +437,9 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 
 func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 	for rows.Next() {
-		var delegatorAddress, delegateAmount, awardAmount, withdrawAmount, pendingWithdrawAmount, slashAmount, compRate, state string
+		var delegatorAddress, delegateAmount, awardAmount, withdrawAmount, pendingWithdrawAmount, slashAmount, compRate, state, source string
 		var id, votingPower, blockHeight, averageStakingDate, candidateId, createdAt int64
-		err := rows.Scan(&id, &delegatorAddress, &candidateId, &delegateAmount, &awardAmount, &withdrawAmount, &pendingWithdrawAmount, &slashAmount, &compRate, &votingPower, &state, &blockHeight, &averageStakingDate, &createdAt)
+		err := rows.Scan(&id, &delegatorAddress, &candidateId, &delegateAmount, &awardAmount, &withdrawAmount, &pendingWithdrawAmount, &slashAmount, &compRate, &votingPower, &state, &blockHeight, &averageStakingDate, &createdAt, &source)
 		if err != nil {
 			panic(err)
 		}
@@ -460,6 +460,7 @@ func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 			BlockHeight:           blockHeight,
 			AverageStakingDate:    averageStakingDate,
 			CreatedAt:             createdAt,
+			Source:                source,
 		}
 		delegations = append(delegations, delegation)
 	}

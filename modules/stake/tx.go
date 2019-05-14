@@ -173,18 +173,20 @@ type TxDelegate struct {
 	Amount           string         `json:"amount"`
 	CubeBatch        string         `json:"cube_batch"`
 	Sig              string         `json:"sig"`
+	Source           string         `json:"source"`
 }
 
 func (tx TxDelegate) ValidateBasic() error {
 	return nil
 }
 
-func NewTxDelegate(validatorAddress common.Address, amount, cubeBatch, sig string) sdk.Tx {
+func NewTxDelegate(validatorAddress common.Address, amount, cubeBatch, sig, source string) sdk.Tx {
 	return TxDelegate{
 		ValidatorAddress: validatorAddress,
 		Amount:           amount,
 		CubeBatch:        cubeBatch,
 		Sig:              sig,
+		Source:           source,
 	}.Wrap()
 }
 

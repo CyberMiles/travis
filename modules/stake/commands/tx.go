@@ -311,11 +311,11 @@ func cmdDelegate(cmd *cobra.Command, args []string) error {
 	}
 
 	sig := viper.GetString(FlagSig)
-	if sig == "" {
-		return fmt.Errorf("please enter signature using --sig")
-	}
+	//if sig == "" {
+	//	return fmt.Errorf("please enter signature using --sig")
+	//}
 
-	tx := stake.NewTxDelegate(validatorAddress, amount, cubeBatch, sig)
+	tx := stake.NewTxDelegate(validatorAddress, amount, cubeBatch, sig, "")
 	return txcmd.DoTx(tx)
 }
 
