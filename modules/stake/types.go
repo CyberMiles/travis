@@ -462,7 +462,7 @@ func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64
 	s := d.ProfitableShares().Div(sdk.E18Int).MulRat(sharesPercentage)
 	var vp int64
 	if d.Source == "cmt_wallet" {
-		vp = s.MulRat(utils.GetParams().CmtWalletStakingYield).Int64()
+		vp = s.MulRat(sdk.NewRat(80, 100)).Int64()
 	} else {
 		vp = s.Int64()
 	}
