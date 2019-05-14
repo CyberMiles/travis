@@ -242,17 +242,17 @@ One of the key characteristics of the CyberMiles blockchain is the finality of e
 
 The table below shows the software version and their corresponding block heights on the testnet.
 
-===================== ====================
-Blocks                Software version
-===================== ====================
+===================== ==================== ===========================================================
+Blocks                Software version     Notes
+===================== ==================== ===========================================================
 0 - 224550            0.1.2-beta
 224551 - 1083930      0.1.3-beta-hotfix1
 1083931 - 1190700     0.1.4-beta
 1190701 - 1248300     0.1.5-beta
 1248301 - 1306100     0.1.6-beta-testnet
 1306101 - 1653200     0.1.7-beta-testnet
-1653201 -             0.1.8-beta
-===================== ====================
+1653201 -             0.1.8-beta           Crashed at 1694600,fixed w/o changing version #
+===================== ==================== ===========================================================
 
 The general process for syncing a node from genesis is as follows:
 
