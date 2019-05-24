@@ -194,7 +194,8 @@ Blocks                 Software version     Note
 230768 - 386223        v0.1.3-beta-hotfix1  
 386224 - 386245        v0.1.3-beta-hotfix2  Mannualy stop the chain within this height range and deploy hotfix2
 286246 - 1321175       v0.1.3-beta-hotfix2  The chain stops itself at 1321175
-1321176 -              v0.1.7-beta
+1321176 - 1700580      v0.1.7-beta          The chain stops itself at 1700580
+1700581 -              v0.1.8-beta
 ====================== ==================== =====================================================================
 
 The general process for syncing a node from genesis is as follows:
