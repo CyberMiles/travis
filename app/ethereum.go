@@ -331,7 +331,7 @@ func (app *EthermintApplication) lowPriceTxCheck(from common.Address, tx *ethTyp
 			return errors.CodeLowGasPriceErr, "The gas price is too low for transaction"
 		}
 		// Bypass if the gasprice == 0 and gaslimit > lowPriceCap
-		if tx.GasPrice().Int64() > 0 && tx.Gas() > utils.GetParams().LowPriceTxGasLimit {
+		if (tx.GasPrice().Int64() > 0 || tx.To() == nil) && tx.Gas() > utils.GetParams().LowPriceTxGasLimit {
 			return errors.CodeHighGasLimitErr, "The gas limit is too high for low price transaction"
 		}
 		if len(lowPriceTxs) > utils.GetParams().LowPriceTxSlotsCap {
