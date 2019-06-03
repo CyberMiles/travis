@@ -19,6 +19,7 @@ type simpleValidator struct {
 	vp           int64
 	state        string
 	logger       log.Logger
+	height           int64
 }
 
 func (v *simpleValidator) distributeAward(totalAward sdk.Int, totalVotingPower int64) (res sdk.Int) {
@@ -35,6 +36,10 @@ func (v *simpleValidator) distributeAward(totalAward sdk.Int, totalVotingPower i
 		t = t.Add(sdk.NewRat(d.vp*d.c.Num().Int64(), d.c.Denom().Int64()))
 		//fmt.Println(d)
 		//fmt.Printf("a: %v, b: %v, c: %v, t: %v, res: %v\n", a, b, c, t, res)
+		if d.address == v.ownerAddress {
+			// format: block|validator|award|type
+			fmt.Printf("#######|%d|%s|%v|%s\n", v.height, v.ownerAddress.String(), c, "delegators")
+		}
 	}
 
 	// distribute to the validator self
@@ -42,6 +47,7 @@ func (v *simpleValidator) distributeAward(totalAward sdk.Int, totalVotingPower i
 	v.distributeAwardToSelf(c)
 	res = res.Add(c)
 	//fmt.Printf("c: %v, res: %v\n", c, res)
+	fmt.Printf("#######|%d|%s|%v|%s\n", v.height, v.ownerAddress.String(), c, "self")
 	return
 }
 
@@ -175,6 +181,7 @@ func (ad *awardDistributor) buildValidators(rawValidators Validators) (normalize
 		validator.ownerAddress = common.HexToAddress(candidate.OwnerAddress)
 		validator.id = candidate.Id
 		validator.state = candidate.State
+		validator.height = ad.height
 
 		// Get all delegators
 		delegations := GetDelegationsByCandidate(candidate.Id, "Y")
