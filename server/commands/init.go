@@ -66,7 +66,7 @@ func initTendermint() {
 		os.Mkdir(dir, os.ModePerm)
 		privValidator = pv.GenFilePV(privValFile)
 		privValidator.Save()
-		logger.Info("Genetated private validator", "path", privValFile)
+		logger.Info("Generated private validator", "path", privValFile)
 	}
 
 	nodeKeyFile := config.TMConfig.NodeKeyFile()
@@ -101,7 +101,7 @@ func initTendermint() {
 		if err := genDoc.SaveAs(genFile); err != nil {
 			panic(err)
 		}
-		logger.Info("Genetated genesis file", "path", genFile)
+		logger.Info("Generated genesis file", "path", genFile)
 	}
 }
 

@@ -272,6 +272,10 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		return ErrBadValidatorAddr()
 	}
 
+	if candidate.ParseShares() == sdk.ZeroInt {
+		return ErrCandidateAlreadyWithdrew()
+	}
+
 	totalCost := gasFee
 	// If the max amount of CMTs is updated, the 10% of self-staking will be re-computed,
 	// and the different will be charged
@@ -575,7 +579,7 @@ func (d deliver) declareCandidacy(tx TxDeclareCandidacy, gasFee sdk.Int) error {
 	d.ctx.EthappState().AddBalance(utils.HoldAccount, gasFee.Int)
 	SaveCandidate(candidate)
 
-	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String()}
+	txDelegate := TxDelegate{ValidatorAddress: d.sender, Amount: amount.String(), Source: utils.Cube}
 	d.delegate(txDelegate)
 
 	candidate = GetCandidateByPubKey(pubKey) // candidate object was modified by the delegation operation.
@@ -894,7 +898,7 @@ func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *C
 	}
 	saveUnstakeRequest(unstakeRequest)
 
-	delegateHistory := &DelegateHistory{DelegatorAddress: d.sender, CandidateId: candidate.Id, Amount: amount, OpCode: "withdraw", BlockHeight: d.ctx.BlockHeight()}
+	delegateHistory := &DelegateHistory{DelegatorAddress: delegation.DelegatorAddress, CandidateId: candidate.Id, Amount: amount, OpCode: "withdraw", BlockHeight: d.ctx.BlockHeight()}
 	saveDelegateHistory(delegateHistory)
 	return
 }

@@ -417,14 +417,6 @@ func finalAppHash(ethCommitHash []byte, travisCommitHash []byte, dbHash []byte, 
 	return hash
 }
 
-func calStakeCheck(height int64) bool {
-	return height%int64(utils.GetParams().CalStakeInterval) == 0
-}
-
 func calVPCheck(height int64) bool {
 	return height == 1 || height%int64(utils.GetParams().CalVPInterval) == 0
-}
-
-func calAvgStakingDateCheck(height int64) bool {
-	return height%int64(utils.GetParams().CalAverageStakingDateInterval) == 0
 }
