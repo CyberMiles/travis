@@ -360,7 +360,7 @@ describe("Stake Test", function() {
     })
   })
 
-  describe("Block awards check after D becomes a validator", function() {
+  describe.skip("Block awards check after D becomes a validator", function() {
     let awardInfos
     before(function() {
       awardInfos = web3.cmt.stake.validator.queryAwardInfos()
@@ -375,7 +375,7 @@ describe("Stake Test", function() {
       logger.debug("sum, diff: ", sum.toString(), diff)
       expect(diff).to.be.at.most(Number(web3.toWei(1, "gwei")))
     })
-    it("5 in total, 4 validators, 1 backup, D is backup validator", function() {
+    it("5 in total, 4 validators, 1 backup, D is validator", function() {
       if (Globals.TestMode == "cluster") {
         expect(awardInfos.data.length).to.be.eq(5)
         let vCount = awardInfos.data.filter(o => o.state == "Validator").length
@@ -383,7 +383,7 @@ describe("Stake Test", function() {
         expect(vCount).to.be.eq(4)
         expect(bCount).to.be.eq(1)
         let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
-        expect(data != null && data.state == "Backup Validator").to.be.true
+        expect(data != null && data.state == "Validator").to.be.true
       } else {
         expect(awardInfos.data.length).to.be.eq(1)
       }
