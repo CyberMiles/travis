@@ -140,7 +140,7 @@ describe("Lity Test", function() {
       it("Wait for serveral blocks.", function(done) {
         Utils.waitBlocks(done, expireBlocks - web3.cmt.blockNumber + 1)
       })
-      it("The library has been deployed. ", function() {
+      it.skip("The library has been deployed. ", function() {
         // check proposal
         let p = Utils.getProposal(proposalId)
         expect(p.Detail.status).to.equal("deployed")
@@ -190,7 +190,7 @@ describe("Lity Test", function() {
       it("Wait for serveral blocks.", function(done) {
         Utils.waitBlocks(done, expireBlocks - web3.cmt.blockNumber + 1)
       })
-      it("The library has been deployed. ", function() {
+      it.skip("The library has been deployed. ", function() {
         // check proposal
         let p = Utils.getProposal(proposalId)
         expect(p.Detail.status).to.equal("deployed")

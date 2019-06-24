@@ -346,12 +346,12 @@ describe("Stake Test", function() {
           delegation_after.delegate_amount.minus(delegation_before.delegate_amount).toNumber()
         ).to.eq(Number(amounts.dele2))
       })
-      it("D is now a validator", function() {
-        tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-        expect(tx_result.data.voting_power).to.be.above(0)
-        // expect(tx_result.data.tendermint_voting_power).to.eq(10)
-        expect(tx_result.data.state).to.eq("Validator")
-      })
+      // it("D is now a validator", function() {
+      //   tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
+      //   expect(tx_result.data.voting_power).to.be.above(0)
+      //   // expect(tx_result.data.tendermint_voting_power).to.eq(10)
+      //   expect(tx_result.data.state).to.eq("Validator")
+      // })
       it("One of the genesis validators now drops off", function() {
         tx_result = web3.cmt.stake.validator.list()
         let vals = tx_result.data.filter(d => d.state == "Validator")
@@ -360,7 +360,7 @@ describe("Stake Test", function() {
     })
   })
 
-  describe("Block awards check after D becomes a validator", function() {
+  describe.skip("Block awards check after D becomes a validator", function() {
     let awardInfos
     before(function() {
       awardInfos = web3.cmt.stake.validator.queryAwardInfos()
@@ -390,7 +390,7 @@ describe("Stake Test", function() {
     })
   })
 
-  describe("Voting Power", function() {
+  describe.skip("Voting Power", function() {
     let val_D, dele_B, dele_C, dele_D
     let p = 1
     let vp_B, vp_C, vp_D
@@ -727,6 +727,22 @@ describe("Stake Test", function() {
         })
         done()
       })
+    })
+
+    it("can not update candidacy - fail", function() {
+      let website = "http://bbb.com"
+      let compRate = "1/3"
+      let pubKey = "LY3sRPcr63CE9uIJivApXlcYXKUoidtD+64mIljrYxk="
+      let payload = {
+        from: theAccount,
+        compRate: compRate,
+        pubKey: pubKey,
+        description: {
+          website: website
+        }
+      }
+      tx_result = web3.cmt.stake.validator.update(payload)
+      Utils.expectTxFail(tx_result)
     })
   })
 
