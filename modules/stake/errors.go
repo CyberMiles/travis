@@ -27,6 +27,7 @@ var (
 	errCandidateAlreadyActivated          = fmt.Errorf("Candidate has been activated")
 	errCandidateAlreadyDeactivated        = fmt.Errorf("Candidate has been deactivated")
 	errBadRequest                         = fmt.Errorf("Bad request")
+	errCandidateAlreadyWithdrew           = fmt.Errorf("Candidate has been withdrawn")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
@@ -99,4 +100,8 @@ func ErrCandidateAlreadyActivated() error {
 
 func ErrCandidateAlreadyDeactivated() error {
 	return errors.WithCode(errCandidateAlreadyDeactivated, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrCandidateAlreadyWithdrew() error {
+	return errors.WithCode(errCandidateAlreadyWithdrew, errors.CodeTypeBaseInvalidOutput)
 }
