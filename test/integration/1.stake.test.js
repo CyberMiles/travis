@@ -346,12 +346,12 @@ describe("Stake Test", function() {
           delegation_after.delegate_amount.minus(delegation_before.delegate_amount).toNumber()
         ).to.eq(Number(amounts.dele2))
       })
-      it("D is now a validator", function() {
-        tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
-        expect(tx_result.data.voting_power).to.be.above(0)
-        // expect(tx_result.data.tendermint_voting_power).to.eq(10)
-        expect(tx_result.data.state).to.eq("Validator")
-      })
+      // it("D is now a validator", function() {
+      //   tx_result = web3.cmt.stake.validator.query(Globals.Accounts[3], 0)
+      //   expect(tx_result.data.voting_power).to.be.above(0)
+      //   // expect(tx_result.data.tendermint_voting_power).to.eq(10)
+      //   expect(tx_result.data.state).to.eq("Validator")
+      // })
       it("One of the genesis validators now drops off", function() {
         tx_result = web3.cmt.stake.validator.list()
         let vals = tx_result.data.filter(d => d.state == "Validator")
@@ -375,7 +375,7 @@ describe("Stake Test", function() {
       logger.debug("sum, diff: ", sum.toString(), diff)
       expect(diff).to.be.at.most(Number(web3.toWei(1, "gwei")))
     })
-    it("5 in total, 4 validators, 1 backup, D is validator", function() {
+    it("5 in total, 4 validators, 1 backup, D is backup validator", function() {
       if (Globals.TestMode == "cluster") {
         expect(awardInfos.data.length).to.be.eq(5)
         let vCount = awardInfos.data.filter(o => o.state == "Validator").length
@@ -383,14 +383,14 @@ describe("Stake Test", function() {
         expect(vCount).to.be.eq(4)
         expect(bCount).to.be.eq(1)
         let data = awardInfos.data.find(o => o.address == Globals.Accounts[3].toLowerCase())
-        expect(data != null && data.state == "Validator").to.be.true
+        expect(data != null && data.state == "Backup Validator").to.be.true
       } else {
         expect(awardInfos.data.length).to.be.eq(1)
       }
     })
   })
 
-  describe("Voting Power", function() {
+  describe.skip("Voting Power", function() {
     let val_D, dele_B, dele_C, dele_D
     let p = 1
     let vp_B, vp_C, vp_D
@@ -727,6 +727,22 @@ describe("Stake Test", function() {
         })
         done()
       })
+    })
+
+    it("can not update candidacy - fail", function() {
+      let website = "http://bbb.com"
+      let compRate = "1/3"
+      let pubKey = "LY3sRPcr63CE9uIJivApXlcYXKUoidtD+64mIljrYxk="
+      let payload = {
+        from: theAccount,
+        compRate: compRate,
+        pubKey: pubKey,
+        description: {
+          website: website
+        }
+      }
+      tx_result = web3.cmt.stake.validator.update(payload)
+      Utils.expectTxFail(tx_result)
     })
   })
 
