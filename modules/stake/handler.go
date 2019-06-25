@@ -272,7 +272,7 @@ func (c check) updateCandidacy(tx TxUpdateCandidacy, gasFee sdk.Int) error {
 		return ErrBadValidatorAddr()
 	}
 
-	if candidate.ParseShares() == sdk.ZeroInt {
+	if sdk.ZeroInt.Equal(candidate.ParseShares()) {
 		return ErrCandidateAlreadyWithdrew()
 	}
 
