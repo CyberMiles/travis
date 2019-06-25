@@ -332,6 +332,10 @@ func (c check) verifyCandidacy(tx TxVerifyCandidacy) error {
 		return ErrBadValidatorAddr()
 	}
 
+	if sdk.ZeroInt.Equal(candidate.ParseShares()) {
+		return ErrCandidateAlreadyWithdrew()
+	}
+
 	// check to see if the request was initiated by a special account
 	if c.sender != common.HexToAddress(utils.GetParams().FoundationAddress) {
 		return ErrVerificationDisallowed()
@@ -352,8 +356,9 @@ func (c check) activateCandidacy(tx TxActivateCandidacy) error {
 	}
 
 	if candidate.ParseShares().Equal(sdk.ZeroInt) {
-		return ErrBadRequest()
+		return ErrCandidateAlreadyWithdrew()
 	}
+
 	return nil
 }
 
@@ -367,6 +372,11 @@ func (c check) deactivateCandidacy(tx TxDeactivateCandidacy) error {
 	if candidate.Active == "N" {
 		return ErrCandidateAlreadyDeactivated()
 	}
+
+	if sdk.ZeroInt.Equal(candidate.ParseShares()) {
+		return ErrCandidateAlreadyWithdrew()
+	}
+
 	return nil
 }
 
@@ -381,6 +391,10 @@ func (c check) delegate(tx TxDelegate) error {
 	candidate := GetCandidateByAddress(tx.ValidatorAddress)
 	if candidate == nil {
 		return ErrBadValidatorAddr()
+	}
+
+	if sdk.ZeroInt.Equal(candidate.ParseShares()) {
+		return ErrCandidateAlreadyWithdrew()
 	}
 
 	// check if the delegator has sufficient funds
@@ -437,6 +451,10 @@ func (c check) setCompRate(tx TxSetCompRate, gasFee sdk.Int) error {
 		return ErrBadValidatorAddr()
 	}
 
+	if sdk.ZeroInt.Equal(candidate.ParseShares()) {
+		return ErrCandidateAlreadyWithdrew()
+	}
+
 	d := GetDelegation(tx.DelegatorAddress, candidate.Id)
 	if d == nil {
 		return ErrDelegationNotExists()
@@ -458,6 +476,10 @@ func (c check) updateCandidateAccount(tx TxUpdateCandidacyAccount, gasFee sdk.In
 	candidate := GetCandidateByAddress(c.sender)
 	if candidate == nil {
 		return 0, ErrBadRequest()
+	}
+
+	if sdk.ZeroInt.Equal(candidate.ParseShares()) {
+		return 0, ErrCandidateAlreadyWithdrew()
 	}
 
 	tmp := GetCandidateByAddress(tx.NewCandidateAddress)
