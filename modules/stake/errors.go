@@ -28,6 +28,7 @@ var (
 	errCandidateAlreadyDeactivated        = fmt.Errorf("Candidate has been deactivated")
 	errBadRequest                         = fmt.Errorf("Bad request")
 	errCandidateAlreadyWithdrew           = fmt.Errorf("Candidate has been withdrawn")
+	errDelegatorHasPendingWithdrawal      = fmt.Errorf("Delegator has a pending withdrawal")
 
 	invalidInput = errors.CodeTypeBaseInvalidInput
 )
@@ -104,4 +105,8 @@ func ErrCandidateAlreadyDeactivated() error {
 
 func ErrCandidateAlreadyWithdrew() error {
 	return errors.WithCode(errCandidateAlreadyWithdrew, errors.CodeTypeBaseInvalidOutput)
+}
+
+func ErrDelegatorHasPendingWithdrawal() error {
+	return errors.WithCode(errDelegatorHasPendingWithdrawal, errors.CodeTypeBaseInvalidOutput)
 }

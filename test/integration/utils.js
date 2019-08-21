@@ -111,7 +111,8 @@ const getDelegation = (acc_index, val_index, vals) => {
     slash_amount: web3.toBigNumber(0),
     shares: web3.toBigNumber(0),
     voting_power: 0,
-    comp_rate: 0
+    comp_rate: 0,
+    completely_withdraw: "N",
   }
   result = web3.cmt.stake.delegator.query(Globals.Accounts[acc_index], 0)
   if (result && result.data) {
@@ -126,7 +127,8 @@ const getDelegation = (acc_index, val_index, vals) => {
         pending_withdraw_amount: web3.toBigNumber(data.pending_withdraw_amount),
         slash_amount: web3.toBigNumber(data.slash_amount),
         voting_power: Number(data.voting_power),
-        comp_rate: eval(data.comp_rate)
+        comp_rate: eval(data.comp_rate),
+        completely_withdraw: data.completely_withdraw,
       }
     delegation.shares = delegation.delegate_amount
       .plus(delegation.award_amount)
@@ -143,7 +145,8 @@ const getDelegation = (acc_index, val_index, vals) => {
     `slash_amount: ${delegation.slash_amount.toString(10)}`,
     `shares: ${delegation.shares.toString(10)}`,
     `voting_power: ${delegation.voting_power}`,
-    `comp_rate: ${delegation.comp_rate}`
+    `comp_rate: ${delegation.comp_rate}`,
+      `completely_withdraw: ${delegation.completely_withdraw}`
   )
   return delegation
 }

@@ -120,6 +120,7 @@ func (ad awardDistributor) getMintableAmount() (amount sdk.Int) {
 	pow = utils.RoundFloat(pow, 2)
 	r := sdk.NewRat(int64(pow*100), 100)
 	amount = base.MulRat(r)
+	//amount = base
 	ad.logger.Debug("getMintableAmount", "height", ad.height, "year", year, "amount", amount)
 	return
 }

@@ -194,18 +194,20 @@ func NewTxDelegate(validatorAddress common.Address, amount, cubeBatch, sig, sour
 func (tx TxDelegate) Wrap() sdk.Tx { return sdk.Tx{tx} }
 
 type TxWithdraw struct {
-	ValidatorAddress common.Address `json:"validator_address"`
-	Amount           string         `json:"amount"`
+	ValidatorAddress   common.Address `json:"validator_address"`
+	Amount             string         `json:"amount"`
+	CompletelyWithdraw bool           `json:"completely_withdraw"`
 }
 
 func (tx TxWithdraw) ValidateBasic() error {
 	return nil
 }
 
-func NewTxWithdraw(validatorAddress common.Address, amount string) sdk.Tx {
+func NewTxWithdraw(validatorAddress common.Address, amount string, completelyWithdraw bool) sdk.Tx {
 	return TxWithdraw{
-		ValidatorAddress: validatorAddress,
-		Amount:           amount,
+		ValidatorAddress:   validatorAddress,
+		Amount:             amount,
+		CompletelyWithdraw: completelyWithdraw,
 	}.Wrap()
 }
 

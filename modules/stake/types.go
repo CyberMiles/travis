@@ -392,6 +392,7 @@ type Delegation struct {
 	AverageStakingDate    int64          `json:"average_staking_date"`
 	CandidateId           int64          `json:"candidate_id"`
 	Source                string         `json:"source"`
+	CompletelyWithdraw    string         `json:"completely_withdraw"`
 }
 
 func (d *Delegation) Shares() (res sdk.Int) {
@@ -472,7 +473,7 @@ func (d *Delegation) CalcVotingPower(sharesPercentage sdk.Rat, blockHeight int64
 }
 
 func (d *Delegation) Hash() []byte {
-	excludedFields := []string{"source"}
+	excludedFields := []string{"source", "completely_withdraw"}
 	bs := types.Hash(d, excludedFields)
 	hasher := ripemd160.New()
 	hasher.Write(bs)
@@ -540,6 +541,7 @@ type UnstakeRequest struct {
 	Amount               string         `json:"amount"`
 	State                string         `json:"state"`
 	CandidateId          int64          `json:"candidate_id"`
+	ActualAmount         string         `json:"actual_amount"`
 }
 
 func (r *UnstakeRequest) Hash() []byte {

@@ -472,6 +472,58 @@ describe("Stake Test", function() {
         ).to.eq(Number(withdraw))
       })
     })
+    describe("Account B completely withdraw for D.", function() {
+      let delegation_before, delegation_after
+      before(function() {
+        // balance before
+        balance_old = Utils.getBalance(1)
+        // delegation before
+        delegation_before = Utils.getDelegation(1, 3)
+      })
+      it("CMTs are moved back to account B(locked)", function() {
+        let withdraw = web3.toBigNumber(amounts.dele1).times(0.7)
+        let payload = {
+          from: Globals.Accounts[1],
+          validatorAddress: Globals.Accounts[3],
+          amount: withdraw,
+          completelyWithdraw: true,
+        }
+        tx_result = web3.cmt.stake.delegator.withdraw(payload)
+        Utils.expectTxSuccess(tx_result)
+        // balance after
+        balance_new = Utils.getBalance(1)
+        expect(balance_new.minus(balance_old).toNumber()).to.eq(Number(0))
+        // delegation after
+        delegation_after = Utils.getDelegation(1, 3)
+        expect(
+            delegation_after.pending_withdraw_amount
+                .minus(delegation_before.pending_withdraw_amount)
+                .toNumber()
+        ).to.eq(Number(withdraw))
+        expect(delegation_after.completely_withdraw).to.eq("Y")
+      })
+
+      it("Failed when Withdrawing again", function() {
+        let withdraw = web3.toBigNumber(amounts.dele1).times(0.1)
+        let payload = {
+          from: Globals.Accounts[1],
+          validatorAddress: Globals.Accounts[3],
+          amount: withdraw,
+        }
+        tx_result = web3.cmt.stake.delegator.withdraw(payload)
+        Utils.expectTxFail(tx_result)
+      })
+
+      it("Failed when delegating", function() {
+        let payload = {
+          from: Globals.Accounts[1],
+          validatorAddress: Globals.Accounts[3],
+          amount: amounts.dele1,
+        }
+        tx_result = web3.cmt.stake.delegator.accept(payload)
+        Utils.expectTxFail(tx_result)
+      })
+    })
   })
 
   describe("Update Candidacy", function() {
