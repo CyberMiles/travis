@@ -493,14 +493,15 @@ func (s *CmtRPCService) Delegate(args DelegateArgs) (*ctypes.ResultBroadcastTxCo
 }
 
 type WithdrawArgs struct {
-	Nonce            *hexutil.Uint64 `json:"nonce"`
-	From             common.Address  `json:"from"`
-	ValidatorAddress common.Address  `json:"validatorAddress"`
-	Amount           hexutil.Big     `json:"amount"`
+	Nonce              *hexutil.Uint64 `json:"nonce"`
+	From               common.Address  `json:"from"`
+	ValidatorAddress   common.Address  `json:"validatorAddress"`
+	Amount             hexutil.Big     `json:"amount"`
+	CompletelyWithdraw bool            `json:"completelyWithdraw"`
 }
 
 func (s *CmtRPCService) Withdraw(args WithdrawArgs) (*ctypes.ResultBroadcastTxCommit, error) {
-	tx := stake.NewTxWithdraw(args.ValidatorAddress, args.Amount.ToInt().String())
+	tx := stake.NewTxWithdraw(args.ValidatorAddress, args.Amount.ToInt().String(), args.CompletelyWithdraw)
 
 	txArgs, err := s.makeTravisTxArgs(tx, args.From, args.Nonce)
 	if err != nil {

@@ -59,6 +59,7 @@ const (
 	FlagDelegatorAddress       = "delegator-address"
 	FlagNewCandidateAddress    = "new-candidate-address"
 	FlagAccountUpdateRequestId = "account-update-request-id"
+	FlagCompletelyWithdraw     = "completely-withdraw"
 )
 
 // nolint
@@ -164,6 +165,9 @@ func init() {
 	fsAccountUpdateRequestId := flag.NewFlagSet("", flag.ContinueOnError)
 	fsAccountUpdateRequestId.Int64(FlagAccountUpdateRequestId, 0, "account update request ID")
 
+	fsCompletelyWithdraw := flag.NewFlagSet("", flag.ContinueOnError)
+	fsCompletelyWithdraw.String(FlagCompletelyWithdraw, "false", "true or false")
+
 	// add the flags
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsPk)
 	CmdDeclareCandidacy.Flags().AddFlagSet(fsCandidate)
@@ -183,6 +187,7 @@ func init() {
 
 	CmdWithdraw.Flags().AddFlagSet(fsValidatorAddress)
 	CmdWithdraw.Flags().AddFlagSet(fsAmount)
+	CmdWithdraw.Flags().AddFlagSet(fsCompletelyWithdraw)
 
 	CmdSetCompRate.Flags().AddFlagSet(fsCompRate)
 	CmdSetCompRate.Flags().AddFlagSet(fsDelegatorAddress)
@@ -332,7 +337,8 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("amount must be positive interger")
 	}
 
-	tx := stake.NewTxWithdraw(validatorAddress, amount)
+	completelyWithdraw := viper.GetBool(FlagCompletelyWithdraw)
+	tx := stake.NewTxWithdraw(validatorAddress, amount, completelyWithdraw)
 	return txcmd.DoTx(tx)
 }
 

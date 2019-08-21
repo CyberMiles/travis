@@ -408,6 +408,11 @@ func (c check) delegate(tx TxDelegate) error {
 		return err
 	}
 
+	d := GetDelegation(c.sender, candidate.Id)
+	if d != nil && d.CompletelyWithdraw == "Y" {
+		return ErrDelegatorHasPendingWithdrawal()
+	}
+
 	// check to see if the simpleValidator has reached its declared max amount CMTs to be staked.
 	if candidate.ParseShares().Add(amount).GT(candidate.ParseMaxShares()) {
 		return ErrReachMaxAmount()
@@ -431,6 +436,10 @@ func (c check) withdraw(tx TxWithdraw) error {
 	d := GetDelegation(c.sender, candidate.Id)
 	if d == nil {
 		return ErrDelegationNotExists()
+	}
+
+	if d.CompletelyWithdraw == "Y" {
+		return ErrDelegatorHasPendingWithdrawal()
 	}
 
 	if amount.GT(d.Shares()) {
@@ -754,6 +763,10 @@ func (d deliver) withdrawCandidacy(tx TxWithdrawCandidacy) error {
 	// Self-staked CMTs will be refunded back to the validator address.
 	delegations := GetDelegationsByCandidate(candidate.Id, "Y")
 	for _, delegation := range delegations {
+		if delegation.CompletelyWithdraw == "Y" {
+			continue
+		}
+
 		txWithdraw := TxWithdraw{ValidatorAddress: validatorAddress, Amount: delegation.Shares().String()}
 		d.doWithdraw(delegation, delegation.Shares(), candidate, txWithdraw)
 	}
@@ -854,6 +867,7 @@ func (d deliver) delegate(tx TxDelegate) error {
 			BlockHeight:           d.ctx.BlockHeight(),
 			CreatedAt:             now,
 			Source:                source,
+			CompletelyWithdraw:    "N",
 		}
 		SaveDelegation(delegation)
 	} else {
@@ -906,6 +920,11 @@ func (d deliver) withdraw(tx TxWithdraw) error {
 func (d deliver) doWithdraw(delegation *Delegation, amount sdk.Int, candidate *Candidate, tx TxWithdraw) {
 	//delegation.ReduceAverageStakingDate(amount)
 	delegation.AddPendingWithdrawAmount(amount)
+	if tx.CompletelyWithdraw {
+		delegation.CompletelyWithdraw = "Y"
+	} else {
+		delegation.CompletelyWithdraw = "N"
+	}
 	UpdateDelegation(delegation)
 
 	// record the unstaking requests which will be processed in 7 days
@@ -1032,12 +1051,22 @@ func HandlePendingUnstakeRequests(height int64) error {
 			continue
 		}
 
-		delegation.AddWithdrawAmount(amount)
-		delegation.AddPendingWithdrawAmount(amount.Neg())
+		if delegation.CompletelyWithdraw == "Y" {
+			shares := delegation.Shares()
+			amount = amount.Add(shares)
+			delegation.AddWithdrawAmount(amount)
+			delegation.AddPendingWithdrawAmount(shares)
+			delegation.AddPendingWithdrawAmount(amount.Neg())
+			delegation.CompletelyWithdraw = "N"
+		} else {
+			delegation.AddWithdrawAmount(amount)
+			delegation.AddPendingWithdrawAmount(amount.Neg())
+		}
+
 		UpdateDelegation(delegation)
 
 		minStakingAmount := sdk.NewInt(utils.GetParams().MinStakingAmount).Mul(sdk.E18Int)
-		if delegation.Shares().LT(minStakingAmount) {
+		if delegation.ProfitableShares().LT(minStakingAmount) {
 			RemoveDelegation(delegation.Id)
 			candidate.NumOfDelegators = GetNumOfDelegatorsByCandidate(candidate.Id)
 			updateCandidate(candidate)
@@ -1071,26 +1100,4 @@ func getRechargeAmount(maxAmount sdk.Int, candidate *Candidate, ssr sdk.Rat) (re
 	d := GetDelegation(common.HexToAddress(candidate.OwnerAddress), candidate.Id)
 	res = tmp.Sub(d.Shares())
 	return
-}
-
-/*func RecordCandidateDailyStakes(blockHeight int64) error {
-	candidates := GetActiveCandidates()
-	for _, candidate := range candidates {
-		cds := &CandidateDailyStake{CandidateId: candidate.Id, Amount: candidate.Shares, BlockHeight: blockHeight}
-		SaveCandidateDailyStake(cds)
-	}
-
-	// remove expired records
-	startBlockHeight := blockHeight - utils.ConvertDaysToHeight(90)
-	RemoveExpiredCandidateDailyStakes(startBlockHeight)
-	return nil
-}*/
-
-func AccumulateDelegationsAverageStakingDate() error {
-	delegations := GetDelegations("Y")
-	for _, d := range delegations {
-		d.AccumulateAverageStakingDate()
-		UpdateDelegation(d)
-	}
-	return nil
 }

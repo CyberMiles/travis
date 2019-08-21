@@ -64,6 +64,12 @@ func startServices(rootDir string, storeApp *app.StoreApp) (*Services, error) {
 		os.Exit(1)
 	}
 
+	// Alter database if needed
+	if err = alterDatabaseIfNeeded2(rootDir); err != nil {
+		log.Warn(err.Error())
+		os.Exit(1)
+	}
+
 	// Create Basecoin app
 	basecoinApp, err := createBaseApp(rootDir, storeApp, ethApp, backend.Ethereum())
 	if err != nil {
@@ -195,7 +201,54 @@ func alterDatabaseIfNeeded(rootDir string) error {
 		return err
 	}
 
-	log.Info("Successfully altered database!")
+	log.Info("Successfully altered database #1!")
+
+	return nil
+}
+
+func alterDatabaseIfNeeded2(rootDir string) error {
+	stakeDbPath := filepath.Join(rootDir, "data", travisUtils.DB_FILE_NAME)
+	db, err := sql.Open("sqlite3", stakeDbPath)
+	if err != nil {
+		return err
+	}
+
+	defer db.Close()
+
+	// add the completely_withdraw field to delegations table
+	var cnt int64
+	err = db.QueryRow("SELECT COUNT(*) AS cnt FROM pragma_table_info('delegations') WHERE name='completely_withdraw'").Scan(&cnt)
+	if err != nil {
+		return err
+	}
+
+	if cnt == 1 {
+		return nil
+	}
+
+	sqlStmt := "alter table delegations add column completely_withdraw text not null default 'N'"
+	_, err = db.Exec(sqlStmt)
+	if err != nil {
+		return err
+	}
+
+	// add the actual_amount field to unstake_requests table
+	err = db.QueryRow("SELECT COUNT(*) AS cnt FROM pragma_table_info('unstake_requests') WHERE name='actual_amount'").Scan(&cnt)
+	if err != nil {
+		return err
+	}
+
+	if cnt == 1 {
+		return nil
+	}
+
+	sqlStmt = "alter table unstake_requests add column actual_amount text not null default '0'"
+	_, err = db.Exec(sqlStmt)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Successfully altered database #2!")
 
 	return nil
 }
