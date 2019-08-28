@@ -34,6 +34,68 @@ describe("Lity Test", function() {
       expect(test).to.equal("olleh")
     })
   })
+  describe("Json test", function() {
+    let contractInstance
+    it("new JsonTest contract", function(done) {
+      contractInstance = Utils.newContract(
+          web3.cmt.defaultAccount,
+          Globals.JsonTest.abi,
+          Globals.JsonTest.bytecode,
+          addr => {
+            Globals.JsonTest.contractAddress = addr
+            done()
+          }
+      )
+    })
+    it("as bool", function() {
+      test = contractInstance.testAsBool.call("[true, false]", {
+        from: web3.cmt.defaultAccount
+      })
+      expect(test).to.equal("[true, false]")
+    })
+
+      it("array get", function() {
+          test = contractInstance.testArrayGet.call("[\"hello\", \"world\"]", {
+              from: web3.cmt.defaultAccount
+          })
+          expect(test).to.equal("world")
+      })
+
+      it("as int", function() {
+          test = contractInstance.testAsInt.call("\"-123\"", {
+              from: web3.cmt.defaultAccount
+          })
+          expect(test).to.equal("-123")
+      })
+
+      it("as string", function() {
+          test = contractInstance.testAsString.call("\"a\"", {
+              from: web3.cmt.defaultAccount
+          })
+          expect(test).to.equal("a")
+      })
+
+      it("get type", function() {
+          test = contractInstance.testGetType.call("[true, 12345, \"hello\", [1,2,3], {\"a\": \"b\"}]", {
+              from: web3.cmt.defaultAccount
+          })
+          expect(test).to.equal("[true, 12345, \"hello\", [1,2,3], {\"a\": \"b\"}]")
+      })
+
+      it("nested array get", function() {
+          test = contractInstance.testNestedArrayGet.call("[\"foo\", [\"nested\"]]", {
+              from: web3.cmt.defaultAccount
+          })
+          expect(test).to.equal("nested")
+      })
+
+      it("object get", function() {
+          test = contractInstance.testObjectGet.call("{\"hello\": \"world\"}", {
+              from: web3.cmt.defaultAccount
+          })
+          expect(test).to.equal("world")
+      })
+  })
   describe("Dogecoin", function() {
     let contractInstance
     it("new DogecoinVerifier contract", function(done) {
