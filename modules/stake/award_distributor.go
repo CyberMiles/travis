@@ -8,7 +8,6 @@ import (
 	"github.com/CyberMiles/travis/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tendermint/libs/log"
-	"math"
 )
 
 type simpleValidator struct {
@@ -115,12 +114,12 @@ func (ad awardDistributor) getMintableAmount() (amount sdk.Int) {
 	}
 
 	year := ad.height / utils.YearlyBlockNumber
-	b, _ := utils.GetParams().InflationRate.Add(sdk.OneRat).Float64()
-	pow := math.Pow(b, float64(year))
-	pow = utils.RoundFloat(pow, 2)
-	r := sdk.NewRat(int64(pow*100), 100)
-	amount = base.MulRat(r)
-	//amount = base
+	//b, _ := utils.GetParams().InflationRate.Add(sdk.OneRat).Float64()
+	//pow := math.Pow(b, float64(year))
+	//pow = utils.RoundFloat(pow, 2)
+	//r := sdk.NewRat(int64(pow*100), 100)
+	//amount = base.MulRat(r)
+	amount = base
 	ad.logger.Debug("getMintableAmount", "height", ad.height, "year", year, "amount", amount)
 	return
 }
