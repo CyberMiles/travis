@@ -65,7 +65,7 @@ describe("Lity Test", function() {
           test = contractInstance.testAsInt.call("\"-123\"", {
               from: web3.cmt.defaultAccount
           })
-          expect(test).to.equal(-123)
+          expect(test).to.equal("case 6")
       })
 
       it("as string", function() {
