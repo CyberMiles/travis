@@ -438,7 +438,7 @@ func (c check) withdraw(tx TxWithdraw) error {
 		return ErrDelegationNotExists()
 	}
 
-	if d.CompletelyWithdraw == "Y" {
+	if d.CompletelyWithdraw == "Y" || (tx.CompletelyWithdraw && d.ParsePendingWithdrawAmount().GT(sdk.ZeroInt)) {
 		return ErrDelegatorHasPendingWithdrawal()
 	}
 

@@ -472,18 +472,18 @@ describe("Stake Test", function() {
         ).to.eq(Number(withdraw))
       })
     })
-    describe("Account B completely withdraw for D.", function() {
+    describe("Account C completely withdraw for D.", function() {
       let delegation_before, delegation_after
       before(function() {
         // balance before
-        balance_old = Utils.getBalance(1)
+        balance_old = Utils.getBalance(2)
         // delegation before
-        delegation_before = Utils.getDelegation(1, 3)
+        delegation_before = Utils.getDelegation(2, 3)
       })
-      it("CMTs are moved back to account B(locked)", function() {
+      it("CMTs are moved back to account C(locked)", function() {
         let withdraw = web3.toBigNumber(amounts.dele1).times(0.7)
         let payload = {
-          from: Globals.Accounts[1],
+          from: Globals.Accounts[2],
           validatorAddress: Globals.Accounts[3],
           amount: withdraw,
           completelyWithdraw: true,
@@ -491,10 +491,10 @@ describe("Stake Test", function() {
         tx_result = web3.cmt.stake.delegator.withdraw(payload)
         Utils.expectTxSuccess(tx_result)
         // balance after
-        balance_new = Utils.getBalance(1)
+        balance_new = Utils.getBalance(2)
         expect(balance_new.minus(balance_old).toNumber()).to.eq(Number(0))
         // delegation after
-        delegation_after = Utils.getDelegation(1, 3)
+        delegation_after = Utils.getDelegation(2, 3)
         expect(
             delegation_after.pending_withdraw_amount
                 .minus(delegation_before.pending_withdraw_amount)
@@ -506,7 +506,7 @@ describe("Stake Test", function() {
       it("Failed when Withdrawing again", function() {
         let withdraw = web3.toBigNumber(amounts.dele1).times(0.1)
         let payload = {
-          from: Globals.Accounts[1],
+          from: Globals.Accounts[2],
           validatorAddress: Globals.Accounts[3],
           amount: withdraw,
         }
@@ -516,7 +516,7 @@ describe("Stake Test", function() {
 
       it("Failed when delegating", function() {
         let payload = {
-          from: Globals.Accounts[1],
+          from: Globals.Accounts[2],
           validatorAddress: Globals.Accounts[3],
           amount: amounts.dele1,
         }
