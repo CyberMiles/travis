@@ -104,7 +104,7 @@ module.exports = {
         "outputs": [
           {
             "name": "",
-            "type": "string"
+            "type": "int256"
           }
         ],
         "payable": false,
