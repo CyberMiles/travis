@@ -252,7 +252,8 @@ Blocks                Software version     Notes
 1248301 - 1306100     0.1.6-beta-testnet
 1306101 - 1653200     0.1.7-beta-testnet
 1653201 - 2610185     0.1.8-beta           Crashed at 1694600,fixed w/o changing version #
-2610186 -             0.1.9-beta
+2610186 - 2831000     0.1.9-beta           This is NOT deployed on the mainnet
+2831001 -             0.1.10-beta
 ===================== ==================== ===========================================================
 
 The general process for syncing a node from genesis is as follows:
