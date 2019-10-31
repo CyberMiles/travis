@@ -22,11 +22,11 @@ Please `setup docker <https://docs.docker.com/engine/installation/>`_.
 Docker Image
 ------------
 
-Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/cybermiles/travis/tags/>`_. MainNet environment is currently at the `'v0.1.8-beta-hotfix' <https://github.com/CyberMiles/travis/releases/tag/v0.1.8-beta-hotfix>`_ release which can be pulled as follows.
+Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/cybermiles/travis/tags/>`_. MainNet environment is currently at the `'v0.1.10-beta-hotfix' <https://github.com/CyberMiles/travis/releases/tag/v0.1.10-beta-hotfix>`_ release which can be pulled as follows.
 
 ::
 
-  docker pull cybermiles/travis:v0.1.8-beta-hotfix
+  docker pull cybermiles/travis:v0.1.10-beta-hotfix
 
 Note: Configuration and data will be stored at ``/travis`` directory in the container. The directory will also be exposed as a volume. The ports 8545, 26656 and 26657 will be exposed for connection.
 
@@ -36,7 +36,7 @@ Getting Travis MainNet Config
 ::
 
   rm -rf $HOME/.travis
-  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:v0.1.8-beta-hotfix node init --env mainnet --home /travis
+  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:v0.1.10-beta-hotfix node init --env mainnet --home /travis
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init-mainnet/config.toml > $HOME/.travis/config/config.toml
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init-mainnet/genesis.json > $HOME/.travis/config/genesis.json
 
@@ -75,7 +75,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --privileged --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:v0.1.8-beta-hotfix node start --home /travis
+  docker run --privileged --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:v0.1.10-beta-hotfix node start --home /travis
 
 
 Attach to the Node and run web3-cmt.js 
@@ -115,15 +115,15 @@ You can splice the file name from the bucket list. The downloading url will be l
 
   # if your os is Ubuntu 16.04
   mv .travis $HOME
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.8-beta-hotfix/travis_v0.1.8-beta-hotfix_ubuntu-16.04.zip
-  unzip travis_v0.1.8-beta-hotfix_ubuntu-16.04.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.10-beta-hotfix/travis_v0.1.10-beta-hotfix_ubuntu-16.04.zip
+  unzip travis_v0.1.10-beta-hotfix_ubuntu-16.04.zip
   mkdir -p $HOME/.travis/eni
   cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
   
   # or if your os is CentOS 7
   mv .travis $HOME
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.8-beta-hotfix/travis_v0.1.8-beta-hotfix_centos-7.zip
-  unzip travis_v0.1.8-beta-hotfix_centos-7.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.10-beta-hotfix/travis_v0.1.10-beta-hotfix_centos-7.zip
+  unzip travis_v0.1.10-beta-hotfix_centos-7.zip
   mkdir -p $HOME/.travis/eni
   cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
 
