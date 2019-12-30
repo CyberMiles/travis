@@ -2,6 +2,10 @@
 CMT Wallet - dApp SDK Guideline
 ====
 
+Note: We recommend using BUIDL for CMT to develop CyberMiles DApps. Get started here:
+
+https://docs.secondstate.io/buidl-developer-tool/getting-started/develop-for-cybermiles
+
 Introduction
 ====
 
@@ -77,6 +81,9 @@ dApp development sample process：
  
 Developer Toolkit
 ====
+
+`BUIDL for CMT <https://buidl.secondstate.io/cmt>`_
+-----------------------------------------------------------------------------------------------------------
  `MetaMask for CMT <https://www.cybermiles.io/metamask/>`_
 -----------------------------------------------------------------------------------------------------------
 
