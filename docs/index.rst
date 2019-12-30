@@ -6,6 +6,7 @@ This is the official documentation for the CyberMiles blockchain. It walks you t
 the smart contract platform, including validator and governance related transactions as well as the Lity
 programming language and virtual machine.
 
+Note: If you are viewing this page on Github, please go visit our documentation web site at https://travis.readthedocs.io/en/latest/
 
 Contents
 --------
