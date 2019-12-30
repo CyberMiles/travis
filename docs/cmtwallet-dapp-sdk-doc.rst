@@ -82,8 +82,9 @@ dApp development sample process：
 Developer Toolkit
 ====
 
-`BUIDL for CMT <https://buidl.secondstate.io/cmt>`_
+ `BUIDL for CMT <https://buidl.secondstate.io/cmt>`_
 -----------------------------------------------------------------------------------------------------------
+
  `MetaMask for CMT <https://www.cybermiles.io/metamask/>`_
 -----------------------------------------------------------------------------------------------------------
 
