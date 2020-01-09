@@ -93,7 +93,7 @@ The easiest way to get GO 1.10 is through the GVM. Below are the commands on a L
 
   $ bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
   $ vim ~/.bash_profile
-  inset into the bash profile: source "$HOME/.bashrc"
+  insert into the bash profile: source "$HOME/.bashrc"
   log out and log in
   $ sudo apt-get install bison
   $ gvm version
