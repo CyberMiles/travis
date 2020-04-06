@@ -198,7 +198,7 @@ func composeCandidateResults(rows *sql.Rows) (candidates Candidates) {
 	}
 
 	if err := rows.Err(); err != nil {
-		panic(err)
+		// panic(err)
 	}
 	return
 }
@@ -467,7 +467,7 @@ func composeDelegationResults(rows *sql.Rows) (delegations []*Delegation) {
 	}
 
 	if err := rows.Err(); err != nil {
-		panic(err)
+		// panic(err)
 	}
 	return
 }
@@ -580,7 +580,7 @@ func composeUnstakeRequestResults(rows *sql.Rows) (reqs []*UnstakeRequest) {
 	}
 
 	if err := rows.Err(); err != nil {
-		panic(err)
+		// panic(err)
 	}
 	return
 }
