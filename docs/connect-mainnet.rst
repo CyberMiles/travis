@@ -22,11 +22,11 @@ Please `setup docker <https://docs.docker.com/engine/installation/>`_.
 Docker Image
 ------------
 
-Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/cybermiles/travis/tags/>`_. MainNet environment is currently at the `'v0.1.10-beta' <https://github.com/CyberMiles/travis/releases/tag/v0.1.10-beta>`_ release which can be pulled as follows.
+Docker image for Travis is stored on `Docker Hub <https://hub.docker.com/r/cybermiles/travis/tags/>`_. MainNet environment is currently at the `'v0.1.10-beta-hotfix1' <https://github.com/CyberMiles/travis/releases/tag/v0.1.10-beta-hotfix1>`_ release which can be pulled as follows.
 
 ::
 
-  docker pull cybermiles/travis:v0.1.10-beta
+  docker pull cybermiles/travis:v0.1.10-beta-hotfix1
 
 Note: Configuration and data will be stored at ``/travis`` directory in the container. The directory will also be exposed as a volume. The ports 8545, 26656 and 26657 will be exposed for connection.
 
@@ -36,7 +36,7 @@ Getting Travis MainNet Config
 ::
 
   rm -rf $HOME/.travis
-  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:v0.1.10-beta node init --env mainnet --home /travis
+  docker run --rm -v $HOME/.travis:/travis -t cybermiles/travis:v0.1.10-beta-hotfix1 node init --env mainnet --home /travis
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init-mainnet/config.toml > $HOME/.travis/config/config.toml
   curl https://raw.githubusercontent.com/CyberMiles/testnet/master/travis/init-mainnet/genesis.json > $HOME/.travis/config/genesis.json
 
@@ -75,7 +75,7 @@ Run the docker Travis application:
 
 ::
 
-  docker run --privileged --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:v0.1.10-beta node start --home /travis
+  docker run --privileged --name travis -v $HOME/.travis:/travis -t -p 26657:26657 cybermiles/travis:v0.1.10-beta-hotfix1 node start --home /travis
 
 
 Attach to the Node and run web3-cmt.js 
@@ -115,15 +115,15 @@ You can splice the file name from the bucket list. The downloading url will be l
 
   # if your os is Ubuntu 16.04
   mv .travis $HOME
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.10-beta/travis_v0.1.10-beta_ubuntu-16.04.zip
-  unzip travis_v0.1.10-beta_ubuntu-16.04.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.10-beta-hotfix1/travis_v0.1.10-beta-hotfix1_ubuntu-16.04.zip
+  unzip travis_v0.1.10-beta-hotfix1_ubuntu-16.04.zip
   mkdir -p $HOME/.travis/eni
   cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
   
   # or if your os is CentOS 7
   mv .travis $HOME
-  wget https://github.com/CyberMiles/travis/releases/download/v0.1.10-beta/travis_v0.1.10-beta_centos-7.zip
-  unzip travis_v0.1.10-beta_centos-7.zip
+  wget https://github.com/CyberMiles/travis/releases/download/v0.1.10-beta-hotfix1/travis_v0.1.10-beta-hotfix1_centos-7.zip
+  unzip travis_v0.1.10-beta-hotfix1_centos-7.zip
   mkdir -p $HOME/.travis/eni
   cp -r $HOME/release/lib/. $HOME/.travis/eni/lib
 
@@ -196,7 +196,7 @@ Blocks                 Software version     Note
 286246 - 1321175       v0.1.3-beta-hotfix2  The chain stops itself at 1321175
 1321176 - 1700580      v0.1.7-beta          The chain stops itself at 1700580
 1700581 - 2875555      v0.1.8-beta-hotfix   v0.1.8-beta crashes at 1724748. The chain stops itself at 2875555
-2875556 -              v0.1.10-beta
+2875556 -              v0.1.10-beta-hotfix1
 ====================== ==================== =====================================================================
 
 The general process for syncing a node from genesis is as follows:
