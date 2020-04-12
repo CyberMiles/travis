@@ -152,10 +152,12 @@ func getCandidatesInternal(cond map[string]interface{}) (candidates Candidates) 
 	clause, params := buildQueryClause(cond)
 	rows, err := txWrapper.tx.Query("select id, pub_key, address, shares, voting_power, pending_voting_power, max_shares, comp_rate, name, website, location, profile, email, verified, active, block_height, rank, state, num_of_delegators, created_at from candidates"+clause, params...)
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
-	defer rows.Close()
-	candidates = composeCandidateResults(rows)
+	if rows != nil {
+		defer rows.Close()
+		candidates = composeCandidateResults(rows)
+	}
 	return
 }
 
@@ -427,11 +429,12 @@ func getDelegationsInternal(cond map[string]interface{}) (delegations []*Delegat
 	clause, params := buildQueryClause(cond)
 	rows, err := txWrapper.tx.Query("select id, delegator_address, candidate_id, delegate_amount, award_amount, withdraw_amount, pending_withdraw_amount, slash_amount, comp_rate, voting_power, state, block_height, average_staking_date, created_at, source, completely_withdraw from delegations"+clause, params...)
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
-	defer rows.Close()
-
-	delegations = composeDelegationResults(rows)
+	if rows != nil {
+		defer rows.Close()
+		delegations = composeDelegationResults(rows)
+	}
 	return
 }
 
@@ -549,11 +552,12 @@ func GetUnstakeRequests(height int64) (reqs []*UnstakeRequest) {
 
 	rows, err := txWrapper.tx.Query("select id, delegator_address, candidate_id, initiated_block_height, performed_block_height, amount, state, actual_amount from unstake_requests where state = ? and performed_block_height <= ?", "PENDING", height)
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
-	defer rows.Close()
-
-	reqs = composeUnstakeRequestResults(rows)
+	if rows != nil {
+		defer rows.Close()
+		reqs = composeUnstakeRequestResults(rows)
+	}
 	return
 }
 
@@ -592,11 +596,12 @@ func getUnstakeRequestsInternal(cond map[string]interface{}) (reqs []*UnstakeReq
 	clause, params := buildQueryClause(cond)
 	rows, err := txWrapper.tx.Query("select id, delegator_address, candidate_id, initiated_block_height, performed_block_height, amount, state, actual_amount from unstake_requests"+clause, params...)
 	if err != nil {
-		panic(err)
+		// panic(err)
 	}
-	defer rows.Close()
-
-	reqs = composeUnstakeRequestResults(rows)
+	if rows != nil {
+		defer rows.Close()
+		reqs = composeUnstakeRequestResults(rows)
+	}
 	return
 }
 
