@@ -30,6 +30,14 @@ func getDb() *sql.DB {
 	return db
 }
 
+func getImmuDb() *sql.DB {
+	db, err := dbm.Sqliter.GetImmuDB()
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
 type SqlTxWrapper struct {
 	tx        *sql.Tx
 	withBlock bool

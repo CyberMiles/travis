@@ -6,14 +6,14 @@ import (
 )
 
 func QueryCandidates() (candidates Candidates) {
-	db := getDb()
+	db := getImmuDb()
 	cond := make(map[string]interface{})
 	cond["active"] = "Y"
 	return queryCandidates(db, cond)
 }
 
 func QueryCandidateByAddress(address common.Address) *Candidate {
-	db := getDb()
+	db := getImmuDb()
 	cond := make(map[string]interface{})
 	cond["address"] = address.String()
 	candidates := queryCandidates(db, cond)
@@ -25,7 +25,7 @@ func QueryCandidateByAddress(address common.Address) *Candidate {
 }
 
 func QueryCandidateById(id int64) *Candidate {
-	db := getDb()
+	db := getImmuDb()
 	cond := make(map[string]interface{})
 	cond["id"] = id
 	candidates := queryCandidates(db, cond)
@@ -37,7 +37,7 @@ func QueryCandidateById(id int64) *Candidate {
 }
 
 func QueryDelegationsByAddress(delegatorAddress common.Address) (delegations []*Delegation) {
-	db := getDb()
+	db := getImmuDb()
 	cond := make(map[string]interface{})
 	cond["delegator_address"] = delegatorAddress.String()
 	return queryDelegations(db, cond)

@@ -15,6 +15,7 @@ import (
 type sqliter struct{
 	dbPath string
 	db *sql.DB
+	immuDb *sql.DB
 }
 
 var Sqliter = &sqliter{}
@@ -50,14 +51,41 @@ func (s *sqliter) GetDB() (*sql.DB, error) {
 	return db, nil
 }
 
+func (s *sqliter) GetImmuDB() (*sql.DB, error) {
+	if strings.Compare(s.dbPath, "")  == 0 {
+		return nil, errors.ErrInternal("Sqlite database path is not set.")
+	}
+	if s.immuDb != nil {
+		if s.immuDb.Stats().OpenConnections > 0 {
+			return s.immuDb, nil
+		}
+	}
+	db, err := sql.Open("sqlite3", s.dbPath)
+	if err != nil {
+		return nil, errors.ErrInternal("Open database: " + err.Error())
+	}
+	if db.Ping(); err != nil {
+		return nil, errors.ErrInternal("Open database: " + err.Error())
+	}
+	db.Exec("PRAGMA journal_mode=WAL;")
+	s.immuDb = db
+	return db, nil
+}
+
 func (s *sqliter) CloseDB() {
 	if s.db != nil {
 		if err := s.db.Close(); err != nil {
-			log.Warn("Failed to close sqlite db: " + s.dbPath)
+			log.Warn("Failed to close sqlite db connection: " + s.dbPath)
 		}
-		log.Info("Sqlite db closed successfully！")
 		s.db = nil
 	}
+	if s.immuDb != nil {
+		if err := s.immuDb.Close(); err != nil {
+			log.Warn("Failed to close sqlite immutable connection: " + s.dbPath)
+		}
+		s.immuDb = nil
+	}
+	log.Info("Sqlite db closed successfully！")
 }
 
 
