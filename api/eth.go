@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -166,6 +167,10 @@ func (s *EthRPCService) SendRawTransaction(encodedTx hexutil.Bytes) (string, err
 		return "", errors.New(result.Log)
 	}
 	return tx.Hash().Hex(), nil
+}
+
+func (s *EthRPCService) ChainId() string {
+	return fmt.Sprintf("0x%x", s.backend.ethConfig.NetworkId)
 }
 
 // PrivateAccountAPI provides an API to access accounts managed by this node.
