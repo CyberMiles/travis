@@ -8,7 +8,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "async": "^2.6.0",
+    "async": "^3.2.2",
     "chai": "^4.1.2",
     "chai-subset": "^1.6.0",
     "ethereumjs-tx": "^1.3.7",
